@@ -152,11 +152,8 @@
 
     /* --- Typography ------------------------------------------------------- */
 
-    --font-display: "Halant", Georgia, "Times New Roman", serif;
-    --font-body: "Nunito Sans", system-ui, sans-serif;
-    --font-ui: "Telex", "Segoe UI", sans-serif;
+    /* --font-display, --font-body, --font-ui, --font-logo: set by next/font on <html> */
     --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
-    --font-logo: "Bebas Neue", sans-serif;
 
     --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
     --text-sm: clamp(0.8125rem, 0.79rem + 0.15vw, 0.875rem);
