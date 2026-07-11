@@ -1,0 +1,12 @@
+node_modules
+.git
+.gitlab
+.next
+dist
+out
+coverage
+*.md
+.env*
+!.env.example
+Dockerfile*
+docker-compose*.yml
