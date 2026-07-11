@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import IconComponent from '../icon/icon.component'
 import { MENU_LINKS_GROUPS } from './menulinks.const'
 import { isMenuGroup } from './menulinks.types'
 import type { MenuGroup, MenuLinkItem } from './menulinks.types'
@@ -10,13 +10,7 @@ import './menulinks.styles.css'
 import I18nComponent from '../i18n/i18n.component'
 
 const MenuIcon = ({ name }: { name: string }) => (
-  <Icon
-    className="menulinks__icon"
-    icon={name}
-    width={18}
-    height={18}
-    aria-hidden
-  />
+  <IconComponent className="menulinks__icon" icon={name} width={18} height={18} />
 )
 
 const MenuDropdown = ({
@@ -227,16 +221,15 @@ const MenulinksComponent = () => {
         aria-label={isDrawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
         onClick={() => setIsDrawerOpen((open) => !open)}
       >
-        <Icon
+        <IconComponent
           className="menulinks__toggle-icon"
           icon={isDrawerOpen ? 'mdi:close' : 'mdi:menu'}
           width={22}
           height={22}
-          aria-hidden
         />
       </button>
 
-      <ul className="menulinks__list menulinks__list--desktop" role="menubar">
+      <ul className="menulinks__list menulinks__list--desktop">
         {MENU_LINKS_GROUPS.map((entry) =>
           isMenuGroup(entry) ? (
             <MenuDropdown
@@ -247,8 +240,8 @@ const MenulinksComponent = () => {
               onClose={closeDesktopMenu}
             />
           ) : (
-            <li key={entry.id} className="menulinks__item" role="none">
-              <Link href={entry.to} className="menulinks__link" role="menuitem">
+            <li key={entry.id} className="menulinks__item">
+              <Link href={entry.to} className="menulinks__link">
                 {entry.label}
               </Link>
             </li>
@@ -287,7 +280,7 @@ const MenulinksComponent = () => {
               aria-label="Close navigation menu"
               onClick={closeDrawer}
             >
-              <Icon icon="mdi:close" width={20} height={20} aria-hidden />
+              <IconComponent icon="mdi:close" width={20} height={20} />
             </button>
           </div>
 

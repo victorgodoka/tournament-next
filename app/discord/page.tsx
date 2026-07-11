@@ -1,20 +1,8 @@
-'use client'
+import { pageMetadata } from '@lib/page-metadata'
+import DiscordPageClient from './discord-page.client'
 
-import { useDocumentTitle } from '@hooks/use-document-title'
-import './discord.styles.css'
-import DiscordLoadingView from './discord-loading.view'
-import { useDiscordLogin } from '@hooks/use-discord-login'
+export const metadata = pageMetadata('Sign in')
 
-const DiscordPage = () => {
-  useDocumentTitle('Sign in')
-  const { loadingState, errorMessage } = useDiscordLogin()
-
-  return (
-    <DiscordLoadingView
-      loadingState={loadingState}
-      errorMessage={errorMessage}
-    />
-  )
+export default function DiscordPage() {
+  return <DiscordPageClient />
 }
-
-export default DiscordPage

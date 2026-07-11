@@ -1,13 +1,13 @@
 import type { CSSProperties } from 'react'
-import { Icon } from '@iconify/react'
-import { ButtonComponent } from '@components'
-import { DISCORD_INVITE_URL, HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import Link from 'next/link'
+import { ButtonComponent } from '@components'
+import IconComponent from '../../components/icon/icon.component'
+import { DISCORD_INVITE_URL, HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import './home.styles.css'
 
 const HomePage = () => {
   return (
-    <main className="home">
+    <div className="home">
       <div className="home__backdrop" aria-hidden="true">
         <span className="home__grid" />
         <span className="home__orb home__orb--secondary" />
@@ -47,6 +47,7 @@ const HomePage = () => {
             rel="noopener noreferrer"
           >
             Join Discord
+            <span className="visually-hidden"> (opens in new tab)</span>
           </ButtonComponent>
         </div>
       </section>
@@ -71,16 +72,15 @@ const HomePage = () => {
             >
               <Link href={feature.to} className="home__feature-card">
                 <span className="home__feature-icon-wrap" aria-hidden="true">
-                  <Icon className="home__feature-icon" icon={feature.icon} />
+                  <IconComponent className="home__feature-icon" icon={feature.icon} />
                 </span>
                 <span className="home__feature-body">
                   <span className="home__feature-title">{feature.title}</span>
                   <span className="home__feature-description">{feature.description}</span>
                 </span>
-                <Icon
+                <IconComponent
                   className="home__feature-arrow"
                   icon="mdi:arrow-right"
-                  aria-hidden
                 />
               </Link>
             </li>
@@ -103,7 +103,7 @@ const HomePage = () => {
               {HOME_TOOLS.map((tool) => (
                 <li key={tool.to} className="home__tool-item">
                   <Link href={tool.to} className="home__tool-link">
-                    <Icon className="home__tool-icon" icon={tool.icon} aria-hidden />
+                    <IconComponent className="home__tool-icon" icon={tool.icon} />
                     <span>{tool.label}</span>
                   </Link>
                 </li>
@@ -123,7 +123,7 @@ const HomePage = () => {
                     rel="noopener noreferrer"
                   >
                     <span className="home__community-icon-wrap" aria-hidden="true">
-                      <Icon className="home__community-icon" icon={link.icon} />
+                      <IconComponent className="home__community-icon" icon={link.icon} />
                     </span>
                     <span className="home__community-body">
                       <span className="home__community-label">{link.label}</span>
@@ -131,11 +131,11 @@ const HomePage = () => {
                         {link.description}
                       </span>
                     </span>
-                    <Icon
+                    <IconComponent
                       className="home__community-external"
                       icon="mdi:open-in-new"
-                      aria-hidden
                     />
+                    <span className="visually-hidden"> (opens in new tab)</span>
                   </a>
                 </li>
               ))}
@@ -143,7 +143,7 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   )
 }
 

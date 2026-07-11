@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import type { AvatarComponentProps } from './avatar.types'
 import './avatar.styles.css'
 
@@ -24,6 +25,7 @@ const AvatarComponent = ({
 }: AvatarComponentProps) => {
   const [hasError, setHasError] = useState(false)
   const showImage = Boolean(src) && !hasError
+  const imageSrc = src ?? ''
   const classes = [
     'avatar',
     `avatar--${size}`,
@@ -38,15 +40,24 @@ const AvatarComponent = ({
     ? { border: `${borderWidth}px solid ${borderColor}` }
     : undefined
 
+  const imageSizes = {
+    sm: 32,
+    md: 40,
+    lg: 48,
+  } as const
+
+  const dimension = imageSizes[size]
+
   return (
     <span className={classes} style={borderStyle}>
       {showImage ? (
-        <img
+        <Image
           className="avatar__image"
-          src={src}
+          src={imageSrc}
           alt={alt}
-          loading="lazy"
-          decoding="async"
+          width={dimension}
+          height={dimension}
+          sizes={`${dimension}px`}
           onError={() => setHasError(true)}
         />
       ) : (

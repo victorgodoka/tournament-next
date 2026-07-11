@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
@@ -9,11 +9,13 @@ import { consumeAuthRedirectFrom } from '@contexts/Auth/auth.redirect'
 import { getPlayer, getUser } from '../app/discord/discord.api'
 import {
   cleanupOAuthParams,
-  clearOAuthHashFromUrl,
+  exchangeAuthorizationCode,
   getOAuthParams,
+  hasOAuthParams,
   isDiscordTokenValid,
+  parseOAuthCallbackFromUrl,
   persistDiscordToken,
-} from '../app/discord/discord.oauth'
+} from '@lib/discord-oauth'
 
 export type DiscordLoadingState =
   | 'authenticating'
@@ -30,22 +32,17 @@ async function ensureAppSession(userId: string) {
   }
 }
 
-function hasOAuthParams() {
-  const { accessToken, tokenType, expiresIn } = getOAuthParams()
-  return Boolean(accessToken && tokenType && expiresIn)
-}
-
 export function useDiscordLogin() {
   const router = useRouter()
   const { dispatch, user } = useAuthContext()
 
   const [loadingState, setLoadingState] = useState<DiscordLoadingState>('authenticating')
   const [errorMessage, setErrorMessage] = useState('')
-  const [hasCheckedParams, setHasCheckedParams] = useState(false)
 
   const userRef = useRef(user)
   const loginStartedRef = useRef(false)
   const redirectPathRef = useRef('/')
+  const redirectTimersRef = useRef<number[]>([])
 
   useEffect(() => {
     userRef.current = user
@@ -55,50 +52,62 @@ export function useDiscordLogin() {
     redirectPathRef.current = consumeAuthRedirectFrom('/')
   }, [])
 
-  const redirectTimersRef = useRef<number[]>([])
-
-  const scheduleRedirect = (path: string, delayMs: number) => {
+  const scheduleRedirect = useCallback((path: string, delayMs: number) => {
     const timerId = window.setTimeout(() => router.push(path), delayMs)
     redirectTimersRef.current.push(timerId)
-  }
+  }, [router])
 
-  const fail = (message: string, delayMs = 5000) => {
+  const fail = useCallback((message: string, delayMs = 5000) => {
     setLoadingState('error')
     setErrorMessage(message)
     scheduleRedirect('/', delayMs)
-  }
-
-  useEffect(() => {
-    clearOAuthHashFromUrl()
-  }, [])
+  }, [scheduleRedirect])
 
   useEffect(() => {
     return () => {
-      redirectTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+      for (const timerId of redirectTimersRef.current) {
+        window.clearTimeout(timerId)
+      }
     }
   }, [])
 
   useEffect(() => {
-    if (!hasCheckedParams) {
-      const timerId = window.setTimeout(() => setHasCheckedParams(true), 100)
-      return () => window.clearTimeout(timerId)
-    }
-
     if (loginStartedRef.current) return
 
     let cancelled = false
     loginStartedRef.current = true
 
     const run = async () => {
+      const redirectPath = redirectPathRef.current
+      const callback = parseOAuthCallbackFromUrl()
+
+      if (callback.kind === 'error') {
+        cleanupOAuthParams()
+        fail(callback.message)
+        return
+      }
+
+      if (callback.kind === 'code') {
+        setLoadingState('authenticating')
+        const exchange = await exchangeAuthorizationCode(callback.code)
+
+        if (cancelled) return
+
+        if (!exchange.ok) {
+          cleanupOAuthParams()
+          fail(exchange.message)
+          return
+        }
+      }
+
       const currentUser = userRef.current
       const oauthReady = hasOAuthParams()
-      const redirectPath = redirectPathRef.current
 
       if (isAuthenticatedUser(currentUser) && !oauthReady) {
         try {
           await ensureAppSession(currentUser.id)
           if (!cancelled) {
-            router.push('/')
+            router.push(redirectPath)
           }
         } catch (error) {
           if (cancelled) return
@@ -114,10 +123,6 @@ export function useDiscordLogin() {
         return
       }
 
-      if (isAuthenticatedUser(currentUser)) {
-        return
-      }
-
       if (!oauthReady) {
         fail('Invalid authentication parameters. Please try logging in again.', 3000)
         return
@@ -125,11 +130,16 @@ export function useDiscordLogin() {
 
       const { accessToken, tokenType, expiresIn } = getOAuthParams()
 
+      if (!accessToken || !tokenType || !expiresIn) {
+        fail('Invalid authentication parameters. Please try logging in again.', 3000)
+        return
+      }
+
       const completeLogin = async () => {
         try {
           setLoadingState('authenticating')
 
-          const discordResponse = await getUser(accessToken!, tokenType!)
+          const discordResponse = await getUser(accessToken, tokenType)
           if (!discordResponse.ok || !discordResponse.data) {
             throw new Error(discordResponse.message || 'Failed to fetch Discord user data.')
           }
@@ -154,11 +164,7 @@ export function useDiscordLogin() {
 
           if (cancelled) return
 
-          persistDiscordToken({
-            accessToken: accessToken!,
-            tokenType: tokenType!,
-            expiresIn: expiresIn!,
-          })
+          persistDiscordToken({ accessToken, tokenType, expiresIn })
           cleanupOAuthParams()
 
           dispatch({
@@ -211,6 +217,15 @@ export function useDiscordLogin() {
         }
       }
 
+      if (
+        isAuthenticatedUser(currentUser) &&
+        oauthReady &&
+        !isDiscordTokenValid()
+      ) {
+        await completeLogin()
+        return
+      }
+
       if (!isDiscordTokenValid() || !isAuthenticatedUser(currentUser)) {
         await completeLogin()
       } else {
@@ -222,9 +237,8 @@ export function useDiscordLogin() {
 
     return () => {
       cancelled = true
-      loginStartedRef.current = false
     }
-  }, [dispatch, hasCheckedParams, router])
+  }, [dispatch, fail, router, scheduleRedirect])
 
   return {
     loadingState,

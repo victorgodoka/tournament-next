@@ -27,7 +27,8 @@
       "@hooks/*": ["./hooks/*"],
       "@hooks/use-document-title": ["./hooks/use-document-title.ts"],
       "@assets": ["./assets"],
-      "@assets/*": ["./assets/*"]
+      "@assets/*": ["./assets/*"],
+      "@lib/*": ["./lib/*"],
     }
   },
   "include": [

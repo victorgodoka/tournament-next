@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import IconComponent from '../icon/icon.component'
 import { FOOTER_SOCIAL_LINKS } from './footer.const'
 import './footer.styles.css'
 
@@ -15,11 +15,11 @@ const FooterComponent = () => {
               key={link.href}
               href={link.href}
               className="footer__links-link"
-              aria-label={link.label}
+              aria-label={`${link.label} (opens in new tab)`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Icon icon={link.icon} width={24} height={24} aria-hidden />
+              <IconComponent icon={link.icon} width={24} height={24} />
             </a>
           ))}
         </nav>

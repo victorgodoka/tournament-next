@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import IconComponent from '../icon/icon.component'
 import AvatarComponent from '../avatar/avatar.component'
 import {
   LOGOUT_MENU_ITEM,
@@ -51,14 +51,10 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
     setIsOpen((current) => !current)
   }
 
-  useEffect(() => {
-    if (isLoggingOut) {
-      setIsOpen(false)
-    }
-  }, [isLoggingOut])
+  const panelOpen = isOpen && !isLoggingOut
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!panelOpen) return
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
@@ -77,7 +73,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isOpen])
+  }, [panelOpen])
 
   useEffect(() => {
     return () => clearCloseTimeout()
@@ -99,7 +95,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
         type="button"
         className="avatarmenu__trigger"
         aria-haspopup="menu"
-        aria-expanded={isOpen}
+        aria-expanded={panelOpen}
         aria-controls={menuId}
         aria-label={`${displayName} account menu`}
         onClick={toggleMenu}
@@ -115,9 +111,11 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
 
       <div
         id={menuId}
-        className={`avatarmenu__panel${isOpen ? ' avatarmenu__panel--open' : ''}`}
+        className={`avatarmenu__panel${panelOpen ? ' avatarmenu__panel--open' : ''}`}
         role="menu"
         aria-label="Account menu"
+        hidden={!panelOpen}
+        inert={!panelOpen ? true : undefined}
         onMouseEnter={openMenu}
         onMouseLeave={scheduleClose}
       >
@@ -149,34 +147,35 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
                 href={item.to}
                 className="avatarmenu__menu-link"
                 role="menuitem"
+                tabIndex={panelOpen ? undefined : -1}
                 onClick={closeMenu}
               >
-                <Icon className="avatarmenu__menu-icon" icon={item.icon} aria-hidden />
+                <IconComponent className="avatarmenu__menu-icon" icon={item.icon} />
                 <span>{item.label}</span>
               </Link>
             </li>
           ))}
+
+          <li className="avatarmenu__menu-item" role="none">
+            <button
+              type="button"
+              className="avatarmenu__logout"
+              role="menuitem"
+              tabIndex={panelOpen ? undefined : -1}
+              disabled={isLoggingOut}
+              onClick={() => {
+                closeMenu()
+                logout()
+              }}
+            >
+              <IconComponent
+                className="avatarmenu__menu-icon"
+                icon={LOGOUT_MENU_ITEM.icon}
+              />
+              <span>{LOGOUT_MENU_ITEM.label}</span>
+            </button>
+          </li>
         </ul>
-
-        <hr className="avatarmenu__divider" />
-
-        <button
-          type="button"
-          className="avatarmenu__logout"
-          role="menuitem"
-          disabled={isLoggingOut}
-          onClick={() => {
-            closeMenu()
-            logout()
-          }}
-        >
-          <Icon
-            className="avatarmenu__menu-icon"
-            icon={LOGOUT_MENU_ITEM.icon}
-            aria-hidden
-          />
-          <span>{LOGOUT_MENU_ITEM.label}</span>
-        </button>
       </div>
     </div>
   )

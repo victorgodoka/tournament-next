@@ -1,68 +1,36 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId } from 'react'
+import { Icon } from '@iconify/react'
 import { LANGUAGES } from './i18n.const'
 import './i18n.styles.css'
 
-const iconUrl = (name: string) => {
-  const [prefix, icon] = name.split(':')
-  return `https://api.iconify.design/${prefix}/${icon}.svg?color=%23ececee`
-}
-
 const TranslateIcon = () => (
-  <img
+  <Icon
     className="i18n__icon"
-    src={iconUrl('mdi:translate')}
-    alt=""
-    aria-hidden="true"
+    icon="mdi:translate"
     width={18}
     height={18}
-    loading="lazy"
-    decoding="async"
+    aria-hidden
   />
 )
 
 const I18nComponent = () => {
-  const [isOpen, setIsOpen] = useState(false)
   const menuId = useId()
-  const rootRef = useRef<HTMLDivElement>(null)
   const activeLanguage = LANGUAGES[0]
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen])
-
-  const closeMenu = () => setIsOpen(false)
-  const toggleMenu = () => setIsOpen((current) => !current)
-
   return (
-    <div className="i18n" ref={rootRef}>
+    <div className="i18n">
       <button
         type="button"
         className="i18n__trigger"
         aria-haspopup="listbox"
-        aria-expanded={isOpen}
+        aria-expanded={false}
         aria-controls={menuId}
-        aria-label={`Language: ${activeLanguage.label}`}
-        onClick={toggleMenu}
+        aria-disabled="true"
+        aria-label={`Language: ${activeLanguage.label} (coming soon)`}
+        title="Language selection coming soon"
+        disabled
       >
         <TranslateIcon />
         <span className="i18n__label">{activeLanguage.code.toUpperCase()}</span>
@@ -71,9 +39,10 @@ const I18nComponent = () => {
 
       <ul
         id={menuId}
-        className={`i18n__panel${isOpen ? ' i18n__panel--open' : ''}`}
+        className="i18n__panel"
         role="listbox"
         aria-label="Select language"
+        hidden
       >
         {LANGUAGES.map((language) => (
           <li key={language.code} className="i18n__option-item" role="none">
@@ -82,7 +51,8 @@ const I18nComponent = () => {
               className="i18n__option"
               role="option"
               aria-selected={language.code === activeLanguage.code}
-              onClick={closeMenu}
+              disabled
+              tabIndex={-1}
             >
               <span className="i18n__option-code">{language.code.toUpperCase()}</span>
               <span className="i18n__option-label">{language.label}</span>

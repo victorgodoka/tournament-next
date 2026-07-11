@@ -31,7 +31,10 @@ const jsonLd = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: SITE_TITLE,
+  title: {
+    default: SITE_TITLE,
+    template: `%s | YGO Omega`,
+  },
   description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
@@ -82,13 +85,13 @@ export default function RootLayout({
           href="https://images.ygoprodeck.com"
           crossOrigin="anonymous"
         />
-        <link rel="stylesheet" href="/app-shell.css" />
+        <link rel="preconnect" href="https://cdn.discordapp.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+      <body className="app-shell" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

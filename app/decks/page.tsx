@@ -1,4 +1,7 @@
+import { pageMetadata } from '@lib/page-metadata'
 import './decks.styles.css'
+
+export const metadata = pageMetadata('Decks')
 
 const DecksPage = () => {
   return (

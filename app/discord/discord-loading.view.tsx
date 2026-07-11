@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import IconComponent from '../../components/icon/icon.component'
 import type { DiscordLoadingState } from '../../hooks/use-discord-login'
 
 type DiscordLoadingViewProps = {
@@ -37,7 +37,7 @@ const DiscordLoadingView = ({
   const isRedirecting = loadingState === 'redirecting'
 
   return (
-    <main className="discord-login" aria-live="polite">
+    <div className="discord-login" aria-live="polite">
       <div className="discord-login__backdrop" aria-hidden="true">
         <span className="discord-login__grid" />
         <span className="discord-login__orb discord-login__orb--secondary" />
@@ -54,10 +54,9 @@ const DiscordLoadingView = ({
                 : ' discord-login__icon-wrap--pulse'
           }`}
         >
-          <Icon
+          <IconComponent
             className="discord-login__icon"
             icon={getLoadingIcon(loadingState)}
-            aria-hidden
           />
         </div>
 
@@ -110,10 +109,9 @@ const DiscordLoadingView = ({
 
         <aside className="discord-login__notice omega-surface omega-surface--secondary">
           <div className="discord-login__notice-header">
-            <Icon
+            <IconComponent
               className="discord-login__notice-icon"
               icon="mdi:shield-check"
-              aria-hidden
             />
             <span className="discord-login__notice-title">Secure Authentication</span>
           </div>
@@ -123,7 +121,7 @@ const DiscordLoadingView = ({
           </p>
         </aside>
       </div>
-    </main>
+    </div>
   )
 }
 

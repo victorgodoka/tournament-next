@@ -3,12 +3,20 @@
 import { useAuthContext } from '@contexts'
 import ButtonComponent from '../button/button.component'
 import { DISCORD_OAUTH_URL } from './auth.const'
+import { buildDiscordOAuthUrl } from '@lib/discord-oauth'
 import AvatarmenuComponent from '../avatarmenu/avatarmenu.component'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import './auth.styles.css'
 
 const AuthComponent = () => {
   const { user, logout, isLoading, isLoggingOut, justLoggedOut } = useAuthContext()
+
+  const startDiscordSignIn = () => {
+    const url = buildDiscordOAuthUrl(DISCORD_OAUTH_URL)
+    if (url) {
+      window.location.assign(url)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -38,15 +46,28 @@ const AuthComponent = () => {
         </div>
       ) : (
         <div className={`auth__signin${justLoggedOut ? ' auth__signin--enter' : ''}`}>
-          <ButtonComponent
-            variant="secondary"
-            size="lg"
-            icon="mdi:discord"
-            aria-label="Login with Discord"
-            href={DISCORD_OAUTH_URL}
-          >
-            Sign in
-          </ButtonComponent>
+          {DISCORD_OAUTH_URL ? (
+            <ButtonComponent
+              variant="secondary"
+              size="lg"
+              icon="mdi:discord"
+              aria-label="Login with Discord"
+              onClick={startDiscordSignIn}
+            >
+              Sign in
+            </ButtonComponent>
+          ) : (
+            <ButtonComponent
+              variant="secondary"
+              size="lg"
+              icon="mdi:discord"
+              aria-label="Login with Discord"
+              disabled
+              title="Discord sign-in is not configured"
+            >
+              Sign in
+            </ButtonComponent>
+          )}
         </div>
       )}
     </div>

@@ -33,6 +33,20 @@
     box-shadow var(--duration-base) var(--ease-out);
 }
 
+.i18n__trigger[aria-disabled='true'],
+.i18n__trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.i18n__trigger[aria-disabled='true']:hover,
+.i18n__trigger:disabled:hover {
+  color: var(--color-text-muted);
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .i18n__trigger:hover {
   color: var(--color-text);
   background-color: var(--color-secondary-subtle);
