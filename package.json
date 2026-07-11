@@ -4,9 +4,9 @@
   "private": true,
   "packageManager": "pnpm@11.1.2",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 5173",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5173",
     "lint": "eslint"
   },
   "dependencies": {
