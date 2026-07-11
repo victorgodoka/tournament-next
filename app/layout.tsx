@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { fontVariables } from './fonts'
 import { Providers } from './providers'
 import { siteJsonLd } from '@lib/json-ld'
+import { NITROPAY_SCRIPT_URL } from '@lib/nitro-ads.const'
 import {
   OG_IMAGE,
   SITE_DESCRIPTION,
@@ -59,6 +61,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="//images.ygoprodeck.com" />
         <link rel="dns-prefetch" href="//api.duelistsunite.org" />
         <link rel="dns-prefetch" href="//discord.com" />
+        <link rel="dns-prefetch" href="//s.nitropay.com" />
         <link
           rel="preconnect"
           href="https://images.ygoprodeck.com"
@@ -71,7 +74,21 @@ export default function RootLayout({
         />
       </head>
       <body className="app-shell" suppressHydrationWarning>
-        <aside id="nitro-ads-slot"></aside>
+        <Script
+          id="nitro-ads-stub"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html:
+              'window.nitroAds=window.nitroAds||{createAd:function(){return new Promise(e=>{window.nitroAds.queue.push(["createAd",arguments,e])})},addUserToken:function(){window.nitroAds.queue.push(["addUserToken",arguments])},queue:[]};',
+          }}
+        />
+        <Script
+          id="nitro-ads-loader"
+          src={NITROPAY_SCRIPT_URL}
+          strategy="afterInteractive"
+          data-cfasync="false"
+          data-log-level="warn"
+        />
         <Providers>{children}</Providers>
       </body>
     </html>
