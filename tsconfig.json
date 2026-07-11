@@ -25,10 +25,10 @@
       "@contexts/*": ["./contexts/*"],
       "@const": ["./const/index.ts"],
       "@hooks/*": ["./hooks/*"],
-      "@hooks/use-document-title": ["./hooks/use-document-title.ts"],
       "@assets": ["./assets"],
       "@assets/*": ["./assets/*"],
       "@lib/*": ["./lib/*"],
+      "@types/*": ["./types/*"],
     }
   },
   "include": [

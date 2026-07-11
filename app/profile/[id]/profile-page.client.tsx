@@ -1,0 +1,1134 @@
+'use client'
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
+  type KeyboardEvent,
+} from 'react'
+import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { Icon } from '@iconify/react'
+import { AvatarComponent, ButtonComponent } from '@components'
+import { discordAvatar } from '@assets/discord.avatar'
+import { extractCardsFromResponse, searchCards } from '@contexts/Cards/cards.api'
+import { AuthManager } from '@contexts/Auth/auth.manager'
+import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
+import { useAuthContext } from '@contexts/Auth/auth.context'
+import { getPlayerDecks, getUserDecks } from '../../decks/decks.api'
+
+import { CARD_PLACEHOLDER_SRC } from '../profile.const'
+import ProfileSavedDeckCard from './profile-saved-deck-card.component'
+import { PlayerDecksResponse, SavedDeck, MatchHistory } from '../../decks/decks.types'
+import { getPlayer } from '../../discord/discord.api'
+import { getPlayerCustomization } from '../profile.api'
+import { ProfileCustomizationData } from '../profile.types'
+import { getTierInfo, calculateWinRate, isPlayerOnline, sanitizeBioHtml, buildTwitchUrl, buildYoutubeUrl, buildXUrl, buildInstagramUrl, tcgHref, cardArtUrl, formatLastSeen, getWinRateClass, formatMatchDuration } from '../profile.utils'
+import type { PlayerData } from '../../../types/player.types'
+
+const ProfileSkeleton = dynamic(() => import('./profile-skeleton.component'))
+const MatchHistoryCard = dynamic(() => import('./match-history-card.component'))
+
+type ProfilePageClientProps = {
+  profileId: string
+}
+
+type ViewMode = 'tcg' | 'genesys' | 'myDecks'
+
+type SocialLink = {
+  name: string
+  icon: string
+  href: string
+  modifier: string
+}
+
+function ProfileNotFound({ message }: { message: string }) {
+  return (
+    <div className="profile profile--empty" aria-labelledby="profile-error-title">
+      <div className="profile__backdrop" aria-hidden="true">
+        <span className="profile__grid" />
+        <span className="profile__orb profile__orb--secondary" />
+        <span className="profile__orb profile__orb--accent" />
+      </div>
+
+      <div className="profile__empty omega-container omega-container--narrow">
+        <span className="profile__empty-icon-wrap" aria-hidden="true">
+          <Icon icon="mdi:account-off" className="profile__empty-icon" />
+        </span>
+        <h1 id="profile-error-title" className="profile__empty-title">
+          Profile not found
+        </h1>
+        <p className="profile__empty-description">{message}</p>
+        <div className="profile__empty-actions">
+          <ButtonComponent to="/" variant="primary" icon="mdi:home">
+            Back to Home
+          </ButtonComponent>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
+  const { user } = useAuthContext()
+
+  const [loadedId, setLoadedId] = useState(profileId)
+  const [viewMode, setViewMode] = useState<ViewMode>('tcg')
+  const [profileData, setProfileData] = useState<PlayerData | null>(null)
+  const [statsData, setStatsData] = useState<PlayerDecksResponse | null>(null)
+  const [customizationData, setCustomizationData] =
+    useState<ProfileCustomizationData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [profileReady, setProfileReady] = useState(false)
+  const [loadingStats, setLoadingStats] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({ tcg: 1, genesys: 1 })
+  const [userDecks, setUserDecks] = useState<SavedDeck[]>([])
+  const [loadingDecks, setLoadingDecks] = useState(false)
+  const [deckError, setDeckError] = useState<string | null>(null)
+  const [cardNamesMap, setCardNamesMap] = useState<Map<number, string>>(
+    () => new Map(),
+  )
+
+  const fetchedCardIdsRef = useRef<Set<number>>(new Set())
+  const decksLoadedForIdRef = useRef<string | null>(null)
+
+  if (loadedId !== profileId) {
+    setLoadedId(profileId)
+    setProfileData(null)
+    setStatsData(null)
+    setCustomizationData(null)
+    setPagination({ tcg: 1, genesys: 1 })
+    setViewMode('tcg')
+    setError(null)
+    setUserDecks([])
+    setLoadingDecks(false)
+    setDeckError(null)
+    setLoading(true)
+    setProfileReady(false)
+    setLoadingStats(false)
+    setCardNamesMap(new Map())
+  }
+
+  useEffect(() => {
+    fetchedCardIdsRef.current = new Set()
+    decksLoadedForIdRef.current = null
+  }, [profileId])
+
+  const gameMode: 'tcg' | 'genesys' =
+    viewMode === 'myDecks' ? 'tcg' : viewMode
+
+  const isOwnProfile =
+    isAuthenticatedUser(user) && user.id === profileId
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [profileId])
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    setProfileReady(false)
+    setError(null)
+
+    const load = async () => {
+      try {
+        if (
+          isAuthenticatedUser(user) &&
+          user.id === profileId &&
+          user.profile
+        ) {
+          setProfileData(user.profile)
+        }
+
+        const [profileResponse, customizationResponse] = await Promise.all([
+          getPlayer(profileId),
+          getPlayerCustomization(profileId),
+        ])
+
+        if (!active) return
+
+        if (!profileResponse.ok || !profileResponse.data) {
+          throw new Error(
+            profileResponse.message || 'Failed to load profile.',
+          )
+        }
+
+        setProfileData(profileResponse.data)
+
+        if (customizationResponse.ok && customizationResponse.data) {
+          setCustomizationData(customizationResponse.data)
+        }
+      } catch (loadError) {
+        if (!active) return
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Failed to load profile.',
+        )
+      } finally {
+        if (active) {
+          setLoading(false)
+          setProfileReady(true)
+        }
+      }
+    }
+
+    load()
+
+    return () => {
+      active = false
+    }
+  }, [profileId, user])
+
+  useEffect(() => {
+    if (!profileReady) return
+
+    let active = true
+    setLoadingStats(true)
+
+    const load = async () => {
+      try {
+        const decks = await getPlayerDecks(profileId, {
+          tcgPage: pagination.tcg,
+          genesysPage: pagination.genesys,
+        })
+
+        if (!active) return
+
+        if (decks.ok && decks.data) {
+          setStatsData(decks.data)
+        } else if (!decks.ok) {
+          console.warn('[Profile] Failed to fetch match stats:', decks.message)
+        }
+      } catch {
+        if (!active) return
+        console.warn('[Profile] Failed to fetch paginated stats')
+      } finally {
+        if (active) setLoadingStats(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      active = false
+    }
+  }, [profileId, profileReady, pagination.tcg, pagination.genesys])
+
+  useEffect(() => {
+    if (viewMode !== 'myDecks') return
+    if (decksLoadedForIdRef.current === profileId) return
+
+    let active = true
+    setLoadingDecks(true)
+    setDeckError(null)
+
+    const load = async () => {
+      try {
+        const token = AuthManager.getToken()
+        const response = await getUserDecks(
+          profileId,
+          isOwnProfile && token ? token : undefined,
+        )
+
+        if (!active) return
+
+        if (response.ok) {
+          decksLoadedForIdRef.current = profileId
+          setUserDecks(response.data)
+        } else {
+          setDeckError(response.message)
+        }
+      } catch {
+        if (!active) return
+        setDeckError('Network error while loading decks.')
+      } finally {
+        if (active) setLoadingDecks(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      active = false
+    }
+  }, [profileId, viewMode, isOwnProfile])
+
+  const requiredCardIdsKey = useMemo(() => {
+    const ids = new Set<number>()
+
+    if (customizationData?.duelist_favorite) {
+      const favoriteId = Number(customizationData.duelist_favorite)
+      if (Number.isFinite(favoriteId)) ids.add(favoriteId)
+    }
+
+    if (statsData) {
+      ;(['tcg', 'genesys'] as const).forEach((mode) => {
+        const queue = statsData[mode]
+        queue?.matchHistory?.forEach((match) => {
+          match.duelist?.deck?.forEach((deck) => {
+            const deckIds = deck.ids ?? []
+            const quantity = deck.qtd ?? deckIds.length
+            deckIds.slice(0, quantity).forEach((cardId) => ids.add(cardId))
+          })
+          match.opponent?.deck?.forEach((deck) => {
+            const deckIds = deck.ids ?? []
+            const quantity = deck.qtd ?? deckIds.length
+            deckIds.slice(0, quantity).forEach((cardId) => ids.add(cardId))
+          })
+        })
+        queue?.mostUsedArchetypes?.forEach((deck) => {
+          deck.ids?.forEach((cardId) => ids.add(cardId))
+        })
+        queue?.opponentDecks?.forEach((deck) => {
+          deck.ids?.forEach((cardId) => ids.add(cardId))
+        })
+      })
+    }
+
+    return Array.from(ids)
+      .sort((a, b) => a - b)
+      .join(',')
+  }, [customizationData, statsData])
+
+  useEffect(() => {
+    if (!requiredCardIdsKey) return
+
+    const allIds = requiredCardIdsKey
+      .split(',')
+      .map(Number)
+      .filter(Number.isFinite)
+    const missing = allIds.filter(
+      (cardId) => !fetchedCardIdsRef.current.has(cardId),
+    )
+
+    if (missing.length === 0) return
+
+    missing.forEach((cardId) => fetchedCardIdsRef.current.add(cardId))
+
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const response = await searchCards({
+          id: missing,
+          region: 'ALL',
+          method: 'POST',
+        })
+
+        if (cancelled) return
+
+        const cards = extractCardsFromResponse(response)
+        if (cards.length) {
+          setCardNamesMap((previous) => {
+            const next = new Map(previous)
+            cards.forEach((card) => {
+              next.set(
+                card.id,
+                card.name_en || card.name_pt || `Card ${card.id}`,
+              )
+            })
+            return next
+          })
+        }
+      } catch {
+        missing.forEach((cardId) => fetchedCardIdsRef.current.delete(cardId))
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [requiredCardIdsKey])
+
+  const getCardName = useCallback(
+    (cardId: number) => cardNamesMap.get(cardId) || `Card ${cardId}`,
+    [cardNamesMap],
+  )
+
+  const favoriteCardName = useMemo(() => {
+    if (!customizationData?.duelist_favorite) return null
+    const favoriteId = Number(customizationData.duelist_favorite)
+    if (!Number.isFinite(favoriteId)) return null
+    return cardNamesMap.get(favoriteId) ?? null
+  }, [cardNamesMap, customizationData])
+
+  const currentStats = useMemo(() => {
+    if (!profileData) {
+      return { wins: 0, losses: 0, draws: 0, rating: 0 }
+    }
+
+    return gameMode === 'tcg'
+      ? {
+          wins: profileData.tcgwins,
+          losses: profileData.tcgloses,
+          draws: profileData.tcgdraws,
+          rating: profileData.tcgrating,
+        }
+      : {
+          wins: profileData.ocgwins,
+          losses: profileData.ocgloses,
+          draws: profileData.ocgdraws,
+          rating: profileData.ocgrating,
+        }
+  }, [profileData, gameMode])
+
+  const tierInfo = useMemo(
+    () => getTierInfo(currentStats.rating),
+    [currentStats.rating],
+  )
+
+  const winRate = calculateWinRate(
+    currentStats.wins,
+    currentStats.losses,
+    currentStats.draws,
+  )
+  const totalGames =
+    currentStats.wins + currentStats.losses + currentStats.draws
+  const currentGameData = statsData?.[gameMode]
+
+  const recentForm = useMemo(() => {
+    return (
+      currentGameData?.matchHistory?.slice(0, 5).map((match) =>
+        match.isDraw ? 'D' : match.isWinner ? 'W' : 'L',
+      ) ?? []
+    )
+  }, [currentGameData])
+
+  const topArchetype = useMemo(() => {
+    const top = currentGameData?.mostUsedArchetypes?.[0]
+    if (!top?.ids?.length) return null
+    return { name: top.deck, ids: top.ids.slice(0, 5) }
+  }, [currentGameData])
+
+  const isOnline = profileData?.lastlogin
+    ? isPlayerOnline(profileData.lastlogin)
+    : false
+
+  const isPrivate = customizationData?.hide_history === 1
+  const canViewPrivateData = isOwnProfile || !isPrivate
+
+  const sanitizedBio = useMemo(() => {
+    if (!customizationData?.duelist_bio) return ''
+    return sanitizeBioHtml(customizationData.duelist_bio)
+  }, [customizationData])
+
+  const socials = useMemo<SocialLink[]>(() => {
+    if (!customizationData) return []
+
+    return [
+      customizationData.socialTwitch && {
+        name: 'Twitch',
+        icon: 'mdi:twitch',
+        href: buildTwitchUrl(customizationData.socialTwitch),
+        modifier: 'profile__social-link--twitch',
+      },
+      customizationData.socialYoutube && {
+        name: 'YouTube',
+        icon: 'mdi:youtube',
+        href: buildYoutubeUrl(customizationData.socialYoutube),
+        modifier: 'profile__social-link--youtube',
+      },
+      customizationData.socialX && {
+        name: 'X',
+        icon: 'mdi:twitter',
+        href: buildXUrl(customizationData.socialX),
+        modifier: 'profile__social-link--x',
+      },
+      customizationData.socialInstagram && {
+        name: 'Instagram',
+        icon: 'mdi:instagram',
+        href: buildInstagramUrl(customizationData.socialInstagram),
+        modifier: 'profile__social-link--instagram',
+      },
+    ].filter(Boolean) as SocialLink[]
+  }, [customizationData])
+
+  if (loading) {
+    return <ProfileSkeleton />
+  }
+
+  if (error || !profileData) {
+    return (
+      <ProfileNotFound
+        message={error || 'No player data exists for this account yet.'}
+      />
+    )
+  }
+
+  const avatarSrc = profileData.avatar
+    ? discordAvatar(profileData.id, profileData.avatar)
+    : ''
+
+  const tabs: Array<{ id: ViewMode; label: string }> = [
+    { id: 'tcg', label: 'TCG' },
+    { id: 'genesys', label: 'Genesys' },
+    {
+      id: 'myDecks',
+      label: isOwnProfile ? 'My Decks' : 'Saved Decks',
+    },
+  ]
+
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+
+    event.preventDefault()
+    const nextIndex =
+      event.key === 'ArrowRight'
+        ? (index + 1) % tabs.length
+        : (index - 1 + tabs.length) % tabs.length
+    const nextTab = tabs[nextIndex]
+    setViewMode(nextTab.id)
+    if (nextTab.id !== 'myDecks') {
+      setPagination({ tcg: 1, genesys: 1 })
+    }
+  }
+
+  return (
+    <div className="profile profile--detail">
+      <div className="profile__backdrop" aria-hidden="true">
+        <span className="profile__grid" />
+        <span className="profile__orb profile__orb--secondary" />
+        <span className="profile__orb profile__orb--accent" />
+      </div>
+
+      <section
+        className="profile__banner"
+        aria-label="Profile banner"
+        style={
+          customizationData?.duelist_banner_url
+            ? {
+                backgroundImage: `url(${customizationData.duelist_banner_url})`,
+              }
+            : undefined
+        }
+      >
+        <div className="profile__banner-vignette" aria-hidden="true" />
+        <div className="profile__banner-glow" aria-hidden="true" />
+        <div className="profile__banner-grid" aria-hidden="true" />
+        <div
+          className={`profile__banner-accent ${tierInfo.accentClass}`}
+          aria-hidden="true"
+        />
+
+        {topArchetype ? (
+          <div className="profile__banner-cards">
+            <div className="profile__banner-card-fan">
+              {topArchetype.ids.map((cardId, index) => (
+                <a
+                  key={cardId}
+                  href={tcgHref(getCardName(cardId))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="profile__banner-card"
+                  style={{ zIndex: topArchetype.ids.length - index }}
+                  title={getCardName(cardId)}
+                >
+                  <img
+                    src={cardArtUrl(cardId)}
+                    alt={getCardName(cardId)}
+                    loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.src = CARD_PLACEHOLDER_SRC
+                    }}
+                  />
+                </a>
+              ))}
+            </div>
+            <p className="profile__banner-card-label">
+              <span>Most Used · </span>
+              {topArchetype.name}
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      <div className="profile__page omega-container">
+        <section
+          className={`profile__command omega-surface ${tierInfo.accentClass}`}
+          aria-label="Player overview"
+        >
+          <div className="profile__command-identity">
+            <div className={`profile__avatar-wrap ${tierInfo.accentClass}`}>
+              <AvatarComponent
+                src={avatarSrc}
+                alt={profileData.displayname}
+                size="lg"
+                shape="circle"
+              />
+              {isOnline ? (
+                <span className="profile__online-badge" aria-label="Online now" />
+              ) : null}
+            </div>
+
+            <div className="profile__identity">
+              <div className="profile__meta-row">
+                <span className="profile__meta-label">Duelist</span>
+                <span className="profile__meta-divider" aria-hidden="true" />
+                <span
+                  className={
+                    isOnline
+                      ? 'profile__meta-status profile__meta-status--online'
+                      : 'profile__meta-status'
+                  }
+                >
+                  {isOnline
+                    ? 'Online'
+                    : formatLastSeen(profileData.lastlogin)}
+                </span>
+              </div>
+
+              <h1 className="profile__title">{profileData.displayname}</h1>
+
+              <div className="profile__subtitle-row">
+                <p className="profile__username">@{profileData.username}</p>
+                <span className="profile__subtitle-dot" aria-hidden="true" />
+                <span className={`profile__tier-label ${tierInfo.accentClass}`}>
+                  {tierInfo.name.toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            <div className="profile__actions">
+              {isOwnProfile ? (
+                <Link href="/profile/edit" className="profile__edit-link">
+                  <Icon icon="mdi:pencil-outline" className="profile__edit-icon" />
+                  Edit Profile
+                </Link>
+              ) : null}
+
+              {socials.length > 0 ? (
+                <div
+                  className={
+                    isOwnProfile
+                      ? 'profile__socials profile__socials--bordered'
+                      : 'profile__socials'
+                  }
+                >
+                  {socials.map((social) => (
+                    <a
+                      key={social.name}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`profile__social-link ${social.modifier}`}
+                      title={social.name}
+                    >
+                      <Icon icon={social.icon} className="profile__social-icon" />
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="profile__command-divider" />
+
+          <div className="profile__telemetry">
+            <div className="profile__telemetry-panel">
+              <h2 className="profile__telemetry-label">Rating</h2>
+              <div className="profile__telemetry-main">
+                <div className="profile__telemetry-value-row">
+                  <span className="profile__telemetry-value">
+                    {Math.floor(currentStats.rating)}
+                  </span>
+                  <span className={`profile__tier-chip ${tierInfo.accentClass}`}>
+                    {tierInfo.name.toUpperCase()}
+                  </span>
+                </div>
+                <img
+                  src={tierInfo.image}
+                  alt={`${tierInfo.name} tier badge`}
+                  className="profile__tier-badge"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
+              </div>
+              <span className={`profile__tier-line ${tierInfo.accentClass}`} />
+            </div>
+
+            <div className="profile__telemetry-panel">
+              <h2 className="profile__telemetry-label">Win Rate</h2>
+              <div className={`profile__telemetry-value ${getWinRateClass(winRate)}`}>
+                {winRate.toFixed(1)}
+                <span className="profile__telemetry-suffix">%</span>
+              </div>
+              <div className="profile__win-rate-track">
+                <span
+                  className="profile__win-rate-fill"
+                  style={{ width: `${Math.min(100, Math.max(0, winRate))}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="profile__telemetry-panel">
+              <h2 className="profile__telemetry-label">Matches</h2>
+              <span className="profile__telemetry-value">{totalGames}</span>
+              <div className="profile__record-row">
+                <span className="profile__record profile__record--win">
+                  {currentStats.wins} Wins
+                </span>
+                <span className="profile__record profile__record--loss">
+                  {currentStats.losses} Losses
+                </span>
+              </div>
+            </div>
+
+            <div className="profile__telemetry-panel">
+              <h2 className="profile__telemetry-label">Recent Form</h2>
+              {recentForm.length > 0 ? (
+                <>
+                  <div className="profile__form-chart" aria-hidden="true">
+                    {recentForm.map((result, index) => (
+                      <span
+                        key={index}
+                        title={
+                          result === 'W'
+                            ? 'Win'
+                            : result === 'D'
+                              ? 'Draw'
+                              : 'Loss'
+                        }
+                        className={`profile__form-bar profile__form-bar--${result.toLowerCase()}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="profile__form-caption">Last {recentForm.length}</p>
+                </>
+              ) : (
+                <>
+                  <span className="profile__telemetry-value profile__telemetry-value--muted">
+                    —
+                  </span>
+                  <p className="profile__form-caption">No data</p>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="profile__toolbar">
+          <div className="profile__tabs" role="tablist" aria-label="Profile sections">
+            {tabs.map((tab, index) => {
+              const active = viewMode === tab.id
+              const tabId = `profile-tab-${tab.id}`
+              const panelId =
+                tab.id === 'myDecks' ? 'profile-panel-decks' : 'profile-panel-matches'
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  id={tabId}
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={panelId}
+                  tabIndex={active ? 0 : -1}
+                  className={
+                    active
+                      ? 'profile__tab profile__tab--active'
+                      : 'profile__tab'
+                  }
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
+                  onClick={() => {
+                    setViewMode(tab.id)
+                    if (tab.id !== 'myDecks') {
+                      setPagination({ tcg: 1, genesys: 1 })
+                    }
+                  }}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {viewMode !== 'myDecks' && currentGameData?.totalGaming ? (
+            <div className="profile__playtime">
+              <Icon icon="mdi:clock-outline" className="profile__playtime-icon" />
+              <span>{currentGameData.totalGaming}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="profile__body">
+          {viewMode === 'myDecks' ? (
+            <section
+              className="profile__decks-section"
+              role="tabpanel"
+              id="profile-panel-decks"
+              aria-labelledby="profile-tab-myDecks"
+            >
+              <header className="profile__section-header">
+                <div>
+                  <p className="profile__section-eyebrow">Collection</p>
+                  <h2 className="profile__section-title">
+                    {isOwnProfile
+                      ? 'My Decks'
+                      : `${profileData.username}'s Decks`}
+                  </h2>
+                </div>
+                {!loadingDecks && userDecks.length > 0 ? (
+                  <span className="profile__deck-count">{userDecks.length} decks</span>
+                ) : null}
+              </header>
+
+              {loadingDecks ? (
+                <div className="profile__deck-grid">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <span key={index} className="profile__deck-skeleton" />
+                  ))}
+                </div>
+              ) : deckError ? (
+                <div className="profile__panel-empty profile__panel-empty--error">
+                  <Icon icon="mdi:alert-circle-outline" className="profile__panel-empty-icon" />
+                  <p>{deckError}</p>
+                </div>
+              ) : userDecks.length === 0 ? (
+                <div className="profile__panel-empty">
+                  <Icon icon="mdi:cards-outline" className="profile__panel-empty-icon" />
+                  <h3 className="profile__panel-empty-title">No decks yet</h3>
+                  <p className="profile__panel-empty-text">
+                    Saved deck lists will appear here once published.
+                  </p>
+                </div>
+              ) : (
+                <div className="profile__deck-grid">
+                  {userDecks.map((deck) => (
+                    <ProfileSavedDeckCard key={deck.id} deck={deck} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : canViewPrivateData ? (
+            <div
+              className="profile__layout"
+              role="tabpanel"
+              id="profile-panel-matches"
+              aria-labelledby={`profile-tab-${gameMode}`}
+            >
+              <section className="profile__feed omega-surface">
+                <header className="profile__feed-header">
+                  <div>
+                    <p className="profile__section-eyebrow">
+                      {gameMode.toUpperCase()} · Feed
+                    </p>
+                    <h2 className="profile__section-title">Match History</h2>
+                  </div>
+                  <div className="profile__feed-meta">
+                    {currentGameData?.pagination?.totalMatches != null ? (
+                      <span>{currentGameData.pagination.totalMatches} total</span>
+                    ) : null}
+                    {currentGameData?.pagination?.totalPages ? (
+                      <span className="profile__page-chip">
+                        {currentGameData.pagination.currentPage}/
+                        {currentGameData.pagination.totalPages}
+                      </span>
+                    ) : null}
+                  </div>
+                </header>
+
+                <div className="profile__match-scroll">
+                  {loadingStats ? (
+                    <div className="profile__match-grid">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <span key={index} className="profile__match-skeleton" />
+                      ))}
+                    </div>
+                  ) : currentGameData?.matchHistory?.length ? (
+                    <div className="profile__match-grid">
+                      <Suspense
+                        fallback={
+                          <>
+                            {Array.from({ length: 8 }).map((_, index) => (
+                              <span key={index} className="profile__match-skeleton" />
+                            ))}
+                          </>
+                        }
+                      >
+                        {currentGameData.matchHistory.map(
+                          (match: MatchHistory, index: number) => (
+                            <MatchHistoryCard
+                              key={`${match.start}-${index}`}
+                              match={match}
+                              formatMatchDuration={formatMatchDuration}
+                              getCardName={getCardName}
+                            />
+                          ),
+                        )}
+                      </Suspense>
+                    </div>
+                  ) : (
+                    <div className="profile__panel-empty">
+                      <Icon icon="mdi:history" className="profile__panel-empty-icon" />
+                      <p className="profile__panel-empty-text">
+                        No {gameMode.toUpperCase()} matches recorded yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {currentGameData?.pagination &&
+                currentGameData.pagination.totalPages > 1 ? (
+                  <div className="profile__pagination">
+                    <button
+                      type="button"
+                      className="profile__pagination-btn"
+                      disabled={pagination[gameMode] <= 1}
+                      onClick={() =>
+                        setPagination((previous) => ({
+                          ...previous,
+                          [gameMode]: Math.max(1, previous[gameMode] - 1),
+                        }))
+                      }
+                      aria-label="Previous page"
+                    >
+                      <Icon icon="mdi:chevron-left" />
+                    </button>
+                    <span className="profile__pagination-label">
+                      {pagination[gameMode]} / {currentGameData.pagination.totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="profile__pagination-btn"
+                      disabled={
+                        pagination[gameMode] >=
+                        currentGameData.pagination.totalPages
+                      }
+                      onClick={() =>
+                        setPagination((previous) => ({
+                          ...previous,
+                          [gameMode]: Math.min(
+                            currentGameData.pagination.totalPages,
+                            previous[gameMode] + 1,
+                          ),
+                        }))
+                      }
+                      aria-label="Next page"
+                    >
+                      <Icon icon="mdi:chevron-right" />
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+
+              <aside className="profile__sidebar">
+                {(customizationData?.duelist_bio ||
+                  customizationData?.duelist_favorite) && (
+                  <section className="profile__sidebar-panel profile__sidebar-panel--dossier omega-surface">
+                    <header className="profile__sidebar-header">
+                      <h3 className="profile__sidebar-title">Dossier</h3>
+                      <Icon
+                        icon="mdi:card-account-details-outline"
+                        className="profile__sidebar-icon"
+                      />
+                    </header>
+
+                    {customizationData.duelist_favorite ? (
+                      <a
+                        href={tcgHref(
+                          favoriteCardName ||
+                            `Card ${customizationData.duelist_favorite}`,
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="profile__favorite-card"
+                        title={favoriteCardName || 'Favorite card'}
+                      >
+                        <img
+                          src={cardArtUrl(
+                            Number(customizationData.duelist_favorite),
+                          )}
+                          alt={favoriteCardName || 'Favorite card'}
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.src = CARD_PLACEHOLDER_SRC
+                          }}
+                        />
+                        <span className="profile__favorite-card-label">
+                          {favoriteCardName || 'Favorite card'}
+                        </span>
+                      </a>
+                    ) : null}
+
+                    {sanitizedBio ? (
+                      <div
+                        className="profile__bio"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizedBio,
+                        }}
+                      />
+                    ) : null}
+                  </section>
+                )}
+
+                <section className="profile__sidebar-panel omega-surface">
+                  <header className="profile__sidebar-header">
+                    <h3 className="profile__sidebar-title">Top Decks</h3>
+                    <Icon icon="mdi:cards-outline" className="profile__sidebar-icon" />
+                  </header>
+
+                  <div className="profile__rank-list">
+                    {currentGameData?.mostUsedArchetypes?.length ? (
+                      currentGameData.mostUsedArchetypes
+                        .slice(0, 5)
+                        .map((deck, index) => {
+                          const deckWinRate = calculateWinRate(
+                            deck.wins,
+                            deck.loss,
+                          )
+                          const thumbIds = deck.ids?.slice(0, 4) ?? []
+
+                          return (
+                            <div key={`${deck.deck}-${index}`} className="profile__rank-item">
+                              <span className="profile__rank-index">
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <div className="profile__rank-body">
+                                <p className="profile__rank-name">{deck.deck}</p>
+                                <div className="profile__rank-meta">
+                                  {thumbIds.length > 0 ? (
+                                    <div className="profile__thumb-fan">
+                                      {thumbIds.map((cardId, cardIndex) => (
+                                        <a
+                                          key={cardId}
+                                          href={tcgHref(getCardName(cardId))}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="profile__thumb"
+                                          style={{ zIndex: thumbIds.length - cardIndex }}
+                                          title={getCardName(cardId)}
+                                        >
+                                          <img
+                                            src={cardArtUrl(cardId)}
+                                            alt={getCardName(cardId)}
+                                            loading="lazy"
+                                            onError={(event) => {
+                                              event.currentTarget.src =
+                                                CARD_PLACEHOLDER_SRC
+                                            }}
+                                          />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                  <span>{deck.total} games</span>
+                                </div>
+                              </div>
+                              <span
+                                className={`profile__rank-rate ${getWinRateClass(deckWinRate)}`}
+                              >
+                                {deckWinRate.toFixed(0)}%
+                              </span>
+                            </div>
+                          )
+                        })
+                    ) : (
+                      <p className="profile__sidebar-empty">
+                        No {gameMode.toUpperCase()} deck data yet.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className="profile__sidebar-panel omega-surface">
+                  <header className="profile__sidebar-header">
+                    <h3 className="profile__sidebar-title">Top Opponents</h3>
+                    <Icon icon="mdi:sword-cross" className="profile__sidebar-icon" />
+                  </header>
+
+                  <div className="profile__rank-list">
+                    {currentGameData?.opponentDecks?.length ? (
+                      currentGameData.opponentDecks.slice(0, 5).map((opponent, index) => {
+                        const opponentWinRate = calculateWinRate(
+                          opponent.wins,
+                          opponent.loss,
+                        )
+                        const thumbIds = opponent.ids?.slice(0, 4) ?? []
+
+                        return (
+                          <div
+                            key={`${opponent.deck}-${index}`}
+                            className="profile__rank-item"
+                          >
+                            <span className="profile__rank-index">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <div className="profile__rank-body">
+                              <p className="profile__rank-name">
+                                {opponent.deck || 'Unknown deck'}
+                              </p>
+                              <div className="profile__rank-meta">
+                                {thumbIds.length > 0 ? (
+                                  <div className="profile__thumb-fan">
+                                    {thumbIds.map((cardId, cardIndex) => (
+                                      <a
+                                        key={cardId}
+                                        href={tcgHref(getCardName(cardId))}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="profile__thumb"
+                                        style={{ zIndex: thumbIds.length - cardIndex }}
+                                        title={getCardName(cardId)}
+                                      >
+                                        <img
+                                          src={cardArtUrl(cardId)}
+                                          alt={getCardName(cardId)}
+                                          loading="lazy"
+                                          onError={(event) => {
+                                            event.currentTarget.src =
+                                              CARD_PLACEHOLDER_SRC
+                                          }}
+                                        />
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <span>{opponent.total} games</span>
+                              </div>
+                            </div>
+                            <span
+                              className={`profile__rank-rate ${getWinRateClass(opponentWinRate)}`}
+                            >
+                              {opponentWinRate.toFixed(0)}%
+                            </span>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <p className="profile__sidebar-empty">
+                        No {gameMode.toUpperCase()} opponent data yet.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </aside>
+            </div>
+          ) : (
+            <div className="profile__private omega-surface">
+              <span className="profile__private-icon-wrap" aria-hidden="true">
+                <Icon icon="mdi:lock-outline" className="profile__private-icon" />
+              </span>
+              <h2 className="profile__private-title">Match history is private</h2>
+              <p className="profile__private-text">
+                This duelist has hidden their competitive record from public view.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ProfilePageClient

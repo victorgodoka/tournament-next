@@ -92,6 +92,7 @@ export default function RootLayout({
         />
       </head>
       <body className="app-shell" suppressHydrationWarning>
+        <aside id="nitro-ads-slot"></aside>
         <Providers>{children}</Providers>
       </body>
     </html>

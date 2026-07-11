@@ -6,7 +6,7 @@ import IconComponent from '../icon/icon.component'
 import AvatarComponent from '../avatar/avatar.component'
 import {
   LOGOUT_MENU_ITEM,
-  PROFILE_MENU_ITEMS,
+  getProfileMenuItems,
   HOVER_CLOSE_DELAY,
 } from './avatarmenu.const'
 import './avatarmenu.styles.css'
@@ -83,6 +83,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
 
   const displayName = user.displayname || user.username
   const handle = user.username
+  const profileMenuItems = getProfileMenuItems(user.id)
 
   return (
     <div
@@ -141,7 +142,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
         <hr className="avatarmenu__divider" />
 
         <ul className="avatarmenu__menu">
-          {PROFILE_MENU_ITEMS.map((item) => (
+          {profileMenuItems.map((item) => (
             <li key={item.to} className="avatarmenu__menu-item" role="none">
               <Link
                 href={item.to}
