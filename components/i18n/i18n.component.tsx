@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useId, useRef, useState } from 'react'
 import { LANGUAGES } from './i18n.const'
 import './i18n.styles.css'

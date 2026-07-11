@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import type { AvatarComponentProps } from './avatar.types'
 import './avatar.styles.css'

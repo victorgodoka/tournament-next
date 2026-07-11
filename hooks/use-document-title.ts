@@ -1,13 +1,16 @@
+'use client'
+
 import { useEffect } from 'react'
 
-const SITE_NAME = 'YGO Omega | Duelists Unite'
+const SITE_NAME = 'YGO Omega'
 
-export function useDocumentTitle(title?: string) {
+export function useDocumentTitle(title: string) {
   useEffect(() => {
-    document.title = title ? `${title} · ${SITE_NAME}` : SITE_NAME
+    const previousTitle = document.title
+    document.title = title ? `${title} | ${SITE_NAME}` : SITE_NAME
 
     return () => {
-      document.title = SITE_NAME
+      document.title = previousTitle
     }
   }, [title])
 }

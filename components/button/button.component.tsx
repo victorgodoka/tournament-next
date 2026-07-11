@@ -1,8 +1,10 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
-import { Link, type LinkProps } from 'react-router'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
+import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import type { ButtonIconPosition, ButtonSize, ButtonVariant } from './button.types'
 import './button.styles.css'
+
+type NextLinkProps = ComponentProps<typeof Link>
 
 type ButtonBaseProps = {
   variant?: ButtonVariant
@@ -22,8 +24,8 @@ type ButtonAsButton = ButtonBaseProps &
   }
 
 type ButtonAsLink = ButtonBaseProps &
-  Omit<LinkProps, 'className' | 'children'> & {
-    to: LinkProps['to']
+  Omit<NextLinkProps, 'className' | 'children' | 'href'> & {
+    to: NextLinkProps['href']
     href?: undefined
   }
 
@@ -132,7 +134,7 @@ const ButtonComponent = ({
 
     return (
       <Link
-        to={to}
+        href={to}
         className={classes}
         aria-busy={loading || undefined}
         {...linkProps}

@@ -1,1 +1,1 @@
-export const DISCORD_OAUTH_URL = import.meta.env.VITE_DISCORD_URL;
+export const DISCORD_OAUTH_URL = process.env.NEXT_PUBLIC_DISCORD_URL ?? ''

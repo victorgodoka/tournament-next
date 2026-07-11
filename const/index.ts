@@ -1,4 +1,4 @@
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/v3'
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/v3'
 
 export const API_ENDPOINTS = {
   MAIN: apiBaseUrl,

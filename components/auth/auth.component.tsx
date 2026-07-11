@@ -1,3 +1,5 @@
+'use client'
+
 import { useAuthContext } from '@contexts'
 import ButtonComponent from '../button/button.component'
 import { DISCORD_OAUTH_URL } from './auth.const'

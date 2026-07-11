@@ -1,5 +1,7 @@
+'use client'
+
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { MENU_LINKS_GROUPS } from './menulinks.const'
 import { isMenuGroup } from './menulinks.types'
@@ -79,7 +81,7 @@ const MenuDropdown = ({
         {group.items.map((item: MenuLinkItem) => (
           <li key={item.to} className="menulinks__panel-item" role="none">
             <Link
-              to={item.to}
+              href={item.to}
               className="menulinks__panel-link"
               role="menuitem"
               onClick={onClose}
@@ -128,7 +130,7 @@ const MobileAccordion = ({
         {group.items.map((item) => (
           <li key={item.to} className="menulinks__mobile-subitem">
             <Link
-              to={item.to}
+              href={item.to}
               className="menulinks__mobile-sublink"
               onClick={onNavigate}
             >
@@ -246,7 +248,7 @@ const MenulinksComponent = () => {
             />
           ) : (
             <li key={entry.id} className="menulinks__item" role="none">
-              <Link to={entry.to} className="menulinks__link" role="menuitem">
+              <Link href={entry.to} className="menulinks__link" role="menuitem">
                 {entry.label}
               </Link>
             </li>
@@ -302,7 +304,7 @@ const MenulinksComponent = () => {
               ) : (
                 <li key={entry.id} className="menulinks__mobile-item">
                   <Link
-                    to={entry.to}
+                    href={entry.to}
                     className="menulinks__mobile-link"
                     onClick={closeDrawer}
                   >

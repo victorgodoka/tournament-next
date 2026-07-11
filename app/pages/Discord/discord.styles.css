@@ -1,0 +1,219 @@
+/* Block: discord-login — OAuth callback loading state */
+
+.discord-login {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-canvas);
+  overflow: clip;
+  isolation: isolate;
+}
+
+.discord-login__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.discord-login__grid {
+  position: absolute;
+  inset: -20%;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--palette-secondary) 8%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--palette-secondary) 8%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 3.5rem 3.5rem;
+  mask-image: radial-gradient(circle at 50% 40%, black 15%, transparent 72%);
+  opacity: 0.55;
+}
+
+.discord-login__orb {
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(72px);
+  opacity: 0.45;
+}
+
+.discord-login__orb--secondary {
+  width: min(42vw, 22rem);
+  height: min(42vw, 22rem);
+  top: 8%;
+  left: -8%;
+  background: var(--color-secondary);
+}
+
+.discord-login__orb--accent {
+  width: min(36vw, 18rem);
+  height: min(36vw, 18rem);
+  right: -6%;
+  bottom: 10%;
+  background: var(--color-accent);
+}
+
+.discord-login__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+  animation: discord-login-enter var(--duration-slow) var(--ease-out) both;
+}
+
+.discord-login__icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discord-login__icon {
+  width: 5rem;
+  height: 5rem;
+  color: var(--color-secondary-light);
+}
+
+.discord-login__icon-wrap--pulse .discord-login__icon {
+  animation: discord-login-pulse 1.6s var(--ease-in-out) infinite;
+}
+
+.discord-login__icon-wrap--error .discord-login__icon {
+  color: var(--color-error);
+}
+
+.discord-login__icon-wrap--success .discord-login__icon {
+  color: var(--color-success);
+}
+
+.discord-login__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--color-text);
+}
+
+.discord-login__message-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.discord-login__message {
+  margin: 0;
+  max-width: 42ch;
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}
+
+.discord-login__message--error {
+  color: color-mix(in srgb, var(--color-error) 70%, white);
+}
+
+.discord-login__message--success {
+  color: color-mix(in srgb, var(--color-success) 75%, white);
+}
+
+.discord-login__progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.discord-login__progress-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-subtle);
+}
+
+.discord-login__progress-dot--active {
+  background-color: var(--color-secondary-light);
+  animation: discord-login-bounce 0.9s var(--ease-in-out) infinite;
+}
+
+.discord-login__notice {
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.discord-login__notice-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.discord-login__notice-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-success);
+}
+
+.discord-login__notice-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.discord-login__notice-copy {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}
+
+@keyframes discord-login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes discord-login-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes discord-login-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-0.2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discord-login__content,
+  .discord-login__icon-wrap--pulse .discord-login__icon,
+  .discord-login__progress-dot--active {
+    animation: none;
+  }
+}

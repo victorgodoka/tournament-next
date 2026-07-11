@@ -1,5 +1,7 @@
+'use client'
+
 import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import AvatarComponent from '../avatar/avatar.component'
 import {
@@ -144,7 +146,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
           {PROFILE_MENU_ITEMS.map((item) => (
             <li key={item.to} className="avatarmenu__menu-item" role="none">
               <Link
-                to={item.to}
+                href={item.to}
                 className="avatarmenu__menu-link"
                 role="menuitem"
                 onClick={closeMenu}

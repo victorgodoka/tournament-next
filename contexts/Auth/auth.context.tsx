@@ -1,3 +1,5 @@
+'use client'
+
 import {
   createContext,
   type Dispatch,
@@ -11,7 +13,7 @@ import {
   useMemo,
   useRef,
 } from 'react'
-import { useNavigate } from 'react-router'
+import { useRouter } from 'next/navigation'
 import {
   createGuestUser,
   isAuthenticatedUser,
@@ -20,6 +22,7 @@ import {
 } from './auth.const'
 import { authReducer } from './auth.reducer'
 import { AuthManager } from './auth.manager'
+import { setAuthRedirectFrom } from './auth.redirect'
 import type { LogoutOptions, User, UserActions } from './auth.types'
 
 export const AuthContext = createContext<{
@@ -60,14 +63,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [justLoggedOut, setJustLoggedOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
+  const router = useRouter()
   const logoutTimerRef = useRef<number | null>(null)
   const enterTimerRef = useRef<number | null>(null)
 
-  const [user, dispatch] = useReducer(
-    authReducer,
-    readStoredUser() ?? createGuestUser(),
-  )
+  const [user, dispatch] = useReducer(authReducer, createGuestUser())
 
   const clearLogoutTimer = useCallback(() => {
     if (logoutTimerRef.current !== null) {
@@ -83,10 +83,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setIsLoggingOut(false)
     setJustLoggedOut(true)
 
-    navigate('/', {
-      replace: true,
-      state: options?.from ? { from: options.from } : undefined,
-    })
+    if (options?.from) {
+      setAuthRedirectFrom(options.from)
+    }
+
+    router.replace('/')
 
     if (enterTimerRef.current !== null) {
       window.clearTimeout(enterTimerRef.current)
@@ -96,7 +97,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       setJustLoggedOut(false)
       enterTimerRef.current = null
     }, LOGOUT_ANIMATION_MS)
-  }, [navigate])
+  }, [router])
 
   const logout = useCallback((options?: LogoutOptions) => {
     if (isLoggingOut) return
@@ -121,7 +122,15 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
     const bootstrap = async () => {
       try {
-        if (!isAuthenticatedUser(user)) {
+        const stored = readStoredUser()
+        let activeUser = createGuestUser()
+
+        if (stored) {
+          dispatch({ type: 'SET_USER', payload: stored })
+          activeUser = stored
+        }
+
+        if (!isAuthenticatedUser(activeUser)) {
           return
         }
 

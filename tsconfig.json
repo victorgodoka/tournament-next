@@ -19,13 +19,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./app/*"],
-      "assets/*": ["./assets/*"],
-      "components/*": ["./components/*"],
-      "pages/*": ["./pages/*"],
-      "contexts/*": ["./contexts/*"],
-      "const/*": ["./const/*"],
-      "hooks/*": ["./hooks/*"]
+      "@/*": ["./src/*"],
+      "@components": ["./components/index.tsx"],
+      "@pages": ["./app/pages/index.tsx"],
+      "@contexts": ["./contexts/index.tsx"],
+      "@contexts/*": ["./contexts/*"],
+      "@const": ["./const/index.ts"],
+      "@hooks/*": ["./hooks/*"],
+      "@hooks/use-document-title": ["./hooks/use-document-title.ts"],
+      "@assets": ["./assets"],
+      "@assets/*": ["./assets/*"]
     }
   },
   "include": [

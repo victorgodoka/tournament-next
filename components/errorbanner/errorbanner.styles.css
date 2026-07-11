@@ -1,4 +1,4 @@
-.auth-error-banner {
+.error-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -14,12 +14,12 @@
   font-size: var(--text-sm);
 }
 
-.auth-error-banner__message {
+.error-banner__message {
   margin: 0;
   line-height: 1.5;
 }
 
-.auth-error-banner__dismiss {
+.error-banner__dismiss {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -37,11 +37,11 @@
   transition: color var(--duration-base) var(--ease-out);
 }
 
-.auth-error-banner__dismiss:hover {
+.error-banner__dismiss:hover {
   color: var(--color-text);
 }
 
-.auth-error-banner__dismiss:focus-visible {
+.error-banner__dismiss:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }

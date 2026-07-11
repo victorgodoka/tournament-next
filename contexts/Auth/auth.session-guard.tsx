@@ -1,17 +1,21 @@
+'use client'
+
 import { useEffect, useRef } from 'react'
-import { useLocation } from 'react-router'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useAuthContext } from './auth.context'
 import { AUTH_EXPIRED_EVENT, isAuthenticatedUser } from './auth.const'
 
 const AuthSessionGuard = () => {
   const { logout, user } = useAuthContext()
-  const location = useLocation()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const hasHandledRef = useRef(false)
-  const locationRef = useRef(location)
+  const currentPathRef = useRef('/')
 
   useEffect(() => {
-    locationRef.current = location
-  }, [location])
+    const query = searchParams.toString()
+    currentPathRef.current = query ? `${pathname}?${query}` : pathname
+  }, [pathname, searchParams])
 
   useEffect(() => {
     if (isAuthenticatedUser(user)) {
@@ -23,10 +27,7 @@ const AuthSessionGuard = () => {
     const handleExpiredToken = () => {
       if (hasHandledRef.current) return
       hasHandledRef.current = true
-
-      const current = locationRef.current
-      const currentPath = current.pathname + current.search + current.hash
-      logout({ from: currentPath, animate: false })
+      logout({ from: currentPathRef.current, animate: false })
     }
 
     window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredToken)
