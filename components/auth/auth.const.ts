@@ -1,0 +1,1 @@
+export const DISCORD_OAUTH_URL = import.meta.env.VITE_DISCORD_URL;

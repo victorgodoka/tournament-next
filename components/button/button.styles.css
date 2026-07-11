@@ -1,0 +1,205 @@
+/* Block: button — interactive action control */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.button--full {
+  width: 100%;
+}
+
+/* Element: label & icon */
+
+.button__label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.button__icon {
+  flex-shrink: 0;
+}
+
+.button__icon--spin {
+  animation: button-spin 0.9s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modifier: sizes */
+
+.button--sm {
+  min-height: 2rem;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.button--md {
+  min-height: 2.375rem;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.button--lg {
+  min-height: 2.75rem;
+  padding-block: var(--space-3);
+  padding-inline: var(--space-5);
+  font-size: var(--text-base);
+}
+
+/* Modifier: primary */
+
+.button--primary {
+  background-color: var(--interactive-primary-bg);
+  color: var(--interactive-primary-text);
+  box-shadow: var(--shadow-glow-accent);
+}
+
+.button--primary:hover {
+  background-color: var(--interactive-primary-bg-hover);
+}
+
+.button--primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Modifier: secondary */
+
+.button--secondary {
+  background-color: var(--interactive-secondary-bg);
+  color: var(--interactive-secondary-text);
+  border-color: var(--interactive-secondary-border);
+}
+
+.button--secondary:hover {
+  background-color: var(--interactive-secondary-bg-hover);
+  box-shadow: var(--shadow-glow-secondary);
+}
+
+.button--secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Modifier: ghost */
+
+.button--ghost {
+  background-color: transparent;
+  color: var(--color-text-muted);
+}
+
+.button--ghost:hover {
+  color: var(--color-text);
+  background-color: var(--color-secondary-subtle);
+  border-color: var(--color-border-subtle);
+}
+
+/* Modifier: outline */
+
+.button--outline {
+  background-color: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.button--outline:hover {
+  color: var(--color-secondary-light);
+  background-color: var(--color-secondary-subtle);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-glow-secondary);
+}
+
+/* Modifier: danger */
+
+.button--danger {
+  background-color: color-mix(in srgb, var(--color-error) 18%, var(--palette-dominant));
+  color: #ffd5d5;
+  border-color: color-mix(in srgb, var(--color-error) 45%, var(--palette-dominant));
+}
+
+.button--danger:hover {
+  background-color: color-mix(in srgb, var(--color-error) 32%, var(--palette-dominant));
+  border-color: var(--color-error);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-error) 30%, transparent);
+}
+
+/* Modifier: link */
+
+.button--link {
+  min-height: auto;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-1);
+  background-color: transparent;
+  color: var(--color-link);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.button--link:hover {
+  color: var(--color-link-hover);
+  background-color: transparent;
+}
+
+.button--link .button__label {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* Modifier: loading */
+
+.button--loading {
+  position: relative;
+}
+
+.button--loading .button__label {
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button__icon--spin {
+    animation: none;
+  }
+
+  .button--primary:active:not(:disabled),
+  .button--secondary:active:not(:disabled) {
+    transform: none;
+  }
+}

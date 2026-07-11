@@ -1,0 +1,531 @@
+/* ==========================================================================
+   Omega Design System
+   60 : 30 : 10  →  #080808 (dominant) · #0f809d (secondary) · #381e8c (accent)
+   ========================================================================== */
+
+@layer reset, tokens, base, utilities;
+
+/* --------------------------------------------------------------------------
+   Reset
+   -------------------------------------------------------------------------- */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tokens — palette, spacing, type, motion
+   -------------------------------------------------------------------------- */
+
+@layer tokens {
+  :root {
+    /* --- Raw palette (60 : 30 : 10) ------------------------------------ */
+
+    --palette-dominant: #080808;
+    --palette-secondary: #0f809d;
+    --palette-accent: #381e8c;
+
+    /* --- Dominant scale (60%) — canvas, surfaces, depth ------------------ */
+
+    --color-bg: var(--palette-dominant);
+    --color-bg-subtle: #0c0c0c;
+    --color-bg-raised: #111111;
+    --color-bg-overlay: #161616;
+    --color-bg-inverse: #f2f2f3;
+
+    --color-surface: var(--color-bg-raised);
+    --color-surface-hover: #181818;
+    --color-surface-active: #1e1e1e;
+
+    /* --- Secondary scale (30%) — structure, chrome, navigation ----------- */
+
+    --color-secondary: var(--palette-secondary);
+    --color-secondary-light: #14a3c8;
+    --color-secondary-dark: #0a6278;
+    --color-secondary-muted: color-mix(in srgb, var(--palette-secondary) 18%, var(--palette-dominant));
+    --color-secondary-subtle: color-mix(in srgb, var(--palette-secondary) 10%, var(--palette-dominant));
+    --color-secondary-border: color-mix(in srgb, var(--palette-secondary) 35%, var(--palette-dominant));
+
+    /* --- Accent scale (10%) — CTAs, focus, highlights -------------------- */
+
+    --color-accent: var(--palette-accent);
+    --color-accent-light: #4c2ab5;
+    --color-accent-dark: #2a1568;
+    --color-accent-muted: color-mix(in srgb, var(--palette-accent) 22%, var(--palette-dominant));
+    --color-accent-subtle: color-mix(in srgb, var(--palette-accent) 12%, var(--palette-dominant));
+
+    /* --- Text ------------------------------------------------------------- */
+
+    --color-text: #efe5e8;
+    --color-text-muted: #9a9aa3;
+    --color-text-subtle: #6b6b74;
+    --color-text-inverse: var(--palette-dominant);
+    --color-text-on-secondary: #f5feff;
+    --color-text-on-accent: #f3efff;
+
+    --color-link: var(--color-secondary-light);
+    --color-link-hover: #3cc8ee;
+    --color-link-visited: var(--color-accent-light);
+
+    /* --- Borders & dividers ----------------------------------------------- */
+
+    --color-border: var(--color-secondary-border);
+    --color-border-subtle: #1a1a1a;
+    --color-border-strong: color-mix(in srgb, var(--palette-secondary) 55%, var(--palette-dominant));
+    --color-border-accent: color-mix(in srgb, var(--palette-accent) 45%, var(--palette-dominant));
+
+    /* --- Interactive states ----------------------------------------------- */
+
+    --color-focus-ring: var(--color-accent-light);
+    --color-selection-bg: color-mix(in srgb, var(--palette-accent) 35%, transparent);
+    --color-selection-text: var(--color-text);
+
+    /* --- Feedback --------------------------------------------------------- */
+
+    --color-success: #1fa87a;
+    --color-warning: #d4a017;
+    --color-error: #e05252;
+    --color-info: var(--color-secondary-light);
+
+    /* --- Elevation -------------------------------------------------------- */
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.55);
+    --shadow-glow-secondary: 0 0 24px color-mix(in srgb, var(--palette-secondary) 30%, transparent);
+    --shadow-glow-accent: 0 0 20px color-mix(in srgb, var(--palette-accent) 35%, transparent);
+
+    /* --- Spacing (0.25rem scale) ------------------------------------------ */
+
+    --space-0: 0;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-24: 6rem;
+
+    /* --- Typography ------------------------------------------------------- */
+
+    --font-display: "Halant", Georgia, "Times New Roman", serif;
+    --font-body: "Nunito Sans", system-ui, sans-serif;
+    --font-ui: "Telex", "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+    --font-logo: "Bebas Neue", sans-serif;
+
+    --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+    --text-sm: clamp(0.8125rem, 0.79rem + 0.15vw, 0.875rem);
+    --text-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+    --text-lg: clamp(1.0625rem, 1rem + 0.3vw, 1.125rem);
+    --text-xl: clamp(1.1875rem, 1.1rem + 0.45vw, 1.25rem);
+    --text-2xl: clamp(1.4375rem, 1.3rem + 0.7vw, 1.5rem);
+    --text-3xl: clamp(1.75rem, 1.55rem + 1vw, 1.875rem);
+    --text-4xl: clamp(2.125rem, 1.85rem + 1.35vw, 2.25rem);
+
+    --leading-tight: 1.2;
+    --leading-snug: 1.35;
+    --leading-normal: 1.55;
+    --leading-relaxed: 1.7;
+
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+
+    --tracking-tight: -0.02em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.04em;
+
+    /* --- Shape ------------------------------------------------------------ */
+
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-full: 9999px;
+
+    /* --- Motion ----------------------------------------------------------- */
+
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --duration-slow: 320ms;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    /* --- Layout ----------------------------------------------------------- */
+
+    --content-max: 72rem;
+    --content-narrow: 42rem;
+    --header-height: 4rem;
+
+    --z-base: 0;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 300;
+    --z-modal: 400;
+    --z-toast: 500;
+
+    /* --- Semantic aliases (60 : 30 : 10 usage guide) ----------------------
+       60%  backgrounds, page canvas, large surface areas
+       30%  nav, cards, borders, secondary buttons, section chrome
+       10%  primary CTAs, badges, focus rings, key highlights
+       ------------------------------------------------------------------- */
+
+    --surface-canvas: var(--color-bg);
+    --surface-primary: var(--color-surface);
+    --surface-secondary: var(--color-secondary-muted);
+    --surface-accent: var(--color-accent-muted);
+
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-text-muted);
+    --text-accent: var(--color-accent-light);
+
+    --interactive-primary-bg: var(--color-accent);
+    --interactive-primary-bg-hover: var(--color-accent-light);
+    --interactive-primary-text: var(--color-text-on-accent);
+
+    --interactive-secondary-bg: var(--color-secondary-muted);
+    --interactive-secondary-bg-hover: color-mix(in srgb, var(--palette-secondary) 28%, var(--palette-dominant));
+    --interactive-secondary-text: var(--color-text-on-secondary);
+    --interactive-secondary-border: var(--color-border-strong);
+
+    /* --- Legacy aliases (App.css compatibility) --------------------------- */
+
+    --accent: var(--color-accent-light);
+    --accent-bg: var(--color-accent-subtle);
+    --accent-border: var(--color-border-accent);
+    --border: var(--color-border);
+    --text-h: var(--color-text);
+    --social-bg: var(--color-secondary-subtle);
+    --shadow: var(--shadow-md);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Base — element defaults
+   -------------------------------------------------------------------------- */
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    font-family: var(--font-body);
+    font-size: 100%;
+    line-height: var(--leading-normal);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-text);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-4xl);
+  }
+
+  h2 {
+    font-size: var(--text-3xl);
+  }
+
+  h3 {
+    font-size: var(--text-2xl);
+  }
+
+  h4 {
+    font-size: var(--text-xl);
+  }
+
+  h5 {
+    font-size: var(--text-lg);
+  }
+
+  h6 {
+    font-size: var(--text-base);
+    font-family: var(--font-ui);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    max-width: 65ch;
+  }
+
+  a {
+    color: var(--color-link);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  a:hover {
+    color: var(--color-link-hover);
+  }
+
+  a:visited {
+    color: var(--color-link-visited);
+  }
+
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background-color: var(--color-secondary-subtle);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    padding-inline: 0.35em;
+    padding-block: 0.1em;
+    color: var(--color-secondary-light);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Utilities — layout & token consumers
+   -------------------------------------------------------------------------- */
+
+@layer utilities {
+  .omega-canvas {
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+  }
+
+  .omega-surface {
+    background-color: var(--surface-primary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .omega-surface--secondary {
+    background-color: var(--surface-secondary);
+    border-color: var(--color-border);
+  }
+
+  .omega-surface--accent {
+    background-color: var(--surface-accent);
+    border-color: var(--color-border-accent);
+  }
+
+  .omega-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+  }
+
+  .omega-btn--primary {
+    background-color: var(--interactive-primary-bg);
+    color: var(--interactive-primary-text);
+    box-shadow: var(--shadow-glow-accent);
+  }
+
+  .omega-btn--primary:hover {
+    background-color: var(--interactive-primary-bg-hover);
+  }
+
+  .omega-btn--secondary {
+    background-color: var(--interactive-secondary-bg);
+    color: var(--interactive-secondary-text);
+    border-color: var(--interactive-secondary-border);
+  }
+
+  .omega-btn--secondary:hover {
+    background-color: var(--interactive-secondary-bg-hover);
+    box-shadow: var(--shadow-glow-secondary);
+  }
+
+  .omega-badge {
+    display: inline-flex;
+    align-items: center;
+    padding-block: var(--space-1);
+    padding-inline: var(--space-2);
+    border-radius: var(--radius-full);
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .omega-badge--accent {
+    background-color: var(--color-accent-subtle);
+    color: var(--color-accent-light);
+    border: 1px solid var(--color-border-accent);
+  }
+
+  .omega-badge--secondary {
+    background-color: var(--color-secondary-subtle);
+    color: var(--color-secondary-light);
+    border: 1px solid var(--color-border);
+  }
+
+  .omega-container {
+    width: min(100% - var(--space-8), var(--content-max));
+    margin-inline: auto;
+  }
+
+  .omega-container--narrow {
+    width: min(100% - var(--space-8), var(--content-narrow));
+    margin-inline: auto;
+  }
+
+  .omega-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .omega-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .omega-text-muted {
+    color: var(--text-secondary);
+  }
+
+  .omega-text-accent {
+    color: var(--text-accent);
+  }
+
+  .omega-divider {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    margin-block: var(--space-6);
+  }
+
+  .page-fallback {
+    flex: 1;
+    min-height: 12rem;
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-raised) 0%,
+      var(--color-bg-overlay) 50%,
+      var(--color-bg-raised) 100%
+    );
+    background-size: 200% 100%;
+    animation: page-fallback-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes page-fallback-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fallback {
+    animation: none;
+    background: var(--color-bg-raised);
+  }
+}

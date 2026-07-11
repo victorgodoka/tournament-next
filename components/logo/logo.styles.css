@@ -1,0 +1,74 @@
+/* Block: logo — brand mark + wordmark home link */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.logo:hover {
+  color: var(--color-secondary-light);
+}
+
+.logo:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.logo__mark {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--palette-secondary) 35%, transparent));
+  transition:
+    filter var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.logo:hover .logo__mark,
+.logo:hover .logo__wordmark,
+.logo:focus-visible .logo__mark {
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--palette-secondary) 55%, transparent));
+  transform: scale(1.04);
+}
+
+.logo__wordmark {
+  font-family: var(--font-logo);
+  font-size: var(--text-2xl);
+  line-height: 2;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text);
+}
+
+@media (max-width: 480px) {
+  .logo__wordmark {
+    font-size: var(--text-lg);
+  }
+
+  .logo__mark {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .logo__mark {
+    transition: none;
+  }
+
+  .logo:hover .logo__mark,
+  .logo:focus-visible .logo__mark {
+    transform: none;
+  }
+}
