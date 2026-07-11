@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@const'
-import type { PlayerData } from '../../../types/player.types'
+import type { PlayerData } from '../../types/player.types'
 import type {
   DiscordMe,
   DiscordUser,

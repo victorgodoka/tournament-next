@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react'
-import type { DiscordLoadingState } from './use-discord-login'
+import type { DiscordLoadingState } from '../../hooks/use-discord-login'
 
 type DiscordLoadingViewProps = {
   loadingState: DiscordLoadingState

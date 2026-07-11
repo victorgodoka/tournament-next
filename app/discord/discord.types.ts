@@ -36,12 +36,12 @@ export interface DiscordUserResponse {
 
 export interface PlayerProfileEnvelope {
   success: true
-  data: import('../../../types/player.types').PlayerData | null
+  data: import('../../types/player.types').PlayerData | null
 }
 
 export interface PlayerDataResponse {
   ok: boolean
-  data?: import('../../../types/player.types').PlayerData
+  data?: import('../../types/player.types').PlayerData
   message?: string
   status?: number
 }

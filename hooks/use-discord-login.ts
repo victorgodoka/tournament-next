@@ -6,14 +6,14 @@ import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
 import { AuthManager } from '@contexts/Auth/auth.manager'
 import { consumeAuthRedirectFrom } from '@contexts/Auth/auth.redirect'
-import { getPlayer, getUser } from './discord.api'
+import { getPlayer, getUser } from '../app/discord/discord.api'
 import {
   cleanupOAuthParams,
   clearOAuthHashFromUrl,
   getOAuthParams,
   isDiscordTokenValid,
   persistDiscordToken,
-} from './discord.oauth'
+} from '../app/discord/discord.oauth'
 
 export type DiscordLoadingState =
   | 'authenticating'

@@ -1,14 +1,9 @@
 import type { CSSProperties } from 'react'
 import { Icon } from '@iconify/react'
 import { ButtonComponent } from '@components'
-import {
-  DISCORD_INVITE_URL,
-  HOME_COMMUNITY,
-  HOME_FEATURES,
-  HOME_TOOLS,
-} from './home.const'
-import './home.styles.css'
+import { DISCORD_INVITE_URL, HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import Link from 'next/link'
+import './home.styles.css'
 
 const HomePage = () => {
   return (

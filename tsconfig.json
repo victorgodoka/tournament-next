@@ -21,7 +21,6 @@
     "paths": {
       "@/*": ["./src/*"],
       "@components": ["./components/index.tsx"],
-      "@pages": ["./app/pages/index.tsx"],
       "@contexts": ["./contexts/index.tsx"],
       "@contexts/*": ["./contexts/*"],
       "@const": ["./const/index.ts"],
