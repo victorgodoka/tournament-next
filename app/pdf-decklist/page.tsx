@@ -1,11 +1,19 @@
-import { pageMetadata } from '@lib/page-metadata'
+import { ComingSoonPage } from '@components'
+import { noIndexMetadata } from '@lib/page-metadata'
 import './pdf-decklist.styles.css'
 
-export const metadata = pageMetadata('PDF Decklist')
+export const metadata = noIndexMetadata(
+  'PDF Decklist',
+  '/pdf-decklist',
+  'Export Yu-Gi-Oh! decklists to PDF on YGO Omega.',
+)
 
 const PdfDecklistPage = () => {
   return (
-    <div>pdf-decklist.pages.tsx</div>
+    <ComingSoonPage
+      title="PDF Decklist"
+      description="PDF decklist export is coming soon."
+    />
   )
 }
 

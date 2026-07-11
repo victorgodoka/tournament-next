@@ -8,3 +8,4 @@ export { default as ButtonComponent } from "./button/button.component";
 export { default as AvatarmenuComponent } from "./avatarmenu/avatarmenu.component";
 export { default as FooterComponent } from "./footer/footer.component";
 export { default as ErrorBanner } from "./errorbanner/errorbanner.component";
+export { default as ComingSoonPage } from "./coming-soon-page/coming-soon-page.component";

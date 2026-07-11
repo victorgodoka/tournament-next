@@ -1,11 +1,19 @@
-import { pageMetadata } from '@lib/page-metadata'
+import { ComingSoonPage } from '@components'
+import { noIndexMetadata } from '@lib/page-metadata'
 import './konami-decklist.styles.css'
 
-export const metadata = pageMetadata('Konami Decklist')
+export const metadata = noIndexMetadata(
+  'Konami Decklist',
+  '/konami-decklist',
+  'Convert Yu-Gi-Oh! decks to Konami decklist format on YGO Omega.',
+)
 
 const KonamiDecklistPage = () => {
   return (
-    <div>konami-decklist.pages.tsx</div>
+    <ComingSoonPage
+      title="Konami Decklist"
+      description="Konami decklist conversion is coming soon."
+    />
   )
 }
 

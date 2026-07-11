@@ -1,11 +1,19 @@
-import { pageMetadata } from '@lib/page-metadata'
+import { ComingSoonPage } from '@components'
+import { noIndexMetadata } from '@lib/page-metadata'
 import './deck-editor.styles.css'
 
-export const metadata = pageMetadata('Deck Editor')
+export const metadata = noIndexMetadata(
+  'Deck Editor',
+  '/deck-editor',
+  'Build and edit Yu-Gi-Oh! decks with the YGO Omega deck editor.',
+)
 
 const DeckEditorPage = () => {
   return (
-    <div>deck-editor.pages.tsx</div>
+    <ComingSoonPage
+      title="Deck Editor"
+      description="The deck editor is coming soon."
+    />
   )
 }
 

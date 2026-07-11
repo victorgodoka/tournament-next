@@ -1,11 +1,19 @@
-import { pageMetadata } from '@lib/page-metadata'
+import { ComingSoonPage } from '@components'
+import { noIndexMetadata } from '@lib/page-metadata'
 import './deck-wiki.styles.css'
 
-export const metadata = pageMetadata('Deck Wiki')
+export const metadata = noIndexMetadata(
+  'Deck Wiki',
+  '/deck-wiki',
+  'Community Yu-Gi-Oh! deck profiles and meta guides on YGO Omega.',
+)
 
 const DeckWikiPage = () => {
   return (
-    <div>deck-wiki.pages.tsx</div>
+    <ComingSoonPage
+      title="Deck Wiki"
+      description="Community deck profiles and meta guides are coming soon."
+    />
   )
 }
 

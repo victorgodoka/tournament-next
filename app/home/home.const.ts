@@ -1,6 +1,5 @@
+import { DISCORD_SERVER_LINK } from "@lib/site-config"
 import type { HomeCommunityLink, HomeFeature, HomeToolLink } from "./home.types"
-
-export const DISCORD_INVITE_URL = 'https://discord.gg/duelistsunite'
 
 export const HOME_FEATURES: HomeFeature[] = [
   {
@@ -51,7 +50,7 @@ export const HOME_COMMUNITY: HomeCommunityLink[] = [
   },
   {
     label: 'Discord Server',
-    href: DISCORD_INVITE_URL,
+    href: DISCORD_SERVER_LINK,
     icon: 'mdi:discord',
     description: 'Join the main Duelists Unite community on Discord.',
   },

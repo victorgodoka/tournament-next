@@ -1,11 +1,19 @@
-import { pageMetadata } from '@lib/page-metadata'
+import { ComingSoonPage } from '@components'
+import { noIndexMetadata } from '@lib/page-metadata'
 import './calculator.styles.css'
 
-export const metadata = pageMetadata('Calculator')
+export const metadata = noIndexMetadata(
+  'Calculator',
+  '/calculator',
+  'Yu-Gi-Oh! probability and combo calculator on YGO Omega.',
+)
 
 const CalculatorPage = () => {
   return (
-    <div>calculator.pages.tsx</div>
+    <ComingSoonPage
+      title="Calculator"
+      description="The Yu-Gi-Oh! calculator is coming soon."
+    />
   )
 }
 

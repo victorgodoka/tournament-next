@@ -1,78 +1,57 @@
-import type { Metadata, Viewport } from "next";
-import { fontVariables } from "./fonts";
-import { Providers } from "./providers";
-import "@assets/design.system.css";
-
-const SITE_URL = "https://duelistsunite.org/omega-web";
-const SITE_TITLE = "YGO Omega | Duelists Unite";
-const SITE_DESCRIPTION =
-  "YGO Omega — the free Yu-Gi-Oh! simulator by Duelists Unite. Play online, build decks, join tournaments, and explore the meta.";
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "YGO Omega",
-  alternateName: "Yu-Gi-Oh! Omega",
-  url: `${SITE_URL}/`,
-  description:
-    "Free Yu-Gi-Oh! simulator and competitive platform by Duelists Unite.",
-  applicationCategory: "GameApplication",
-  operatingSystem: "Web",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
-  publisher: {
-    "@type": "Organization",
-    name: "Duelists Unite",
-  },
-};
+import type { Metadata, Viewport } from 'next'
+import { fontVariables } from './fonts'
+import { Providers } from './providers'
+import { siteJsonLd } from '@lib/json-ld'
+import {
+  OG_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+  SITE_URL,
+} from '@lib/site-config'
+import '@assets/design.system.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: `%s | YGO Omega`,
+    template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
-    type: "website",
+    type: 'website',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    url: "/",
-    siteName: "YGO Omega",
-    images: [{ url: "/logo.png" }],
+    url: '/',
+    siteName: SITE_NAME,
+    images: [OG_IMAGE],
   },
   twitter: {
-    card: "summary_large_image",
+    card: 'summary_large_image',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/logo.png"],
+    images: [OG_IMAGE.url],
   },
   icons: {
     icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
-  manifest: "/site.webmanifest",
-};
+  manifest: '/site.webmanifest',
+}
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
-  themeColor: "#080808",
-};
+  themeColor: '#080808',
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
@@ -88,7 +67,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://cdn.discordapp.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
         />
       </head>
       <body className="app-shell" suppressHydrationWarning>
@@ -96,5 +75,5 @@ export default function RootLayout({
         <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }
