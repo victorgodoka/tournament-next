@@ -3,6 +3,7 @@
 .logo {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: var(--space-3);
   padding-block: var(--space-2);
   padding-inline: var(--space-2);
@@ -24,11 +25,21 @@
   outline-offset: 3px;
 }
 
-.logo__mark {
+.logo__mark-wrap {
+  display: inline-flex;
   flex-shrink: 0;
   width: 2.5rem;
   height: 2.5rem;
+  line-height: 0;
+}
+
+.logo__mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
   object-fit: contain;
+  mix-blend-mode: lighten;
   filter: drop-shadow(0 0 10px color-mix(in srgb, var(--palette-secondary) 35%, transparent));
   transition:
     filter var(--duration-base) var(--ease-out),
@@ -55,7 +66,7 @@
     font-size: var(--text-lg);
   }
 
-  .logo__mark {
+  .logo__mark-wrap {
     width: 2.125rem;
     height: 2.125rem;
   }

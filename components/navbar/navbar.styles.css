@@ -21,8 +21,9 @@
 }
 
 .navbar__menu {
+  flex: 1;
+  min-width: 0;
   text-align: center;
-  width: 100%;
 }
 
 @media (max-width: 768px) {
