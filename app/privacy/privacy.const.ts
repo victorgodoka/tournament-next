@@ -13,8 +13,7 @@ export const PRIVACY_META = {
     timeZone: 'UTC',
   }).format(new Date(`${PRIVACY_TERMS_CONST.LAST_UPDATE}T12:00:00Z`)),
   email: PRIVACY_TERMS_CONST.EMAIL,
-  country: PRIVACY_TERMS_CONST.COUNTRY,
-  region: PRIVACY_TERMS_CONST.REGION,
+  jurisdiction: PRIVACY_TERMS_CONST.JURISDICTION,
   discordLink: DISCORD_SERVER_LINK,
   siteHostname: new URL(SITE_URL).hostname,
 } as const

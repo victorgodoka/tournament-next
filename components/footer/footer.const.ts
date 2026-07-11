@@ -1,3 +1,14 @@
+export const FOOTER_LEGAL_LINKS = [
+  {
+    href: '/privacy',
+    label: 'Privacy Policy',
+  },
+  {
+    href: '/terms',
+    label: 'Terms of Service',
+  }
+] as const
+
 export const FOOTER_SOCIAL_LINKS = [
   {
     href: 'https://discord.gg/duelistsunite',

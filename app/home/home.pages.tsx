@@ -2,8 +2,9 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { ButtonComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
-import { DISCORD_INVITE_URL, HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
+import { HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import './home.styles.css'
+import { DISCORD_SERVER_LINK } from '@lib/site-config'
 
 const HomePage = () => {
   return (
@@ -39,7 +40,7 @@ const HomePage = () => {
           </ButtonComponent>
 
           <ButtonComponent
-            href={DISCORD_INVITE_URL}
+            href={DISCORD_SERVER_LINK}
             variant="secondary"
             size="lg"
             icon="mdi:discord"

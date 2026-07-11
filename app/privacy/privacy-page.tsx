@@ -303,11 +303,11 @@ const PrivacyPage = () => {
               10. International Users
             </h2>
             <p>
-              The Service is operated from {PRIVACY_META.country} (
-              {PRIVACY_META.region}) and may be hosted on servers in other
-              countries. By using the Service, you understand that your
-              information may be transferred to and processed in countries
-              other than your own, which may have different data protection laws.
+              The Service is operated from {PRIVACY_META.jurisdiction} and may be
+              hosted on servers in other countries. By using the Service, you
+              understand that your information may be transferred to and processed
+              in countries other than your own, which may have different data
+              protection laws.
             </p>
           </section>
 
@@ -380,6 +380,10 @@ const PrivacyPage = () => {
               </li>
             </ul>
             <p className="privacy__back">
+              <Link href="/terms" className="privacy__back-link">
+                Terms of Service
+              </Link>
+              {' · '}
               <Link href="/" className="privacy__back-link">
                 Back to Home
               </Link>

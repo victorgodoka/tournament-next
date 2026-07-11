@@ -27,7 +27,7 @@ export const PRIVACY_TERMS_CONST = {
   LAST_UPDATE: '2026-07-11',
   EMAIL: 'admin@duelistsunite.org',
   COUNTRY: 'Canada',
-  REGION: 'North America',
+  JURISDICTION: 'Canada',
 } as const
 
 export const DISCORD_SERVER_LINK = 'https://discord.gg/duelistsunite'
