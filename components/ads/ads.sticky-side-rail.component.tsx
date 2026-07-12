@@ -5,9 +5,8 @@ import {
   STICKY_RAIL_AD_OPTIONS,
 } from '@lib/nitro-ads.const'
 import { useNitroAd } from './use-nitro-ad'
-import './ads.styles.css'
 
-const StickyRideRailAd = () => {
+const StickySideRailAd = () => {
   useNitroAd(NITRO_AD_SLOT_IDS.stickyRail, STICKY_RAIL_AD_OPTIONS)
 
   return (
@@ -15,9 +14,8 @@ const StickyRideRailAd = () => {
       id={NITRO_AD_SLOT_IDS.stickyRail}
       className="ads ads--sticky-rail"
       aria-label="Advertisement"
-      aria-hidden="true"
     />
   )
 }
 
-export default StickyRideRailAd
+export default StickySideRailAd

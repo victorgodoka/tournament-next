@@ -34,7 +34,7 @@ export interface NitroFloatingAdOptions {
 export type NitroAdOptions = NitroRailAdOptions | NitroFloatingAdOptions
 
 export interface NitroAdInstance {
-  onNavigate?: (callback: () => void) => void
+  onNavigate?: (href?: string) => void
 }
 
 export interface NitroAdsApi {
@@ -43,6 +43,7 @@ export interface NitroAdsApi {
     options: NitroAdOptions,
   ) => NitroAdInstance | Promise<NitroAdInstance | null> | null
   removeAd?: (id: string) => void
+  onNavigate?: (href?: string) => void
   loaded?: boolean
   queue: unknown[]
 }

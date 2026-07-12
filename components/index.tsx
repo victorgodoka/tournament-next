@@ -11,6 +11,6 @@ export { default as ErrorBanner } from "./errorbanner/errorbanner.component";
 export { default as ComingSoonPage } from "./coming-soon-page/coming-soon-page.component";
 export {
   AdsShell,
-  StickyRideRailAd,
+  StickySideRailAd,
   FloatingOutstreamVideoPlayerAd,
 } from "./ads";

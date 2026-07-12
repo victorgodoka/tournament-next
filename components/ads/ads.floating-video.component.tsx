@@ -5,7 +5,6 @@ import {
   NITRO_AD_SLOT_IDS,
 } from '@lib/nitro-ads.const'
 import { useNitroAd } from './use-nitro-ad'
-import './ads.styles.css'
 
 const FloatingOutstreamVideoPlayerAd = () => {
   useNitroAd(
@@ -18,7 +17,6 @@ const FloatingOutstreamVideoPlayerAd = () => {
       id={NITRO_AD_SLOT_IDS.floatingOutstream}
       className="ads ads--floating-outstream"
       aria-label="Advertisement"
-      aria-hidden="true"
     />
   )
 }

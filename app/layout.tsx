@@ -72,8 +72,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
         />
-      </head>
-      <body className="app-shell" suppressHydrationWarning>
         <Script
           id="nitro-ads-stub"
           strategy="beforeInteractive"
@@ -89,6 +87,8 @@ export default function RootLayout({
           data-cfasync="false"
           data-log-level="warn"
         />
+      </head>
+      <body className="app-shell" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
