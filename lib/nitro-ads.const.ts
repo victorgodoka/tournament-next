@@ -14,7 +14,7 @@ export const STICKY_RAIL_AD_OPTIONS = {
   rail: 'left',
   railOffsetTop: 100,
   railOffsetBottom: 0,
-  railCollisionWhitelist: ['#main-content', 'footer'],
+  railCollisionWhitelist: ['#main-content', 'footer', '.navbar'],
   railCloseColor: '#666666',
   railSpacing: 10,
   railStack: true,

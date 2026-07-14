@@ -7,6 +7,11 @@ import AuthSessionGuard from '@contexts/Auth/auth.session-guard'
 import ErrorBanner from '../components/errorbanner/errorbanner.component'
 import NavbarComponent from '../components/navbar/navbar.component'
 import FooterComponent from '../components/footer/footer.component'
+import dynamic from 'next/dynamic'
+
+const AdsShell = dynamic(() => import('../components/ads/ads-shell.component'), {
+  ssr: false
+})
 
 function AuthSessionGuardBoundary() {
   return (
@@ -19,6 +24,9 @@ function AuthSessionGuardBoundary() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
+      <Suspense fallback={null}>
+        <AdsShell />
+      </Suspense>
       <Suspense fallback={null}>
         <GtmPageView />
       </Suspense>
