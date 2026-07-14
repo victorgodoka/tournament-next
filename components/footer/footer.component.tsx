@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import IconComponent from '../icon/icon.component'
+import FooterSocialLink from './footer-social-link.component'
 import { FOOTER_LEGAL_LINKS, FOOTER_SOCIAL_LINKS } from './footer.const'
 import './footer.styles.css'
 
@@ -21,16 +22,14 @@ const FooterComponent = () => {
         </div>
         <nav className="footer__links" aria-label="Social media">
           {FOOTER_SOCIAL_LINKS.map((link) => (
-            <a
+            <FooterSocialLink
               key={link.href}
               href={link.href}
+              label={link.label}
               className="footer__links-link"
-              aria-label={`${link.label} (opens in new tab)`}
-              target="_blank"
-              rel="noopener noreferrer"
             >
               <IconComponent icon={link.icon} width={24} height={24} />
-            </a>
+            </FooterSocialLink>
           ))}
         </nav>
       </div>

@@ -4,6 +4,7 @@ import { useAuthContext } from '@contexts'
 import ButtonComponent from '../button/button.component'
 import { DISCORD_OAUTH_URL } from './auth.const'
 import { buildDiscordOAuthUrl } from '@lib/discord-oauth'
+import { trackLoginStart } from '@lib/gtm'
 import AvatarmenuComponent from '../avatarmenu/avatarmenu.component'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import './auth.styles.css'
@@ -14,6 +15,7 @@ const AuthComponent = () => {
   const startDiscordSignIn = () => {
     const url = buildDiscordOAuthUrl(DISCORD_OAUTH_URL)
     if (url) {
+      trackLoginStart()
       window.location.assign(url)
     }
   }

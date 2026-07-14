@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { GtmNoScript, GtmScripts } from '../components/gtm/gtm-scripts.component'
 import { fontVariables } from './fonts'
 import { Providers } from './providers'
 import { siteJsonLd } from '@lib/json-ld'
@@ -62,6 +63,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="//api.duelistsunite.org" />
         <link rel="dns-prefetch" href="//discord.com" />
         <link rel="dns-prefetch" href="//s.nitropay.com" />
+        <link rel="dns-prefetch" href="//www.googletagmanager.com" />
         <link
           rel="preconnect"
           href="https://images.ygoprodeck.com"
@@ -87,8 +89,10 @@ export default function RootLayout({
           data-cfasync="false"
           data-log-level="warn"
         />
+        <GtmScripts />
       </head>
       <body className="app-shell" suppressHydrationWarning>
+        <GtmNoScript />
         <Providers>{children}</Providers>
       </body>
     </html>

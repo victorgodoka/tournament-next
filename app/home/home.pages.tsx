@@ -1,10 +1,9 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { ButtonComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 import { HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
+import HomeHeroActions from './home-hero-actions.component'
 import './home.styles.css'
-import { DISCORD_SERVER_LINK } from '@lib/site-config'
 
 const HomePage = () => {
   return (
@@ -29,28 +28,7 @@ const HomePage = () => {
           to improve your game.
         </p>
 
-        <div className="home__actions">
-          <ButtonComponent
-            to="/tournament/live"
-            variant="primary"
-            size="lg"
-            icon="fluent:live-20-filled"
-          >
-            Live Tournament
-          </ButtonComponent>
-
-          <ButtonComponent
-            href={DISCORD_SERVER_LINK}
-            variant="secondary"
-            size="lg"
-            icon="mdi:discord"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Join Discord
-            <span className="visually-hidden"> (opens in new tab)</span>
-          </ButtonComponent>
-        </div>
+        <HomeHeroActions />
       </section>
 
       <section className="home__section omega-container" aria-labelledby="home-features-title">

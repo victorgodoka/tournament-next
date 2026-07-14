@@ -21,6 +21,7 @@ import {
   LOGOUT_ANIMATION_MS,
 } from './auth.const'
 import { authReducer } from './auth.reducer'
+import { trackLogout } from '@lib/gtm'
 import { AuthManager } from './auth.manager'
 import { setAuthRedirectFrom } from './auth.redirect'
 import type { LogoutOptions, User, UserActions } from './auth.types'
@@ -77,6 +78,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, [])
 
   const finishLogout = useCallback((options?: LogoutOptions) => {
+    trackLogout()
     dispatch({ type: 'LOGOUT' })
     AuthManager.logout()
     localStorage.removeItem('user')

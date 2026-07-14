@@ -16,6 +16,7 @@ import {
   parseOAuthCallbackFromUrl,
   persistDiscordToken,
 } from '@lib/discord-oauth'
+import { trackLogin, trackLoginError } from '@lib/gtm'
 
 export type DiscordLoadingState =
   | 'authenticating'
@@ -58,6 +59,7 @@ export function useDiscordLogin() {
   }, [router])
 
   const fail = useCallback((message: string, delayMs = 5000) => {
+    trackLoginError(message)
     setLoadingState('error')
     setErrorMessage(message)
     scheduleRedirect('/', delayMs)
@@ -179,6 +181,7 @@ export function useDiscordLogin() {
             },
           })
 
+          trackLogin()
           setLoadingState('redirecting')
           scheduleRedirect(redirectPath, 1000)
         } catch (error) {

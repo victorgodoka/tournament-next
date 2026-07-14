@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { Suspense, type ReactNode } from 'react'
+import { GtmPageView } from '../components/gtm/gtm-page-view.component'
 import { AuthProvider } from '@contexts'
 import AuthSessionGuard from '@contexts/Auth/auth.session-guard'
 import ErrorBanner from '../components/errorbanner/errorbanner.component'
@@ -23,6 +24,9 @@ function AuthSessionGuardBoundary() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
+      <Suspense fallback={null}>
+        <GtmPageView />
+      </Suspense>
       <AuthSessionGuardBoundary />
       <a href="#main-content" className="skip-link">
         Skip to main content
