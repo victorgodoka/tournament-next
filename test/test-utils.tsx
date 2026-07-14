@@ -15,3 +15,11 @@ export {
 } from './mocks/next-navigation'
 export { createPlayerStats, createLeaderboardData } from './fixtures/player.fixture'
 export { createSavedDeck, createMatchHistory } from './fixtures/deck.fixture'
+export {
+  createTournament,
+  createTournamentsListData,
+  createTournamentUser,
+  createDuel,
+  createRound,
+  createTournamentDetail,
+} from './fixtures/tournament.fixture'

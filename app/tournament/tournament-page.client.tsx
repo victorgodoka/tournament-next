@@ -1,0 +1,94 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { Icon } from '@iconify/react'
+import type { TournamentDetail, TournamentUser } from './tournament.types'
+import {
+  buildUserMap,
+  isTournamentFinished,
+  parseTournamentSettings,
+} from './tournament-page.utils'
+import TournamentError from './tournament-error.component'
+import TournamentHeader from './tournament-header.component'
+import TournamentPlayers from './tournament-players.component'
+import TournamentTabs, { type TournamentTabId } from './tournament-tabs.component'
+import TournamentBrackets from './tournament-brackets.component'
+import TournamentTable from './tournament-table.component'
+
+type TournamentPageClientProps = {
+  detail: TournamentDetail | null
+  error: string | null
+}
+
+const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
+  const [activeTab, setActiveTab] = useState<TournamentTabId>('brackets')
+
+  const userMap = useMemo(
+    () => buildUserMap(detail?.users ?? ([] as TournamentUser[])),
+    [detail],
+  )
+
+  if (error || !detail) {
+    return (
+      <TournamentError message={error || 'This tournament could not be found.'} />
+    )
+  }
+
+  const { tournament, rounds, users } = detail
+  const finished = isTournamentFinished(tournament)
+  const settings = parseTournamentSettings(tournament.settings)
+
+  return (
+    <div className="tournament">
+      <div className="tournament__backdrop" aria-hidden="true">
+        <span className="tournament__grid" />
+        <span className="tournament__orb tournament__orb--secondary" />
+        <span className="tournament__orb tournament__orb--accent" />
+      </div>
+
+      <div className="tournament__content omega-container">
+        <section
+          className="tournament__hero omega-surface"
+          aria-label="Tournament overview"
+        >
+          <TournamentHeader
+            tournament={tournament}
+            settings={settings}
+            finished={finished}
+          />
+          <TournamentPlayers users={users} />
+        </section>
+
+        <TournamentTabs
+          finished={finished}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+
+        <div
+          className="tournament__panel"
+          role="tabpanel"
+          id={`tournament-panel-${activeTab}`}
+          aria-labelledby={`tournament-tab-${activeTab}`}
+        >
+          {activeTab === 'brackets' ? (
+            <TournamentBrackets rounds={rounds} users={userMap} />
+          ) : null}
+          {activeTab === 'table' ? <TournamentTable detail={detail} /> : null}
+          {activeTab === 'topcut' || activeTab === 'data' ? (
+            <div className="tournament__panel-empty" role="status">
+              <Icon
+                icon="mdi:progress-clock"
+                className="tournament__panel-empty-icon"
+                aria-hidden="true"
+              />
+              <p>This section is coming soon.</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default TournamentPageClient

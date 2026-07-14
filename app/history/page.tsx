@@ -1,20 +1,23 @@
-import { ComingSoonPage } from '@components'
-import { noIndexMetadata } from '@lib/page-metadata'
+import { pageMetadata } from '@lib/page-metadata'
+import { getTournaments } from './history.api'
+import { HISTORY_PAGE_LIMIT } from './history.const'
+import HistoryPageClient from './history-page.client'
 import './history.styles.css'
 
-export const metadata = noIndexMetadata(
-  'Past Tournaments',
-  '/history',
-  'Browse past Yu-Gi-Oh! tournament results on YGO Omega.',
-)
+export const metadata = pageMetadata({
+  title: 'Tournament History',
+  path: '/history',
+  description:
+    'Browse past and live Yu-Gi-Oh! tournaments on YGO Omega — rounds, banlists, and results.',
+})
 
-const HistoryPage = () => {
+export default async function HistoryPage() {
+  const result = await getTournaments({ page: 1, limit: HISTORY_PAGE_LIMIT })
+
   return (
-    <ComingSoonPage
-      title="Past Tournaments"
-      description="Past tournament results are coming soon."
+    <HistoryPageClient
+      initialData={result.ok ? result.data.data : null}
+      initialError={result.ok ? null : result.message}
     />
   )
 }
-
-export default HistoryPage

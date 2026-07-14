@@ -1,20 +1,7 @@
-import { ComingSoonPage } from '@components'
-import { noIndexMetadata } from '@lib/page-metadata'
-import './tournament.styles.css'
-
-export const metadata = noIndexMetadata(
-  'Tournament',
-  '/tournament',
-  'Organized Yu-Gi-Oh! tournaments on YGO Omega.',
-)
+import { redirect } from 'next/navigation'
 
 const TournamentPage = () => {
-  return (
-    <ComingSoonPage
-      title="Tournament"
-      description="Tournament listings are coming soon."
-    />
-  )
+  redirect('/tournament/live')
 }
 
 export default TournamentPage

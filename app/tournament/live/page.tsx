@@ -1,20 +1,24 @@
-import { ComingSoonPage } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
+import { getLiveTournament } from '../tournament.api'
+import TournamentPageClient from '../tournament-page.client'
 import '../tournament.styles.css'
 
 export const metadata = noIndexMetadata(
   'Live Tournament',
   '/tournament/live',
-  'Join live Yu-Gi-Oh! tournaments with real-time brackets on YGO Omega.',
+  'Follow the live Yu-Gi-Oh! tournament on YGO Omega — brackets, standings, and results in real time.',
 )
 
-const TournamentLivePage = () => {
-  return (
-    <ComingSoonPage
-      title="Live Tournament"
-      description="Live tournament brackets are coming soon."
-    />
-  )
-}
+export const dynamic = 'force-dynamic'
 
-export default TournamentLivePage
+export default async function TournamentLivePage() {
+  const result = await getLiveTournament()
+  const detail = result.ok && result.data.success ? result.data.data : null
+  const error = detail
+    ? null
+    : result.ok
+      ? 'No live tournament is running right now.'
+      : result.message
+
+  return <TournamentPageClient detail={detail} error={error} />
+}

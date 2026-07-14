@@ -3,7 +3,7 @@
 .profile {
   position: relative;
   isolation: isolate;
-  min-height: calc(100dvh - var(--header-height));
+  flex: 1;
   overflow: clip;
 }
 

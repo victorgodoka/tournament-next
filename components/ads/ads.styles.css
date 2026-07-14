@@ -9,6 +9,17 @@
   z-index: var(--z-ads);
 }
 
+.ads--sticky-rail {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.ads--floating-outstream {
+  bottom: 0;
+  right: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ads {
     animation: none;
