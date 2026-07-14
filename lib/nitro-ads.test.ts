@@ -3,7 +3,6 @@ import { FLOATING_OUTSTREAM_AD_OPTIONS } from './nitro-ads.const'
 import {
   NITRO_LOADED_EVENT,
   createNitroPlacement,
-  refreshNitroAdsOnNavigate,
   removeNitroPlacement,
   waitForNitroAds,
 } from './nitro-ads'
@@ -193,49 +192,5 @@ describe('removeNitroPlacement', () => {
     removeNitroPlacement('slot-1')
 
     expect(slot.childElementCount).toBe(0)
-  })
-})
-
-describe('refreshNitroAdsOnNavigate', () => {
-  beforeEach(() => {
-    delete window.nitroAds
-  })
-
-  it('calls the global onNavigate handler when available', () => {
-    const onNavigate = vi.fn()
-    window.nitroAds = {
-      createAd: vi.fn(),
-      onNavigate,
-      queue: [],
-    }
-
-    refreshNitroAdsOnNavigate('/next-page')
-
-    expect(onNavigate).toHaveBeenCalledWith('/next-page')
-  })
-
-  it('does not call onNavigate when the handler is unavailable', () => {
-    const onNavigate = vi.fn()
-    window.nitroAds = {
-      createAd: vi.fn(),
-      queue: [],
-    }
-
-    refreshNitroAdsOnNavigate()
-
-    expect(onNavigate).not.toHaveBeenCalled()
-  })
-
-  it('returns without throwing when window is unavailable', () => {
-    const originalWindow = globalThis.window
-
-    vi.stubGlobal(
-      'window',
-      undefined as unknown as Window & typeof globalThis,
-    )
-
-    expect(() => refreshNitroAdsOnNavigate()).not.toThrow()
-
-    vi.stubGlobal('window', originalWindow)
   })
 })

@@ -65,7 +65,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-const idleTimers = new Map<number, ReturnType<typeof setTimeout>>()
+const idleTimers = new Map<number, number>()
 let nextIdleId = 1
 
 window.requestIdleCallback = (callback: IdleRequestCallback) => {

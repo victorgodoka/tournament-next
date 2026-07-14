@@ -92,12 +92,3 @@ export function removeNitroPlacement(slotId: string): void {
     slot.replaceChildren()
   }
 }
-
-export function refreshNitroAdsOnNavigate(href?: string): void {
-  if (typeof window === 'undefined') return
-
-  const onNavigate = window.nitroAds?.onNavigate
-  if (typeof onNavigate === 'function') {
-    onNavigate(href)
-  }
-}

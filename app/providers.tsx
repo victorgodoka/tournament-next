@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { Suspense, type ReactNode } from 'react'
 import { GtmPageView } from '../components/gtm/gtm-page-view.component'
 import { AuthProvider } from '@contexts'
@@ -8,10 +7,6 @@ import AuthSessionGuard from '@contexts/Auth/auth.session-guard'
 import ErrorBanner from '../components/errorbanner/errorbanner.component'
 import NavbarComponent from '../components/navbar/navbar.component'
 import FooterComponent from '../components/footer/footer.component'
-
-const AdsShell = dynamic(() => import('../components/ads/ads-shell.component'), {
-  ssr: false,
-})
 
 function AuthSessionGuardBoundary() {
   return (
@@ -37,7 +32,6 @@ export function Providers({ children }: { children: ReactNode }) {
         {children}
       </main>
       <FooterComponent />
-      <AdsShell />
     </AuthProvider>
   )
 }

@@ -13,6 +13,9 @@ import {
   SITE_URL,
 } from '@lib/site-config'
 import '@assets/design.system.css'
+import dynamic from 'next/dynamic'
+
+const AdsShell = dynamic(() => import('../components/ads/ads-shell.component'))
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -94,6 +97,7 @@ export default function RootLayout({
       </head>
       <body className="app-shell" suppressHydrationWarning>
         <GtmNoScript />
+        <AdsShell />
         <Providers>{children}</Providers>
       </body>
     </html>

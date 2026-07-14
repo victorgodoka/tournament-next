@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLOATING_OUTSTREAM_AD_OPTIONS } from '@lib/nitro-ads.const'
 import * as nitroAds from '@lib/nitro-ads'
+import type { NitroAdOptions } from '@lib/nitro-ads.types'
 import { useNitroAd } from './use-nitro-ad'
 
 afterEach(() => {
@@ -181,8 +182,8 @@ describe('useNitroAd', () => {
     }
 
     const { rerender } = renderHook(
-      ({ options }) => useNitroAd('slot-1', options),
-      { initialProps: { options: FLOATING_OUTSTREAM_AD_OPTIONS } },
+      ({ options }: { options: NitroAdOptions }) => useNitroAd('slot-1', options),
+      { initialProps: { options: FLOATING_OUTSTREAM_AD_OPTIONS as NitroAdOptions } },
     )
 
     await runScheduledWork()
