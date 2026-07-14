@@ -55,6 +55,13 @@
   border-radius: var(--radius-sm);
 }
 
+.footer__privacy-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .footer__links {
   display: flex;
   justify-content: center;
@@ -90,7 +97,8 @@
     text-align: center;
   }
 
-  .footer__legal {
+  .footer__legal,
+  .footer__privacy-controls {
     justify-content: center;
   }
 }

@@ -88,6 +88,7 @@ export default function RootLayout({
           strategy="afterInteractive"
           data-cfasync="false"
           data-log-level="warn"
+          data-spa="auto"
         />
         <GtmScripts />
       </head>

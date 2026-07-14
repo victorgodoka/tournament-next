@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import IconComponent from '../icon/icon.component'
+import CcpaOptOutLink from '../ads/ads.ccpa-link.component'
+import ConsentManagementLink from '../ads/ads.consent-link.component'
 import FooterSocialLink from './footer-social-link.component'
 import { FOOTER_LEGAL_LINKS, FOOTER_SOCIAL_LINKS } from './footer.const'
 import './footer.styles.css'
@@ -19,6 +21,10 @@ const FooterComponent = () => {
               </Link>
             ))}
           </nav>
+          <div className="footer__privacy-controls">
+            <CcpaOptOutLink />
+            <ConsentManagementLink />
+          </div>
         </div>
         <nav className="footer__links" aria-label="Social media">
           {FOOTER_SOCIAL_LINKS.map((link) => (

@@ -1,5 +1,7 @@
 export { default as AdsShell } from './ads-shell.component'
 export { default as StickySideRailAd } from './ads.sticky-side-rail.component'
 export { default as FloatingOutstreamVideoPlayerAd } from './ads.floating-video.component'
+export { default as CcpaOptOutLink } from './ads.ccpa-link.component'
+export { default as ConsentManagementLink } from './ads.consent-link.component'
 export { useNitroAd } from './use-nitro-ad'
 export { useNitroAdsNavigation } from './use-nitro-ads-navigation'
