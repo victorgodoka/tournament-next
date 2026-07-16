@@ -4,17 +4,17 @@ import {
   formatTournamentRounds,
   getTournamentStatusLabel,
   getTournamentStatusModifier,
-  isTournamentCompleted,
 } from './history.utils'
+import { isTournamentFinished } from '../tournament/tournament-page.utils'
 
 describe('history.utils', () => {
-  describe('isTournamentCompleted', () => {
+  describe('isTournamentFinished ', () => {
     it('is true when endtime is set', () => {
-      expect(isTournamentCompleted({ endtime: '2026-07-14T21:00:00Z' })).toBe(true)
+      expect(isTournamentFinished({ endtime: '2026-07-14T21:00:00Z' })).toBe(true)
     })
 
     it('is false when endtime is null', () => {
-      expect(isTournamentCompleted({ endtime: null })).toBe(false)
+      expect(isTournamentFinished({ endtime: null })).toBe(false)
     })
   })
 

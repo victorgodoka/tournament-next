@@ -1,16 +1,23 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   createDuel,
   createRound,
   createTournament,
   createTournamentDetail,
   createTournamentUser,
+  mockRouter,
+  pathnameState,
   render,
   screen,
   userEvent,
   within,
 } from '../../test/test-utils'
 import TournamentPageClient from './tournament-page.client'
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => mockRouter,
+  usePathname: () => pathnameState.value,
+}))
 
 const createUsers = () => [
   createTournamentUser({
@@ -136,12 +143,29 @@ describe('TournamentPageClient', () => {
     render(<TournamentPageClient detail={createFinishedDetail()} error={null} />)
 
     const topcutTab = screen.getByRole('tab', { name: 'Topcut & Decklists' })
+    const dataTab = screen.getByRole('tab', { name: 'Data & Graphics' })
     expect(topcutTab).toBeEnabled()
-    expect(screen.getByRole('tab', { name: 'Data & Graphics' })).toBeEnabled()
+    expect(dataTab).toBeEnabled()
 
     await user.click(topcutTab)
+    expect(screen.getByText(/top cut hasn't been decided/i)).toBeInTheDocument()
 
+    await user.click(dataTab)
     expect(screen.getByText(/coming soon/i)).toBeInTheDocument()
+  })
+
+  it('shows the hard-refresh button only while the tournament is ongoing', () => {
+    const { unmount } = render(
+      <TournamentPageClient detail={createLiveDetail()} error={null} />,
+    )
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument()
+
+    unmount()
+
+    render(<TournamentPageClient detail={createFinishedDetail()} error={null} />)
+    expect(
+      screen.queryByRole('button', { name: /refresh/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('lists rounds newest first with only the latest open', () => {

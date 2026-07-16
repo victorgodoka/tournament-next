@@ -29,6 +29,7 @@ import {
   getPlayerDisplayName,
   sliceTopPlayers,
 } from './leaderboards.utils'
+import IconComponent from '../../components/icon/icon.component'
 
 type LeaderboardsPageClientProps = {
   data: LeaderboardData | null
@@ -60,7 +61,7 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
       <div className="leaderboards__cell leaderboards__cell--rank">
         <span className="leaderboards__rank" aria-label={`Rank ${rank}`}>
           {rankIcon ? (
-            <Icon icon={rankIcon} className="leaderboards__rank-icon" aria-hidden="true" />
+            <IconComponent icon={rankIcon} className="leaderboards__rank-icon" aria-hidden="true" />
           ) : null}
           <span className="leaderboards__rank-value">{rank}</span>
         </span>
@@ -157,7 +158,7 @@ const LeaderboardsPageClient = ({
 
         <div className="leaderboards__empty omega-container omega-container--narrow">
           <span className="leaderboards__empty-icon-wrap" aria-hidden="true">
-            <Icon icon="mdi:trophy-broken" className="leaderboards__empty-icon" />
+            <IconComponent icon="mdi:trophy-broken" className="leaderboards__empty-icon" />
           </span>
           <h1 id="leaderboards-error-title" className="leaderboards__empty-title">
             Leaderboard unavailable
@@ -245,7 +246,7 @@ const LeaderboardsPageClient = ({
 
           {players.length === 0 ? (
             <div className="leaderboards__empty-state" role="status">
-              <Icon icon="mdi:account-group-outline" className="leaderboards__empty-state-icon" />
+              <IconComponent icon="mdi:account-group-outline" className="leaderboards__empty-state-icon" />
               <p>No ranked players yet for {mode}.</p>
             </div>
           ) : (

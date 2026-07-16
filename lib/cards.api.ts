@@ -20,6 +20,7 @@ export function extractCardsFromResponse(
 
   return []
 }
+
 export async function searchCards(
   params?: CardsSearchParams,
 ): Promise<CardsSearchResponse> {

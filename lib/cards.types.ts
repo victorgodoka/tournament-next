@@ -9,6 +9,8 @@ export interface CardsSearchParams {
 
   // ID / Alias
   id?: number | string | Array<number | string>;
+  ids?:Array<number | string>;
+
   // Region
   region?: 'OCG' | 'TCG' | 'WCS' | 'GENESYS' | 'Genesys' | 'ALL';
 

@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react'
 import type { Tournament, TournamentSettings } from './tournament.types'
 import { formatTournamentDateTime } from './tournament-page.utils'
+import IconComponent from '../../components/icon/icon.component'
 
 type TournamentHeaderProps = {
   tournament: Tournament
@@ -30,41 +31,37 @@ const TournamentHeader = ({
 
       <h1 className="tournament__title">Tournament #{tournament.id}</h1>
 
-      <dl className="tournament__schedule">
+      <div className="tournament__schedule">
         <div className="tournament__schedule-row">
-          <dt>
-            <Icon icon="mdi:calendar-start" aria-hidden="true" />
-            Started
-          </dt>
-          <dd>{formatTournamentDateTime(tournament.starttime)}</dd>
+          <IconComponent icon="mdi:calendar-start" aria-hidden="true" />
+          <span>Started</span>
+          <div>{formatTournamentDateTime(tournament.starttime)}</div>
         </div>
         <div className="tournament__schedule-row">
-          <dt>
-            <Icon icon="mdi:calendar-check" aria-hidden="true" />
-            Ended
-          </dt>
-          <dd>
+          <IconComponent icon="mdi:calendar-check" aria-hidden="true" />
+          <span>Ended</span>
+          <span>
             {finished
               ? formatTournamentDateTime(tournament.endtime)
               : 'In progress'}
-          </dd>
+          </span>
         </div>
-      </dl>
+      </div>
 
       <ul className="tournament__badges" aria-label="Tournament rules">
         <li className="omega-badge omega-badge--secondary">
-          <Icon icon="mdi:shield-outline" aria-hidden="true" />
+          <IconComponent icon="mdi:shield-outline" aria-hidden="true" />
           {tournament.banlist}
         </li>
         {settings ? (
           <li className="omega-badge omega-badge--secondary">
-            <Icon icon="mdi:earth" aria-hidden="true" />
+            <IconComponent icon="mdi:earth" aria-hidden="true" />
             {settings.region}
           </li>
         ) : null}
         {settings ? (
-          <li className="omega-badge omega-badge--accent">
-            <Icon icon="mdi:book-open-variant" aria-hidden="true" />
+          <li className="omega-badge omega-badge--secondary">
+            <IconComponent icon="mdi:book-open-variant" aria-hidden="true" />
             Master Rule {settings.mr}
           </li>
         ) : null}

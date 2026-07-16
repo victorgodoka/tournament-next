@@ -23,6 +23,16 @@
   z-index: 0;
 }
 
+/* Fine film grain to break up the flat dark surface */
+.tournament__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: soft-light;
+}
+
 .tournament__grid {
   position: absolute;
   inset: -16%;
@@ -44,24 +54,27 @@
 .tournament__orb {
   position: absolute;
   border-radius: var(--radius-full);
-  filter: blur(76px);
-  opacity: 0.38;
+  filter: blur(80px);
 }
 
+/* Single-hue teal depth — a bright near source and a deep far one,
+   rather than a teal/purple two-tone gradient. */
 .tournament__orb--secondary {
   width: min(42vw, 22rem);
   height: min(42vw, 22rem);
   top: 2%;
   left: -8%;
-  background: var(--color-secondary);
+  background: var(--color-secondary-light);
+  opacity: 0.32;
 }
 
 .tournament__orb--accent {
-  width: min(36vw, 18rem);
-  height: min(36vw, 18rem);
-  top: 14%;
+  width: min(38vw, 20rem);
+  height: min(38vw, 20rem);
+  top: 16%;
   right: -6%;
-  background: var(--color-accent);
+  background: color-mix(in srgb, var(--palette-secondary) 55%, #04141a);
+  opacity: 0.4;
 }
 
 /* Element: page content */
@@ -75,6 +88,15 @@
   padding-block: var(--space-10) var(--space-12);
 }
 
+/* Element: toolbar — actions for ongoing tournaments (hard refresh) */
+
+.tournament__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
 /* Element: hero — tournament info + players */
 
 .tournament__hero {
@@ -82,6 +104,7 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
+  box-shadow: 0 26px 70px -44px color-mix(in srgb, var(--palette-secondary) 50%, transparent);
   animation: tournament-enter var(--duration-slow) var(--ease-out) both;
 }
 
@@ -138,11 +161,13 @@
 
 .tournament__title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 1.6rem + 1.8vw, 2.75rem);
-  font-weight: var(--weight-semibold);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  font-size: clamp(2.1rem, 1.6rem + 2vw, 2.9rem);
+  font-weight: var(--weight-bold);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--color-text);
+  text-wrap: balance;
+  font-variant-numeric: tabular-nums;
 }
 
 .tournament__schedule {
@@ -155,22 +180,9 @@
 .tournament__schedule-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-1);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
-}
-
-.tournament__schedule-row dt {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 5.5rem;
-  color: var(--color-text-subtle);
-}
-
-.tournament__schedule-row dt svg {
-  width: 1.05rem;
-  height: 1.05rem;
 }
 
 .tournament__schedule-row dd {
@@ -304,7 +316,8 @@
   transition:
     background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .tournament__tab:hover:not(:disabled) {
@@ -312,10 +325,15 @@
   color: var(--color-text);
 }
 
+.tournament__tab:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .tournament__tab--active {
-  border-color: var(--color-border-accent);
-  background: var(--color-accent-subtle);
+  border-color: var(--color-secondary-border);
+  background: var(--color-secondary-subtle);
   color: var(--color-text);
+  box-shadow: inset 0 -2px 0 var(--color-secondary-light);
 }
 
 .tournament__tab:disabled {
@@ -448,6 +466,16 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.tournament-duel:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-secondary-border);
+  box-shadow: 0 16px 40px -30px color-mix(in srgb, var(--palette-secondary) 55%, transparent);
 }
 
 .tournament-duel--ongoing {
@@ -737,11 +765,240 @@
   .tournament__tabs,
   .tournament__panel,
   .tournament__status-dot,
-  .tournament-duel__live-dot {
+  .tournament-duel__live-dot,
+  .tournament-topcut__player {
     animation: none;
   }
 
-  .tournament-round__chevron {
+  .tournament-round__chevron,
+  .tournament-duel {
     transition: none;
   }
+
+  .tournament-duel:hover,
+  .tournament__tab:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Block: tournament-topcut — top cut players & their decklists */
+
+.tournament-topcut {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.tournament-topcut--empty {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-block: var(--space-16);
+  text-align: center;
+}
+
+.tournament-topcut__empty-icon {
+  font-size: var(--text-4xl);
+  color: var(--color-text-subtle);
+}
+
+/* Element: summary bar */
+
+.tournament-topcut__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.tournament-topcut__summary-stat {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.tournament-topcut__summary-stat strong {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.tournament-topcut__summary-divider {
+  width: 1px;
+  height: 1rem;
+  background-color: var(--color-border);
+}
+
+/* Element: loading & error states */
+
+.tournament-topcut__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-block: var(--space-12);
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+
+.tournament-topcut__error-icon {
+  font-size: var(--text-xl);
+  color: var(--color-error);
+}
+
+/* Element: loading skeleton */
+
+.tournament-topcut__skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
+  gap: var(--space-2);
+}
+
+.tournament-topcut__skeleton-card {
+  aspect-ratio: 59 / 86;
+  border-radius: var(--radius-sm);
+}
+
+/* Element: player list */
+
+.tournament-topcut__players {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: topcut;
+}
+
+.tournament-topcut__player {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: 0 20px 56px -42px color-mix(in srgb, var(--palette-secondary) 45%, transparent);
+  animation: tournament-enter var(--duration-slow) var(--ease-out) both;
+}
+
+/* Staggered cascade so the decklists don't all snap in at once */
+.tournament-topcut__player:nth-child(1) { animation-delay: 40ms; }
+.tournament-topcut__player:nth-child(2) { animation-delay: 90ms; }
+.tournament-topcut__player:nth-child(3) { animation-delay: 140ms; }
+.tournament-topcut__player:nth-child(4) { animation-delay: 190ms; }
+.tournament-topcut__player:nth-child(n + 5) { animation-delay: 240ms; }
+
+.tournament-topcut__player-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tournament-topcut__seed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-image: linear-gradient(
+    180deg,
+    var(--color-secondary-muted),
+    var(--color-secondary-subtle)
+  );
+  border: 1px solid var(--color-secondary-border);
+  color: var(--color-secondary-light);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tournament-topcut__player-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.tournament-topcut__player-name {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tournament-topcut__player-record {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tournament-topcut__archetype {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.tournament-topcut__no-deck {
+  margin: 0;
+  padding-block: var(--space-4);
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+@media (max-width: 32rem) {
+  .tournament-topcut__archetype {
+    margin-inline-start: 0;
+  }
+
+  .tournament-topcut__player-head {
+    flex-wrap: wrap;
+  }
+}
+
+/* Block: tournament-skeleton — full page loading placeholder */
+
+.tournament-skeleton__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-6);
+}
+
+.tournament-skeleton__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tournament-skeleton__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.tournament-skeleton__players {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tournament-skeleton__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: var(--space-6);
+}
+
+.tournament-skeleton__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }

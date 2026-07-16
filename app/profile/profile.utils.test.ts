@@ -123,7 +123,16 @@ describe('profile.utils', () => {
   describe('tcgHref', () => {
     it('builds a partner tcgplayer search link', () => {
       expect(tcgHref('Blue-Eyes White Dragon')).toContain('partner.tcgplayer.com')
-      expect(tcgHref('Blue-Eyes White Dragon')).toContain(encodeURIComponent('Blue-Eyes White Dragon'))
+    })
+
+    it('preserves the exact card name after the affiliate redirect decodes the u param', () => {
+      const name = 'Ash Blossom & Joyous Spring'
+      const href = tcgHref(name)
+
+      // TCGplayer decodes the `u` param once, then reads `q` from that URL.
+      const destination = decodeURIComponent(href.split('?u=')[1])
+      const query = new URL(destination).searchParams.get('q')
+      expect(query).toBe(name)
     })
   })
 })

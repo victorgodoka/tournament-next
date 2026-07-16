@@ -9,7 +9,9 @@ export const metadata = noIndexMetadata(
   'Follow the live Yu-Gi-Oh! tournament on YGO Omega — brackets, standings, and results in real time.',
 )
 
-export const dynamic = 'force-dynamic'
+// ISR: cache the live tournament for 5 minutes; the in-page refresh button
+// revalidates this path on demand for fresh standings.
+export const revalidate = 300
 
 export default async function TournamentLivePage() {
   const result = await getLiveTournament()

@@ -6,7 +6,7 @@ import { parseLeaderboardsResponse } from './leaderboards.validation'
 
 export async function getLeaderboard(): Promise<ApiResult<LeaderboardData>> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.DUELISTS_UNITE_V3}/leaderboard`, {
+    const response = await fetch(`${API_ENDPOINTS.MAIN}/leaderboard`, {
       next: { revalidate: LEADERBOARD_REVALIDATE_SECONDS },
     })
 

@@ -2,7 +2,7 @@
 
 import { Suspense, type ReactNode } from 'react'
 import { GtmPageView } from '../components/gtm/gtm-page-view.component'
-import { AuthProvider } from '@contexts'
+import { AuthProvider, CardsSearchProvider } from '@contexts'
 import AuthSessionGuard from '@contexts/Auth/auth.session-guard'
 import ErrorBanner from '../components/errorbanner/errorbanner.component'
 import NavbarComponent from '../components/navbar/navbar.component'
@@ -24,22 +24,24 @@ function AuthSessionGuardBoundary() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
-      <Suspense fallback={null}>
-        <AdsShell />
-      </Suspense>
-      <Suspense fallback={null}>
-        <GtmPageView />
-      </Suspense>
-      <AuthSessionGuardBoundary />
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-      <ErrorBanner />
-      <NavbarComponent />
-      <main id="main-content" className="app-shell__main">
-        {children}
-      </main>
-      <FooterComponent />
+      <CardsSearchProvider>
+        <Suspense fallback={null}>
+          <AdsShell />
+        </Suspense>
+        <Suspense fallback={null}>
+          <GtmPageView />
+        </Suspense>
+        <AuthSessionGuardBoundary />
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <ErrorBanner />
+        <NavbarComponent />
+        <main id="main-content" className="app-shell__main">
+          {children}
+        </main>
+        <FooterComponent />
+      </CardsSearchProvider>
     </AuthProvider>
   )
 }

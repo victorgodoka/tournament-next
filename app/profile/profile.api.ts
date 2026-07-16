@@ -25,7 +25,7 @@ export async function getPlayerCustomization(
   discordId: string,
 ): Promise<ApiResult<ProfileCustomizationData>> {
   try {
-    const url = `${API_ENDPOINTS.DUELISTS_UNITE_V3}/duelist?id=${encodeURIComponent(discordId)}`
+    const url = `${API_ENDPOINTS.MAIN}/duelist?id=${encodeURIComponent(discordId)}`
     const response = await fetch(url)
 
     if (!response.ok) {
@@ -52,7 +52,7 @@ export async function getPlayerCustomization(
 export async function updatePlayerCustomization(
   formData: FormData,
 ): Promise<UpdateProfileResponse> {
-  const url = `${API_ENDPOINTS.DUELISTS_UNITE_V3}/duelist`
+  const url = `${API_ENDPOINTS.MAIN}/duelist`
   const response = await fetch(url, { method: 'POST', body: formData })
 
   if (!response.ok) {

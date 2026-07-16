@@ -13,7 +13,9 @@ export function isTournamentFinished(
   tournament: Pick<Tournament, 'endtime'>,
 ): boolean {
   if (!tournament.endtime) return false
-  return !Number.isNaN(new Date(tournament.endtime).getTime())
+  const endtime = new Date(tournament.endtime).getTime()
+  if (Number.isNaN(endtime)) return false
+  return endtime <= Date.now()
 }
 
 export function parseTournamentSettings(
@@ -43,7 +45,9 @@ export function buildUserMap(users: TournamentUser[]): Map<string, TournamentUse
   return new Map(users.map((user) => [user.user_id, user]))
 }
 
-export function getUserDisplayName(user: TournamentUser | undefined): string {
+export function getUserDisplayName(
+  user: { displayname?: string; username?: string } | undefined,
+): string {
   return user?.displayname || user?.username || 'Unknown Duelist'
 }
 

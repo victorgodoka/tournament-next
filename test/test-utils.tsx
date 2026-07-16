@@ -14,7 +14,12 @@ export {
   resetNextNavigationMocks,
 } from './mocks/next-navigation'
 export { createPlayerStats, createLeaderboardData } from './fixtures/player.fixture'
-export { createSavedDeck, createMatchHistory } from './fixtures/deck.fixture'
+export {
+  createSavedDeck,
+  createMatchHistory,
+  createCard,
+  createConvertedDeck,
+} from './fixtures/deck.fixture'
 export {
   createTournament,
   createTournamentsListData,

@@ -5,6 +5,7 @@ import { AvatarComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
 import type { TournamentDetail } from './tournament.types'
 import { calculateTiebreakers } from './tournament.utils'
+import { getUserDisplayName } from './tournament-page.utils'
 
 type TournamentTableProps = {
   detail: TournamentDetail
@@ -51,6 +52,7 @@ const TournamentTable = ({ detail }: TournamentTableProps) => {
         <tbody>
           {standings.map((player, index) => {
             const position = index + 1
+            const name = getUserDisplayName(player)
 
             return (
               <tr key={player.id}>
@@ -70,13 +72,13 @@ const TournamentTable = ({ detail }: TournamentTableProps) => {
                   >
                     <AvatarComponent
                       src={discordAvatar(player.id, player.avatar ?? '')}
-                      alt={player.displayname || player.username}
+                      alt={name}
                       size="sm"
                       shape="circle"
                     />
                     <span className="tournament-table__player-names">
                       <span className="tournament-table__player-name">
-                        {player.displayname || player.username}
+                        {name}
                       </span>
                       <span className="tournament-table__player-username">
                         @{player.username}

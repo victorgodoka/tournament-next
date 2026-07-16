@@ -134,11 +134,6 @@ export interface TopcutData {
   uniqueDecks: number;
 }
 
-export interface TournamentDetailResponse {
-  success: boolean;
-  data: TournamentDetail;
-}
-
 export interface TournamentPlayerStats {
   id: string;
   avatar?: string;

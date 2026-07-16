@@ -14,6 +14,8 @@ import TournamentPlayers from './tournament-players.component'
 import TournamentTabs, { type TournamentTabId } from './tournament-tabs.component'
 import TournamentBrackets from './tournament-brackets.component'
 import TournamentTable from './tournament-table.component'
+import TournamentTopCut from './tournament-topcut.component'
+import TournamentRefreshButton from './tournament-refresh-button.component'
 
 type TournamentPageClientProps = {
   detail: TournamentDetail | null
@@ -47,6 +49,12 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
       </div>
 
       <div className="tournament__content omega-container">
+        {!finished && (
+          <div className="tournament__toolbar">
+            <TournamentRefreshButton />
+          </div>
+        )}
+
         <section
           className="tournament__hero omega-surface"
           aria-label="Tournament overview"
@@ -68,14 +76,15 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
         <div
           className="tournament__panel"
           role="tabpanel"
-          id={`tournament-panel-${activeTab}`}
+          id="tournament-panel"
           aria-labelledby={`tournament-tab-${activeTab}`}
         >
           {activeTab === 'brackets' ? (
             <TournamentBrackets rounds={rounds} users={userMap} />
           ) : null}
           {activeTab === 'table' ? <TournamentTable detail={detail} /> : null}
-          {activeTab === 'topcut' || activeTab === 'data' ? (
+          {activeTab === 'topcut' ? <TournamentTopCut {...detail} /> : null}
+          {activeTab === 'data' ? (
             <div className="tournament__panel-empty" role="status">
               <Icon
                 icon="mdi:progress-clock"

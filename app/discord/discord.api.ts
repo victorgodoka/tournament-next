@@ -104,7 +104,7 @@ export async function getUser(
 }
 
 export async function getPlayer(discordId: string): Promise<PlayerDataResponse> {
-  const baseUrl = API_ENDPOINTS.DUELISTS_UNITE_V3
+  const baseUrl = API_ENDPOINTS.MAIN
 
   if (!baseUrl) {
     return {

@@ -14,6 +14,7 @@ import {
 } from './history.utils'
 import type { TournamentsListResponse } from './history.types'
 import type { Tournament } from '../tournament/tournament.types'
+import IconComponent from '../../components/icon/icon.component'
 
 type HistoryData = TournamentsListResponse['data']
 
@@ -46,26 +47,26 @@ function HistoryCard({ tournament, index }: HistoryCardProps) {
         </span>
       </header>
 
-      <dl className="history-card__meta">
+      <div className="history-card__meta">
         <div className="history-card__meta-row">
-          <dt>
-            <Icon icon="mdi:format-list-numbered" aria-hidden="true" />
+          <div>
+            <IconComponent icon="mdi:format-list-numbered" aria-hidden="true" />
             <span className="visually-hidden">Rounds</span>
-          </dt>
-          <dd>{formatTournamentRounds(tournament.phases)}</dd>
+          </div>
+          <div>{formatTournamentRounds(tournament.phases)}</div>
         </div>
 
         <div className="history-card__meta-row">
-          <dt>
-            <Icon icon="mdi:calendar-blank-outline" aria-hidden="true" />
+          <div>
+            <IconComponent icon="mdi:calendar-blank-outline" aria-hidden="true" />
             <span className="visually-hidden">Date</span>
-          </dt>
-          <dd>{formatTournamentDate(tournament.starttime)}</dd>
+          </div>
+          <div>{formatTournamentDate(tournament.starttime)}</div>
         </div>
-      </dl>
+      </div>
 
       <span className="history-card__banlist omega-badge omega-badge--secondary">
-        <Icon icon="mdi:shield-outline" aria-hidden="true" />
+        <IconComponent icon="mdi:shield-outline" aria-hidden="true" />
         {tournament.banlist}
       </span>
     </Link>
@@ -110,7 +111,7 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
 
         <div className="history__empty omega-container omega-container--narrow">
           <span className="history__empty-icon-wrap" aria-hidden="true">
-            <Icon icon="mdi:trophy-broken" className="history__empty-icon" />
+            <IconComponent icon="mdi:trophy-broken" className="history__empty-icon" />
           </span>
           <h1 id="history-error-title" className="history__empty-title">
             Tournament history unavailable
@@ -155,7 +156,7 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
 
         {tournaments.length === 0 ? (
           <div className="history__empty-state" role="status">
-            <Icon icon="mdi:trophy-outline" className="history__empty-state-icon" />
+            <IconComponent icon="mdi:trophy-outline" className="history__empty-state-icon" />
             <p>No tournaments found.</p>
           </div>
         ) : (

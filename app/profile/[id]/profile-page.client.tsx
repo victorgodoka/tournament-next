@@ -14,7 +14,7 @@ import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { AvatarComponent, ButtonComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
-import { extractCardsFromResponse, searchCards } from '@contexts/Cards/cards.api'
+import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import { AuthManager } from '@contexts/Auth/auth.manager'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
@@ -28,6 +28,7 @@ import { getPlayerCustomization } from '../profile.api'
 import { ProfileCustomizationData } from '../profile.types'
 import { getTierInfo, calculateWinRate, isPlayerOnline, sanitizeBioHtml, buildTwitchUrl, buildYoutubeUrl, buildXUrl, buildInstagramUrl, tcgHref, cardArtUrl, formatLastSeen, getWinRateClass, formatMatchDuration } from '../profile.utils'
 import type { PlayerData } from '../../../types/player.types'
+import IconComponent from '../../../components/icon/icon.component'
 
 const ProfileSkeleton = dynamic(() => import('./profile-skeleton.component'))
 const MatchHistoryCard = dynamic(() => import('./match-history-card.component'))
@@ -56,7 +57,7 @@ function ProfileNotFound({ message }: { message: string }) {
 
       <div className="profile__empty omega-container omega-container--narrow">
         <span className="profile__empty-icon-wrap" aria-hidden="true">
-          <Icon icon="mdi:account-off" className="profile__empty-icon" />
+          <IconComponent icon="mdi:account-off" className="profile__empty-icon" />
         </span>
         <h1 id="profile-error-title" className="profile__empty-title">
           Profile not found
@@ -601,7 +602,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
             <div className="profile__actions">
               {isOwnProfile ? (
                 <Link href="/profile/edit" className="profile__edit-link">
-                  <Icon icon="mdi:pencil-outline" className="profile__edit-icon" />
+                  <IconComponent icon="mdi:pencil-outline" className="profile__edit-icon" />
                   Edit Profile
                 </Link>
               ) : null}
@@ -623,7 +624,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                       className={`profile__social-link ${social.modifier}`}
                       title={social.name}
                     >
-                      <Icon icon={social.icon} className="profile__social-icon" />
+                      <IconComponent icon={social.icon} className="profile__social-icon" />
                     </a>
                   ))}
                 </div>
@@ -755,7 +756,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
 
           {viewMode !== 'myDecks' && currentGameData?.totalGaming ? (
             <div className="profile__playtime">
-              <Icon icon="mdi:clock-outline" className="profile__playtime-icon" />
+              <IconComponent icon="mdi:clock-outline" className="profile__playtime-icon" />
               <span>{currentGameData.totalGaming}</span>
             </div>
           ) : null}
@@ -791,12 +792,12 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                 </div>
               ) : deckError ? (
                 <div className="profile__panel-empty profile__panel-empty--error">
-                  <Icon icon="mdi:alert-circle-outline" className="profile__panel-empty-icon" />
+                  <IconComponent icon="mdi:alert-circle-outline" className="profile__panel-empty-icon" />
                   <p>{deckError}</p>
                 </div>
               ) : userDecks.length === 0 ? (
                 <div className="profile__panel-empty">
-                  <Icon icon="mdi:cards-outline" className="profile__panel-empty-icon" />
+                  <IconComponent icon="mdi:cards-outline" className="profile__panel-empty-icon" />
                   <h3 className="profile__panel-empty-title">No decks yet</h3>
                   <p className="profile__panel-empty-text">
                     Saved deck lists will appear here once published.
@@ -870,7 +871,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                     </div>
                   ) : (
                     <div className="profile__panel-empty">
-                      <Icon icon="mdi:history" className="profile__panel-empty-icon" />
+                      <IconComponent icon="mdi:history" className="profile__panel-empty-icon" />
                       <p className="profile__panel-empty-text">
                         No {gameMode.toUpperCase()} matches recorded yet.
                       </p>
@@ -893,7 +894,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                       }
                       aria-label="Previous page"
                     >
-                      <Icon icon="mdi:chevron-left" />
+                      <IconComponent icon="mdi:chevron-left" />
                     </button>
                     <span className="profile__pagination-label">
                       {pagination[gameMode]} / {currentGameData.pagination.totalPages}
@@ -916,7 +917,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                       }
                       aria-label="Next page"
                     >
-                      <Icon icon="mdi:chevron-right" />
+                      <IconComponent icon="mdi:chevron-right" />
                     </button>
                   </div>
                 ) : null}
@@ -975,7 +976,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                 <section className="profile__sidebar-panel omega-surface">
                   <header className="profile__sidebar-header">
                     <h3 className="profile__sidebar-title">Top Decks</h3>
-                    <Icon icon="mdi:cards-outline" className="profile__sidebar-icon" />
+                    <IconComponent icon="mdi:cards-outline" className="profile__sidebar-icon" />
                   </header>
 
                   <div className="profile__rank-list">
@@ -1044,7 +1045,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                 <section className="profile__sidebar-panel omega-surface">
                   <header className="profile__sidebar-header">
                     <h3 className="profile__sidebar-title">Top Opponents</h3>
-                    <Icon icon="mdi:sword-cross" className="profile__sidebar-icon" />
+                    <IconComponent icon="mdi:sword-cross" className="profile__sidebar-icon" />
                   </header>
 
                   <div className="profile__rank-list">
@@ -1117,7 +1118,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
           ) : (
             <div className="profile__private omega-surface">
               <span className="profile__private-icon-wrap" aria-hidden="true">
-                <Icon icon="mdi:lock-outline" className="profile__private-icon" />
+                <IconComponent icon="mdi:lock-outline" className="profile__private-icon" />
               </span>
               <h2 className="profile__private-title">Match history is private</h2>
               <p className="profile__private-text">

@@ -1,5 +1,6 @@
 import { Icon } from '@iconify/react'
 import { ButtonComponent } from '@components'
+import IconComponent from '../../components/icon/icon.component'
 
 type TournamentErrorProps = {
   message: string
@@ -19,7 +20,7 @@ const TournamentError = ({ message }: TournamentErrorProps) => {
 
       <div className="tournament__empty omega-container omega-container--narrow">
         <span className="tournament__empty-icon-wrap" aria-hidden="true">
-          <Icon icon="mdi:trophy-broken" className="tournament__empty-icon" />
+          <IconComponent icon="mdi:trophy-broken" className="tournament__empty-icon" />
         </span>
         <h1 id="tournament-error-title" className="tournament__empty-title">
           Tournament unavailable

@@ -2,6 +2,7 @@ import { Icon } from '@iconify/react'
 import type { Round, TournamentUser } from './tournament.types'
 import { getUserDisplayName, sortRoundsDescending } from './tournament-page.utils'
 import TournamentDuel from './tournament-duel.component'
+import IconComponent from '../../components/icon/icon.component'
 
 type TournamentBracketsProps = {
   rounds: Round[]
@@ -14,7 +15,7 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
   if (sortedRounds.length === 0) {
     return (
       <div className="tournament__panel-empty" role="status">
-        <Icon
+        <IconComponent
           icon="mdi:tournament"
           className="tournament__panel-empty-icon"
           aria-hidden="true"
@@ -37,7 +38,7 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
             <span className="tournament-round__meta">
               {round.duels.length} {round.duels.length === 1 ? 'duel' : 'duels'}
             </span>
-            <Icon
+            <IconComponent
               icon="mdi:chevron-down"
               className="tournament-round__chevron"
               aria-hidden="true"
@@ -46,7 +47,7 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
 
           {round.bye ? (
             <p className="tournament-round__bye">
-              <Icon icon="mdi:seat-outline" aria-hidden="true" />
+              <IconComponent icon="mdi:seat-outline" aria-hidden="true" />
               Bye: {getUserDisplayName(users.get(round.bye))}
             </p>
           ) : null}

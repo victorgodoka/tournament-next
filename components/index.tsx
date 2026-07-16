@@ -14,3 +14,8 @@ export {
   StickySideRailAd,
   FloatingOutstreamVideoPlayerAd,
 } from "./ads";
+export { default as ToggleComponent } from "./toggle/toggle.component";
+export { default as DeckListComponent } from "./deck-list/deck-list.component";
+export { default as DeckExportComponent } from "./deck-export/deck-export.component";
+export { default as AffiliateLinkComponent } from "./affiliate-link/affiliate-link-component";
+export { default as SkeletonComponent } from "./skeleton/skeleton.component";

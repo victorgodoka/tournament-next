@@ -1,15 +1,12 @@
+import { isTournamentFinished } from '../tournament/tournament-page.utils'
 import type { Tournament } from '../tournament/tournament.types'
 
-export function isTournamentCompleted(tournament: Pick<Tournament, 'endtime'>): boolean {
-  return Boolean(tournament.endtime)
-}
-
 export function getTournamentStatusLabel(tournament: Pick<Tournament, 'endtime'>): string {
-  return isTournamentCompleted(tournament) ? 'Completed' : 'Live'
+  return isTournamentFinished(tournament) ? 'Completed' : 'Live'
 }
 
 export function getTournamentStatusModifier(tournament: Pick<Tournament, 'endtime'>): string {
-  return isTournamentCompleted(tournament)
+  return isTournamentFinished(tournament)
     ? 'history-card__status--completed'
     : 'history-card__status--live'
 }

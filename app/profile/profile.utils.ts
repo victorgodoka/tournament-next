@@ -1,5 +1,7 @@
 import { CARD_ART_BASE, TIER_BADGE_BASE } from './profile.const'
 
+export { tcgHref } from '../../components/affiliate-link/affiliate-link-utils'
+
 export type TierInfo = {
   name: string
   image: string
@@ -27,14 +29,6 @@ export function getTierInfo(rating: number): TierInfo {
     image: `${TIER_BADGE_BASE}/${slug}.png`,
     accentClass: `profile__tier--${slug}`,
   }
-}
-
-export function tcgHref(name: string | undefined): string {
-  const target = encodeURIComponent(
-    `https://www.tcgplayer.com/search/yugioh/product?Language=English&productLineName=yugioh&q=${name}&view=grid`,
-  )
-
-  return `https://partner.tcgplayer.com/c/4924450/1830156/21018?u=${target}`
 }
 
 export function cardArtUrl(cardId: number): string {

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import type { ButtonIconPosition, ButtonSize, ButtonVariant } from './button.types'
 import './button.styles.css'
+import IconComponent from '../icon/icon.component'
 
 type NextLinkProps = ComponentProps<typeof Link>
 
@@ -79,7 +80,7 @@ function ButtonContent({
   return (
     <>
       {showStartIcon && (
-        <Icon
+        <IconComponent
           className={`button__icon${loading ? ' button__icon--spin' : ''}`}
           icon={loading ? 'mdi:loading' : icon!}
           width={18}
@@ -89,7 +90,7 @@ function ButtonContent({
       )}
       {children && <span className="button__label">{children}</span>}
       {showEndIcon && (
-        <Icon className="button__icon" icon={icon} width={18} height={18} aria-hidden />
+        <IconComponent className="button__icon" icon={icon} width={18} height={18} aria-hidden />
       )}
     </>
   )

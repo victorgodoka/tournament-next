@@ -7,7 +7,7 @@ export const getTournaments = async ({ page = 1, limit = 20 }: TournamentGetProp
     const queryParams = new URLSearchParams();
     queryParams.append("page", page.toString());
     queryParams.append("limit", limit.toString());
-    const url = `${API_ENDPOINTS.DUELISTS_UNITE_V3}/tournaments?${queryParams.toString()}`
+    const url = `${API_ENDPOINTS.MAIN}/tournaments?${queryParams.toString()}`
     const response = await fetch(url)
     if (!response.ok) {
       return apiFailure('Failed to fetch player customization data')

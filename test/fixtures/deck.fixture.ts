@@ -1,4 +1,6 @@
+import type { ConvertedDeck } from '../../app/decks/decks.types'
 import type { MatchHistory, SavedDeck } from '../../app/decks/decks.types'
+import type { Card } from '../../lib/cards.types'
 
 export function createSavedDeck(overrides: Partial<SavedDeck> = {}): SavedDeck {
   return {
@@ -43,6 +45,73 @@ export function createMatchHistory(
     isDraw: false,
     start: '2025-06-01T14:00:00Z',
     end: '2025-06-01T14:25:00Z',
+    ...overrides,
+  }
+}
+
+export function createCard(overrides: Partial<Card> = {}): Card {
+  return {
+    id: 14558127,
+    name_en: 'Ash Blossom & Joyous Spring',
+    sets: [],
+    type_primary: 'Monster',
+    type_tags: [],
+    genre_tags: [],
+    category_tags: [],
+    ...overrides,
+  }
+}
+
+export function createConvertedDeck(
+  overrides: Partial<ConvertedDeck> = {},
+): ConvertedDeck {
+  const ash = createCard()
+  const maxx = createCard({ id: 23434538, name_en: 'Maxx "C"' })
+  const prosperity = createCard({
+    id: 84211599,
+    name_en: 'Pot of Prosperity',
+    type_primary: 'Spell',
+  })
+  const impermanence = createCard({
+    id: 10045474,
+    name_en: 'Infinite Impermanence',
+    type_primary: 'Trap',
+  })
+  const accesscode = createCard({
+    id: 86066372,
+    name_en: 'Accesscode Talker',
+    // Extra-deck monsters report the broad "Monster" type; the subtype lives in tags.
+    type_primary: 'Monster',
+    type_tags: ['Monster', 'Effect', 'Link'],
+  })
+
+  const uniqueCardsData = [ash, maxx, prosperity, impermanence, accesscode]
+
+  return {
+    code: 'DECKCODE',
+    primaryArchetype: 'Tenpai',
+    primaryArchetypeWeighted: 'Tenpai',
+    primaryArchetypes: ['Tenpai'],
+    category: 'Meta',
+    archetypes: [],
+    totalCards: 8,
+    mainDeckSize: 7,
+    sideDeckSize: 1,
+    uniqueCards: uniqueCardsData.map((card) => card.id),
+    fullDeck: {
+      main: [
+        ash.id,
+        ash.id,
+        ash.id,
+        maxx.id,
+        prosperity.id,
+        prosperity.id,
+        impermanence.id,
+        accesscode.id,
+      ],
+      side: [ash.id],
+    },
+    uniqueCardsData,
     ...overrides,
   }
 }

@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@const'
 import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
-import type { PlayerDecksResponse, SavedDeck } from './decks.types'
+import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
+import type { ConvertDeckResponse, ConvertedDeck, PlayerDecksResponse, SavedDeck } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
 
 export async function getPlayerDecks(
@@ -20,7 +21,7 @@ export async function getPlayerDecks(
     }
 
     const response = await fetch(
-      `${API_ENDPOINTS.DUELISTS_UNITE_V3}/decks?${params.toString()}`,
+      `${API_ENDPOINTS.MAIN}/decks?${params.toString()}`,
     )
 
     if (!response.ok) {
@@ -48,12 +49,13 @@ export async function getUserDecks(
 ): Promise<ApiResult<SavedDeck[]>> {
   try {
     const headers: Record<string, string> = {}
+    const url = `${API_ENDPOINTS.MAIN}/decks/user/${userId}`
     if (token) {
       headers.Authorization = `Bearer ${token}`
     }
 
     const response = await fetch(
-      `${API_ENDPOINTS.DUELISTS_UNITE_V3}/saved-decks/${userId}`,
+      url,
       { method: 'GET', headers },
     )
 
@@ -74,5 +76,39 @@ export async function getUserDecks(
     return apiFailure(
       error instanceof Error ? error.message : 'Unknown error',
     )
+  }
+}
+
+export const convertDeck = async (code: string): Promise<ConvertedDeck> => {
+  const url = `${API_ENDPOINTS.MAIN}/convert?code=${encodeURIComponent(code)}`
+  const convertedDeckResponse = await fetch(url, { method: 'GET' })
+  if (!convertedDeckResponse.ok) {
+    throw new Error('Failed to convert deck')
+  }
+
+  const { success, data: convertedDeck }: ConvertDeckResponse = await convertedDeckResponse.json()
+  if (!success) {
+    throw new Error('Failed to convert deck')
+  }
+
+  // The convert endpoint returns card ids but omits full card data, so hydrate
+  // it here from the cards endpoint. Failures degrade gracefully to an empty
+  // array (the deck still renders by id, just without names/types).
+  if (!convertedDeck.uniqueCardsData?.length && convertedDeck.uniqueCards?.length) {
+    convertedDeck.uniqueCardsData = await fetchDeckCards(convertedDeck.uniqueCards)
+  } else if (!convertedDeck.uniqueCardsData) {
+    convertedDeck.uniqueCardsData = []
+  }
+
+  return convertedDeck;
+}
+
+const fetchDeckCards = async (ids: number[]): Promise<ConvertedDeck['uniqueCardsData']> => {
+  try {
+    const response = await searchCards({ id: ids, region: 'ALL', method: 'POST' })
+    return extractCardsFromResponse(response)
+  } catch (error) {
+    console.error('Convert Deck: failed to hydrate card data', error)
+    return []
   }
 }

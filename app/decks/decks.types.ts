@@ -1,3 +1,5 @@
+import { Card } from "@lib/cards.types"
+
 export interface ProfileStatsData {
   opponentDecks: OpponentDeck[]
   totalGaming: string
@@ -81,4 +83,52 @@ export interface SavedDeck {
   updated_at: string
   likes?: number
   comment_count?: number
+}
+
+export interface ConvertDeckResponse {
+  success: boolean
+  data: ConvertedDeck
+}
+
+export interface ConvertedDeck {
+  code: string
+  primaryArchetype: string
+  primaryArchetypeWeighted: string
+  primaryArchetypes: string[]
+  category: string
+  archetypes: Archetype[]
+  totalCards: number
+  mainDeckSize: number
+  sideDeckSize: number
+  uniqueCards: number[]
+  fullDeck: FullDeck
+  uniqueCardsData: Card[]
+}
+
+export interface Archetype {
+  name: string
+  count: number
+  percentage: number
+}
+
+export interface FullDeck {
+  main: number[]
+  side: number[]
+}
+
+export interface Set {
+  code: string
+  name: string
+}
+
+export interface BanlistData {
+  tcg?: Banlist
+  ocg?: Banlist
+  wcs: Banlist
+}
+
+export interface Banlist {
+  banlist: string
+  value: number
+  status: string
 }

@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react'
 import type { MatchHistory } from '../../decks/decks.types'
 import { CARD_PLACEHOLDER_SRC } from '../profile.const'
 import { cardArtUrl, tcgHref } from '../profile.utils'
+import IconComponent from '../../../components/icon/icon.component'
 
 type MatchHistoryCardProps = {
   match: MatchHistory
@@ -74,7 +75,7 @@ const MatchHistoryCard = ({
           </div>
 
           <div className="match-card__duration">
-            <Icon icon="mdi:clock-outline" className="match-card__duration-icon" />
+            <IconComponent icon="mdi:clock-outline" className="match-card__duration-icon" />
             <span>{formatMatchDuration(match.start, match.end)}</span>
           </div>
         </header>
