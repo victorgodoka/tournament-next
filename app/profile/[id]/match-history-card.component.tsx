@@ -83,8 +83,9 @@ const MatchHistoryCard = ({
         <div className="match-card__duelist">
           <div className="match-card__cards">
             {myDeckCards.map((card, index) => (
-              <a
+              <Link
                 key={`${card.id}-${index}`}
+                prefetch={false}
                 href={tcgHref(card.name)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -100,7 +101,7 @@ const MatchHistoryCard = ({
                     event.currentTarget.src = CARD_PLACEHOLDER_SRC
                   }}
                 />
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -121,8 +122,9 @@ const MatchHistoryCard = ({
         <div className="match-card__duelist">
           <div className="match-card__cards">
             {opponentDeckCards.map((card, index) => (
-              <a
+              <Link
                 key={`${card.id}-${index}`}
+                prefetch={false} 
                 href={tcgHref(card.name)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -138,7 +140,7 @@ const MatchHistoryCard = ({
                     event.currentTarget.src = CARD_PLACEHOLDER_SRC
                   }}
                 />
-              </a>
+              </Link>
             ))}
           </div>
 

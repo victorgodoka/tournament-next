@@ -525,11 +525,12 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
           <div className="profile__banner-cards">
             <div className="profile__banner-card-fan">
               {topArchetype.ids.map((cardId, index) => (
-                <a
+                <Link
                   key={cardId}
                   href={tcgHref(getCardName(cardId))}
                   target="_blank"
                   rel="noopener noreferrer"
+                  prefetch={false} 
                   className="profile__banner-card"
                   style={{ zIndex: topArchetype.ids.length - index }}
                   title={getCardName(cardId)}
@@ -542,7 +543,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                       event.currentTarget.src = CARD_PLACEHOLDER_SRC
                     }}
                   />
-                </a>
+                </Link>
               ))}
             </div>
             <p className="profile__banner-card-label">
@@ -936,11 +937,12 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                     </header>
 
                     {customizationData.duelist_favorite ? (
-                      <a
+                      <Link
                         href={tcgHref(
                           favoriteCardName ||
                             `Card ${customizationData.duelist_favorite}`,
                         )}
+                        prefetch={false}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="profile__favorite-card"
@@ -959,7 +961,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                         <span className="profile__favorite-card-label">
                           {favoriteCardName || 'Favorite card'}
                         </span>
-                      </a>
+                      </Link>
                     ) : null}
 
                     {sanitizedBio ? (
@@ -1001,10 +1003,11 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                                   {thumbIds.length > 0 ? (
                                     <div className="profile__thumb-fan">
                                       {thumbIds.map((cardId, cardIndex) => (
-                                        <a
+                                        <Link
                                           key={cardId}
                                           href={tcgHref(getCardName(cardId))}
                                           target="_blank"
+                                          prefetch={false}
                                           rel="noopener noreferrer"
                                           className="profile__thumb"
                                           style={{ zIndex: thumbIds.length - cardIndex }}
@@ -1019,7 +1022,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                                                 CARD_PLACEHOLDER_SRC
                                             }}
                                           />
-                                        </a>
+                                        </Link>
                                       ))}
                                     </div>
                                   ) : null}
@@ -1073,10 +1076,11 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                                 {thumbIds.length > 0 ? (
                                   <div className="profile__thumb-fan">
                                     {thumbIds.map((cardId, cardIndex) => (
-                                      <a
+                                      <Link
                                         key={cardId}
                                         href={tcgHref(getCardName(cardId))}
                                         target="_blank"
+                                        prefetch={false}
                                         rel="noopener noreferrer"
                                         className="profile__thumb"
                                         style={{ zIndex: thumbIds.length - cardIndex }}
@@ -1091,7 +1095,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                                               CARD_PLACEHOLDER_SRC
                                           }}
                                         />
-                                      </a>
+                                      </Link>
                                     ))}
                                   </div>
                                 ) : null}
