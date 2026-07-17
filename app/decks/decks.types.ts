@@ -70,6 +70,33 @@ export interface ProfilePagination {
   totalPages: number
 }
 
+export interface SavedDecksProps {
+  sortBy?: 'likes' | 'comments' | 'created_at'
+  order?: 'asc' | 'desc'
+  page?: number
+  limit?: number
+  name?: string;
+  tag?: string;
+  archetype?: string;
+}
+
+export interface SavedDecksResponse {
+  success: boolean
+  data: SavedDeck[]
+  pagination: SavedDecksPagination
+  filters: Filters
+}
+
+export interface SavedDecksPagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+export interface Filters {
+  availableArchetypes: string[]
+}
+
 export interface SavedDeck {
   id: number
   user_id: string
@@ -83,6 +110,9 @@ export interface SavedDeck {
   updated_at: string
   likes?: number
   comment_count?: number
+  username: string
+  displayname: string
+  avatar: string
 }
 
 export interface ConvertDeckResponse {
@@ -131,4 +161,9 @@ export interface Banlist {
   banlist: string
   value: number
   status: string
+}
+
+export interface DecksPageProps {
+  initialData: SavedDecksResponse| null
+  initialError: string | null
 }

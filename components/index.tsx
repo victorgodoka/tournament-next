@@ -19,3 +19,4 @@ export { default as DeckListComponent } from "./deck-list/deck-list.component";
 export { default as DeckExportComponent } from "./deck-export/deck-export.component";
 export { default as AffiliateLinkComponent } from "./affiliate-link/affiliate-link-component";
 export { default as SkeletonComponent } from "./skeleton/skeleton.component";
+export { default as ErrorPageComponent } from "./error-page/error-page.component"

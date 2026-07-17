@@ -5,6 +5,7 @@ export type ButtonVariant =
   | 'outline'
   | 'danger'
   | 'link'
+  | 'tile'
 
 export type ButtonSize = 'sm' | 'md' | 'lg'
 

@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@const'
 import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
-import type { ConvertDeckResponse, ConvertedDeck, PlayerDecksResponse, SavedDeck } from './decks.types'
+import type { ConvertDeckResponse, ConvertedDeck, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
 
 export async function getPlayerDecks(
@@ -111,4 +111,32 @@ const fetchDeckCards = async (ids: number[]): Promise<ConvertedDeck['uniqueCards
     console.error('Convert Deck: failed to hydrate card data', error)
     return []
   }
+}
+
+export const getSavedDecks = async (props: SavedDecksProps): Promise<ApiResult<SavedDecksResponse>> => {
+  const { name, tag, archetype, sortBy, order, page = 1, limit = 20 } = props
+
+  const params = new URLSearchParams()
+  if (sortBy) params.append('sortBy', sortBy.toString())
+  if (order) params.append('order', order.toString())
+  if (page) params.append('page', page.toString())
+  if (limit) params.append('limit', limit.toString())
+  if (name) params.append('name', name.toString())
+  if (tag) params.append('tag', tag.toString())
+  if (archetype) params.append('archetype', archetype.toString())
+
+  const url = `${API_ENDPOINTS.MAIN}/saved-decks/public/all?${params.toString()}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    return apiFailure('Failed to saved decks')
+  }
+
+  const data: SavedDecksResponse = await response.json()
+
+  if (!data.success) {
+    return apiFailure('Failed to saved decks')
+  }
+
+  return apiSuccess(data);
 }

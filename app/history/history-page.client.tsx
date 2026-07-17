@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { ButtonComponent } from '@components'
+import { ButtonComponent, ErrorPageComponent } from '@components'
 import { getTournaments } from './history.api'
 import { HISTORY_PAGE_LIMIT } from './history.const'
 import {
@@ -93,46 +93,11 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
     })
   }, [])
 
-  const handleRetry = useCallback(() => {
-    loadPage(page)
-  }, [loadPage, page])
-
   const tournaments = data?.tournaments ?? []
   const pagination = data?.pagination ?? null
 
   if (error && !data) {
-    return (
-      <div className="history history--empty" aria-labelledby="history-error-title">
-        <div className="history__backdrop" aria-hidden="true">
-          <span className="history__grid" />
-          <span className="history__orb history__orb--secondary" />
-          <span className="history__orb history__orb--accent" />
-        </div>
-
-        <div className="history__empty omega-container omega-container--narrow">
-          <span className="history__empty-icon-wrap" aria-hidden="true">
-            <IconComponent icon="mdi:trophy-broken" className="history__empty-icon" />
-          </span>
-          <h1 id="history-error-title" className="history__empty-title">
-            Tournament history unavailable
-          </h1>
-          <p className="history__empty-description">{error}</p>
-          <div className="history__empty-actions">
-            <ButtonComponent
-              variant="primary"
-              icon="mdi:refresh"
-              onClick={handleRetry}
-              disabled={isPending}
-            >
-              {isPending ? 'Retrying…' : 'Try again'}
-            </ButtonComponent>
-            <ButtonComponent to="/" variant="secondary" icon="mdi:home">
-              Back to Home
-            </ButtonComponent>
-          </div>
-        </div>
-      </div>
-    )
+    return <ErrorPageComponent />
   }
 
   return (

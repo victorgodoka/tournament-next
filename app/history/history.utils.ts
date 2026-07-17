@@ -15,15 +15,16 @@ export function formatTournamentDate(starttime: string): string {
   const date = new Date(starttime)
   if (Number.isNaN(date.getTime())) return 'Unknown date'
 
-  return date.toLocaleDateString(undefined, {
+  return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true
-  })
+    hour12: true,
+    timeZone: 'UTC',
+  }).format(date)
 }
 
 export function formatTournamentRounds(phases: number): string {

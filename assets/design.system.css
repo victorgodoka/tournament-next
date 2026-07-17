@@ -161,14 +161,18 @@ a, link, a:visited, a:hover, a:active, a:focus {
     /* --font-display, --font-body, --font-ui, --font-logo: set by next/font on <html> */
     --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
 
-    --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
-    --text-sm: clamp(0.8125rem, 0.79rem + 0.15vw, 0.875rem);
-    --text-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
-    --text-lg: clamp(1.0625rem, 1rem + 0.3vw, 1.125rem);
-    --text-xl: clamp(1.1875rem, 1.1rem + 0.45vw, 1.25rem);
-    --text-2xl: clamp(1.4375rem, 1.3rem + 0.7vw, 1.5rem);
-    --text-3xl: clamp(1.75rem, 1.55rem + 1vw, 1.875rem);
-    --text-4xl: clamp(2.125rem, 1.85rem + 1.35vw, 2.25rem);
+    /* Modular scale, ratio 1.125 (major second), anchored at --text-base = 1rem.
+       Fluid spread within each step uses a fixed 1.045 ratio (min = max / 1.045),
+       growing from that floor at a 320px viewport to the ceiling at 1280px —
+       every step's vw coefficient is therefore distinct and strictly increasing. */
+    --text-xs: clamp(0.756rem, 0.745rem + 0.057vw, 0.79rem);
+    --text-sm: clamp(0.851rem, 0.838rem + 0.064vw, 0.889rem);
+    --text-base: clamp(0.957rem, 0.943rem + 0.072vw, 1rem);
+    --text-lg: clamp(1.077rem, 1.061rem + 0.08vw, 1.125rem);
+    --text-xl: clamp(1.211rem, 1.193rem + 0.091vw, 1.266rem);
+    --text-2xl: clamp(1.363rem, 1.342rem + 0.102vw, 1.424rem);
+    --text-3xl: clamp(1.533rem, 1.509rem + 0.116vw, 1.602rem);
+    --text-4xl: clamp(1.724rem, 1.699rem + 0.13vw, 1.802rem);
 
     --leading-tight: 1.2;
     --leading-snug: 1.35;

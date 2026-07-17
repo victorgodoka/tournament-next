@@ -1,6 +1,7 @@
-import { ComingSoonPage } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
+import DecksPageClient from './decks.client'
 import './decks.styles.css'
+import { getSavedDecks } from './decks.api'
 
 export const metadata = noIndexMetadata(
   'Decks',
@@ -8,11 +9,13 @@ export const metadata = noIndexMetadata(
   'Browse and manage your Yu-Gi-Oh! decks on YGO Omega.',
 )
 
-const DecksPage = () => {
+const DecksPage = async () => {
+  const result = await getSavedDecks({ page: 1 })
+
   return (
-    <ComingSoonPage
-      title="Decks"
-      description="Deck browsing and management is coming soon."
+    <DecksPageClient
+      initialData={result.ok ? result.data : null}
+      initialError={result.ok ? null : result.message}
     />
   )
 }

@@ -1,9 +1,8 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import IconComponent from '../icon/icon.component'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
 import type { ButtonIconPosition, ButtonSize, ButtonVariant } from './button.types'
 import './button.styles.css'
-import IconComponent from '../icon/icon.component'
 
 type NextLinkProps = ComponentProps<typeof Link>
 
@@ -88,7 +87,7 @@ function ButtonContent({
           aria-hidden
         />
       )}
-      {children && <span className="button__label">{children}</span>}
+      {children && <div className="button__label">{children}</div>}
       {showEndIcon && (
         <IconComponent className="button__icon" icon={icon} width={18} height={18} aria-hidden />
       )}

@@ -17,6 +17,7 @@ import ToggleComponent from "../toggle/toggle.component";
 import { CARD_PLACEHOLDER_SRC } from "../../app/profile/profile.const";
 import "./deck-list.styles.css";
 import AffiliateLinkComponent from "../affiliate-link/affiliate-link-component";
+import DeckExportComponent from "../deck-export/deck-export.component";
 
 type ListMode = "gallery" | "text";
 
@@ -76,6 +77,7 @@ const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: Conver
 
   return (
     <div className="deck-list">
+      <DeckExportComponent code={convertedDeck.code} />
       <div className="deck-list__header">
         {archetype && (
           <span className="omega-badge omega-badge--secondary tournament-topcut__archetype">

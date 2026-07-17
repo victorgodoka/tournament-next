@@ -50,13 +50,15 @@ const MatchHistoryCard = ({
   const opponentDeckNames =
     match.opponent?.deck?.map((deck) => deck.archetype).join(' / ') ?? 'Unknown deck'
 
-  const dateStr = new Date(match.start).toLocaleDateString(undefined, {
+  const dateStr = new Date(match.start).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   })
-  const timeStr = new Date(match.start).toLocaleTimeString([], {
+  const timeStr = new Date(match.start).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'UTC',
   })
 
   return (

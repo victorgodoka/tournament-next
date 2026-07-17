@@ -1,3 +1,4 @@
+import { CARD_ART_BASE_FULL } from "../app/profile/profile.const"
 import { Card } from "./cards.types"
 
 export const CARD_ART_BASE = 'https://ygopro.online/assets/card-images/common/'
@@ -38,7 +39,7 @@ export const cardCategory = (card: Card | null | undefined): CardCategory => {
 }
 
 /** Full-art image URL for a card passcode. */
-export const cardImageUrl = (id: number) => `${CARD_ART_BASE}/${id}.jpg`
+export const cardImageUrl = (id: number, full?: boolean) => `${full ? CARD_ART_BASE_FULL : CARD_ART_BASE}/${id}.jpg`
 
 /** Index card data by passcode (and canonical id) for O(1) lookup by deck ids. */
 export const buildCardLookup = (cards: Card[]): Map<number, Card> => {

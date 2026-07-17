@@ -143,6 +143,26 @@
   box-shadow: var(--shadow-glow-secondary);
 }
 
+/* Modifier: tile */
+
+.button--tile {
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  background-color: color-mix(in srgb, var(--color-bg-raised) 50%, transparent);
+  color: var(--color-text);
+  border-color: var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.button--tile:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border);
+}
+
+.button--tile:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 /* Modifier: danger */
 
 .button--danger {
@@ -199,7 +219,8 @@
   }
 
   .button--primary:active:not(:disabled),
-  .button--secondary:active:not(:disabled) {
+  .button--secondary:active:not(:disabled),
+  .button--tile:active:not(:disabled) {
     transform: none;
   }
 }
