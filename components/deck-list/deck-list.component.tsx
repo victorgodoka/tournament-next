@@ -45,7 +45,7 @@ const byExtraType = (a: DeckCardGroup, b: DeckCardGroup) => {
 const cardName = (group: DeckCardGroup) =>
   group.card?.name_en ?? `Card #${group.id}`;
 
-const DeckListComponent = (convertedDeck: ConvertedDeck) => {
+const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: ConvertedDeck; archetype?: string }) => {
   const [listMode, setListMode] = useState<ListMode>("gallery");
   const { fullDeck, uniqueCardsData } = convertedDeck;
 
@@ -77,6 +77,11 @@ const DeckListComponent = (convertedDeck: ConvertedDeck) => {
   return (
     <div className="deck-list">
       <div className="deck-list__header">
+        {archetype && (
+          <span className="omega-badge omega-badge--secondary tournament-topcut__archetype">
+            {archetype}
+          </span>
+        )}
         <ToggleComponent<ListMode>
           options={[
             { label: "Gallery", value: "gallery", icon: "mdi:view-gallery" },

@@ -162,15 +162,10 @@ const TournamentTopCut = ({ topcutPlayers, topcutData }: TournamentDetail) => {
                       )}
                     </p>
                   </div>
-                  {archetype && (
-                    <span className="omega-badge omega-badge--secondary tournament-topcut__archetype">
-                      {archetype}
-                    </span>
-                  )}
                 </header>
 
                 {deck ? (
-                  <DeckListComponent {...deck} />
+                  <DeckListComponent convertedDeck={deck} archetype={archetype} />
                 ) : (
                   <p className="tournament-topcut__no-deck">
                     No decklist available for this player.

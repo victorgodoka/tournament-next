@@ -996,7 +996,6 @@
 }
 
 .tournament-topcut__archetype {
-  margin-inline-start: auto;
   flex-shrink: 0;
 }
 
@@ -1009,10 +1008,6 @@
 }
 
 @media (max-width: 32rem) {
-  .tournament-topcut__archetype {
-    margin-inline-start: 0;
-  }
-
   .tournament-topcut__player-head {
     flex-wrap: wrap;
   }
