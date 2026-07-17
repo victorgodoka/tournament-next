@@ -72,6 +72,7 @@ export interface TournamentUser {
   stats: UserStats;
   deck?: TopcutDeck;
   tiebreaker?: string;
+  isBye?: boolean;
 }
 
 export interface GameResults {
@@ -145,4 +146,13 @@ export interface TournamentPlayerStats {
   losses: number;
   rating: number;
   tiebreaker: string;
+  /** True when the player stopped appearing before the last round. */
+  dropped: boolean;
+  /** Rounds the player missed after dropping, counted as losses. */
+  droppedRounds: number;
+}
+
+export type TournamentDuelProps = {
+  duel: Duel
+  users: Map<string, TournamentUser>
 }

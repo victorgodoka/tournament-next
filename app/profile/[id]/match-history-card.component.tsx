@@ -4,6 +4,7 @@ import type { MatchHistory } from '../../decks/decks.types'
 import { CARD_PLACEHOLDER_SRC } from '../profile.const'
 import { cardArtUrl, tcgHref } from '../profile.utils'
 import IconComponent from '../../../components/icon/icon.component'
+import Image from 'next/image'
 
 type MatchHistoryCardProps = {
   match: MatchHistory
@@ -93,10 +94,12 @@ const MatchHistoryCard = ({
                 style={{ zIndex: myDeckCards.length - index }}
                 title={card.name}
               >
-                <img
+                <Image
                   src={cardArtUrl(card.id)}
                   alt={card.name}
                   loading="lazy"
+                  width={38}
+                  height={54}
                   onError={(event) => {
                     event.currentTarget.src = CARD_PLACEHOLDER_SRC
                   }}

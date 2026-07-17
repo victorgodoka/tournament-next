@@ -1,21 +1,27 @@
 import { AvatarComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
-import type { Duel, TournamentUser } from './tournament.types'
+import type { Duel, TournamentDuelProps, TournamentUser } from './tournament.types'
 import { getDuelOutcome, getUserDisplayName } from './tournament-page.utils'
+import Link from 'next/dist/client/link'
+import Image from 'next/image'
 
-type DuelSeatResult = 'winner' | 'loser' | null
+type DuelSeatResult = 'winner' | 'loser' | 'bye' | null
 
 type TournamentDuelSeatProps = {
   userId: string
   user: TournamentUser | undefined
   result: DuelSeatResult
+  isBye?: boolean
 }
 
-const TournamentDuelSeat = ({ userId, user, result }: TournamentDuelSeatProps) => {
+const TournamentDuelSeat = ({ userId, user, result, isBye }: TournamentDuelSeatProps) => {
   const name = getUserDisplayName(user)
 
+  if (user?.isBye || isBye) return;
+
   return (
-    <div
+    <Link
+      href={`/profile/${userId}`}
       className={
         result
           ? `tournament-duel__seat tournament-duel__seat--${result}`
@@ -39,21 +45,23 @@ const TournamentDuelSeat = ({ userId, user, result }: TournamentDuelSeatProps) =
           Defeated
         </span>
       ) : null}
-    </div>
+      {result === 'bye' ? (
+        <span className="tournament-duel__chip tournament-duel__chip--bye">
+          BYE
+        </span>
+      ) : null}
+    </Link>
   )
-}
-
-type TournamentDuelProps = {
-  duel: Duel
-  users: Map<string, TournamentUser>
 }
 
 const TournamentDuel = ({ duel, users }: TournamentDuelProps) => {
   const outcome = getDuelOutcome(duel)
   const ongoing = outcome.status === 'ongoing'
+  const isBye = duel.duelist2 === 'bye'
 
   const seatResult = (duelistId: string): DuelSeatResult => {
     if (outcome.status === 'ongoing') return null
+    if (outcome.status === 'bye') return 'bye'
     return outcome.winnerId === duelistId ? 'winner' : 'loser'
   }
 
@@ -63,16 +71,17 @@ const TournamentDuel = ({ duel, users }: TournamentDuelProps) => {
         ongoing ? 'tournament-duel tournament-duel--ongoing' : 'tournament-duel'
       }
     >
-      <div className="tournament-duel__players">
+      <div className={`tournament-duel__players ${isBye ? 'tournament-duel__players--with-bye' : ''}`}>
         <TournamentDuelSeat
           userId={duel.duelist1}
           user={users.get(duel.duelist1)}
           result={seatResult(duel.duelist1)}
         />
-        <span className="tournament-duel__vs" aria-hidden="true">
-          vs
-        </span>
+        {!isBye && (
+          <Image width={64} height={64} className="tournament-duel__vs" aria-hidden="true" src="/vs.png" alt="vs" />
+        )}
         <TournamentDuelSeat
+          isBye={isBye}
           userId={duel.duelist2}
           user={users.get(duel.duelist2)}
           result={seatResult(duel.duelist2)}

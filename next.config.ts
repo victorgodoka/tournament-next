@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
         hostname: "cdn.discordapp.com",
         pathname: "/avatars/**",
       },
+      {
+        protocol: "https",
+        hostname: "ygopro.online",
+        pathname: "/assets/**",
+      },
     ],
   },
 };

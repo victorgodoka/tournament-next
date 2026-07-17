@@ -1,6 +1,7 @@
 import type {
   Duel,
   Round,
+  TopcutData,
   Tournament,
   TournamentDetail,
   TournamentUser,
@@ -98,6 +99,29 @@ export function createTournamentDetail(
       createTournamentUser({ user_id: 'user-2', username: 'duelist2' }),
     ],
     topcutPlayers: [],
+    ...overrides,
+  }
+}
+
+export function createTopcutData(overrides: Partial<TopcutData> = {}): TopcutData {
+  return {
+    totalPlayers: 8,
+    uniqueDecks: 2,
+    decks: [
+      {
+        primaryArchetype: 'Fiendsmith Phantasm',
+        qty: 5,
+        archetypes: [
+          { name: 'Fiendsmith', count: 9, percentage: 22, ids: [1, 2] },
+          { name: 'Sacred Beast', count: 12, percentage: 30, ids: [3] },
+        ],
+      },
+      {
+        primaryArchetype: 'Ryzeal',
+        qty: 3,
+        archetypes: [{ name: 'Ryzeal', count: 15, percentage: 38, ids: [4] }],
+      },
+    ],
     ...overrides,
   }
 }

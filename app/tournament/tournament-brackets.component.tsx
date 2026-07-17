@@ -3,6 +3,7 @@ import type { Round, TournamentUser } from './tournament.types'
 import { getUserDisplayName, sortRoundsDescending } from './tournament-page.utils'
 import TournamentDuel from './tournament-duel.component'
 import IconComponent from '../../components/icon/icon.component'
+import { getMockByeDuelProps } from './tournament.utils'
 
 type TournamentBracketsProps = {
   rounds: Round[]
@@ -45,19 +46,15 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
             />
           </summary>
 
-          {round.bye ? (
-            <p className="tournament-round__bye">
-              <IconComponent icon="mdi:seat-outline" aria-hidden="true" />
-              Bye: {getUserDisplayName(users.get(round.bye))}
-            </p>
-          ) : null}
-
-          <ul className="tournament-round__duels">
+          <ul className={`tournament-round__duels ${round.bye ? 'tournament-round__duels--with-bye' : ''}`}>
             {round.duels.map((duel) => (
               <li key={duel.room_id}>
                 <TournamentDuel duel={duel} users={users} />
               </li>
             ))}
+            {round.bye && (
+              <TournamentDuel duel={getMockByeDuelProps(round.bye, round.starttime)} users={users} />
+            )}
           </ul>
         </details>
       ))}

@@ -23,7 +23,7 @@ describe('DeckListComponent', () => {
       main.getByRole('img', { name: 'Ash Blossom & Joyous Spring' }),
     ).toHaveAttribute(
       'src',
-      'https://ygopro.online/assets/card-arts/14558127.jpg',
+      'https://ygopro.online/assets/card-images/common//14558127.jpg',
     )
     // Ash appears three times in the main deck -> collapsed with a count badge.
     expect(main.getByText('×3')).toBeInTheDocument()

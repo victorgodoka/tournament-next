@@ -1,6 +1,6 @@
 import { Card } from "./cards.types"
 
-export const CARD_ART_BASE = 'https://ygopro.online/assets/card-arts'
+export const CARD_ART_BASE = 'https://ygopro.online/assets/card-images/common/'
 
 export const EXTRA_TYPES = ['fusion', 'synchro', 'xyz', 'link']
 

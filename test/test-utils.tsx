@@ -27,4 +27,5 @@ export {
   createDuel,
   createRound,
   createTournamentDetail,
+  createTopcutData,
 } from './fixtures/tournament.fixture'

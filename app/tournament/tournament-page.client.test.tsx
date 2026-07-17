@@ -151,7 +151,7 @@ describe('TournamentPageClient', () => {
     expect(screen.getByText(/top cut hasn't been decided/i)).toBeInTheDocument()
 
     await user.click(dataTab)
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument()
+    expect(screen.getByText(/no metagame data/i)).toBeInTheDocument()
   })
 
   it('shows the hard-refresh button only while the tournament is ongoing', () => {

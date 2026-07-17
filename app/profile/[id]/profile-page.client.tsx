@@ -8,6 +8,7 @@ import {
   useState,
   Suspense,
   type KeyboardEvent,
+  CSSProperties,
 } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -268,7 +269,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
     }
 
     if (statsData) {
-      ;(['tcg', 'genesys'] as const).forEach((mode) => {
+      ; (['tcg', 'genesys'] as const).forEach((mode) => {
         const queue = statsData[mode]
         queue?.matchHistory?.forEach((match) => {
           match.duelist?.deck?.forEach((deck) => {
@@ -367,17 +368,17 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
 
     return gameMode === 'tcg'
       ? {
-          wins: profileData.tcgwins,
-          losses: profileData.tcgloses,
-          draws: profileData.tcgdraws,
-          rating: profileData.tcgrating,
-        }
+        wins: profileData.tcgwins,
+        losses: profileData.tcgloses,
+        draws: profileData.tcgdraws,
+        rating: profileData.tcgrating,
+      }
       : {
-          wins: profileData.ocgwins,
-          losses: profileData.ocgloses,
-          draws: profileData.ocgdraws,
-          rating: profileData.ocgrating,
-        }
+        wins: profileData.ocgwins,
+        losses: profileData.ocgloses,
+        draws: profileData.ocgdraws,
+        rating: profileData.ocgrating,
+      }
   }, [profileData, gameMode])
 
   const tierInfo = useMemo(
@@ -508,8 +509,8 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
         style={
           customizationData?.duelist_banner_url
             ? {
-                backgroundImage: `url(${customizationData.duelist_banner_url})`,
-              }
+              backgroundImage: `url(${customizationData.duelist_banner_url})`,
+            }
             : undefined
         }
       >
@@ -530,7 +531,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                   href={tcgHref(getCardName(cardId))}
                   target="_blank"
                   rel="noopener noreferrer"
-                  prefetch={false} 
+                  prefetch={false}
                   className="profile__banner-card"
                   style={{ zIndex: topArchetype.ids.length - index }}
                   title={getCardName(cardId)}
@@ -881,7 +882,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                 </div>
 
                 {currentGameData?.pagination &&
-                currentGameData.pagination.totalPages > 1 ? (
+                  currentGameData.pagination.totalPages > 1 ? (
                   <div className="profile__pagination">
                     <button
                       type="button"
@@ -927,53 +928,39 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
               <aside className="profile__sidebar">
                 {(customizationData?.duelist_bio ||
                   customizationData?.duelist_favorite) && (
-                  <section className="profile__sidebar-panel profile__sidebar-panel--dossier omega-surface">
-                    <header className="profile__sidebar-header">
-                      <h3 className="profile__sidebar-title">Dossier</h3>
-                      <Icon
-                        icon="mdi:card-account-details-outline"
-                        className="profile__sidebar-icon"
-                      />
-                    </header>
-
-                    {customizationData.duelist_favorite ? (
-                      <Link
+                    <section style={{
+                      "--favorite-bg": `url(${cardArtUrl(
+                        Number(customizationData.duelist_favorite)
+                      )})`,
+                    } as CSSProperties} data-custom={customizationData.duelist_favorite ? "true" : "false"} className="profile__sidebar-panel profile__sidebar-panel--dossier">
+                      {customizationData.duelist_favorite && <Link
                         href={tcgHref(
                           favoriteCardName ||
-                            `Card ${customizationData.duelist_favorite}`,
+                          `Card ${customizationData.duelist_favorite}`,
                         )}
                         prefetch={false}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="profile__favorite-card"
+                        className="profile__favorite-card-link"
                         title={favoriteCardName || 'Favorite card'}
-                      >
-                        <img
-                          src={cardArtUrl(
-                            Number(customizationData.duelist_favorite),
-                          )}
-                          alt={favoriteCardName || 'Favorite card'}
-                          loading="lazy"
-                          onError={(event) => {
-                            event.currentTarget.src = CARD_PLACEHOLDER_SRC
+                      ></Link>}
+                      <header className="profile__sidebar-header">
+                        <h3 className="profile__sidebar-title">Dossier</h3>
+                        <Icon
+                          icon="mdi:card-account-details-outline"
+                          className="profile__sidebar-icon"
+                        />
+                      </header>
+                      {sanitizedBio ? (
+                        <div
+                          className="profile__bio"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizedBio,
                           }}
                         />
-                        <span className="profile__favorite-card-label">
-                          {favoriteCardName || 'Favorite card'}
-                        </span>
-                      </Link>
-                    ) : null}
-
-                    {sanitizedBio ? (
-                      <div
-                        className="profile__bio"
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizedBio,
-                        }}
-                      />
-                    ) : null}
-                  </section>
-                )}
+                      ) : null}
+                    </section>
+                  )}
 
                 <section className="profile__sidebar-panel omega-surface">
                   <header className="profile__sidebar-header">

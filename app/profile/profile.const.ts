@@ -1,4 +1,5 @@
-export const CARD_ART_BASE = 'https://ygopro.online/assets/card-arts'
+export const CARD_ART_BASE = 'https://ygopro.online/assets/card-images/common'
+export const CARD_ART_BASE_FULL = 'https://ygopro.online/assets/card-arts'
 
 export const TIER_BADGE_BASE = '/badges/TCG'
 

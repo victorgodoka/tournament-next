@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Icon } from '@iconify/react'
 import type { TournamentDetail, TournamentUser } from './tournament.types'
 import {
   buildUserMap,
@@ -15,6 +14,7 @@ import TournamentTabs, { type TournamentTabId } from './tournament-tabs.componen
 import TournamentBrackets from './tournament-brackets.component'
 import TournamentTable from './tournament-table.component'
 import TournamentTopCut from './tournament-topcut.component'
+import TournamentData from './tournament-data.component'
 import TournamentRefreshButton from './tournament-refresh-button.component'
 
 type TournamentPageClientProps = {
@@ -85,14 +85,7 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
           {activeTab === 'table' ? <TournamentTable detail={detail} /> : null}
           {activeTab === 'topcut' ? <TournamentTopCut {...detail} /> : null}
           {activeTab === 'data' ? (
-            <div className="tournament__panel-empty" role="status">
-              <Icon
-                icon="mdi:progress-clock"
-                className="tournament__panel-empty-icon"
-                aria-hidden="true"
-              />
-              <p>This section is coming soon.</p>
-            </div>
+            <TournamentData data={detail.topcutData} />
           ) : null}
         </div>
       </div>

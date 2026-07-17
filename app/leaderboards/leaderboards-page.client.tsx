@@ -30,6 +30,7 @@ import {
   sliceTopPlayers,
 } from './leaderboards.utils'
 import IconComponent from '../../components/icon/icon.component'
+import Image from 'next/image'
 
 type LeaderboardsPageClientProps = {
   data: LeaderboardData | null
@@ -78,7 +79,7 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
             <span className="leaderboards__player-name">{displayName}</span>
             <span className="leaderboards__player-handle">@{player.username}</span>
           </span>
-          <img
+          <Image
             src={tierInfo.image}
             alt=""
             className="leaderboards__tier-badge"

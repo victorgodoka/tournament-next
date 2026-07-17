@@ -12,7 +12,7 @@ import {
 describe('cardImageUrl', () => {
   it('builds a full-art URL from a passcode', () => {
     expect(cardImageUrl(14558127)).toBe(
-      'https://ygopro.online/assets/card-arts/14558127.jpg',
+      'https://ygopro.online/assets/card-images/common//14558127.jpg',
     )
   })
 })

@@ -35,7 +35,7 @@ const TournamentHeader = ({
         <div className="tournament__schedule-row">
           <IconComponent icon="mdi:calendar-start" aria-hidden="true" />
           <span>Started</span>
-          <div>{formatTournamentDateTime(tournament.starttime)}</div>
+          <span>{formatTournamentDateTime(tournament.starttime)}</span>
         </div>
         <div className="tournament__schedule-row">
           <IconComponent icon="mdi:calendar-check" aria-hidden="true" />

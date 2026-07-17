@@ -1,4 +1,4 @@
-import { TournamentPlayerStats, TournamentDetail, TournamentSettings } from "./tournament.types";
+import { TournamentPlayerStats, TournamentDetail, TournamentSettings, TournamentUser, TournamentDuelProps, Duel } from "./tournament.types";
 import { calculateWinRate } from "../profile/profile.utils";
 
 export const decodeDuelData = (data: number): TournamentSettings => {
@@ -39,7 +39,38 @@ export const decodeDuelData = (data: number): TournamentSettings => {
   return result as TournamentSettings;
 }
 
+/**
+ * Detect players who dropped out. A dropped player stops being paired, so they
+ * appear in fewer rounds than were actually played. Returns, per user id, how
+ * many rounds they missed (0 = played every round). A bye counts as appearing.
+ */
+export function detectDropouts(data: TournamentDetail): Map<string, number> {
+  const totalRounds = data.rounds.length;
+  const appearances = new Map<string, number>();
+  for (const user of data.users) appearances.set(user.user_id, 0);
+
+  for (const round of data.rounds) {
+    // Count each player at most once per round.
+    const present = new Set<string>();
+    if (round.bye && appearances.has(round.bye)) present.add(round.bye);
+    for (const duel of round.duels) {
+      if (appearances.has(duel.duelist1)) present.add(duel.duelist1);
+      if (appearances.has(duel.duelist2)) present.add(duel.duelist2);
+    }
+    for (const id of present) appearances.set(id, appearances.get(id)! + 1);
+  }
+
+  const missedByUser = new Map<string, number>();
+  for (const user of data.users) {
+    const missed = totalRounds - (appearances.get(user.user_id) ?? 0);
+    missedByUser.set(user.user_id, Math.max(0, missed));
+  }
+  return missedByUser;
+}
+
 export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerStats[] {
+  const missedByUser = detectDropouts(data);
+
   const winPercentageById = new Map<string, number>();
   for (const user of data.users) {
     const wins = user.stats.wins || 0;
@@ -102,7 +133,9 @@ export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerSt
   const playerStats = data.users.map(user => {
     const wins = user.stats.wins || 0;
     const draws = user.stats.draws || 0;
-    const losses = user.stats.loses || 0;
+    // Missed rounds from dropping are counted as losses in the standings.
+    const droppedRounds = missedByUser.get(user.user_id) ?? 0;
+    const losses = (user.stats.loses || 0) + droppedRounds;
 
     const lostRounds = lostRoundsById.get(user.user_id) ?? [];
     const totalOpponentWinPercentage = opponentWinPercentage(user.user_id);
@@ -129,6 +162,8 @@ export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerSt
       losses,
       winPercentage,
       tiebreaker,
+      dropped: droppedRounds > 0,
+      droppedRounds,
     };
   });
 
@@ -137,4 +172,20 @@ export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerSt
     const tiebreakerB = parseInt(b.tiebreaker);
     return tiebreakerB - tiebreakerA;
   });
+}
+
+export const getMockByeDuelProps = (bye: string, startTime: string): Duel => {
+  const mockedGames = { game1: 0, game2: 0, game3: 0 }
+  return {
+    room_id: 999,
+    duelist1: bye,
+    duelist2: "bye",
+    winner: bye,
+    result: 3,
+    results: mockedGames,
+    reasons: mockedGames,
+    first: 0,
+    end: startTime,
+    usage: startTime,
+  }
 }
