@@ -3,7 +3,7 @@
 .tournament {
   position: relative;
   isolation: isolate;
-  min-height: calc(100dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
   overflow: clip;
 }
 
@@ -12,69 +12,6 @@
   align-items: center;
   justify-content: center;
   padding-block: var(--space-12);
-}
-
-/* Element: atmospheric backdrop */
-
-.tournament__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Fine film grain to break up the flat dark surface */
-.tournament__backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.035;
-  mix-blend-mode: soft-light;
-}
-
-.tournament__grid {
-  position: absolute;
-  inset: -16%;
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 3.25rem 3.25rem;
-  mask-image: radial-gradient(ellipse 72% 58% at 50% 12%, black 16%, transparent 74%);
-  opacity: 0.48;
-}
-
-.tournament__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(80px);
-}
-
-/* Single-hue teal depth — a bright near source and a deep far one,
-   rather than a teal/purple two-tone gradient. */
-.tournament__orb--secondary {
-  width: min(42vw, 22rem);
-  height: min(42vw, 22rem);
-  top: 2%;
-  left: -8%;
-  background: var(--color-secondary-light);
-  opacity: 0.32;
-}
-
-.tournament__orb--accent {
-  width: min(38vw, 20rem);
-  height: min(38vw, 20rem);
-  top: 16%;
-  right: -6%;
-  background: color-mix(in srgb, var(--palette-secondary) 55%, #04141a);
-  opacity: 0.4;
 }
 
 /* Element: page content */

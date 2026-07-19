@@ -37,7 +37,7 @@ export function Providers({ children }: { children: ReactNode }) {
         </a>
         <ErrorBanner />
         <NavbarComponent />
-        <main id="main-content" className="app-shell__main">
+        <main id="main-content">
           {children}
         </main>
         <FooterComponent />

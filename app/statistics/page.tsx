@@ -1,4 +1,4 @@
-import { ComingSoonPage } from '@components'
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './statistics.styles.css'
 
@@ -10,7 +10,7 @@ export const metadata = noIndexMetadata(
 
 const StatisticsPage = () => {
   return (
-    <ComingSoonPage
+    <WipComponent
       title="Statistics"
       description="Meta statistics and deck analytics are coming soon."
     />

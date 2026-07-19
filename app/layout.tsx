@@ -92,7 +92,7 @@ export default function RootLayout({
         />
         <GtmScripts />
       </head>
-      <body className="app-shell" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <GtmNoScript />
         <Providers>{children}</Providers>
       </body>

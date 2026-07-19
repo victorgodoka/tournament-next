@@ -1,7 +1,6 @@
-import { ComingSoonPage } from '@components'
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './deck-wiki.styles.css'
-import WipComponent from '../../components/wip/wip.component'
 
 export const metadata = noIndexMetadata(
   'Deck Wiki',

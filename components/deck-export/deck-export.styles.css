@@ -1,3 +1,8 @@
+.deck-export {
+  padding: 1rem;
+  background-color: var(--color-surface-active);
+}
+
 .deck-export__group {
   display: flex;
   gap: var(--space-2);

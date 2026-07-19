@@ -3,7 +3,7 @@
 .leaderboards {
   position: relative;
   isolation: isolate;
-  min-height: calc(100dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
   overflow: clip;
 }
 
@@ -12,56 +12,6 @@
   align-items: center;
   justify-content: center;
   padding-block: var(--space-12);
-}
-
-/* Element: atmospheric backdrop */
-
-.leaderboards__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.leaderboards__grid {
-  position: absolute;
-  inset: -16%;
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 3.25rem 3.25rem;
-  mask-image: radial-gradient(ellipse 72% 58% at 50% 12%, black 16%, transparent 74%);
-  opacity: 0.48;
-}
-
-.leaderboards__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(76px);
-  opacity: 0.38;
-}
-
-.leaderboards__orb--secondary {
-  width: min(42vw, 22rem);
-  height: min(42vw, 22rem);
-  top: 2%;
-  left: -8%;
-  background: var(--color-secondary);
-}
-
-.leaderboards__orb--accent {
-  width: min(36vw, 18rem);
-  height: min(36vw, 18rem);
-  top: 14%;
-  right: -6%;
-  background: var(--color-accent);
 }
 
 /* Element: page content */

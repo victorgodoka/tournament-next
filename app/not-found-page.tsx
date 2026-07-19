@@ -1,14 +1,11 @@
 import Link from 'next/link'
 import './not-found.styles.css'
+import { BackdropComponent } from '@components'
 
 const NotFoundPage = () => {
   return (
     <div className="not-found" aria-labelledby="not-found-title">
-      <div className="not-found__backdrop" aria-hidden="true">
-        <span className="not-found__grid" />
-        <span className="not-found__orb not-found__orb--secondary" />
-        <span className="not-found__orb not-found__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="not-found__content omega-container omega-container--narrow">
         <span className="not-found__eyebrow omega-badge omega-badge--secondary">

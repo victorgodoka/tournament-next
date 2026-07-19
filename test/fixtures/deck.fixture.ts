@@ -1,4 +1,4 @@
-import type { ConvertedDeck } from '../../app/decks/decks.types'
+import type { Comment, ConvertedDeck } from '../../app/decks/decks.types'
 import type { MatchHistory, SavedDeck } from '../../app/decks/decks.types'
 import type { Card } from '../../lib/cards.types'
 
@@ -45,6 +45,25 @@ export function createMatchHistory(
     isDraw: false,
     start: '2025-06-01T14:00:00Z',
     end: '2025-06-01T14:25:00Z',
+    ...overrides,
+  }
+}
+
+export function createComment(overrides: Partial<Comment> = {}): Comment {
+  return {
+    id: 1,
+    deck_id: 42,
+    user_id: 'user-1',
+    comment: 'Great deck!',
+    parent_id: null,
+    created_at: '2026-07-12T04:31:03.000Z',
+    updated_at: '2026-07-12T04:31:03.000Z',
+    user: {
+      discord_id: 'user-1',
+      username: 'duelist',
+      avatar: null,
+      displayname: 'Test Duelist',
+    },
     ...overrides,
   }
 }

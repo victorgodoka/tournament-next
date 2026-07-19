@@ -4,7 +4,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-
   /* Per-category accents, reused by gallery cards & text rows */
   --deck-list-monster: var(--color-warning);
   --deck-list-spell: var(--color-secondary-light);
@@ -15,12 +14,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem;
   width: 100%;
 }
 
 .deck-list__body {
   display: flex;
   flex-direction: column;
+  padding: 1rem;
   gap: var(--space-5);
 }
 

@@ -3,58 +3,8 @@
 .decks-page {
   position: relative;
   isolation: isolate;
-  min-height: calc(100dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
   overflow: clip;
-}
-
-/* Element: atmospheric backdrop */
-
-.decks-page__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.decks-page__grid {
-  position: absolute;
-  inset: -16%;
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 3.25rem 3.25rem;
-  mask-image: radial-gradient(ellipse 72% 58% at 50% 12%, black 16%, transparent 74%);
-  opacity: 0.48;
-}
-
-.decks-page__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(76px);
-  opacity: 0.38;
-}
-
-.decks-page__orb--secondary {
-  width: min(42vw, 22rem);
-  height: min(42vw, 22rem);
-  top: 2%;
-  left: -8%;
-  background: var(--color-secondary);
-}
-
-.decks-page__orb--accent {
-  width: min(36vw, 18rem);
-  height: min(36vw, 18rem);
-  top: 14%;
-  right: -6%;
-  background: var(--color-accent);
 }
 
 /* Element: page content */
@@ -106,14 +56,15 @@
 /* Element: filter bar */
 
 .decks-filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   margin-bottom: var(--space-6);
   padding: var(--space-4);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-raised);
+}
+
+.decks-filters__group {
+  margin-bottom: var(--space-6);
 }
 
 .decks-filters__search {
@@ -457,7 +408,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .decks-filters {
+  .decks-filters__group {
     flex-direction: row;
     align-items: center;
   }
@@ -478,6 +429,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .decks-page__header,
   .deck-card {
     animation: none;

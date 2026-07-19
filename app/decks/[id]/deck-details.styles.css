@@ -1,0 +1,14 @@
+.decks-detail {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+}
+
+/* Element: page content */
+
+.decks-detail__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}

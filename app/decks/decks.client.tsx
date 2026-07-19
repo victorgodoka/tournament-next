@@ -4,7 +4,7 @@ import { useCallback, useState, useTransition } from 'react'
 import './decks.styles.css'
 import { DecksPageProps, SavedDecksResponse } from './decks.types'
 import { getSavedDecks } from './decks.api'
-import { ErrorPageComponent } from '@components'
+import { BackdropComponent, ErrorPageComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 import DeckFiltersComponent from './deck-filters.component'
 import DeckCardComponent from './deck-card.component'
@@ -95,11 +95,7 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
 
   return (
     <div className="decks-page">
-      <div className="decks-page__backdrop" aria-hidden="true">
-        <span className="decks-page__grid" />
-        <span className="decks-page__orb decks-page__orb--secondary" />
-        <span className="decks-page__orb decks-page__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="decks-page__content omega-container">
         <header className="decks-page__header">

@@ -2,6 +2,7 @@ import ButtonComponent from '../button/button.component'
 import IconComponent from '../icon/icon.component'
 import { WipComponentProps } from './wip.types'
 import './wip.styles.css'
+import BackdropComponent from '../backdrop/backdrop.component'
 
 const WipComponent = ({
   title = "This zone is still being built",
@@ -11,11 +12,7 @@ const WipComponent = ({
 }: WipComponentProps) => {
   return (
     <div className="wip" aria-labelledby="wip-title">
-      <div className="wip__backdrop" aria-hidden="true">
-        <span className="wip__stripes" />
-        <span className="wip__orb wip__orb--warning" />
-        <span className="wip__orb wip__orb--secondary" />
-      </div>
+      <BackdropComponent />
 
       <div className="wip__content omega-container omega-container--narrow">
         <span className="wip__eyebrow">

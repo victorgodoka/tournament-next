@@ -1,4 +1,4 @@
-import { ComingSoonPage } from '@components'
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './konami-decklist.styles.css'
 
@@ -10,7 +10,7 @@ export const metadata = noIndexMetadata(
 
 const KonamiDecklistPage = () => {
   return (
-    <ComingSoonPage
+    <WipComponent
       title="Konami Decklist"
       description="Konami decklist conversion is coming soon."
     />

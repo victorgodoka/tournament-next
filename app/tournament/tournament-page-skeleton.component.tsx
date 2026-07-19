@@ -1,13 +1,10 @@
+import { BackdropComponent } from "@components";
 import SkeletonComponent from "../../components/skeleton/skeleton.component";
 
 /** Full-page placeholder shown while a tournament's data is being fetched. */
 const TournamentPageSkeleton = () => (
   <div className="tournament">
-    <div className="tournament__backdrop" aria-hidden="true">
-      <span className="tournament__grid" />
-      <span className="tournament__orb tournament__orb--secondary" />
-      <span className="tournament__orb tournament__orb--accent" />
-    </div>
+    <BackdropComponent />
 
     <div
       className="tournament__content omega-container"

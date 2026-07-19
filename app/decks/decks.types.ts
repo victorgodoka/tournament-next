@@ -115,6 +115,45 @@ export interface SavedDeck {
   avatar: string
 }
 
+export interface SavedDeckDetails {
+  id: number
+  user_id: string
+  code: string
+  name: string
+  cover_id: number | null
+  archetypes: string[]
+  tags: string[]
+  private: boolean
+  created_at: string
+  updated_at: string
+  fullDeck: FullDeck
+  user: DiscordUser
+}
+
+export interface SavedDeckComments {
+  success: boolean
+  count: number
+  data: Comment[]
+}
+
+export interface Comment {
+  id: number
+  deck_id: number
+  user_id: string
+  comment: string
+  parent_id: number | null
+  created_at: string
+  updated_at: string
+  user: DiscordUser
+}
+
+interface DiscordUser {
+  discord_id: string
+  username: string
+  avatar: string | null
+  displayname: string | null
+}
+
 export interface ConvertDeckResponse {
   success: boolean
   data: ConvertedDeck
@@ -164,6 +203,6 @@ export interface Banlist {
 }
 
 export interface DecksPageProps {
-  initialData: SavedDecksResponse| null
+  initialData: SavedDecksResponse | null
   initialError: string | null
 }

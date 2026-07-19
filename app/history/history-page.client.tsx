@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { ButtonComponent, ErrorPageComponent } from '@components'
+import { BackdropComponent, ButtonComponent, ErrorPageComponent } from '@components'
 import { getTournaments } from './history.api'
 import { HISTORY_PAGE_LIMIT } from './history.const'
 import {
@@ -102,11 +102,7 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
 
   return (
     <div className="history">
-      <div className="history__backdrop" aria-hidden="true">
-        <span className="history__grid" />
-        <span className="history__orb history__orb--secondary" />
-        <span className="history__orb history__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="history__content omega-container">
         <header className="history__header">

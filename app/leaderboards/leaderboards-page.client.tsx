@@ -9,7 +9,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { AvatarComponent, ButtonComponent } from '@components'
+import { AvatarComponent, BackdropComponent, ButtonComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
 import { getLeaderboard } from './leaderboards.api'
 import {
@@ -151,11 +151,7 @@ const LeaderboardsPageClient = ({
   if (error && !data) {
     return (
       <div className="leaderboards leaderboards--empty" aria-labelledby="leaderboards-error-title">
-        <div className="leaderboards__backdrop" aria-hidden="true">
-          <span className="leaderboards__grid" />
-          <span className="leaderboards__orb leaderboards__orb--secondary" />
-          <span className="leaderboards__orb leaderboards__orb--accent" />
-        </div>
+        <BackdropComponent />
 
         <div className="leaderboards__empty omega-container omega-container--narrow">
           <span className="leaderboards__empty-icon-wrap" aria-hidden="true">
@@ -185,11 +181,7 @@ const LeaderboardsPageClient = ({
 
   return (
     <div className="leaderboards">
-      <div className="leaderboards__backdrop" aria-hidden="true">
-        <span className="leaderboards__grid" />
-        <span className="leaderboards__orb leaderboards__orb--secondary" />
-        <span className="leaderboards__orb leaderboards__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="leaderboards__content omega-container">
         <header className="leaderboards__header">

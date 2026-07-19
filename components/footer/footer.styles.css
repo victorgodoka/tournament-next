@@ -11,6 +11,7 @@
   font-weight: var(--weight-medium);
   font-family: var(--font-body);
   font-style: italic;
+  min-height: var(--footer-height);
 }
 
 .footer__content {

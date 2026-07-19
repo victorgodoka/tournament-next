@@ -5,60 +5,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
   padding-block: var(--space-12);
   padding-inline: var(--space-4);
   overflow: clip;
   isolation: isolate;
-}
-
-/* Element: atmospheric backdrop */
-
-.not-found__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.not-found__grid {
-  position: absolute;
-  inset: -20%;
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--palette-secondary) 8%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--palette-secondary) 8%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 3.5rem 3.5rem;
-  mask-image: radial-gradient(circle at 50% 40%, black 15%, transparent 72%);
-  opacity: 0.55;
-}
-
-.not-found__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(72px);
-  opacity: 0.45;
-}
-
-.not-found__orb--secondary {
-  width: min(42vw, 22rem);
-  height: min(42vw, 22rem);
-  top: 8%;
-  left: -8%;
-  background: var(--color-secondary);
-}
-
-.not-found__orb--accent {
-  width: min(36vw, 18rem);
-  height: min(36vw, 18rem);
-  right: -6%;
-  bottom: 10%;
-  background: var(--color-accent);
 }
 
 /* Element: content stack */
@@ -146,7 +97,7 @@
 
 @media (max-width: 640px) {
   .not-found {
-    min-height: calc(100dvh - var(--header-height));
+    min-height: calc(100dvh - var(--header-height) - var(--footer-height));
     padding-block: var(--space-8);
   }
 

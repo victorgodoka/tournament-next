@@ -19,7 +19,7 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
   const coverId = useMemo(() => resolveDeckCoverId(deck), [deck])
   const coverSrc = coverId ? cardImageUrl(coverId, true) : DECK_COVER_FALLBACK
   const creatorName = getDeckCreatorName(deck)
-  const deckHref = `/decks/details/${deck.id}`
+  const deckHref = `/decks/${deck.id}`
 
   return (
     <article className="deck-card omega-surface">

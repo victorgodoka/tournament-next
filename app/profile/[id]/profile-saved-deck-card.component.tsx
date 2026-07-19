@@ -15,7 +15,7 @@ const ProfileSavedDeckCard = ({ deck }: ProfileSavedDeckCardProps) => {
   return (
     <article className="profile-deck-card omega-surface">
       <Link
-        href={`/decks/details/${deck.id}`}
+        href={`/decks/${deck.id}`}
         className="profile-deck-card__cover"
         aria-label={deck.name}
       >
@@ -36,7 +36,7 @@ const ProfileSavedDeckCard = ({ deck }: ProfileSavedDeckCardProps) => {
       </Link>
 
       <div className="profile-deck-card__body">
-        <Link href={`/decks/details/${deck.id}`} className="profile-deck-card__title">
+        <Link href={`/decks/${deck.id}`} className="profile-deck-card__title">
           {deck.name}
         </Link>
 

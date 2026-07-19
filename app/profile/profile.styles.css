@@ -18,62 +18,8 @@
   padding-block: 0 var(--space-12);
 }
 
-.profile--detail .profile__backdrop {
-  opacity: 0.65;
-}
-
 .profile--detail .profile__banner {
   z-index: 1;
-}
-
-/* Element: atmospheric backdrop (empty state) */
-
-.profile__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.profile__grid {
-  position: absolute;
-  inset: -18%;
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--palette-secondary) 7%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 3.25rem 3.25rem;
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 18%, transparent 72%);
-  opacity: 0.5;
-}
-
-.profile__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(72px);
-  opacity: 0.42;
-}
-
-.profile__orb--secondary {
-  width: min(40vw, 20rem);
-  height: min(40vw, 20rem);
-  top: 6%;
-  left: -6%;
-  background: var(--color-secondary);
-}
-
-.profile__orb--accent {
-  width: min(34vw, 17rem);
-  height: min(34vw, 17rem);
-  right: -5%;
-  bottom: 12%;
-  background: var(--color-accent);
 }
 
 /* Element: hero banner */
@@ -1412,7 +1358,7 @@
 /* Block: profile-skeleton */
 
 .profile-skeleton {
-  min-height: calc(100dvh - var(--header-height));
+  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
 }
 
 .profile-skeleton__banner {

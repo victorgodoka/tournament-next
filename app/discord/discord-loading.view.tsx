@@ -1,3 +1,4 @@
+import { BackdropComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 import type { DiscordLoadingState } from '../../hooks/use-discord-login'
 
@@ -38,11 +39,7 @@ const DiscordLoadingView = ({
 
   return (
     <div className="discord-login" aria-live="polite">
-      <div className="discord-login__backdrop" aria-hidden="true">
-        <span className="discord-login__grid" />
-        <span className="discord-login__orb discord-login__orb--secondary" />
-        <span className="discord-login__orb discord-login__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="discord-login__content omega-container omega-container--narrow">
         <div

@@ -33,27 +33,30 @@ const DeckFiltersComponent = ({
 }: DeckFiltersProps) => {
   return (
     <div className="decks-filters">
-      <form
-        className="decks-filters__search"
-        role="search"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onSearchSubmit()
-        }}
-      >
-        <IconComponent icon="mdi:magnify" className="decks-filters__search-icon" />
-        <input
-          type="search"
-          className="decks-filters__search-input"
-          placeholder="Search by name or #tags"
-          value={searchValue}
-          onChange={(event) => onSearchChange(event.target.value)}
-          aria-label="Search decks by name or tags"
-        />
-        <ButtonComponent type="submit" variant="secondary" size="sm" loading={isPending}>
-          Search
-        </ButtonComponent>
-      </form>
+      <div className="decks-filters__group">
+        <span className="decks-filters__field-label">Archetype</span>
+        <form
+          className="decks-filters__search"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onSearchSubmit()
+          }}
+        >
+          <IconComponent icon="mdi:magnify" className="decks-filters__search-icon" />
+          <input
+            type="search"
+            className="decks-filters__search-input"
+            placeholder="Search by name or #tags"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            aria-label="Search decks by name or tags"
+          />
+          <ButtonComponent type="submit" variant="secondary" size="sm" loading={isPending}>
+            Search
+          </ButtonComponent>
+        </form>
+      </div>
 
       <div className="decks-filters__controls">
         <label className="decks-filters__field">

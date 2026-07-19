@@ -2,6 +2,7 @@ import ButtonComponent from '../button/button.component'
 import IconComponent from '../icon/icon.component'
 import { ErrorPageProps } from './error-page.types'
 import './error-page.styles.css'
+import BackdropComponent from '../backdrop/backdrop.component'
 
 const ErrorPage = ({
   code,
@@ -16,11 +17,7 @@ const ErrorPage = ({
 }: ErrorPageProps) => {
   return (
     <div className="error-page" role="alert" aria-labelledby="error-page-title">
-      <div className="error-page__backdrop" aria-hidden="true">
-        <span className="error-page__scanlines" />
-        <span className="error-page__orb error-page__orb--error" />
-        <span className="error-page__orb error-page__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="error-page__content omega-container omega-container--narrow">
         <span className="error-page__eyebrow">

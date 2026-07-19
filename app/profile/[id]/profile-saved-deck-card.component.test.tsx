@@ -10,7 +10,7 @@ describe('ProfileSavedDeckCard', () => {
     expect(screen.getByText('Blue-Eyes Control')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Blue-Eyes Control' })[0]).toHaveAttribute(
       'href',
-      '/decks/details/42',
+      '/decks/42',
     )
     expect(screen.getByText('Blue-Eyes · Dragon')).toBeInTheDocument()
   })

@@ -1,4 +1,4 @@
-import { ComingSoonPage } from '@components'
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './deck-editor.styles.css'
 
@@ -10,7 +10,7 @@ export const metadata = noIndexMetadata(
 
 const DeckEditorPage = () => {
   return (
-    <ComingSoonPage
+    <WipComponent
       title="Deck Editor"
       description="The deck editor is coming soon."
     />

@@ -1,16 +1,19 @@
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
-
+import './profile-edit.styles.css'
 export const metadata = noIndexMetadata(
   'Edit Profile',
   '/profile/edit',
   'Edit your YGO Omega player profile settings.',
 )
 
-export default function ProfileEditPage() {
+const ProfileEditPage = () => {
   return (
-    <div className="omega-container">
-      <h1>Edit Profile</h1>
-      <p>Profile editing is coming soon.</p>
-    </div>
+    <WipComponent
+      title="Edit Profile"
+      description="Profile editing is coming soon."
+    />
   )
 }
+
+export default ProfileEditPage;

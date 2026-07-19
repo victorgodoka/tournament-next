@@ -20,3 +20,6 @@ export { default as DeckExportComponent } from "./deck-export/deck-export.compon
 export { default as AffiliateLinkComponent } from "./affiliate-link/affiliate-link-component";
 export { default as SkeletonComponent } from "./skeleton/skeleton.component";
 export { default as ErrorPageComponent } from "./error-page/error-page.component"
+export { default as CommentsComponent } from "./comments/comments.component"
+export { default as BackdropComponent } from "./backdrop/backdrop.component"
+export { default as WipComponent } from "./wip/wip.component"

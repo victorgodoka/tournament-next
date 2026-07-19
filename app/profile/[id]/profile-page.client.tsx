@@ -13,7 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { AvatarComponent, ButtonComponent } from '@components'
+import { AvatarComponent, BackdropComponent, ButtonComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import { AuthManager } from '@contexts/Auth/auth.manager'
@@ -50,11 +50,7 @@ type SocialLink = {
 function ProfileNotFound({ message }: { message: string }) {
   return (
     <div className="profile profile--empty" aria-labelledby="profile-error-title">
-      <div className="profile__backdrop" aria-hidden="true">
-        <span className="profile__grid" />
-        <span className="profile__orb profile__orb--secondary" />
-        <span className="profile__orb profile__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="profile__empty omega-container omega-container--narrow">
         <span className="profile__empty-icon-wrap" aria-hidden="true">
@@ -497,11 +493,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
 
   return (
     <div className="profile profile--detail">
-      <div className="profile__backdrop" aria-hidden="true">
-        <span className="profile__grid" />
-        <span className="profile__orb profile__orb--secondary" />
-        <span className="profile__orb profile__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <section
         className="profile__banner"

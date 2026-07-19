@@ -16,6 +16,7 @@ export {
 export { createPlayerStats, createLeaderboardData } from './fixtures/player.fixture'
 export {
   createSavedDeck,
+  createComment,
   createMatchHistory,
   createCard,
   createConvertedDeck,

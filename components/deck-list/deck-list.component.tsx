@@ -76,7 +76,7 @@ const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: Conver
   ].filter((section) => section.groups.length > 0);
 
   return (
-    <div className="deck-list">
+    <div className="deck-list omega-surface">
       <DeckExportComponent code={convertedDeck.code} />
       <div className="deck-list__header">
         {archetype && (

@@ -12,51 +12,6 @@
   isolation: isolate;
 }
 
-/* Element: atmospheric backdrop */
-
-.error-page__backdrop {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.error-page__scanlines {
-  position: absolute;
-  inset: -20%;
-  background-image: repeating-linear-gradient(
-    0deg,
-    color-mix(in srgb, var(--color-error) 8%, transparent) 0,
-    color-mix(in srgb, var(--color-error) 8%, transparent) 1px,
-    transparent 1px,
-    transparent 5px
-  );
-  mask-image: radial-gradient(circle at 50% 38%, black 8%, transparent 65%);
-  opacity: 0.5;
-}
-
-.error-page__orb {
-  position: absolute;
-  border-radius: var(--radius-full);
-  filter: blur(72px);
-  opacity: 0.4;
-}
-
-.error-page__orb--error {
-  width: min(38vw, 20rem);
-  height: min(38vw, 20rem);
-  top: 8%;
-  left: -8%;
-  background: var(--color-error);
-}
-
-.error-page__orb--accent {
-  width: min(36vw, 19rem);
-  height: min(36vw, 19rem);
-  right: -6%;
-  bottom: 8%;
-  background: var(--color-accent);
-}
-
 /* Element: content stack */
 
 .error-page__content {
@@ -227,7 +182,7 @@
 
 @media (max-width: 640px) {
   .error-page {
-    min-height: calc(100dvh - var(--header-height));
+    min-height: calc(100dvh - var(--header-height) - var(--footer-height));
     padding-block: var(--space-8);
   }
 

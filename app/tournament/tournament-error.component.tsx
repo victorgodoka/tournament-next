@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react'
-import { ButtonComponent } from '@components'
+import { BackdropComponent, ButtonComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 
 type TournamentErrorProps = {
@@ -12,11 +12,7 @@ const TournamentError = ({ message }: TournamentErrorProps) => {
       className="tournament tournament--empty"
       aria-labelledby="tournament-error-title"
     >
-      <div className="tournament__backdrop" aria-hidden="true">
-        <span className="tournament__grid" />
-        <span className="tournament__orb tournament__orb--secondary" />
-        <span className="tournament__orb tournament__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="tournament__empty omega-container omega-container--narrow">
         <span className="tournament__empty-icon-wrap" aria-hidden="true">

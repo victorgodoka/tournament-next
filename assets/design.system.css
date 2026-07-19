@@ -209,6 +209,7 @@ a, link, a:visited, a:hover, a:active, a:focus {
     --content-max: 72rem;
     --content-narrow: 42rem;
     --header-height: 4rem;
+    --footer-height: 8rem;
 
     --z-base: 0;
     --z-dropdown: 100;
@@ -508,19 +509,6 @@ a, link, a:visited, a:hover, a:active, a:focus {
   }
 
   /* App shell — replaces Tailwind layout utilities on body/main */
-
-  .app-shell {
-    display: flex;
-    flex-direction: column;
-    min-height: 100dvh;
-  }
-
-  .app-shell__main {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-  }
-
   .skip-link {
     position: absolute;
     inset-block-start: var(--space-2);

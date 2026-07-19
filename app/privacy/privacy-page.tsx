@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { PRIVACY_META, PRIVACY_SECTION_NAV } from './privacy.const'
 import './privacy.styles.css'
+import { BackdropComponent } from '@components'
 
 const PrivacyEmailLink = () => (
   <a href={`mailto:${PRIVACY_META.email}`}>{PRIVACY_META.email}</a>
@@ -9,10 +10,7 @@ const PrivacyEmailLink = () => (
 const PrivacyPage = () => {
   return (
     <article className="privacy" aria-labelledby="privacy-title">
-      <div className="privacy__backdrop" aria-hidden="true">
-        <span className="privacy__grid" />
-        <span className="privacy__orb privacy__orb--secondary" />
-      </div>
+      <BackdropComponent />
 
       <div className="privacy__content omega-container omega-container--narrow">
         <header className="privacy__header">

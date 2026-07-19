@@ -1,4 +1,4 @@
-import { ComingSoonPage } from '@components'
+import { WipComponent } from '@components'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './pdf-decklist.styles.css'
 
@@ -10,7 +10,7 @@ export const metadata = noIndexMetadata(
 
 const PdfDecklistPage = () => {
   return (
-    <ComingSoonPage
+    <WipComponent
       title="PDF Decklist"
       description="PDF decklist export is coming soon."
     />

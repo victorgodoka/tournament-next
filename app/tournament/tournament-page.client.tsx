@@ -16,6 +16,7 @@ import TournamentTable from './tournament-table.component'
 import TournamentTopCut from './tournament-topcut.component'
 import TournamentData from './tournament-data.component'
 import TournamentRefreshButton from './tournament-refresh-button.component'
+import { BackdropComponent } from '@components'
 
 type TournamentPageClientProps = {
   detail: TournamentDetail | null
@@ -42,11 +43,7 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
 
   return (
     <div className="tournament">
-      <div className="tournament__backdrop" aria-hidden="true">
-        <span className="tournament__grid" />
-        <span className="tournament__orb tournament__orb--secondary" />
-        <span className="tournament__orb tournament__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <div className="tournament__content omega-container">
         {!finished && (

@@ -4,15 +4,12 @@ import IconComponent from '../../components/icon/icon.component'
 import { HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import HomeHeroActions from './home-hero-actions.component'
 import './home.styles.css'
+import { BackdropComponent } from '@components'
 
 const HomePage = () => {
   return (
     <div className="home">
-      <div className="home__backdrop" aria-hidden="true">
-        <span className="home__grid" />
-        <span className="home__orb home__orb--secondary" />
-        <span className="home__orb home__orb--accent" />
-      </div>
+      <BackdropComponent />
 
       <section className="home__hero omega-container" aria-labelledby="home-title">
         <span className="home__eyebrow omega-badge omega-badge--secondary">
