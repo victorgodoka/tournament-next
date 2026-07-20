@@ -1,10 +1,9 @@
-"use client"
 import { API_ENDPOINTS } from '@const'
 import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import type { ConvertDeckResponse, ConvertedDeck, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
-import { AuthManager } from '@contexts'
+import { AuthManager } from '@contexts/Auth/auth.manager'
 
 export async function getPlayerDecks(
   discordId: string,

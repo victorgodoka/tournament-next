@@ -133,7 +133,6 @@ const TournamentTopCut = ({ topcutPlayers, topcutData }: TournamentDetail) => {
         <ol className="tournament-topcut__players">
           {playerDecks.map(({ player, deck }, index) => {
             const name = getUserDisplayName(player);
-            const archetype = player.deck?.primaryArchetype;
 
             return (
               <li
@@ -165,7 +164,7 @@ const TournamentTopCut = ({ topcutPlayers, topcutData }: TournamentDetail) => {
                 </header>
 
                 {deck ? (
-                  <DeckListComponent convertedDeck={deck} archetype={archetype} />
+                  <DeckListComponent convertedDeck={deck} name={name} />
                 ) : (
                   <p className="tournament-topcut__no-deck">
                     No decklist available for this player.

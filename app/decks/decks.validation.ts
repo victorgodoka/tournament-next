@@ -26,6 +26,9 @@ export function normalizeSavedDeck(value: unknown): SavedDeck | null {
     likes: typeof value.likes === 'number' ? value.likes : undefined,
     comment_count:
       typeof value.comment_count === 'number' ? value.comment_count : undefined,
+    username: typeof value.username === 'string' ? value.username : '',
+    displayname: typeof value.displayname === 'string' ? value.displayname : '',
+    avatar: typeof value.avatar === 'string' ? value.avatar : '',
   }
 }
 
