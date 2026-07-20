@@ -1,5 +1,6 @@
 import { isRecord } from '@lib/api-result'
-import type { PlayerDecksResponse, SavedDeck } from './decks.types'
+import { DECK_CODE_MIN, DECK_NAME_MAX } from './decks.const'
+import type { DeckEditorValues, PlayerDecksResponse, SavedDeck } from './decks.types'
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -58,6 +59,31 @@ export function parseSavedDecks(body: unknown): SavedDeck[] | null {
   }
 
   return null
+}
+
+export type DeckEditorFieldErrors = { name?: string; code?: string }
+
+/** Client-side mirror of the saved-decks API create/update validation. */
+export function validateDeckEditorValues(
+  values: Pick<DeckEditorValues, 'name' | 'code'>,
+): DeckEditorFieldErrors {
+  const errors: DeckEditorFieldErrors = {}
+  const name = values.name.trim()
+  const code = values.code.trim()
+
+  if (!name) {
+    errors.name = 'Give your deck a name.'
+  } else if (name.length > DECK_NAME_MAX) {
+    errors.name = `Keep the name under ${DECK_NAME_MAX} characters.`
+  }
+
+  if (!code) {
+    errors.code = 'Paste your deck code.'
+  } else if (code.length < DECK_CODE_MIN) {
+    errors.code = 'That deck code looks too short to be valid.'
+  }
+
+  return errors
 }
 
 function hasProfileStatsShape(value: unknown): value is PlayerDecksResponse {

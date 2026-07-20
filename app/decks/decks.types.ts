@@ -207,6 +207,7 @@ export interface Banlist {
 export interface DecksPageProps {
   initialData: SavedDecksResponse | null
   initialError: string | null
+  inititalInfo: DeckInfoResponse
 }
 
 export interface LikedResponse {
@@ -214,4 +215,23 @@ export interface LikedResponse {
   message: string 
   liked: boolean
   likes: number
+}
+
+export interface DeckInfoResponse {
+  archetypes: { archetype: string; ids: number[] }[]
+  tags: string[]
+}
+
+/** Editable subset of a saved deck — what the create/edit form manages. */
+export interface DeckEditorValues {
+  name: string
+  code: string
+  archetypes: string[]
+  tags: string[]
+  private: boolean
+}
+
+export interface CreatedDeckResponse {
+  success: boolean
+  data: { id: number }
 }

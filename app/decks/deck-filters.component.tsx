@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import ButtonComponent from '../../components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'
 import { DECK_SORT_OPTIONS, type DeckSortValue } from './decks.const'
@@ -31,6 +32,11 @@ const DeckFiltersComponent = ({
   onOrderToggle,
   isPending = false,
 }: DeckFiltersProps) => {
+  const [archetypeInput, setArchetypeInput] = useState(archetype)
+
+  // Parent can clear the archetype elsewhere (filter chip, reset) — mirror it back.
+  useEffect(() => setArchetypeInput(archetype), [archetype])
+
   return (
     <div className="decks-filters">
       <div className="decks-filters__group">
@@ -62,18 +68,25 @@ const DeckFiltersComponent = ({
       <div className="decks-filters__controls">
         <label className="decks-filters__field">
           <span className="decks-filters__field-label">Archetype</span>
-          <select
+          <input
+            type="text"
+            list="decks-archetypes"
             className="decks-filters__select"
-            value={archetype}
-            onChange={(event) => onArchetypeChange(event.target.value)}
-          >
-            <option value="">All archetypes</option>
+            placeholder="All archetypes"
+            value={archetypeInput}
+            onChange={(event) => {
+              const value = event.target.value
+              setArchetypeInput(value)
+              // Only filter on a real choice: cleared, or an exact archetype name
+              // (picking from the datalist sets the input to the full value).
+              if (!value || availableArchetypes.includes(value)) onArchetypeChange(value)
+            }}
+          />
+          <datalist id="decks-archetypes">
             {availableArchetypes.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+              <option key={option} value={option} />
             ))}
-          </select>
+          </datalist>
         </label>
 
         <label className="decks-filters__field">

@@ -1,8 +1,8 @@
 import { API_ENDPOINTS } from '@const'
-import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
+import { apiFailure, apiSuccess, isRecord, type ApiResult } from '@lib/api-result'
 import { authHeader } from '@lib/auth-header'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
-import type { ConvertDeckResponse, ConvertedDeck, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
+import type { ConvertDeckResponse, ConvertedDeck, CreatedDeckResponse, DeckEditorValues, DeckInfoResponse, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
 import { dispatchAuthExpired } from '@contexts/Auth/auth.events'
 
@@ -171,4 +171,67 @@ export const toggleLike = async (deckId: string | number): Promise<ApiResult<Lik
 
   const body: LikedResponse = await response.json()
   return apiSuccess(body)
+}
+
+/** Shared plumbing for the authenticated deck mutations (create/update/delete).
+ * All go through the /api/decks proxy routes so the httpOnly session cookie
+ * can be forwarded as a Bearer token. */
+async function mutateDeck<T>(
+  url: string,
+  method: 'POST' | 'PUT' | 'DELETE',
+  body: unknown,
+  fallbackMessage: string,
+): Promise<ApiResult<T>> {
+  try {
+    const response = await fetch(url, {
+      method,
+      ...(body !== undefined
+        ? {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }
+        : {}),
+    })
+
+    if (response.status === 401) {
+      dispatchAuthExpired('Session expired')
+      return apiFailure('You need to be logged in to manage decks')
+    }
+
+    const data: unknown = await response.json()
+
+    if (!response.ok) {
+      // The saved-decks API reports errors as { error } (sometimes + message).
+      const message =
+        isRecord(data) && typeof data.error === 'string' ? data.error : fallbackMessage
+      return apiFailure(message)
+    }
+
+    return apiSuccess(data as T)
+  } catch (error) {
+    return apiFailure(error instanceof Error ? error.message : fallbackMessage)
+  }
+}
+
+export const createDeck = (values: DeckEditorValues): Promise<ApiResult<CreatedDeckResponse>> =>
+  mutateDeck('/api/decks', 'POST', values, 'Failed to create deck')
+
+export const updateDeck = (
+  deckId: number,
+  values: DeckEditorValues,
+): Promise<ApiResult<{ success: boolean }>> =>
+  mutateDeck(`/api/decks/${deckId}`, 'PUT', values, 'Failed to save deck changes')
+
+export const deleteDeck = (deckId: number): Promise<ApiResult<{ success: boolean }>> =>
+  mutateDeck(`/api/decks/${deckId}`, 'DELETE', undefined, 'Failed to delete deck')
+
+export const getDecksInfo = async (): Promise<ApiResult<DeckInfoResponse>> => {
+  const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/decks/info`)
+
+  if (!response.ok) {
+    return apiFailure('Failed to get decks info')
+  }
+
+  const result: DeckInfoResponse = await response.json()
+  return apiSuccess(result);
 }

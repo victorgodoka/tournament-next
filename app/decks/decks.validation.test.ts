@@ -3,6 +3,7 @@ import {
   normalizeSavedDeck,
   parsePlayerDecksResponse,
   parseSavedDecks,
+  validateDeckEditorValues,
 } from './decks.validation'
 import { createSavedDeck } from '../../test/fixtures/deck.fixture'
 
@@ -73,6 +74,23 @@ describe('decks.validation', () => {
 
     it('returns null for invalid payloads', () => {
       expect(parsePlayerDecksResponse({ success: true })).toBeNull()
+    })
+  })
+
+  describe('validateDeckEditorValues', () => {
+    it('accepts a valid name and code', () => {
+      expect(validateDeckEditorValues({ name: 'Blue-Eyes', code: 'x'.repeat(10) })).toEqual({})
+    })
+
+    it('rejects an empty name and a short code', () => {
+      const errors = validateDeckEditorValues({ name: '  ', code: 'short' })
+
+      expect(errors.name).toBeTruthy()
+      expect(errors.code).toBeTruthy()
+    })
+
+    it('rejects names over the 24-character limit', () => {
+      expect(validateDeckEditorValues({ name: 'x'.repeat(25), code: 'x'.repeat(10) }).name).toBeTruthy()
     })
   })
 })

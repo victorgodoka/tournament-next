@@ -2,8 +2,8 @@
 
 import { useCallback, useState, useTransition } from 'react'
 import './decks.styles.css'
-import { DecksPageProps, SavedDecksResponse } from './decks.types'
-import { getSavedDecks } from './decks.api'
+import { DeckInfoResponse, DecksPageProps, SavedDecksResponse } from './decks.types'
+import { getDecksInfo, getSavedDecks } from './decks.api'
 import { BackdropComponent, ButtonComponent, ErrorPageComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 import DeckFiltersComponent from './deck-filters.component'
@@ -29,10 +29,11 @@ const INITIAL_QUERY: DeckQueryState = {
   page: 1,
 }
 
-const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
+const DecksPageClient = ({ initialData, initialError, inititalInfo }: DecksPageProps) => {
   const [error, setError] = useState<string | null>(initialError)
   const [data, setData] = useState<SavedDecksResponse | null>(initialData)
   const [query, setQuery] = useState<DeckQueryState>(INITIAL_QUERY)
+  const [deckInfo, setDeckInfo] = useState<DeckInfoResponse>(inititalInfo)
   const [searchInput, setSearchInput] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -47,15 +48,22 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
         order: next.order,
       })
 
+      const infoResult = await getDecksInfo()
+
       if (!result.ok) {
         setQuery(INITIAL_QUERY)
         setData(initialData)
         setError(result.message)
         return
+      } else if (!infoResult.ok) {
+        setDeckInfo(inititalInfo)
+        setError(infoResult.message)
+        return
       }
 
       setError(null)
       setData(result.data)
+      setDeckInfo(infoResult.data)
       setQuery(next)
     })
   }, [initialData])
@@ -96,7 +104,8 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
   const total = data?.pagination.total ?? 0
   const totalPages = data?.pagination.totalPages ?? 1
   const currentPage = data?.pagination.page ?? query.page
-  const availableArchetypes = data?.filters.availableArchetypes ?? []
+  // The info endpoint repeats some archetype names, so dedupe before listing them.
+  const availableArchetypes = [...new Set(deckInfo.archetypes?.map((a) => a.archetype) ?? [])]
   const hasActiveFilters = Boolean(query.archetype || query.name || query.tag)
 
   return (
