@@ -1,62 +1,57 @@
-import { ApiResult } from "@lib/api-result";
+import { apiFailure, apiSuccess, type ApiResult } from "@lib/api-result";
+import { authHeader } from "@lib/auth-header";
 import { SavedDeckComments, SavedDeckDetails } from "../decks.types";
 import { API_ENDPOINTS } from "@const";
 
+// Both helpers run on the server (deck detail page). The token is the raw
+// httpOnly session JWT read via getSessionToken() — never expose these to a
+// client component, since the browser cannot supply the token.
+
 export const getDeck = async (
   deckId: string,
-  token?: string
+  token?: string | null
 ): Promise<ApiResult<SavedDeckDetails>> => {
   try {
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/deck/${deckId}`, {
+    const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/deck/${encodeURIComponent(deckId)}`, {
       method: "GET",
-      headers,
+      headers: authHeader(token),
     });
     if (!response.ok) {
-      return {
-        ok: false,
-        message: 'Failed to fetch deck data',
-      }
+      return apiFailure("Failed to fetch deck data");
     }
 
-    const json: { success: boolean; data: SavedDeckDetails } = await response.json()
-    return { ok: true, data: json.data }
+    const json: { data?: SavedDeckDetails } = await response.json();
+    if (!json.data) {
+      return apiFailure("Invalid deck response");
+    }
 
+    return apiSuccess(json.data);
   } catch (error) {
     console.error("Get Deck Error:", error);
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
+    return apiFailure(error instanceof Error ? error.message : "Unknown error");
   }
-}
+};
 
 export const getDeckComments = async (
-  deckId: string
+  deckId: string,
+  token?: string | null
 ): Promise<ApiResult<SavedDeckComments>> => {
   try {
-    const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/${deckId}/comments`, {
-      method: "GET"
+    // Auth is optional but required to read a *private* deck's comments as its
+    // owner — forward the session token so the owner isn't shown an empty list.
+    const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/${encodeURIComponent(deckId)}/comments`, {
+      method: "GET",
+      headers: authHeader(token),
     });
     if (!response.ok) {
-      return {
-        ok: false,
-        message: 'Failed to fetch deck data',
-      }
+      return apiFailure("Failed to fetch deck comments");
     }
 
-    const json: { success: boolean; data: SavedDeckComments } = await response.json()
+    const json: SavedDeckComments = await response.json();
 
-    return { ok: true, data: json.data }
-
+    return apiSuccess(json);
   } catch (error) {
-    console.error("Get Deck Error:", error);
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
+    console.error("Get Deck Comments Error:", error);
+    return apiFailure(error instanceof Error ? error.message : "Unknown error");
   }
-}
+};

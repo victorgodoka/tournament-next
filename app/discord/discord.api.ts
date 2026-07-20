@@ -75,7 +75,7 @@ export async function getUser(
 ): Promise<DiscordUserResponse> {
   try {
     const response = await fetch(`${API_ENDPOINTS.DISCORD}/users/@me`, {
-      headers: { authorization: `${tokenType} ${token}` },
+      headers: { Authorization: `${tokenType} ${token}` },
     })
 
     if (!response.ok) {

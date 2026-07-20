@@ -1,4 +1,5 @@
 import { noIndexMetadata } from '@lib/page-metadata'
+import { getSessionToken } from '@lib/session.server'
 import DecksPageClient from './decks.client'
 import './decks.styles.css'
 import { getSavedDecks } from './decks.api'
@@ -10,7 +11,8 @@ export const metadata = noIndexMetadata(
 )
 
 const DecksPage = async () => {
-  const result = await getSavedDecks({ page: 1 })
+  const token = await getSessionToken()
+  const result = await getSavedDecks({ page: 1 }, token)
 
   return (
     <DecksPageClient

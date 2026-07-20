@@ -1,4 +1,3 @@
-import { API_ENDPOINTS } from '../../const/index'
 import { dispatchAuthExpired } from './auth.events'
 import type { LoginResponse, VerifyResponse } from './auth.types'
 
@@ -15,19 +14,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isLoginPayload(data: unknown): data is {
-  success: true
-  token: string
-  expiresIn?: string
-  message?: string
-} {
-  return (
-    isRecord(data) &&
-    data.success === true &&
-    typeof data.token === 'string'
-  )
-}
-
 function isVerifyPayload(data: unknown): data is {
   success: boolean
   user?: VerifyResponse['user']
@@ -36,41 +22,31 @@ function isVerifyPayload(data: unknown): data is {
   return isRecord(data) && typeof data.success === 'boolean'
 }
 
+/**
+ * The app session lives in an httpOnly cookie set by /api/auth/session —
+ * invisible to (and unreadable by) client JS. This class only orchestrates
+ * calls to that route; it never holds the JWT itself.
+ */
 export class AuthManager {
-  private static readonly TOKEN_KEY = 'omega_auth_token'
-  private static readonly USER_ID_KEY = 'omega_user_id'
-
-  static async login(userId: string): Promise<LoginResponse> {
+  static async login(discordAccessToken: string, discordTokenType: string): Promise<LoginResponse> {
     try {
-      const response = await fetch(`${API_ENDPOINTS.MAIN}/auth/login`, {
+      const response = await fetch('/api/auth/session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discordAccessToken, discordTokenType }),
       })
 
       const data: unknown = await response.json()
+      const success = isRecord(data) && data.success === true
 
-      if (response.ok && isLoginPayload(data)) {
-        this.setToken(data.token)
-        this.setUserId(userId)
-        return {
-          success: true,
-          token: data.token,
-          expiresIn: data.expiresIn,
-        }
+      if (response.ok && success) {
+        return { success: true }
       }
 
       const message =
-        isRecord(data) && typeof data.message === 'string'
-          ? data.message
-          : 'Login failed'
+        isRecord(data) && typeof data.message === 'string' ? data.message : 'Login failed'
 
-      return {
-        success: false,
-        message,
-      }
+      return { success: false, message }
     } catch {
       return {
         success: false,
@@ -79,45 +55,9 @@ export class AuthManager {
     }
   }
 
-  static setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token)
-  }
-
-  static setUserId(userId: string): void {
-    localStorage.setItem(this.USER_ID_KEY, userId)
-  }
-
-  static getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY)
-  }
-
-  static getUserId(): string | null {
-    return localStorage.getItem(this.USER_ID_KEY)
-  }
-
-  static isLoggedIn(): boolean {
-    return this.getToken() !== null
-  }
-
   static async verifyToken(): Promise<VerifyResponse> {
-    const token = this.getToken()
-
-    if (!token) {
-      return {
-        success: false,
-        message: 'No token found',
-      }
-    }
-
     try {
-      const response = await fetch(`${API_ENDPOINTS.MAIN}/auth/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      })
-
+      const response = await fetch('/api/auth/session')
       const data: unknown = await response.json()
 
       if (!isVerifyPayload(data)) {
@@ -145,17 +85,16 @@ export class AuthManager {
     }
   }
 
-  static logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY)
-    localStorage.removeItem(this.USER_ID_KEY)
+  static async logout(): Promise<void> {
+    try {
+      await fetch('/api/auth/session', { method: 'DELETE' })
+    } catch {
+      // best-effort: the cookie also has its own expiry, and local user
+      // state is cleared by the caller regardless of this call's outcome
+    }
 
     for (const key of OAUTH_STORAGE_KEYS) {
       localStorage.removeItem(key)
     }
-  }
-
-  static getAuthHeader(): { Authorization: string } | Record<string, never> {
-    const token = this.getToken()
-    return token ? { Authorization: `Bearer ${token}` } : {}
   }
 }

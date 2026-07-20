@@ -11,6 +11,7 @@ import {
   cleanupOAuthParams,
   exchangeAuthorizationCode,
   getOAuthParams,
+  getPersistedDiscordToken,
   hasOAuthParams,
   isDiscordTokenValid,
   parseOAuthCallbackFromUrl,
@@ -25,8 +26,8 @@ export type DiscordLoadingState =
   | 'redirecting'
   | 'error'
 
-async function ensureAppSession(userId: string) {
-  const jwtResponse = await AuthManager.login(userId)
+async function ensureAppSession(discordAccessToken: string, discordTokenType: string) {
+  const jwtResponse = await AuthManager.login(discordAccessToken, discordTokenType)
 
   if (!jwtResponse.success) {
     throw new Error(jwtResponse.message || 'Failed to create application session.')
@@ -107,14 +108,19 @@ export function useDiscordLogin() {
 
       if (isAuthenticatedUser(currentUser) && !oauthReady) {
         try {
-          await ensureAppSession(currentUser.id)
+          const persisted = getPersistedDiscordToken()
+          if (!persisted) {
+            throw new Error('Your Discord session has expired. Please sign in again.')
+          }
+
+          await ensureAppSession(persisted.accessToken, persisted.tokenType)
           if (!cancelled) {
             router.push(redirectPath)
           }
         } catch (error) {
           if (cancelled) return
 
-          AuthManager.logout()
+          await AuthManager.logout()
           dispatch({ type: 'LOGOUT' })
           fail(
             error instanceof Error
@@ -162,7 +168,7 @@ export function useDiscordLogin() {
           const profile = playerResponse.data ?? null
 
           setLoadingState('generating-token')
-          await ensureAppSession(discordData.id)
+          await ensureAppSession(accessToken, tokenType)
 
           if (cancelled) return
 
@@ -188,7 +194,7 @@ export function useDiscordLogin() {
           if (cancelled) return
 
           cleanupOAuthParams()
-          AuthManager.logout()
+          await AuthManager.logout()
           fail(
             error instanceof Error
               ? error.message
@@ -202,7 +208,12 @@ export function useDiscordLogin() {
           const sessionUser = userRef.current
 
           if (isAuthenticatedUser(sessionUser)) {
-            await ensureAppSession(sessionUser.id)
+            const persisted = getPersistedDiscordToken()
+            if (!persisted) {
+              throw new Error('Your Discord session has expired. Please sign in again.')
+            }
+
+            await ensureAppSession(persisted.accessToken, persisted.tokenType)
           }
 
           if (!cancelled) {
@@ -211,7 +222,7 @@ export function useDiscordLogin() {
         } catch (error) {
           if (cancelled) return
 
-          AuthManager.logout()
+          await AuthManager.logout()
           fail(
             error instanceof Error
               ? error.message

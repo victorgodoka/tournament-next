@@ -1,9 +1,10 @@
 import { API_ENDPOINTS } from '@const'
 import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
+import { authHeader } from '@lib/auth-header'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import type { ConvertDeckResponse, ConvertedDeck, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
-import { AuthManager } from '@contexts/Auth/auth.manager'
+import { dispatchAuthExpired } from '@contexts/Auth/auth.events'
 
 export async function getPlayerDecks(
   discordId: string,
@@ -46,19 +47,15 @@ export async function getPlayerDecks(
 
 export async function getUserDecks(
   userId: string,
-  token?: string,
+  includeAuth = false,
 ): Promise<ApiResult<SavedDeck[]>> {
   try {
-    const headers: Record<string, string> = {}
-    const url = `${API_ENDPOINTS.MAIN}/decks/user/${userId}`
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
+    const url = `/api/decks/user/${encodeURIComponent(userId)}${includeAuth ? '?auth=1' : ''}`
+    const response = await fetch(url)
 
-    const response = await fetch(
-      url,
-      { method: 'GET', headers },
-    )
+    if (includeAuth && response.status === 401) {
+      dispatchAuthExpired('Session expired')
+    }
 
     if (!response.ok) {
       return apiFailure('Failed to fetch saved decks')
@@ -114,7 +111,10 @@ const fetchDeckCards = async (ids: number[]): Promise<ConvertedDeck['uniqueCards
   }
 }
 
-export const getSavedDecks = async (props: SavedDecksProps): Promise<ApiResult<SavedDecksResponse>> => {
+export const getSavedDecks = async (
+  props: SavedDecksProps,
+  token?: string | null,
+): Promise<ApiResult<SavedDecksResponse>> => {
   const { name, tag, archetype, sortBy, order, page = 1, limit = 20 } = props
 
   const params = new URLSearchParams()
@@ -126,38 +126,47 @@ export const getSavedDecks = async (props: SavedDecksProps): Promise<ApiResult<S
   if (tag) params.append('tag', tag.toString())
   if (archetype) params.append('archetype', archetype.toString())
 
-  const url = `${API_ENDPOINTS.MAIN}/saved-decks/public/all?${params.toString()}`
-  const response = await fetch(url)
+  // Server callers pass the session token (string or null) and hit the upstream
+  // API directly with a Bearer header. Client callers omit the argument and go
+  // through the proxy route, which injects the httpOnly cookie the browser can't
+  // read — both paths let the response carry `liked` for the current user.
+  const url =
+    token === undefined
+      ? `/api/decks/public?${params.toString()}`
+      : `${API_ENDPOINTS.MAIN}/saved-decks/public/all?${params.toString()}`
 
-  if (!response.ok) {
-    return apiFailure('Failed to saved decks')
+  try {
+    const response = await fetch(url, { headers: authHeader(token) })
+
+    if (!response.ok) {
+      return apiFailure('Failed to fetch saved decks')
+    }
+
+    const data: SavedDecksResponse = await response.json()
+
+    return apiSuccess(data)
+  } catch (error) {
+    console.error('Get Saved Decks Error:', error)
+    return apiFailure(
+      error instanceof Error ? error.message : 'Failed to fetch saved decks',
+    )
   }
-
-  const data: SavedDecksResponse = await response.json()
-
-  if (!data.success) {
-    return apiFailure('Failed to saved decks')
-  }
-
-  return apiSuccess(data);
 }
 
 export const toggleLike = async (deckId: string | number): Promise<ApiResult<LikedResponse>> => {
-  const token = AuthManager.getToken()
-  if (!deckId || !token) {
-    return apiFailure('Failed to fetch saved decks')
+  if (!deckId) {
+    return apiFailure('Deck id is required')
   }
 
-  const url = `${API_ENDPOINTS.MAIN}/saved-decks/${deckId}/like`
-  const headers: Record<string, string> = AuthManager.getAuthHeader()
+  const response = await fetch(`/api/decks/${deckId}/like`, { method: 'POST' })
 
-  const response = await fetch(
-    url,
-    { method: 'POST', headers },
-  )
+  if (response.status === 401) {
+    dispatchAuthExpired('Session expired')
+    return apiFailure('You need to be logged in to like decks')
+  }
 
   if (!response.ok) {
-    return apiFailure('Failed to fetch saved decks')
+    return apiFailure('Failed to toggle like')
   }
 
   const body: LikedResponse = await response.json()

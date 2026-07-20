@@ -1,6 +1,6 @@
 'use client'
 
-import { CSSProperties, useMemo } from 'react'
+import { CSSProperties, useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { cardImageUrl } from '@lib/cards.utils'
 import { discordAvatar } from '@assets/discord.avatar'
@@ -9,6 +9,7 @@ import IconComponent from '../../components/icon/icon.component'
 import type { SavedDeck } from './decks.types'
 import { DECK_COVER_FALLBACK } from './decks.const'
 import { getDeckCreatorName, resolveDeckCoverId } from './decks.utils'
+import { toggleLike } from './decks.api'
 import { ButtonComponent } from '@components'
 
 type DeckCardProps = {
@@ -21,6 +22,32 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
   const coverSrc = coverId ? cardImageUrl(coverId, true) : DECK_COVER_FALLBACK
   const creatorName = getDeckCreatorName(deck)
   const deckHref = `/decks/${deck.id}`
+
+  const [liked, setLiked] = useState(Boolean(deck.liked))
+  const [likes, setLikes] = useState(deck.likes ?? 0)
+  const [isLiking, setIsLiking] = useState(false)
+
+  const handleLike = useCallback(async () => {
+    if (isLiking) return
+    setIsLiking(true)
+
+    // Optimistic flip — revert if the request fails (e.g. not logged in).
+    const prevLiked = liked
+    const prevLikes = likes
+    setLiked(!prevLiked)
+    setLikes(prevLikes + (prevLiked ? -1 : 1))
+
+    const result = await toggleLike(deck.id)
+    if (result.ok) {
+      setLiked(result.data.liked)
+      setLikes(result.data.likes)
+    } else {
+      setLiked(prevLiked)
+      setLikes(prevLikes)
+    }
+
+    setIsLiking(false)
+  }, [deck.id, isLiking, liked, likes])
 
   return (
     <article className="deck-card omega-surface">
@@ -92,8 +119,17 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
 
         <div className="deck-card__stats">
           <span className="deck-card__stat">
-            <ButtonComponent iconClassname={true ? "deck-card__icon--liked" : ""} variant="link" icon={true ? "mdi:heart" : "mdi:heart-outline"}>
-              {deck.likes ?? 0}
+            <ButtonComponent
+              type="button"
+              onClick={handleLike}
+              disabled={isLiking}
+              aria-pressed={liked}
+              aria-label={liked ? 'Unlike deck' : 'Like deck'}
+              iconClassname={liked ? "deck-card__icon--liked" : ""}
+              variant="link"
+              icon={liked ? "mdi:heart" : "mdi:heart-outline"}
+            >
+              {likes}
             </ButtonComponent>
           </span>
           <span className="deck-card__stat">

@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { getSessionToken } from '@lib/session.server'
 import { getDeck, getDeckComments } from './deck-details.api'
 import { AvatarComponent, BackdropComponent, BadgesComponent, CommentsComponent, DeckListComponent, ErrorPageComponent, TagsComponent } from '@components'
 import IconComponent from '../../../components/icon/icon.component'
@@ -31,9 +32,10 @@ function getDeckSizes({ decodedDeck }: SavedDeckDetails) {
 
 export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) {
   const { id } = await params
+  const token = await getSessionToken()
   const [{ deck }, commentsResult] = await Promise.all([
-    getDeckDetails(id),
-    getDeckComments(id),
+    getDeckDetails(id, token),
+    getDeckComments(id, token),
   ])
   if (!deck) return <ErrorPageComponent />
   const creatorName = getDeckCreatorName(deck.user)
@@ -129,8 +131,8 @@ export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) 
   )
 }
 
-const getDeckDetails = (async (id: string) => {
-  const deck = (await getDeck(id))
+const getDeckDetails = (async (id: string, token?: string | null) => {
+  const deck = await getDeck(id, token)
   if (!deck.ok || !deck.data) return { data: null }
   return { deck: deck.data }
 })

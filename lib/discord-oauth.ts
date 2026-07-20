@@ -223,17 +223,35 @@ export function cleanupOAuthParams() {
   }
 }
 
-export function isDiscordTokenValid() {
+export function getPersistedDiscordToken(): { accessToken: string; tokenType: string } | null {
   const rawToken = localStorage.getItem(DISCORD_TOKEN_KEY)
-  if (!rawToken) return false
+  if (!rawToken) return null
 
   try {
-    const tokenData = JSON.parse(rawToken) as { expiresAt?: number }
-    return Boolean(tokenData.expiresAt && tokenData.expiresAt > Date.now())
+    const tokenData = JSON.parse(rawToken) as {
+      accessToken?: string
+      tokenType?: string
+      expiresAt?: number
+    }
+
+    if (
+      typeof tokenData.accessToken !== 'string' ||
+      typeof tokenData.tokenType !== 'string' ||
+      !tokenData.expiresAt ||
+      tokenData.expiresAt <= Date.now()
+    ) {
+      return null
+    }
+
+    return { accessToken: tokenData.accessToken, tokenType: tokenData.tokenType }
   } catch {
     localStorage.removeItem(DISCORD_TOKEN_KEY)
-    return false
+    return null
   }
+}
+
+export function isDiscordTokenValid() {
+  return getPersistedDiscordToken() !== null
 }
 
 export function persistDiscordToken({

@@ -136,11 +136,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           return
         }
 
-        if (!AuthManager.getToken()) {
-          dispatch({ type: 'LOGOUT' })
-          return
-        }
-
         await AuthManager.verifyToken()
       } catch {
         if (!cancelled) {

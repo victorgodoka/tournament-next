@@ -16,7 +16,6 @@ import { Icon } from '@iconify/react'
 import { AvatarComponent, BackdropComponent, ButtonComponent } from '@components'
 import { discordAvatar } from '@assets/discord.avatar'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
-import { AuthManager } from '@contexts/Auth/auth.manager'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
 import { getPlayerDecks, getUserDecks } from '../../decks/decks.api'
@@ -227,11 +226,7 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
 
     const load = async () => {
       try {
-        const token = AuthManager.getToken()
-        const response = await getUserDecks(
-          profileId,
-          isOwnProfile && token ? token : undefined,
-        )
+        const response = await getUserDecks(profileId, isOwnProfile)
 
         if (!active) return
 

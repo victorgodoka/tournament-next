@@ -14,8 +14,6 @@ export interface User {
 
 export interface LoginResponse {
   success: boolean
-  token?: string
-  expiresIn?: string
   message?: string
 }
 

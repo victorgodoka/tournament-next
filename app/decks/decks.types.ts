@@ -109,6 +109,7 @@ export interface SavedDeck {
   created_at: string
   updated_at: string
   likes?: number
+  liked?: boolean
   comment_count?: number
   username: string
   displayname: string
