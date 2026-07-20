@@ -8,7 +8,7 @@ const CommentsComponent = ({ commentsResult }: { commentsResult: ApiResult<Saved
   const comments = extractComments(commentsResult.data)
   const commentTree = buildCommentTree(comments)
 
-  return <section className="comments omega-surface" aria-labelledby="comments-heading">
+  return <section className="comments omega-surface" id="comment-section" aria-labelledby="comments-heading">
     <h2 id="comments-heading" className="comments__title">
       Comments
       <span className="comments__count">{comments.length}</span>
@@ -23,7 +23,7 @@ const CommentsComponent = ({ commentsResult }: { commentsResult: ApiResult<Saved
         </div>
       ) : (
         <p className="comments__empty">
-          No comments yet — be the first to share your thoughts.
+          No comments yet! Be the first to share your thoughts.
         </p>
       )
     }

@@ -9,6 +9,7 @@ import IconComponent from '../../components/icon/icon.component'
 import type { SavedDeck } from './decks.types'
 import { DECK_COVER_FALLBACK } from './decks.const'
 import { getDeckCreatorName, resolveDeckCoverId } from './decks.utils'
+import { ButtonComponent } from '@components'
 
 type DeckCardProps = {
   deck: SavedDeck
@@ -23,21 +24,17 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
 
   return (
     <article className="deck-card omega-surface">
-      <Link style={{ "--deck-cover": `url(${coverSrc}) center center no-repeat, url(${DECK_COVER_FALLBACK})` } as CSSProperties} href={deckHref} className="deck-card__cover" aria-label={deck.name}>
-        {deck.private ? (
-          <span className="deck-card__private">
-            <IconComponent icon="mdi:lock-outline" width={12} height={12} />
-            Private
-          </span>
-        ) : null}
-      </Link>
-
-      <div className="deck-card__body">
-        <Link href={deckHref} className="deck-card__title">
-          {deck.name}
+      <div className="deck-card__header">
+        <Link style={{ "--deck-cover": `url(${coverSrc}) center center no-repeat, url(${DECK_COVER_FALLBACK})` } as CSSProperties} href={deckHref} className="deck-card__cover" aria-label={deck.name}>
+          {deck.private ? (
+            <span className="deck-card__private">
+              <IconComponent icon="mdi:lock-outline" width={12} height={12} />
+              Private
+            </span>
+          ) : null}
         </Link>
 
-        <Link href={`/profile/${deck.user_id}`} className="deck-card__creator">
+        <div className="deck-card__creator">
           <AvatarComponent
             src={discordAvatar(deck.user_id, deck.avatar ?? '')}
             alt={creatorName}
@@ -49,31 +46,60 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
               <span className="deck-card__creator-handle">@{deck.username}</span>
             ) : null}
           </span>
+        </div>
+      </div>
+      <div className="deck-card__body">
+        <Link href={deckHref} className="deck-card__title">
+          {deck.name}
         </Link>
 
-        {deck.archetypes?.length ? (
-          <div className="deck-card__tags">
-            {deck.archetypes.map((archetype) => (
-              <button
-                key={archetype}
+        <div className="deck-card__badges">
+          {deck.archetypes?.length ? (
+            <>
+              {deck.archetypes.slice(0, 3).map((archetype) => (
+                <button
+                  key={archetype}
+                  type="button"
+                  className="deck-card__badge"
+                  onClick={() => onArchetypeClick(archetype)}
+                >
+                  {archetype}
+                </button>
+              ))}
+              {deck.archetypes.length > 3 && <button
+                title={deck.archetypes.slice(3).join(", ")}
                 type="button"
-                className="deck-card__tag"
-                onClick={() => onArchetypeClick(archetype)}
+                disabled
+                className="deck-card__badge-others"
               >
-                {archetype}
-              </button>
+                <span>...others</span>
+              </button>}
+            </>
+          ) : null}
+        </div>
+        {deck.tags?.length ? (
+          <div className="deck-card__tags">
+            {deck.tags.map((tag) => (
+              <span
+                key={tag}
+                className="deck-card__tag"
+              >
+                #{tag}
+              </span>
             ))}
           </div>
         ) : null}
 
         <div className="deck-card__stats">
           <span className="deck-card__stat">
-            <IconComponent icon="mdi:heart-outline" width={14} height={14} />
-            {deck.likes ?? 0}
+            <ButtonComponent iconClassname={true ? "deck-card__icon--liked" : ""} variant="link" icon={true ? "mdi:heart" : "mdi:heart-outline"}>
+              {deck.likes ?? 0}
+            </ButtonComponent>
           </span>
           <span className="deck-card__stat">
-            <IconComponent icon="mdi:comment-outline" width={14} height={14} />
-            {deck.comment_count ?? 0}
+            <ButtonComponent iconClassname={true ? "deck-card__icon--commented" : ""} href={`${deckHref}/#comment-section`} variant="link" icon={true ? "mdi:comment" : "mdi:comment-outline"}>
+              {deck.comment_count ?? 0}
+            </ButtonComponent>
           </span>
         </div>
       </div>

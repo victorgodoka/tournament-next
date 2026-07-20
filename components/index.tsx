@@ -23,3 +23,5 @@ export { default as ErrorPageComponent } from "./error-page/error-page.component
 export { default as CommentsComponent } from "./comments/comments.component"
 export { default as BackdropComponent } from "./backdrop/backdrop.component"
 export { default as WipComponent } from "./wip/wip.component"
+export { default as BadgesComponent } from "./badges/badges.component"
+export { default as TagsComponent } from "./tags/tags.component"

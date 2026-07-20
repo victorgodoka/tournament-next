@@ -1,16 +1,17 @@
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
 import type { MatchHistory } from '../../decks/decks.types'
 import { CARD_PLACEHOLDER_SRC } from '../profile.const'
 import { cardArtUrl, tcgHref } from '../profile.utils'
 import IconComponent from '../../../components/icon/icon.component'
-import Image from 'next/image'
 
 type MatchHistoryCardProps = {
   match: MatchHistory
   formatMatchDuration: (start: string, end: string) => string
   getCardName: (id: number) => string
 }
+
+/** Cap the fan so a big deck can't overflow the card; the rest collapse to "+N". */
+const MAX_FAN = 4
 
 function getDeckCards(
   deck: MatchHistory['duelist']['deck'] | undefined,
@@ -27,6 +28,44 @@ function getDeckCards(
   })
 
   return cards
+}
+
+function DeckFan({ cards }: { cards: Array<{ id: number; name: string }> }) {
+  if (cards.length === 0) return null
+
+  const shown = cards.slice(0, MAX_FAN)
+  const extra = cards.length - shown.length
+
+  return (
+    <div className="match-card__cards">
+      {shown.map((card, index) => (
+        <Link
+          key={`${card.id}-${index}`}
+          prefetch={false}
+          href={tcgHref(card.name)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="match-card__card-thumb"
+          style={{ zIndex: shown.length - index }}
+          title={card.name}
+        >
+          <img
+            src={cardArtUrl(card.id)}
+            alt={card.name}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = CARD_PLACEHOLDER_SRC
+            }}
+          />
+        </Link>
+      ))}
+      {extra > 0 ? (
+        <span className="match-card__card-more" title={`${extra} more cards`}>
+          +{extra}
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 const MatchHistoryCard = ({
@@ -84,33 +123,12 @@ const MatchHistoryCard = ({
         </header>
 
         <div className="match-card__duelist">
-          <div className="match-card__cards">
-            {myDeckCards.map((card, index) => (
-              <Link
-                key={`${card.id}-${index}`}
-                prefetch={false}
-                href={tcgHref(card.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="match-card__card-thumb"
-                style={{ zIndex: myDeckCards.length - index }}
-                title={card.name}
-              >
-                <Image
-                  src={cardArtUrl(card.id)}
-                  alt={card.name}
-                  loading="lazy"
-                  width={38}
-                  height={54}
-                  onError={(event) => {
-                    event.currentTarget.src = CARD_PLACEHOLDER_SRC
-                  }}
-                />
-              </Link>
-            ))}
-          </div>
+          <DeckFan cards={myDeckCards} />
 
           <div className="match-card__duelist-info">
+            <span className="match-card__role-label match-card__role-label--self">
+              Duelist
+            </span>
             <p className="match-card__player-name">
               {match.duelist?.discord?.displayname ?? 'Unknown player'}
             </p>
@@ -125,32 +143,10 @@ const MatchHistoryCard = ({
         </div>
 
         <div className="match-card__duelist">
-          <div className="match-card__cards">
-            {opponentDeckCards.map((card, index) => (
-              <Link
-                key={`${card.id}-${index}`}
-                prefetch={false} 
-                href={tcgHref(card.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="match-card__card-thumb"
-                style={{ zIndex: opponentDeckCards.length - index }}
-                title={card.name}
-              >
-                <img
-                  src={cardArtUrl(card.id)}
-                  alt={card.name}
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.src = CARD_PLACEHOLDER_SRC
-                  }}
-                />
-              </Link>
-            ))}
-          </div>
+          <DeckFan cards={opponentDeckCards} />
 
           <div className="match-card__duelist-info">
-            <span className="match-card__opponent-label">Opponent</span>
+            <span className="match-card__role-label">Opponent</span>
             <Link href={`/profile/${match.opponent?.id ?? ''}`} className="match-card__player-link">
               {match.opponent?.discord?.displayname ?? 'Unknown opponent'}
             </Link>

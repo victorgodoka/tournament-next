@@ -1,10 +1,9 @@
 import { API_ENDPOINTS } from "@const"
-import { convertDeck } from "../../app/decks/decks.api";
 import { ExportingDeck } from "./deck-export.types";
 import { isExtra } from "@lib/cards.utils";
+import { ConvertedDeck } from "@app/decks/decks.types";
 
-export const downloadYDK = async (code: string) => {
-  const { uniqueCards, fullDeck, uniqueCardsData, primaryArchetypes } = await convertDeck(code);
+export const downloadYDK = async ({ name, fullDeck, uniqueCards, primaryArchetypeWeighted, uniqueCardsData }: ConvertedDeck & { name?: string }) => {
   const getData = (c: number) => uniqueCardsData[c] || null;
 
   const exportingDeck: ExportingDeck = { 
@@ -13,13 +12,13 @@ export const downloadYDK = async (code: string) => {
     extra: fullDeck.main.filter((cardId) => uniqueCards[cardId] && getData(cardId) && isExtra(getData(cardId)))
   };
 
-  const copyright = `#created by Duelist Unite\n\r`
-  const mainDeck = exportingDeck.main.map((cardId) => `${cardId}`).join("\n\r");
-  const extraDeck = exportingDeck.extra.map((cardId) => `${cardId}`).join("\n\r");
-  const sideDeck = exportingDeck.side.map((cardId) => `${cardId}`).join("\n\r");
-  const content = `${copyright}\n\r#main\n\r${mainDeck}\n\r#extra\n\r${extraDeck}\n\r!side\n\r${sideDeck}`
+  const copyright = `#created by Duelist Unite\n`
+  const mainDeck = exportingDeck.main.map((cardId) => `${cardId}`).join("\n");
+  const extraDeck = exportingDeck.extra.map((cardId) => `${cardId}`).join("\n");
+  const sideDeck = exportingDeck.side.map((cardId) => `${cardId}`).join("\n");
+  const content = `${copyright}\n#main\n${mainDeck}\n#extra\n${extraDeck}\n!side\n${sideDeck}`
 
-  return download(content, primaryArchetypes.join(" "));
+  return download(content, name || primaryArchetypeWeighted);
 }
 
 export const download = async (text: string, name?: string) => {

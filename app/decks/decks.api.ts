@@ -1,8 +1,10 @@
+"use client"
 import { API_ENDPOINTS } from '@const'
 import { apiFailure, apiSuccess, type ApiResult } from '@lib/api-result'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
-import type { ConvertDeckResponse, ConvertedDeck, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
+import type { ConvertDeckResponse, ConvertedDeck, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
+import { AuthManager } from '@contexts'
 
 export async function getPlayerDecks(
   discordId: string,
@@ -139,4 +141,26 @@ export const getSavedDecks = async (props: SavedDecksProps): Promise<ApiResult<S
   }
 
   return apiSuccess(data);
+}
+
+export const toggleLike = async (deckId: string | number): Promise<ApiResult<LikedResponse>> => {
+  const token = AuthManager.getToken()
+  if (!deckId || !token) {
+    return apiFailure('Failed to fetch saved decks')
+  }
+
+  const url = `${API_ENDPOINTS.MAIN}/saved-decks/${deckId}/like`
+  const headers: Record<string, string> = AuthManager.getAuthHeader()
+
+  const response = await fetch(
+    url,
+    { method: 'POST', headers },
+  )
+
+  if (!response.ok) {
+    return apiFailure('Failed to fetch saved decks')
+  }
+
+  const body: LikedResponse = await response.json()
+  return apiSuccess(body)
 }

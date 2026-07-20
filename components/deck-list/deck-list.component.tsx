@@ -46,7 +46,7 @@ const byExtraType = (a: DeckCardGroup, b: DeckCardGroup) => {
 const cardName = (group: DeckCardGroup) =>
   group.card?.name_en ?? `Card #${group.id}`;
 
-const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: ConvertedDeck; archetype?: string }) => {
+const DeckListComponent = ({ convertedDeck, name }: { convertedDeck: ConvertedDeck; name?: string }) => {
   const [listMode, setListMode] = useState<ListMode>("gallery");
   const { fullDeck, uniqueCardsData } = convertedDeck;
 
@@ -54,11 +54,6 @@ const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: Conver
     const lookup = buildCardLookup(uniqueCardsData ?? []);
     const mainGroups = groupDeckCards(fullDeck?.main ?? [], lookup);
 
-    // The API mixes extra-deck cards into `fullDeck.main` and exposes the
-    // fusion/synchro/xyz/link subtype only through card data. A card is treated
-    // as extra only when we positively identify it as such; unresolved cards
-    // (missing hydrated data) fall back to the main deck rather than being
-    // dropped or guessed into the extra deck.
     const isExtraGroup = (group: DeckCardGroup) =>
       group.card !== null && isExtra(group.card);
 
@@ -76,27 +71,21 @@ const DeckListComponent = ({ convertedDeck, archetype }: { convertedDeck: Conver
   ].filter((section) => section.groups.length > 0);
 
   return (
-    <div className="deck-list omega-surface">
-      <DeckExportComponent code={convertedDeck.code} />
-      <div className="deck-list__header">
-        {archetype && (
-          <span className="omega-badge omega-badge--secondary tournament-topcut__archetype">
-            {archetype}
-          </span>
-        )}
-        <ToggleComponent<ListMode>
-          options={[
-            { label: "Gallery", value: "gallery", icon: "mdi:view-gallery" },
-            { label: "Text", value: "text", icon: "mdi:text-box-outline" },
-          ]}
-          value={listMode}
-          onChange={setListMode}
-          size="sm"
-          ariaLabel="Decklist view"
-        />
-      </div>
-
-      <div className="deck-list__body">
+    <div className="deck-list">
+      <DeckExportComponent {...convertedDeck} name={name} />
+      <div className="deck-list__body omega-surface">
+        <div className="deck-list__actions">
+          <ToggleComponent<ListMode>
+            options={[
+              { label: "Gallery", value: "gallery", icon: "mdi:view-gallery" },
+              { label: "Text", value: "text", icon: "mdi:text-box-outline" },
+            ]}
+            value={listMode}
+            onChange={setListMode}
+            size="sm"
+            ariaLabel="Decklist view"
+          />
+        </div>
         {sections.map((section) => (
           <section
             key={section.key}

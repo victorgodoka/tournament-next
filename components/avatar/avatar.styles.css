@@ -59,6 +59,15 @@
   font-size: var(--text-base);
 }
 
+.avatar--xl {
+  width: 5rem;
+  height: 5rem;
+}
+
+.avatar--xl .avatar__fallback {
+  font-size: var(--text-lg);
+}
+
 /* Modifier: shapes */
 
 .avatar--square {

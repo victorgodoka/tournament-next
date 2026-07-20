@@ -1,5 +1,5 @@
 import YGOProDeck from 'ygopro-deck-encode'
-import type { SavedDeck } from './decks.types'
+import type { SavedDeck, SavedDeckDetails } from './decks.types'
 
 export type ParsedDeckSearch = {
   name?: string
@@ -58,6 +58,6 @@ export function resolveDeckCoverId(deck: Pick<SavedDeck, 'cover_id' | 'code'>): 
   }
 }
 
-export function getDeckCreatorName(deck: Pick<SavedDeck, 'displayname' | 'username'>): string {
+export function getDeckCreatorName(deck: Pick<SavedDeck, 'displayname' | 'username'> | Pick<SavedDeckDetails["user"], 'displayname' | 'username'>): string {
   return deck.displayname || deck.username || 'Unknown duelist'
 }

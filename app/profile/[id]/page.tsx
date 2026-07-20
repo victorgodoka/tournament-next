@@ -27,7 +27,7 @@ export async function generateMetadata({
   const wins = player.tcgwins
   const losses = player.tcgloses
   const rating = Math.round(player.tcgrating)
-  const description = `${player.displayname} on YGO Omega — TCG rating ${rating}, ${wins}W-${losses}L. View match history, decks, and stats.`
+  const description = `${player.displayname} on YGO Omega. TCG rating ${rating}, ${wins}W-${losses}L. View match history, decks, and stats.`
   const avatarUrl = player.avatar
     ? discordAvatar(player.id, player.avatar)
     : undefined

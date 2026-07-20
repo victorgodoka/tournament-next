@@ -12,6 +12,7 @@ type ButtonBaseProps = {
   fullWidth?: boolean
   loading?: boolean
   icon?: string
+  iconClassname?: string
   iconPosition?: ButtonIconPosition
   children?: ReactNode
   className?: string
@@ -66,11 +67,13 @@ function ButtonContent({
   children,
   icon,
   iconPosition,
+  iconClassname,
   loading,
 }: {
   children?: ReactNode
   icon?: string
   iconPosition: ButtonIconPosition
+  iconClassname?: string
   loading: boolean
 }) {
   const showStartIcon = loading || (icon && iconPosition === 'start')
@@ -80,7 +83,7 @@ function ButtonContent({
     <>
       {showStartIcon && (
         <IconComponent
-          className={`button__icon${loading ? ' button__icon--spin' : ''}`}
+          className={`button__icon ${iconClassname}${loading ? ' button__icon--spin' : ''}`}
           icon={loading ? 'mdi:loading' : icon!}
           width={18}
           height={18}
@@ -102,6 +105,7 @@ const ButtonComponent = ({
   loading = false,
   icon,
   iconPosition = 'start',
+  iconClassname = '',
   children,
   className,
   ...props
@@ -122,6 +126,7 @@ const ButtonComponent = ({
           icon={icon}
           iconPosition={iconPosition}
           loading={loading}
+          iconClassname={iconClassname}
         >
           {children}
         </ButtonContent>

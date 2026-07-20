@@ -108,7 +108,7 @@
   background-color: var(--color-bg-raised);
   transition:
     transform var(--duration-base) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .profile__banner-card:first-child {
@@ -576,6 +576,15 @@
   background-color: color-mix(in srgb, var(--color-error) 70%, transparent);
 }
 
+.profile__form-chart--empty {
+  opacity: 0.55;
+}
+
+.profile__form-bar--empty {
+  height: 35%;
+  background-color: var(--color-border-subtle);
+}
+
 .profile__form-caption {
   margin: 0;
   font-family: var(--font-mono);
@@ -621,7 +630,7 @@
   transition:
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .profile__tab:hover {
@@ -872,13 +881,11 @@
 }
 
 .profile__sidebar-panel--dossier {
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  justify-content: space-between;
-  position: relative;
   border-top: 2px solid var(--color-accent);
 }
 
@@ -891,69 +898,77 @@
 }
 
 .profile__sidebar-panel--dossier[data-custom="true"] {
-  height: 480px;
+  min-height: 30rem;
   border-radius: var(--radius-lg);
 }
 
+/* Favorite card art fills the panel behind the content */
 .profile__sidebar-panel--dossier[data-custom="true"]::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--favorite-bg);
-  background-size: cover;
+  inset: 0;
   z-index: -2;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
+  background: var(--favorite-bg) center / cover no-repeat;
 }
 
-.profile__sidebar-panel--dossier::after {
+/* Readability scrim: darken top (header) and bottom (bio + caption), keep art visible mid-panel */
+.profile__sidebar-panel--dossier[data-custom="true"]::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: -1;
-  background: #000;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 1) 0%, rgba(255, 255, 255, 0) 100%);overflow: hidden;
-  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--palette-dominant) 55%, transparent) 0%,
+    transparent 32%,
+    color-mix(in srgb, var(--palette-dominant) 72%, transparent) 66%,
+    var(--palette-dominant) 100%
+  );
 }
 
 .profile__sidebar-panel--dossier .profile__sidebar-icon {
   color: var(--color-accent-light);
 }
 
-.profile__sidebar-panel--dossier .profile__sidebar-header {
+/* Keep header + content above the full-panel favorite link so bio links stay clickable */
+.profile__sidebar-panel--dossier .profile__sidebar-header,
+.profile__dossier-content {
+  position: relative;
+  z-index: 1;
+}
+
+.profile__dossier-content {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .profile__favorite-card-link {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   display: block;
-  overflow: hidden;
   text-decoration: none;
 }
 
-.profile__favorite-card-label {
-  position: absolute;
-  inset-inline: var(--space-2);
-  bottom: var(--space-2);
-  z-index: 1;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.profile__favorite-card-caption {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.profile__favorite-card:hover .profile__favorite-card-label {
-  opacity: 1;
+.profile__favorite-card-caption-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-accent-light);
 }
 
 .profile__bio {
@@ -1712,9 +1727,26 @@
 .match-card__card-thumb img {
   width: 100%;
   height: 100%;
-  max-width: 38px;
-  max-height: 54px;
   object-fit: cover;
+}
+
+.match-card__card-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.9rem;
+  height: 3.5rem;
+  margin-inline-start: -0.6rem;
+  padding-inline-start: 0.5rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-overlay);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .match-card__duelist-info {
@@ -1742,13 +1774,18 @@
   color: var(--color-link-hover);
 }
 
-.match-card__opponent-label {
+.match-card__role-label {
   display: block;
   margin-bottom: 0.1rem;
   font-size: 0.625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-text-subtle);
+}
+
+/* Owner side of the match, tinted like the "Duelist" meta-label on the command card */
+.match-card__role-label--self {
+  color: var(--color-secondary-light);
 }
 
 .match-card__deck-name {

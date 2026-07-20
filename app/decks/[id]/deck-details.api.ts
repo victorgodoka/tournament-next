@@ -23,7 +23,6 @@ export const getDeck = async (
     }
 
     const json: { success: boolean; data: SavedDeckDetails } = await response.json()
-
     return { ok: true, data: json.data }
 
   } catch (error) {

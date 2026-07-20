@@ -4,7 +4,7 @@ import { useCallback, useState, useTransition } from 'react'
 import './decks.styles.css'
 import { DecksPageProps, SavedDecksResponse } from './decks.types'
 import { getSavedDecks } from './decks.api'
-import { BackdropComponent, ErrorPageComponent } from '@components'
+import { BackdropComponent, ButtonComponent, ErrorPageComponent } from '@components'
 import IconComponent from '../../components/icon/icon.component'
 import DeckFiltersComponent from './deck-filters.component'
 import DeckCardComponent from './deck-card.component'
@@ -85,6 +85,11 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
     fetchDecks(query)
   }, [fetchDecks, query])
 
+  const handleReset = useCallback(() => {
+    setSearchInput('')
+    fetchDecks(INITIAL_QUERY)
+  }, [fetchDecks])
+
   if (error) return <ErrorPageComponent onRetry={handleRetry} isPending={isPending} />
 
   const decks = data?.data ?? []
@@ -92,6 +97,7 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
   const totalPages = data?.pagination.totalPages ?? 1
   const currentPage = data?.pagination.page ?? query.page
   const availableArchetypes = data?.filters.availableArchetypes ?? []
+  const hasActiveFilters = Boolean(query.archetype || query.name || query.tag)
 
   return (
     <div className="decks-page">
@@ -100,9 +106,9 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
       <div className="decks-page__content omega-container">
         <header className="decks-page__header">
           <h1 className="decks-page__title">Community Decks</h1>
-          <small className="decks-page__lead">
+          <p className="decks-page__lead">
             Discover and share decks with the community
-          </small>
+          </p>
         </header>
 
         <DeckFiltersComponent
@@ -120,16 +126,43 @@ const DecksPageClient = ({ initialData, initialError }: DecksPageProps) => {
         />
 
         <div className="decks-page__listing-header">
-          <small className="decks-page__count">{total.toLocaleString()} Decks</small>
+          <small className="decks-page__count">
+            {total.toLocaleString()} {total === 1 ? 'deck' : 'decks'}
+          </small>
+          {query.archetype ? (
+            <button
+              type="button"
+              className="decks-page__active-filter"
+              onClick={() => handleArchetypeChange('')}
+              aria-label={`Remove archetype filter: ${query.archetype}`}
+            >
+              {query.archetype}
+              <IconComponent icon="mdi:close" width={14} height={14} />
+            </button>
+          ) : null}
         </div>
 
         {decks.length === 0 ? (
           <div className="decks-page__empty" role="status">
             <IconComponent icon="mdi:cards-outline" className="decks-page__empty-icon" />
             <p>No decks match your search yet.</p>
+            {hasActiveFilters ? (
+              <ButtonComponent
+                type="button"
+                variant="outline"
+                size="sm"
+                icon="mdi:filter-remove-outline"
+                onClick={handleReset}
+              >
+                Clear filters
+              </ButtonComponent>
+            ) : null}
           </div>
         ) : (
-          <ul className="decks-page__listing">
+          <ul
+            className={`decks-page__listing${isPending ? ' decks-page__listing--pending' : ''}`}
+            aria-busy={isPending || undefined}
+          >
             {decks.map((deck) => (
               <li key={deck.id}>
                 <DeckCardComponent deck={deck} onArchetypeClick={handleArchetypeChange} />

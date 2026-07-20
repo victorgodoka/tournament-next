@@ -34,7 +34,7 @@ const DeckFiltersComponent = ({
   return (
     <div className="decks-filters">
       <div className="decks-filters__group">
-        <span className="decks-filters__field-label">Archetype</span>
+        <label htmlFor="decks-search" className="decks-filters__field-label">Search</label>
         <form
           className="decks-filters__search"
           role="search"
@@ -45,6 +45,7 @@ const DeckFiltersComponent = ({
         >
           <IconComponent icon="mdi:magnify" className="decks-filters__search-icon" />
           <input
+            id="decks-search"
             type="search"
             className="decks-filters__search-input"
             placeholder="Search by name or #tags"
@@ -92,7 +93,8 @@ const DeckFiltersComponent = ({
 
         <ButtonComponent
           type="button"
-          variant="ghost"
+          className="decks-filters__order"
+          variant="outline"
           size="sm"
           icon={order === 'desc' ? 'mdi:sort-descending' : 'mdi:sort-ascending'}
           aria-label={order === 'desc' ? 'Sorted descending, click to sort ascending' : 'Sorted ascending, click to sort descending'}

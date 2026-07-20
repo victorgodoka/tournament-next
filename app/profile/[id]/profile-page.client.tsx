@@ -702,9 +702,11 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                 </>
               ) : (
                 <>
-                  <span className="profile__telemetry-value profile__telemetry-value--muted">
-                    —
-                  </span>
+                  <div className="profile__form-chart profile__form-chart--empty" aria-hidden="true">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <span key={index} className="profile__form-bar profile__form-bar--empty" />
+                    ))}
+                  </div>
                   <p className="profile__form-caption">No data</p>
                 </>
               )}
@@ -943,13 +945,26 @@ const ProfilePageClient = ({ profileId }: ProfilePageClientProps) => {
                           className="profile__sidebar-icon"
                         />
                       </header>
-                      {sanitizedBio ? (
-                        <div
-                          className="profile__bio"
-                          dangerouslySetInnerHTML={{
-                            __html: sanitizedBio,
-                          }}
-                        />
+                      {(sanitizedBio ||
+                        (customizationData.duelist_favorite && favoriteCardName)) ? (
+                        <div className="profile__dossier-content">
+                          {sanitizedBio ? (
+                            <div
+                              className="profile__bio"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizedBio,
+                              }}
+                            />
+                          ) : null}
+                          {customizationData.duelist_favorite && favoriteCardName ? (
+                            <p className="profile__favorite-card-caption">
+                              <span className="profile__favorite-card-caption-label">
+                                Favorite
+                              </span>
+                              {favoriteCardName}
+                            </p>
+                          ) : null}
+                        </div>
                       ) : null}
                     </section>
                   )}

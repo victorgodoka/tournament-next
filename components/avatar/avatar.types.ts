@@ -1,4 +1,4 @@
-export type AvatarSize = 'sm' | 'md' | 'lg'
+export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl'
 
 export type AvatarShape = 'square' | 'rounded' | 'circle'
 

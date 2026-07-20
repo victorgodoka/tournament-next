@@ -41,9 +41,10 @@ const AvatarComponent = ({
     : undefined
 
   const imageSizes = {
-    sm: 32,
-    md: 40,
-    lg: 48,
+    sm: 30,
+    md: 38,
+    lg: 54,
+    xl: 78,
   } as const
 
   const dimension = imageSizes[size]

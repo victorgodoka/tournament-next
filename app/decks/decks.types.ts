@@ -128,6 +128,7 @@ export interface SavedDeckDetails {
   updated_at: string
   fullDeck: FullDeck
   user: DiscordUser
+  decodedDeck: ConvertedDeck
 }
 
 export interface SavedDeckComments {
@@ -205,4 +206,11 @@ export interface Banlist {
 export interface DecksPageProps {
   initialData: SavedDecksResponse | null
   initialError: string | null
+}
+
+export interface LikedResponse {
+  success: boolean 
+  message: string 
+  liked: boolean
+  likes: number
 }
