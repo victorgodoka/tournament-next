@@ -2,6 +2,7 @@ import { Icon } from '@iconify/react/offline'
 import type { Tournament, TournamentSettings } from './tournament.types'
 import { formatTournamentDateTime } from './tournament-page.utils'
 import IconComponent from '../../components/icon/icon.component'
+import { cn } from '@sglara/cn'
 
 type TournamentHeaderProps = {
   tournament: Tournament
@@ -17,11 +18,10 @@ const TournamentHeader = ({
   return (
     <header className="tournament__info">
       <span
-        className={
-          finished
-            ? 'tournament__status tournament__status--completed'
-            : 'tournament__status tournament__status--live'
-        }
+        className={cn('tournament__status', {
+          'tournament__status--completed': finished,
+          'tournament__status--live': !finished,
+        })}
       >
         {finished ? null : (
           <span className="tournament__status-dot" aria-hidden="true" />

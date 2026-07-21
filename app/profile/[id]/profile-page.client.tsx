@@ -13,6 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Icon } from '@iconify/react/offline'
+import { cn } from '@sglara/cn'
 import AvatarComponent from '@components/avatar/avatar.component'
 import BackdropComponent from '@components/backdrop/backdrop.component'
 import ButtonComponent from '@components/button/button.component'
@@ -156,7 +157,7 @@ function RankList({ title, icon, entries, emptyText, getCardName }: RankListProp
                   <span>{entry.total} games</span>
                 </div>
               </div>
-              <span className={`profile__rank-rate ${getWinRateClass(entry.winRate)}`}>
+              <span className={cn('profile__rank-rate', getWinRateClass(entry.winRate))}>
                 {entry.winRate.toFixed(0)}%
               </span>
             </div>
@@ -550,7 +551,7 @@ const ProfilePageClient = ({
         <div className="profile__banner-glow" aria-hidden="true" />
         <div className="profile__banner-grid" aria-hidden="true" />
         <div
-          className={`profile__banner-accent ${tierInfo.accentClass}`}
+          className={cn('profile__banner-accent', tierInfo.accentClass)}
           aria-hidden="true"
         />
 
@@ -572,11 +573,11 @@ const ProfilePageClient = ({
 
       <div className="profile__page omega-container">
         <section
-          className={`profile__command omega-surface ${tierInfo.accentClass}`}
+          className={cn('profile__command omega-surface', tierInfo.accentClass)}
           aria-label="Player overview"
         >
           <div className="profile__command-identity">
-            <div className={`profile__avatar-wrap ${tierInfo.accentClass}`}>
+            <div className={cn('profile__avatar-wrap', tierInfo.accentClass)}>
               <AvatarComponent
                 src={avatarSrc}
                 alt={profileData.displayname}
@@ -593,11 +594,9 @@ const ProfilePageClient = ({
                 <span className="profile__meta-label">Duelist</span>
                 <span className="profile__meta-divider" aria-hidden="true" />
                 <span
-                  className={
-                    isOnline
-                      ? 'profile__meta-status profile__meta-status--online'
-                      : 'profile__meta-status'
-                  }
+                  className={cn('profile__meta-status', {
+                    'profile__meta-status--online': isOnline,
+                  })}
                 >
                   {isOnline
                     ? 'Online'
@@ -610,7 +609,7 @@ const ProfilePageClient = ({
               <div className="profile__subtitle-row">
                 <p className="profile__username">@{profileData.username}</p>
                 <span className="profile__subtitle-dot" aria-hidden="true" />
-                <span className={`profile__tier-label ${tierInfo.accentClass}`}>
+                <span className={cn('profile__tier-label', tierInfo.accentClass)}>
                   {tierInfo.name.toUpperCase()}
                 </span>
               </div>
@@ -626,11 +625,9 @@ const ProfilePageClient = ({
 
               {socials.length > 0 ? (
                 <div
-                  className={
-                    isOwnProfile
-                      ? 'profile__socials profile__socials--bordered'
-                      : 'profile__socials'
-                  }
+                  className={cn('profile__socials', {
+                    'profile__socials--bordered': isOwnProfile,
+                  })}
                 >
                   {socials.map((social) => (
                     <a
@@ -638,7 +635,7 @@ const ProfilePageClient = ({
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`profile__social-link ${social.modifier}`}
+                      className={cn('profile__social-link', social.modifier)}
                       title={social.name}
                     >
                       <IconComponent icon={social.icon} className="profile__social-icon" />
@@ -659,7 +656,7 @@ const ProfilePageClient = ({
                   <span className="profile__telemetry-value">
                     {Math.floor(currentStats.rating)}
                   </span>
-                  <span className={`profile__tier-chip ${tierInfo.accentClass}`}>
+                  <span className={cn('profile__tier-chip', tierInfo.accentClass)}>
                     {tierInfo.name.toUpperCase()}
                   </span>
                 </div>
@@ -672,12 +669,12 @@ const ProfilePageClient = ({
                   }}
                 />
               </div>
-              <span className={`profile__tier-line ${tierInfo.accentClass}`} />
+              <span className={cn('profile__tier-line', tierInfo.accentClass)} />
             </div>
 
             <div className="profile__telemetry-panel">
               <h2 className="profile__telemetry-label">Win Rate</h2>
-              <div className={`profile__telemetry-value ${getWinRateClass(winRate)}`}>
+              <div className={cn('profile__telemetry-value', getWinRateClass(winRate))}>
                 {winRate.toFixed(1)}
                 <span className="profile__telemetry-suffix">%</span>
               </div>
@@ -717,7 +714,7 @@ const ProfilePageClient = ({
                               ? 'Draw'
                               : 'Loss'
                         }
-                        className={`profile__form-bar profile__form-bar--${result.toLowerCase()}`}
+                        className={cn('profile__form-bar', `profile__form-bar--${result.toLowerCase()}`)}
                       />
                     ))}
                   </div>
@@ -754,11 +751,9 @@ const ProfilePageClient = ({
                   aria-selected={active}
                   aria-controls={panelId}
                   tabIndex={active ? 0 : -1}
-                  className={
-                    active
-                      ? 'profile__tab profile__tab--active'
-                      : 'profile__tab'
-                  }
+                  className={cn('profile__tab', {
+                    'profile__tab--active': active,
+                  })}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   onClick={() => {
                     setViewMode(tab.id)

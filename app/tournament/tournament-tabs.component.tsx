@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react'
+import { cn } from '@sglara/cn'
 
 export type TournamentTabId = 'brackets' | 'table' | 'topcut' | 'data'
 
@@ -71,9 +72,9 @@ const TournamentTabs = ({
             disabled={disabled}
             title={disabled ? 'Available once the tournament ends' : undefined}
             tabIndex={active ? 0 : -1}
-            className={
-              active ? 'tournament__tab tournament__tab--active' : 'tournament__tab'
-            }
+            className={cn('tournament__tab', {
+              'tournament__tab--active': active,
+            })}
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             onClick={() => onTabChange(tab.id)}
           >

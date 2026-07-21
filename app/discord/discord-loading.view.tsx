@@ -1,6 +1,7 @@
 import BackdropComponent from '@components/backdrop/backdrop.component'
 import IconComponent from '../../components/icon/icon.component'
 import type { DiscordLoadingState } from '../../hooks/use-discord-login'
+import { cn } from '@sglara/cn'
 
 type DiscordLoadingViewProps = {
   loadingState: DiscordLoadingState
@@ -34,6 +35,11 @@ const DiscordLoadingView = ({
 }: DiscordLoadingViewProps) => {
   const isError = loadingState === 'error'
   const isRedirecting = loadingState === 'redirecting'
+  const discordStateClass = isError
+    ? "discord-login__icon-wrap--error"
+    : isRedirecting
+      ? "discord-login__icon-wrap--success"
+      : "discord-login__icon-wrap--pulse";
 
   return (
     <div className="discord-login" aria-live="polite">
@@ -41,13 +47,7 @@ const DiscordLoadingView = ({
 
       <div className="discord-login__content omega-container omega-container--narrow">
         <div
-          className={`discord-login__icon-wrap${
-            isError
-              ? ' discord-login__icon-wrap--error'
-              : isRedirecting
-                ? ' discord-login__icon-wrap--success'
-                : ' discord-login__icon-wrap--pulse'
-          }`}
+          className={cn("discord-login__icon-wrap", discordStateClass)}
         >
           <IconComponent
             className="discord-login__icon"
@@ -78,18 +78,17 @@ const DiscordLoadingView = ({
 
             <div className="discord-login__progress" aria-hidden="true">
               <span
-                className={`discord-login__progress-dot${
-                  loadingState === 'authenticating'
-                    ? ' discord-login__progress-dot--active'
-                    : ''
-                }`}
+                className={cn("discord-login__progress-dot", {
+                  "discord-login__progress-dot--active":
+                    loadingState === "authenticating",
+                })}
               />
+
               <span
-                className={`discord-login__progress-dot${
-                  loadingState === 'fetching-profile'
-                    ? ' discord-login__progress-dot--active'
-                    : ''
-                }`}
+                className={cn("discord-login__progress-dot", {
+                  "discord-login__progress-dot--active":
+                    loadingState === "fetching-profile",
+                })}
               />
             </div>
           </div>

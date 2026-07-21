@@ -3,6 +3,7 @@ import type { MatchHistory } from '../../decks/decks.types'
 import { CARD_PLACEHOLDER_SRC } from '../profile.const'
 import { cardArtUrl, tcgHref } from '../profile.utils'
 import IconComponent from '../../../components/icon/icon.component'
+import { cn } from '@sglara/cn'
 
 type MatchHistoryCardProps = {
   match: MatchHistory
@@ -101,7 +102,7 @@ const MatchHistoryCard = ({
   })
 
   return (
-    <article className={`match-card ${resultModifier}`}>
+    <article className={cn("match-card", resultModifier)}>
       <div className="match-card__accent" aria-hidden="true" />
 
       <div className="match-card__body">

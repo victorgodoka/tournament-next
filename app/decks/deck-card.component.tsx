@@ -11,6 +11,7 @@ import { DECK_COVER_FALLBACK } from './decks.const'
 import { getDeckCreatorName, resolveDeckCoverId } from './decks.utils'
 import { toggleLike } from './decks.api'
 import ButtonComponent from '@components/button/button.component'
+import { cn } from '@sglara/cn'
 
 type DeckCardProps = {
   deck: SavedDeck
@@ -125,7 +126,7 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
               disabled={isLiking}
               aria-pressed={liked}
               aria-label={liked ? 'Unlike deck' : 'Like deck'}
-              iconClassname={liked ? "deck-card__icon--liked" : ""}
+              iconClassname={cn({ "deck-card__icon--liked": liked })}
               variant="link"
               icon={liked ? "mdi:heart" : "mdi:heart-outline"}
             >
@@ -134,7 +135,7 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
           </span>
           <span className="deck-card__stat">
             <ButtonComponent
-              iconClassname={deck.comment_count ? 'deck-card__icon--commented' : ''}
+              iconClassname={cn({ "deck-card__icon--commented": deck.comment_count })}
               href={`${deckHref}#comment-section`}
               variant="link"
               icon={deck.comment_count ? 'mdi:comment' : 'mdi:comment-outline'}

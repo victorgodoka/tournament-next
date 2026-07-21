@@ -12,6 +12,7 @@ import {
 import './avatarmenu.styles.css'
 import type { AvatarmenuComponentProps } from './avatarmenu.types'
 import { discordAvatar } from '@assets/discord.avatar'
+import { cn } from '@sglara/cn'
 
 const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuComponentProps) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -112,7 +113,7 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
 
       <div
         id={menuId}
-        className={`avatarmenu__panel${panelOpen ? ' avatarmenu__panel--open' : ''}`}
+        className={cn("avatarmenu__panel", {"avatarmenu__panel--open": panelOpen})}
         aria-label="Account menu"
         hidden={!panelOpen}
         inert={!panelOpen ? true : undefined}

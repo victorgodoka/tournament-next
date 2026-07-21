@@ -34,6 +34,7 @@ import {
 } from './leaderboards.utils'
 import IconComponent from '../../components/icon/icon.component'
 import Image from 'next/image'
+import { cn } from '@sglara/cn'
 
 type LeaderboardsPageClientProps = {
   data: LeaderboardData | null
@@ -60,7 +61,7 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
 
   return (
     <li
-      className={['leaderboards__row', rankModifier].filter(Boolean).join(' ')}
+      className={cn("leaderboards__row", rankModifier)}
       style={{ '--leaderboards-stagger': `${Math.min(rank, 12) * 35}ms` } as CSSProperties}
     >
       <div className="leaderboards__cell leaderboards__cell--rank">
@@ -95,7 +96,7 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
       </div>
 
       <div className="leaderboards__cell leaderboards__cell--rating" data-label="Rating">
-        <span className={`leaderboards__rating ${tierInfo.accentClass}`}>
+        <span className={cn("leaderboards__rating", tierInfo.accentClass)}>
           {formatLeaderboardRating(player.rating)}
         </span>
         <span className="leaderboards__tier-name">{tierInfo.name}</span>
@@ -108,7 +109,7 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
       </div>
 
       <div className="leaderboards__cell leaderboards__cell--winrate" data-label="Win rate">
-        <span className={`leaderboards__win-rate ${winRateClass}`}>
+        <span className={cn("leaderboards__win-rate", winRateClass)}>
           {formatLeaderboardWinRate(player.wins, player.loses, player.draws)}
         </span>
       </div>
@@ -241,12 +242,10 @@ const LeaderboardsPageClient = ({
                 aria-selected={isActive}
                 aria-controls="leaderboards-panel"
                 tabIndex={isActive ? 0 : -1}
-                className={[
-                  'leaderboards__tab',
-                  isActive ? 'leaderboards__tab--active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                className={cn(
+                  "leaderboards__tab",
+                  isActive && "leaderboards__tab--active",
+                )}
                 onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
                 onClick={() => handleModeChange(tab.id)}
               >

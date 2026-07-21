@@ -17,6 +17,7 @@ import {
 import type { TournamentsListResponse } from './history.types'
 import type { Tournament } from '../tournament/tournament.types'
 import IconComponent from '../../components/icon/icon.component'
+import { cn } from '@sglara/cn'
 
 type HistoryData = TournamentsListResponse['data']
 
@@ -42,7 +43,7 @@ function HistoryCard({ tournament, index }: HistoryCardProps) {
       <header className="history-card__header">
         <h2 className="history-card__title">Tournament #{tournament.id}</h2>
         <span
-          className={`history-card__status ${getTournamentStatusModifier(tournament)}`}
+          className={cn("history-card__status", getTournamentStatusModifier(tournament))}
         >
           {isLive ? <span className="history-card__status-dot" aria-hidden="true" /> : null}
           {getTournamentStatusLabel(tournament)}
@@ -137,7 +138,9 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
           </div>
         ) : (
           <ul
-            className={`history__grid-list${isPending ? ' history__grid-list--pending' : ''}`}
+            className={cn("history__grid-list", {
+              "history__grid-list--pending": isPending,
+            })}
             aria-busy={isPending}
           >
             {tournaments.map((tournament, index) => (

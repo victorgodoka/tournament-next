@@ -18,6 +18,7 @@ import {
   getArchetypeOptions,
   parseDeckSearchQuery,
 } from './decks.utils'
+import { cn } from '@sglara/cn';
 
 const DecksPageClient = ({
   initialData,
@@ -201,7 +202,7 @@ const DecksPageClient = ({
           </div>
         ) : (
           <ul
-            className={`decks-page__listing${isPending ? ' decks-page__listing--pending' : ''}`}
+            className={cn("decks-page__listing", { "decks-page__listing--pending": isPending })}
             aria-busy={isPending || undefined}
           >
             {decks.map((deck) => (

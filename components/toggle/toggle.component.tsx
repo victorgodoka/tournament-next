@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { Icon } from "@iconify/react";
+import { cn } from "@sglara/cn";
 import { ToggleProps } from "./toggle.types";
 import "./toggle.styles.css";
 
@@ -18,7 +19,7 @@ function ToggleComponent<T extends string>({
 
   return (
     <div
-      className={`toggle toggle--${size}`}
+      className={cn("toggle", `toggle--${size}`)}
       role="radiogroup"
       aria-label={ariaLabel}
     >
@@ -28,7 +29,7 @@ function ToggleComponent<T extends string>({
         return (
           <label
             key={option.value}
-            className={`toggle__option${checked ? " toggle__option--active" : ""}`}
+            className={cn("toggle__option", { "toggle__option--active": checked })}
           >
             <input
               className="toggle__input"

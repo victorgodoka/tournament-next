@@ -8,6 +8,7 @@ import { trackLoginStart } from '@lib/gtm'
 import AvatarmenuComponent from '../avatarmenu/avatarmenu.component'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import './auth.styles.css'
+import { cn } from '@sglara/cn'
 
 const AuthComponent = () => {
   const { user, logout, isLoading, isLoggingOut, justLoggedOut } = useAuthContext()
@@ -34,7 +35,7 @@ const AuthComponent = () => {
     <div className="auth">
       {showSession ? (
         <div
-          className={`auth__session${isLoggingOut ? ' auth__session--exit' : ''}`}
+          className={cn("auth__session", { "auth__session--exit": isLoggingOut })}
           aria-busy={isLoggingOut || undefined}
           aria-label={isLoggingOut ? 'Signing out' : undefined}
         >
@@ -47,7 +48,7 @@ const AuthComponent = () => {
           ) : null}
         </div>
       ) : (
-        <div className={`auth__signin${justLoggedOut ? ' auth__signin--enter' : ''}`}>
+        <div className={cn("auth__signin", { "auth__signin--enter": justLoggedOut })}>
           {DISCORD_OAUTH_URL ? (
             <ButtonComponent
               variant="secondary"

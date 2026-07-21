@@ -4,6 +4,7 @@ import { getUserDisplayName, sortRoundsDescending } from './tournament-page.util
 import TournamentDuel from './tournament-duel.component'
 import IconComponent from '../../components/icon/icon.component'
 import { getMockByeDuelProps } from './tournament.utils'
+import { cn } from '@sglara/cn'
 
 type TournamentBracketsProps = {
   rounds: Round[]
@@ -46,7 +47,7 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
             />
           </summary>
 
-          <ul className={`tournament-round__duels ${round.bye ? 'tournament-round__duels--with-bye' : ''}`}>
+          <ul className={cn("tournament-round__duels", { "tournament-round__duels--with-bye": round.bye })}>
             {round.duels.map((duel) => (
               <li key={duel.room_id}>
                 <TournamentDuel duel={duel} users={users} />

@@ -4,6 +4,7 @@ import type { Duel, TournamentDuelProps, TournamentUser } from './tournament.typ
 import { getDuelOutcome, getUserDisplayName } from './tournament-page.utils'
 import Link from 'next/dist/client/link'
 import Image from 'next/image'
+import { cn } from '@sglara/cn'
 
 type DuelSeatResult = 'winner' | 'loser' | 'bye' | null
 
@@ -22,11 +23,10 @@ const TournamentDuelSeat = ({ userId, user, result, isBye }: TournamentDuelSeatP
   return (
     <Link
       href={`/profile/${userId}`}
-      className={
-        result
-          ? `tournament-duel__seat tournament-duel__seat--${result}`
-          : 'tournament-duel__seat'
-      }
+      className={cn(
+        "tournament-duel__seat",
+        result && `tournament-duel__seat--${result}`,
+      )}
     >
       <AvatarComponent
         src={user ? discordAvatar(userId, user.avatar) : ''}
@@ -67,11 +67,15 @@ const TournamentDuel = ({ duel, users }: TournamentDuelProps) => {
 
   return (
     <article
-      className={
-        ongoing ? 'tournament-duel tournament-duel--ongoing' : 'tournament-duel'
-      }
+      className={cn("tournament-duel", {
+        "tournament-duel--ongoing": ongoing,
+      })}
     >
-      <div className={`tournament-duel__players ${isBye ? 'tournament-duel__players--with-bye' : ''}`}>
+      <div 
+        className={cn("tournament-duel__players", {
+          "tournament-duel__players--with-bye": isBye,
+        })}
+      >
         <TournamentDuelSeat
           userId={duel.duelist1}
           user={users.get(duel.duelist1)}

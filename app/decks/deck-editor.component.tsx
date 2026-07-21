@@ -10,6 +10,7 @@ import { isDeckEditorValues, validateDeckEditorValues, type DeckEditorFieldError
 import type { DeckEditorValues } from './decks.types'
 import { readFormDraft, writeFormDraft } from '@lib/form-draft'
 import './deck-editor.styles.css'
+import { cn } from '@sglara/cn'
 
 type DeckEditorProps = {
   archetypeOptions: string[]
@@ -196,7 +197,7 @@ const DeckEditorComponent = ({
           id={nameId}
           ref={nameRef}
           type="text"
-          className={`deck-form__input${fieldErrors.name ? ' deck-form__input--invalid' : ''}`}
+          className={cn("deck-form__input", { "deck-form__input--invalid": fieldErrors.name })}
           value={values.name}
           maxLength={DECK_NAME_MAX}
           required
@@ -231,7 +232,7 @@ const DeckEditorComponent = ({
         <textarea
           id={codeId}
           ref={codeRef}
-          className={`deck-form__input deck-form__input--code${fieldErrors.code ? ' deck-form__input--invalid' : ''}`}
+          className={cn("deck-form__input deck-form__input--code", { "deck-form__input--invalid": fieldErrors.code })}
           value={values.code}
           rows={4}
           required

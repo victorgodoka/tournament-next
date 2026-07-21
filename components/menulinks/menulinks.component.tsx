@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
+import { cn } from '@sglara/cn'
 import IconComponent from '../icon/icon.component'
 import { MENU_LINKS_GROUPS } from './menulinks.const'
 import { isMenuGroup } from './menulinks.types'
@@ -69,7 +70,7 @@ const MenuDropdown = ({
       <ul
         ref={panelRef}
         id={menuId}
-        className={`menulinks__panel${isOpen ? ' menulinks__panel--open' : ''}`}
+        className={cn('menulinks__panel', { 'menulinks__panel--open': isOpen })}
         aria-label={group.label}
         hidden={!isOpen}
       >
@@ -118,7 +119,7 @@ const MobileAccordion = ({
 
       <ul
         id={sectionId}
-        className={`menulinks__mobile-sublist${isOpen ? ' menulinks__mobile-sublist--open' : ''}`}
+        className={cn('menulinks__mobile-sublist', { 'menulinks__mobile-sublist--open': isOpen })}
         hidden={!isOpen}
       >
         {group.items.map((item) => (
@@ -253,7 +254,7 @@ const MenulinksComponent = () => {
       <div
         ref={drawerRef}
         id={drawerId}
-        className={`menulinks__drawer${isDrawerOpen ? ' menulinks__drawer--open' : ''}`}
+        className={cn('menulinks__drawer', { 'menulinks__drawer--open': isDrawerOpen })}
         aria-hidden={!isDrawerOpen}
       >
         <button
