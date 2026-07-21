@@ -206,7 +206,9 @@
 
 .decks-detail__stat {
   display: flex;
-  flex-direction: column;
+  /* Markup order is dt (label) then dd (value) for valid <dl> semantics;
+     visually the value stays on top. */
+  flex-direction: column-reverse;
   align-items: center;
   gap: 0.15rem;
   min-width: 3.75rem;

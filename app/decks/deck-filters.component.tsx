@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import ButtonComponent from '../../components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'
 import { DECK_SORT_OPTIONS, type DeckSortValue } from './decks.const'
@@ -33,9 +33,14 @@ const DeckFiltersComponent = ({
   isPending = false,
 }: DeckFiltersProps) => {
   const [archetypeInput, setArchetypeInput] = useState(archetype)
+  const [prevArchetype, setPrevArchetype] = useState(archetype)
 
-  // Parent can clear the archetype elsewhere (filter chip, reset) — mirror it back.
-  useEffect(() => setArchetypeInput(archetype), [archetype])
+  // Parent can clear the archetype elsewhere (filter chip, reset) — mirror it
+  // back during render instead of an effect (no extra commit, no stale frame).
+  if (prevArchetype !== archetype) {
+    setPrevArchetype(archetype)
+    setArchetypeInput(archetype)
+  }
 
   return (
     <div className="decks-filters">
@@ -57,7 +62,6 @@ const DeckFiltersComponent = ({
             placeholder="Search by name or #tags"
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}
-            aria-label="Search decks by name or tags"
           />
           <ButtonComponent type="submit" variant="secondary" size="sm" loading={isPending}>
             Search
@@ -94,7 +98,12 @@ const DeckFiltersComponent = ({
           <select
             className="decks-filters__select"
             value={sortBy}
-            onChange={(event) => onSortByChange(event.target.value as DeckSortValue)}
+            onChange={(event) => {
+              const option = DECK_SORT_OPTIONS.find(
+                ({ value }) => value === event.target.value,
+              )
+              if (option) onSortByChange(option.value)
+            }}
           >
             {DECK_SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>

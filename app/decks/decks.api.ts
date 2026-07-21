@@ -1,9 +1,17 @@
 import { API_ENDPOINTS } from '@const'
+import { fetchJson } from '@lib/api-fetch'
 import { apiFailure, apiSuccess, isRecord, type ApiResult } from '@lib/api-result'
 import { authHeader } from '@lib/auth-header'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
-import type { ConvertDeckResponse, ConvertedDeck, CreatedDeckResponse, DeckEditorValues, DeckInfoResponse, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
-import { parsePlayerDecksResponse, parseSavedDecks } from './decks.validation'
+import { DECKS_PAGE_SIZE } from './decks.const'
+import type { ConvertDeckResponse, ConvertedDeck, DeckEditorValues, DeckInfoResponse, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
+import {
+  parseDeckInfoResponse,
+  parseLikedResponse,
+  parsePlayerDecksResponse,
+  parseSavedDecks,
+  parseSavedDecksResponse,
+} from './decks.validation'
 import { dispatchAuthExpired } from '@contexts/Auth/auth.events'
 
 export async function getPlayerDecks(
@@ -115,16 +123,16 @@ export const getSavedDecks = async (
   props: SavedDecksProps,
   token?: string | null,
 ): Promise<ApiResult<SavedDecksResponse>> => {
-  const { name, tag, archetype, sortBy, order, page = 1, limit = 20 } = props
+  const { name, tag, archetype, sortBy, order, page = 1, limit = DECKS_PAGE_SIZE } = props
 
   const params = new URLSearchParams()
-  if (sortBy) params.append('sortBy', sortBy.toString())
-  if (order) params.append('order', order.toString())
-  if (page) params.append('page', page.toString())
-  if (limit) params.append('limit', limit.toString())
-  if (name) params.append('name', name.toString())
-  if (tag) params.append('tag', tag.toString())
-  if (archetype) params.append('archetype', archetype.toString())
+  if (sortBy) params.append('sortBy', sortBy)
+  if (order) params.append('order', order)
+  params.append('page', String(page))
+  params.append('limit', String(limit))
+  if (name) params.append('name', name)
+  if (tag) params.append('tag', tag)
+  if (archetype) params.append('archetype', archetype)
 
   // Server callers pass the session token (string or null) and hit the upstream
   // API directly with a Bearer header. Client callers omit the argument and go
@@ -142,7 +150,11 @@ export const getSavedDecks = async (
       return apiFailure('Failed to fetch saved decks')
     }
 
-    const data: SavedDecksResponse = await response.json()
+    const data = parseSavedDecksResponse(await response.json())
+
+    if (!data) {
+      return apiFailure('Invalid saved decks response')
+    }
 
     return apiSuccess(data)
   } catch (error) {
@@ -158,28 +170,36 @@ export const toggleLike = async (deckId: string | number): Promise<ApiResult<Lik
     return apiFailure('Deck id is required')
   }
 
-  const response = await fetch(`/api/decks/${deckId}/like`, { method: 'POST' })
+  try {
+    const response = await fetch(`/api/decks/${deckId}/like`, { method: 'POST' })
 
-  if (response.status === 401) {
-    dispatchAuthExpired('Session expired')
-    return apiFailure('You need to be logged in to like decks')
+    if (response.status === 401) {
+      dispatchAuthExpired('Session expired')
+      return apiFailure('You need to be logged in to like decks')
+    }
+
+    if (!response.ok) {
+      return apiFailure('Failed to toggle like')
+    }
+
+    const body = parseLikedResponse(await response.json())
+    return body ? apiSuccess(body) : apiFailure('Failed to toggle like')
+  } catch (error) {
+    return apiFailure(
+      error instanceof Error ? error.message : 'Failed to toggle like',
+    )
   }
-
-  if (!response.ok) {
-    return apiFailure('Failed to toggle like')
-  }
-
-  const body: LikedResponse = await response.json()
-  return apiSuccess(body)
 }
 
 /** Shared plumbing for the authenticated deck mutations (create/update/delete).
  * All go through the /api/decks proxy routes so the httpOnly session cookie
- * can be forwarded as a Bearer token. */
+ * can be forwarded as a Bearer token. Responses are validated via `parse` —
+ * an unexpected upstream shape becomes a failure, never a lied-about `T`. */
 async function mutateDeck<T>(
   url: string,
   method: 'POST' | 'PUT' | 'DELETE',
   body: unknown,
+  parse: (data: unknown) => T | null,
   fallbackMessage: string,
 ): Promise<ApiResult<T>> {
   try {
@@ -198,7 +218,8 @@ async function mutateDeck<T>(
       return apiFailure('You need to be logged in to manage decks')
     }
 
-    const data: unknown = await response.json()
+    // Guard against non-JSON upstream bodies (gateway HTML, empty responses).
+    const data: unknown = await response.json().catch(() => null)
 
     if (!response.ok) {
       // The saved-decks API reports errors as { error } (sometimes + message).
@@ -207,31 +228,42 @@ async function mutateDeck<T>(
       return apiFailure(message)
     }
 
-    return apiSuccess(data as T)
+    const parsed = parse(data)
+    if (parsed === null) {
+      return apiFailure(fallbackMessage)
+    }
+
+    return apiSuccess(parsed)
   } catch (error) {
     return apiFailure(error instanceof Error ? error.message : fallbackMessage)
   }
 }
 
-export const createDeck = (values: DeckEditorValues): Promise<ApiResult<CreatedDeckResponse>> =>
-  mutateDeck('/api/decks', 'POST', values, 'Failed to create deck')
+const parseCreatedDeckId = (data: unknown): { id: number } | null =>
+  isRecord(data) && isRecord(data.data) && typeof data.data.id === 'number'
+    ? { id: data.data.id }
+    : null
+
+const parseMutationSuccess = (data: unknown): { success: true } | null =>
+  isRecord(data) && data.success === true ? { success: true } : null
+
+export const createDeck = (values: DeckEditorValues): Promise<ApiResult<{ id: number }>> =>
+  mutateDeck('/api/decks', 'POST', values, parseCreatedDeckId, 'Failed to create deck')
 
 export const updateDeck = (
   deckId: number,
   values: DeckEditorValues,
-): Promise<ApiResult<{ success: boolean }>> =>
-  mutateDeck(`/api/decks/${deckId}`, 'PUT', values, 'Failed to save deck changes')
+): Promise<ApiResult<{ success: true }>> =>
+  mutateDeck(`/api/decks/${deckId}`, 'PUT', values, parseMutationSuccess, 'Failed to save deck changes')
 
-export const deleteDeck = (deckId: number): Promise<ApiResult<{ success: boolean }>> =>
-  mutateDeck(`/api/decks/${deckId}`, 'DELETE', undefined, 'Failed to delete deck')
+export const deleteDeck = (deckId: number): Promise<ApiResult<{ success: true }>> =>
+  mutateDeck(`/api/decks/${deckId}`, 'DELETE', undefined, parseMutationSuccess, 'Failed to delete deck')
 
-export const getDecksInfo = async (): Promise<ApiResult<DeckInfoResponse>> => {
-  const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks/decks/info`)
-
-  if (!response.ok) {
-    return apiFailure('Failed to get decks info')
-  }
-
-  const result: DeckInfoResponse = await response.json()
-  return apiSuccess(result);
-}
+export const getDecksInfo = (): Promise<ApiResult<DeckInfoResponse>> =>
+  // Archetype/tag metadata is public and slow-moving — cache it so the decks
+  // browse, create and edit pages don't each re-hit the upstream per request.
+  fetchJson(`${API_ENDPOINTS.MAIN}/saved-decks/decks/info`, {
+    revalidate: 3600,
+    parse: parseDeckInfoResponse,
+    errorMessage: 'Failed to get decks info',
+  })

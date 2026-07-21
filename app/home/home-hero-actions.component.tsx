@@ -1,6 +1,6 @@
 'use client'
 
-import { ButtonComponent } from '@components'
+import ButtonComponent from '@components/button/button.component'
 import { trackCtaClick } from '@lib/gtm'
 import { DISCORD_SERVER_LINK } from '@lib/site-config'
 

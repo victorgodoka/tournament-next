@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
-import { API_ENDPOINTS } from '@const'
-import { authHeader } from '@lib/auth-header'
 import { getSessionToken } from '@lib/session.server'
+import { proxyJson } from '@lib/api-proxy'
 
 /** Proxies the saved-decks-by-user lookup so the httpOnly session cookie
- * (invisible to client JS) can still be forwarded as a Bearer token. */
+ * (invisible to client JS) can still be forwarded as a Bearer token.
+ * Optional auth: without `?auth=1` it forwards no token and the upstream
+ * returns only that user's public decks. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ userId: string }> },
@@ -13,11 +13,5 @@ export async function GET(
   const includeAuth = new URL(request.url).searchParams.get('auth') === '1'
   const token = includeAuth ? await getSessionToken() : null
 
-  const response = await fetch(
-    `${API_ENDPOINTS.MAIN}/decks/user/${encodeURIComponent(userId)}`,
-    { headers: authHeader(token) },
-  )
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson(`/decks/user/${encodeURIComponent(userId)}`, { method: 'GET', token })
 }

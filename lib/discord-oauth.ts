@@ -119,11 +119,14 @@ function readCallbackFromUrl(): ParsedCallback {
 
   if (window.location.hash.includes('access_token') || window.location.hash.includes('code=')) {
     const hashPart = window.location.hash.substring(1)
-    const searchParams = hashPart.includes('?') ? hashPart.split('?')[1] : hashPart
+    const searchParams = hashPart.includes('?') ? hashPart.split('?')[1] ?? '' : hashPart
     const parsed = parseSearchParams(searchParams)
     if (parsed.kind !== 'none') return parsed
   }
 
+  // Legacy quirk: some Discord redirects arrive with the query string mangled
+  // into an URL-encoded hash fragment ("#%2F%3F=&…" = "#/?=&…"). Rewrite it
+  // back into a real query string so the params can be parsed normally.
   if (currentUrl.includes('#%2F%3F=&')) {
     const cleanedUrl = currentUrl.replace('#%2F%3F=&', '?&')
     const url = new URL(cleanedUrl)

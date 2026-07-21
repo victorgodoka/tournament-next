@@ -22,7 +22,7 @@ import {
 } from './auth.const'
 import { authReducer } from './auth.reducer'
 import { trackLogout } from '@lib/gtm'
-import { AuthManager } from './auth.manager'
+import * as AuthManager from './auth.manager'
 import { setAuthRedirectFrom } from './auth.redirect'
 import type { LogoutOptions, User, UserActions } from './auth.types'
 
@@ -165,6 +165,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(user))
       }
     } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- surfacing a failure of the external write this effect performs
       setError('Failed to save user data.')
     }
   }, [user, isLoading])

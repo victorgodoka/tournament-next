@@ -8,7 +8,7 @@ import {
   useMemo,
 } from 'react';
 import { Card, CardsSearchParams } from '@lib/cards.types';
-import { searchCards } from '@lib/cards.api';
+import { extractCardsFromResponse, searchCards } from '@lib/cards.api';
 
 interface CardsSearchActions {
   search: (params: CardsSearchParams) => Promise<Card[]>;
@@ -58,15 +58,20 @@ export const CardsSearchProvider: FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     setError(null);
 
-    const { success, data, error } = await searchCards(params);
-    if (!success) {
-      setError(error || 'Unknown error');
+    // searchCards throws on HTTP/transport failure — without the catch the
+    // rejection escapes and isLoading is stuck true forever.
+    try {
+      const response = await searchCards(params);
+      const cards = extractCardsFromResponse(response);
+      setCards(cards);
+      return cards;
+    } catch (searchError) {
+      setError(searchError instanceof Error ? searchError.message : 'Card search failed');
       setCards([]);
-    } else {
-      setCards(data?.cards || []);
+      return [];
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-    return data?.cards || [];
   }, []);
 
   const clearSearch = useCallback(() => {

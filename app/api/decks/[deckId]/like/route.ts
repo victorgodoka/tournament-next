@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { API_ENDPOINTS } from '@const'
-import { authHeader } from '@lib/auth-header'
 import { getSessionToken } from '@lib/session.server'
+import { proxyJson } from '@lib/api-proxy'
 
 /** Proxies the like toggle so the httpOnly session cookie can be forwarded
  * as a Bearer token — the browser can no longer read it directly. */
@@ -19,11 +18,5 @@ export async function POST(
     )
   }
 
-  const response = await fetch(
-    `${API_ENDPOINTS.MAIN}/saved-decks/${encodeURIComponent(deckId)}/like`,
-    { method: 'POST', headers: authHeader(token) },
-  )
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson(`/saved-decks/${encodeURIComponent(deckId)}/like`, { method: 'POST', token })
 }

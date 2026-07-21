@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
+import { isRecord } from '@lib/api-result'
 
 function isTokenPayload(data: unknown): data is {
   access_token: string

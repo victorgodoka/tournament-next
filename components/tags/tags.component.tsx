@@ -3,8 +3,8 @@ import "./tags.style.css"
 
 const TagsComponent = ({ tags }: { tags: string[]}) => {
   return <ul className="tags" aria-label="Deck tags">
-    {tags.map((tag, i) => (
-      <TagComponent key={i} tag={tag} />
+    {tags.map((tag) => (
+      <TagComponent key={tag} tag={tag} />
     ))}
   </ul>
 }

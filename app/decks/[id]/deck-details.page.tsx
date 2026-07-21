@@ -1,8 +1,14 @@
 import type { CSSProperties } from 'react'
 import { getSessionToken } from '@lib/session.server'
 import { getDeck, getDeckComments } from './deck-details.api'
-import { AvatarComponent, BackdropComponent, BadgesComponent, CommentsComponent, DeckListComponent, ErrorPageComponent, TagsComponent } from '@components'
-import IconComponent from '../../../components/icon/icon.component'
+import AvatarComponent from '@components/avatar/avatar.component'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import BadgesComponent from '@components/badges/badges.component'
+import CommentsComponent from '@components/comments/comments.component'
+import DeckListComponent from '@components/deck-list/deck-list.component'
+import ErrorPageComponent from '@components/error-page/error-page.component'
+import TagsComponent from '@components/tags/tags.component'
+import IconComponent from '@components/icon/icon.component'
 import { DeckDetailsPageProps } from './deck-details.types'
 import { discordAvatar } from '@assets/discord.avatar'
 import { getDeckCreatorName, resolveDeckCoverId } from '../decks.utils'
@@ -33,11 +39,13 @@ function getDeckSizes({ decodedDeck }: SavedDeckDetails) {
 export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) {
   const { id } = await params
   const token = await getSessionToken()
-  const [{ deck }, commentsResult] = await Promise.all([
-    getDeckDetails(id, token),
+  const [deckResult, commentsResult] = await Promise.all([
+    getDeck(id, token),
     getDeckComments(id, token),
   ])
-  if (!deck) return <ErrorPageComponent />
+  if (!deckResult.ok) return <ErrorPageComponent />
+
+  const deck = deckResult.data
   const creatorName = getDeckCreatorName(deck.user)
   const archetypes = deck.decodedDeck.archetypes
   const sizes = getDeckSizes(deck)
@@ -86,7 +94,7 @@ export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) 
             ) : null}
 
             <div className="decks-detail__meta">
-              <Link href={`/profile/${deck.user.discord_id}`} target="_blank" className="decks-detail__creator">
+              <Link href={`/profile/${deck.user.discord_id}`} className="decks-detail__creator">
                 <AvatarComponent
                   className="decks-detail__creator-avatar"
                   src={discordAvatar(deck.user.discord_id, deck.user.avatar ?? '')}
@@ -105,15 +113,15 @@ export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) 
               <dl className="decks-detail__stats">
                 {stats.map((stat) => (
                   <div key={stat.key} className="decks-detail__stat">
-                    <dd className="decks-detail__stat-value">{stat.value}</dd>
                     <dt className="decks-detail__stat-label">{stat.label}</dt>
+                    <dd className="decks-detail__stat-value">{stat.value}</dd>
                   </div>
                 ))}
                 <div className="decks-detail__stat decks-detail__stat--date">
+                  <dt className="decks-detail__stat-label">{createdLabel}</dt>
                   <dd className="decks-detail__stat-value decks-detail__stat-value--icon">
                     <IconComponent icon="mdi:calendar-blank-outline" width={16} height={16} />
                   </dd>
-                  <dt className="decks-detail__stat-label">{createdLabel}</dt>
                 </div>
               </dl>
             </div>
@@ -124,15 +132,9 @@ export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) 
           </div>
         </header>
 
-        <DeckListComponent convertedDeck={deck.decodedDeck} name={deck?.name} />
+        <DeckListComponent convertedDeck={deck.decodedDeck} name={deck.name} headingTag="h2" />
         <CommentsComponent commentsResult={commentsResult} />
       </article>
     </div>
   )
 }
-
-const getDeckDetails = (async (id: string, token?: string | null) => {
-  const deck = await getDeck(id, token)
-  if (!deck.ok || !deck.data) return { data: null }
-  return { deck: deck.data }
-})

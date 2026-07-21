@@ -1,4 +1,4 @@
-import { WipComponent } from '@components'
+import WipComponent from '@components/wip/wip.component'
 import { noIndexMetadata } from '@lib/page-metadata'
 import './pdf-decklist.styles.css'
 

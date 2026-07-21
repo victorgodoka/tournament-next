@@ -5,7 +5,7 @@ import "./badge.style.css"
 const BadgesComponent = ({ archetypes }: { archetypes: Archetype[]}) => {
   return <ul className="badges" aria-label="Deck archetypes">
     {archetypes.map((archetype, i) => (
-      <BadgeComponent key={i} {...archetype} i={i} />
+      <BadgeComponent key={archetype.name} {...archetype} i={i} />
     ))}
   </ul>
 }

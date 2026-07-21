@@ -75,76 +75,39 @@ export function isPlayerOnline(lastLogin: string): boolean {
   return diffMin < 5
 }
 
-const BIO_ALLOWED_TAGS = new Set([
-  'P',
-  'BR',
-  'STRONG',
-  'B',
-  'EM',
-  'I',
-  'U',
-  'UL',
-  'OL',
-  'LI',
-  'A',
-  'SPAN',
-])
+const BIO_ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'a', 'span']
 
-function stripUnsafeBioHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-    .replace(/<object[\s\S]*?<\/object>/gi, '')
-    .replace(/<embed[\s\S]*?>/gi, '')
-    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*["']?\s*javascript:[^"'>\s]*/gi, 'href="#"')
+let purifierPromise: Promise<typeof import('dompurify').default> | null = null
+
+/** Lazily load DOMPurify (browser only) and force safe link semantics once. */
+function getPurifier() {
+  purifierPromise ??= import('dompurify').then(({ default: DOMPurify }) => {
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+      if (node.tagName !== 'A') return
+      if (node.getAttribute('href')) {
+        node.setAttribute('target', '_blank')
+        node.setAttribute('rel', 'noopener noreferrer')
+      }
+    })
+    return DOMPurify
+  })
+  return purifierPromise
 }
 
-export function sanitizeBioHtml(html: string): string {
-  if (!html) return ''
+/**
+ * Sanitize an untrusted user bio via DOMPurify (never a hand-rolled walker).
+ * Browser-only by design: callers render the bio after mount, so the server
+ * pass simply gets an empty string instead of weaker sanitization.
+ */
+export async function sanitizeBioHtml(html: string): Promise<string> {
+  if (!html || typeof window === 'undefined') return ''
 
-  if (typeof DOMParser === 'undefined') {
-    return stripUnsafeBioHtml(html)
-  }
-
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-
-  const walk = (node: Node): void => {
-    const children = Array.from(node.childNodes)
-
-    for (const child of children) {
-      if (child.nodeType !== Node.ELEMENT_NODE) continue
-
-      const element = child as Element
-
-      if (!BIO_ALLOWED_TAGS.has(element.tagName)) {
-        element.replaceWith(...Array.from(element.childNodes))
-        walk(node)
-        continue
-      }
-
-      if (element.tagName === 'A') {
-        const href = element.getAttribute('href') ?? ''
-        if (!/^https?:\/\//i.test(href)) {
-          element.removeAttribute('href')
-        } else {
-          element.setAttribute('rel', 'noopener noreferrer')
-          element.setAttribute('target', '_blank')
-        }
-      }
-
-      for (const attribute of Array.from(element.attributes)) {
-        if (attribute.name.startsWith('on') || attribute.name === 'style') {
-          element.removeAttribute(attribute.name)
-        }
-      }
-
-      walk(element)
-    }
-  }
-
-  walk(doc.body)
-  return doc.body.innerHTML
+  const DOMPurify = await getPurifier()
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: BIO_ALLOWED_TAGS,
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOWED_URI_REGEXP: /^https?:\/\//i,
+  })
 }
 
 function normalizeSocialHandle(handle: string): string {

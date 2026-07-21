@@ -19,7 +19,7 @@ describe('ErrorBanner', () => {
     )
   })
 
-  it('dismisses the banner and clears the auth error', async () => {
+  it('dismisses the banner by clearing the auth error', async () => {
     const user = userEvent.setup()
     const clearError = vi.fn()
 
@@ -32,7 +32,8 @@ describe('ErrorBanner', () => {
       screen.getByRole('button', { name: /dismiss error message/i }),
     )
 
+    // The banner is fully context-driven: clearing the error (first test
+    // covers error: null) is what removes it — no duplicate local state.
     expect(clearError).toHaveBeenCalledTimes(1)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

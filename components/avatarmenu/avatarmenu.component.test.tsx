@@ -28,8 +28,9 @@ describe('AvatarmenuComponent', () => {
     fireEvent.click(trigger)
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('menu', { name: /account menu/i })).toBeVisible()
-    expect(screen.getByRole('menuitem', { name: /my profile/i })).toBeVisible()
+    // Disclosure pattern: plain links/buttons inside the panel, no menu roles.
+    expect(screen.getByRole('link', { name: /my profile/i })).toBeVisible()
+    expect(screen.getByRole('button', { name: /logout/i })).toBeVisible()
   })
 
   it('closes the menu when Escape is pressed', async () => {
@@ -83,7 +84,7 @@ describe('AvatarmenuComponent', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /test duelist account menu/i }),
     )
-    await user.click(screen.getByRole('menuitem', { name: /logout/i }))
+    await user.click(screen.getByRole('button', { name: /logout/i }))
 
     expect(logout).toHaveBeenCalledTimes(1)
   })
@@ -106,6 +107,6 @@ describe('AvatarmenuComponent', () => {
     fireEvent.click(trigger)
 
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('menuitem', { name: /logout/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /logout/i })).not.toBeInTheDocument()
   })
 })

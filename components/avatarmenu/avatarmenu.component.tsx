@@ -92,10 +92,10 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
       onMouseEnter={openMenu}
       onMouseLeave={scheduleClose}
     >
+      {/* Disclosure pattern — no ARIA menu roles, see menulinks.component. */}
       <button
         type="button"
         className="avatarmenu__trigger"
-        aria-haspopup="menu"
         aria-expanded={panelOpen}
         aria-controls={menuId}
         aria-label={`${displayName} account menu`}
@@ -113,7 +113,6 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
       <div
         id={menuId}
         className={`avatarmenu__panel${panelOpen ? ' avatarmenu__panel--open' : ''}`}
-        role="menu"
         aria-label="Account menu"
         hidden={!panelOpen}
         inert={!panelOpen ? true : undefined}
@@ -143,11 +142,10 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
 
         <ul className="avatarmenu__menu">
           {profileMenuItems.map((item) => (
-            <li key={item.to} className="avatarmenu__menu-item" role="none">
+            <li key={item.to} className="avatarmenu__menu-item">
               <Link
                 href={item.to}
                 className="avatarmenu__menu-link"
-                role="menuitem"
                 tabIndex={panelOpen ? undefined : -1}
                 onClick={closeMenu}
               >
@@ -157,11 +155,10 @@ const AvatarmenuComponent = ({ user, logout, isLoggingOut = false }: AvatarmenuC
             </li>
           ))}
 
-          <li className="avatarmenu__menu-item" role="none">
+          <li className="avatarmenu__menu-item">
             <button
               type="button"
               className="avatarmenu__logout"
-              role="menuitem"
               tabIndex={panelOpen ? undefined : -1}
               disabled={isLoggingOut}
               onClick={() => {

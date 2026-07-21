@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { GtmNoScript, GtmScripts } from '../components/gtm/gtm-scripts.component'
+import NavbarComponent from '../components/navbar/navbar.component'
+import FooterComponent from '../components/footer/footer.component'
 import { fontVariables } from './fonts'
 import { Providers } from './providers'
 import { siteJsonLd } from '@lib/json-ld'
@@ -92,9 +94,11 @@ export default function RootLayout({
         />
         <GtmScripts />
       </head>
-      <body suppressHydrationWarning>
+      <body>
         <GtmNoScript />
-        <Providers>{children}</Providers>
+        <Providers navbar={<NavbarComponent />} footer={<FooterComponent />}>
+          {children}
+        </Providers>
       </body>
     </html>
   )

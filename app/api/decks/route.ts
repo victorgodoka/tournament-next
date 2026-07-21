@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { API_ENDPOINTS } from '@const'
-import { authHeader } from '@lib/auth-header'
 import { getSessionToken } from '@lib/session.server'
+import { proxyJson } from '@lib/api-proxy'
 
 /** Proxies deck creation so the httpOnly session cookie can be forwarded
  * as a Bearer token — the browser cannot read it directly. */
@@ -18,12 +17,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  const response = await fetch(`${API_ENDPOINTS.MAIN}/saved-decks`, {
-    method: 'POST',
-    headers: { ...authHeader(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson('/saved-decks', { method: 'POST', token, body })
 }

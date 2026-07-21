@@ -61,7 +61,14 @@ const DonutChart = ({ slices, centerValue, centerLabel }: {
   const center = size / 2
   const gap = 1.4 // normalized (pathLength = 100) spacer between slices
 
+  // Precompute each slice's start offset — mutating an accumulator inside the
+  // JSX map is a render side effect the React compiler rejects.
+  const positionedSlices: Array<Slice & { offset: number }> = []
   let cumulative = 0
+  for (const slice of slices) {
+    positionedSlices.push({ ...slice, offset: cumulative })
+    cumulative += slice.share
+  }
 
   return (
     <svg
@@ -79,9 +86,9 @@ const DonutChart = ({ slices, centerValue, centerLabel }: {
         strokeWidth={stroke}
       />
       <g transform={`rotate(-90 ${center} ${center})`}>
-        {slices.map((slice, index) => {
+        {positionedSlices.map((slice, index) => {
           const length = Math.max(slice.share - gap, 0.4)
-          const element = (
+          return (
             <circle
               key={index}
               cx={center}
@@ -92,13 +99,11 @@ const DonutChart = ({ slices, centerValue, centerLabel }: {
               strokeWidth={stroke}
               pathLength={100}
               strokeDasharray={`${length} ${100 - length}`}
-              strokeDashoffset={-cumulative}
+              strokeDashoffset={-slice.offset}
             >
               <title>{`${slice.label}: ${shareLabel(slice.share)}%`}</title>
             </circle>
           )
-          cumulative += slice.share
-          return element
         })}
       </g>
       <text x={center} y={center - 3} className="tournament-data__donut-value" textAnchor="middle">
@@ -117,11 +122,13 @@ const TournamentData = ({ data }: TournamentDataProps) => {
 
     const totalPlayers = data.totalPlayers
     const decks = [...data.decks].sort((a, b) => b.qty - a.qty)
-    const maxQty = decks[0]?.qty ?? 1
+    const topDeck = decks[0]
+    if (!topDeck) return null
+    const maxQty = topDeck.qty
 
     const rows = decks.map((deck, index) => ({
       deck,
-      color: index < CATEGORICAL.length ? CATEGORICAL[index] : OTHER_COLOR,
+      color: CATEGORICAL[index] ?? OTHER_COLOR,
       share: percent(deck.qty, totalPlayers),
       barWidth: percent(deck.qty, maxQty),
       imageId: deckImageId(deck),
@@ -150,8 +157,8 @@ const TournamentData = ({ data }: TournamentDataProps) => {
       totalPlayers,
       uniqueDecks: data.uniqueDecks,
       diversity: Math.round(percent(data.uniqueDecks, totalPlayers)),
-      top: decks[0],
-      topShare: Math.round(percent(decks[0].qty, totalPlayers)),
+      top: topDeck,
+      topShare: Math.round(percent(topDeck.qty, totalPlayers)),
     }
   }, [data])
 

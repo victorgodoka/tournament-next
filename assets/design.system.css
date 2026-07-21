@@ -544,6 +544,11 @@ a, link, a:visited, a:hover, a:active, a:focus {
     border: 0;
   }
 
+  .page-fallback-wrap {
+    display: flex;
+    padding-block: 2.5rem;
+  }
+
   .page-fallback {
     flex: 1;
     min-height: 12rem;

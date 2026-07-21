@@ -1,7 +1,6 @@
 import { noIndexMetadata } from "@lib/page-metadata"
 import { Metadata } from "next"
 import { DeckDetailsPageProps } from "./deck-details.types"
-import DeckDetailsPage from "./deck-details.page"
 
 export async function generateMetadata({
   params,
@@ -15,8 +14,4 @@ export async function generateMetadata({
   )
 }
 
-export default async function Page({ params }: DeckDetailsPageProps) {
-  return (
-    <DeckDetailsPage params={params} />
-  )
-}
+export { default } from "./deck-details.page"

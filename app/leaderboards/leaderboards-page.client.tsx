@@ -6,10 +6,13 @@ import {
   useState,
   useTransition,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { AvatarComponent, BackdropComponent, ButtonComponent } from '@components'
+import AvatarComponent from '@components/avatar/avatar.component'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
 import { discordAvatar } from '@assets/discord.avatar'
 import { getLeaderboard } from './leaderboards.api'
 import {
@@ -35,6 +38,7 @@ import Image from 'next/image'
 type LeaderboardsPageClientProps = {
   data: LeaderboardData | null
   error: string | null
+  initialMode: LeaderboardMode
 }
 
 type LeaderboardRowProps = {
@@ -119,10 +123,11 @@ function LeaderboardRow({ player, rank, mode }: LeaderboardRowProps) {
 const LeaderboardsPageClient = ({
   data: initialData,
   error: initialError,
+  initialMode,
 }: LeaderboardsPageClientProps) => {
   const [data, setData] = useState(initialData)
   const [error, setError] = useState(initialError)
-  const [mode, setMode] = useState<LeaderboardMode>('TCG')
+  const [mode, setMode] = useState<LeaderboardMode>(initialMode)
   const [isPending, startTransition] = useTransition()
 
   const players = useMemo(() => {
@@ -146,7 +151,32 @@ const LeaderboardsPageClient = ({
 
   const handleModeChange = useCallback((nextMode: LeaderboardMode) => {
     setMode(nextMode)
+    // Keep the selected format shareable/restorable without a server round-trip.
+    window.history.replaceState(
+      null,
+      '',
+      nextMode === 'TCG' ? '/leaderboards' : `/leaderboards?mode=${nextMode}`,
+    )
   }, [])
+
+  // Roving tabindex + arrow keys — required by the tab pattern the roles declare.
+  const handleTabKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, currentMode: LeaderboardMode) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+
+      event.preventDefault()
+      const currentIndex = LEADERBOARD_MODES.findIndex((tab) => tab.id === currentMode)
+      const direction = event.key === 'ArrowRight' ? 1 : -1
+      const nextTab =
+        LEADERBOARD_MODES[
+          (currentIndex + direction + LEADERBOARD_MODES.length) % LEADERBOARD_MODES.length
+        ]
+      if (!nextTab) return
+      handleModeChange(nextTab.id)
+      document.getElementById(`leaderboards-tab-${nextTab.id}`)?.focus()
+    },
+    [handleModeChange],
+  )
 
   if (error && !data) {
     return (
@@ -210,12 +240,14 @@ const LeaderboardsPageClient = ({
                 id={`leaderboards-tab-${tab.id}`}
                 aria-selected={isActive}
                 aria-controls="leaderboards-panel"
+                tabIndex={isActive ? 0 : -1}
                 className={[
                   'leaderboards__tab',
                   isActive ? 'leaderboards__tab--active' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
+                onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
                 onClick={() => handleModeChange(tab.id)}
               >
                 {tab.label}

@@ -1,3 +1,6 @@
+// DOMPurify needs a spec-complete DOM — happy-dom's parser lets scripts
+// through silently, so this file runs under jsdom.
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildInstagramUrl,
@@ -84,8 +87,8 @@ describe('profile.utils', () => {
   })
 
   describe('sanitizeBioHtml', () => {
-    it('removes script tags and event handlers', () => {
-      const result = sanitizeBioHtml(
+    it('removes script tags and event handlers', async () => {
+      const result = await sanitizeBioHtml(
         '<p onclick="alert(1)">Hello</p><script>alert(1)</script>',
       )
 
@@ -94,14 +97,14 @@ describe('profile.utils', () => {
       expect(result).toContain('Hello')
     })
 
-    it('strips unsafe href values from links', () => {
-      const result = sanitizeBioHtml('<a href="javascript:alert(1)">Click</a>')
+    it('strips unsafe href values from links', async () => {
+      const result = await sanitizeBioHtml('<a href="javascript:alert(1)">Click</a>')
 
       expect(result).not.toContain('javascript:')
     })
 
-    it('returns empty string for empty input', () => {
-      expect(sanitizeBioHtml('')).toBe('')
+    it('returns empty string for empty input', async () => {
+      await expect(sanitizeBioHtml('')).resolves.toBe('')
     })
   })
 
@@ -130,7 +133,7 @@ describe('profile.utils', () => {
       const href = tcgHref(name)
 
       // TCGplayer decodes the `u` param once, then reads `q` from that URL.
-      const destination = decodeURIComponent(href.split('?u=')[1])
+      const destination = decodeURIComponent(href.split('?u=')[1]!)
       const query = new URL(destination).searchParams.get('q')
       expect(query).toBe(name)
     })

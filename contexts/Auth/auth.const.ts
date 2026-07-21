@@ -14,20 +14,6 @@ export const createGuestUser = (): User => ({
 export const isAuthenticatedUser = (user: Pick<User, 'id'>): boolean =>
   user.id !== GUEST_USER_ID
 
-export function readStoredUserId(): string | null {
-  if (typeof window === 'undefined') return null
-
-  try {
-    const storedUser = localStorage.getItem('user')
-    if (!storedUser) return null
-
-    const parsed: unknown = JSON.parse(storedUser)
-    return isValidStoredUser(parsed) ? parsed.id : null
-  } catch {
-    return null
-  }
-}
-
 export function isValidStoredUser(value: unknown): value is User {
   if (typeof value !== 'object' || value === null) return false
 

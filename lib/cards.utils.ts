@@ -1,7 +1,9 @@
-import { CARD_ART_BASE_FULL } from "../app/profile/profile.const"
 import { Card } from "./cards.types"
 
-export const CARD_ART_BASE = 'https://ygopro.online/assets/card-images/common/'
+// Canonical card-image bases — app modules re-export from here, never the
+// other way around (lib must not depend on app).
+export const CARD_ART_BASE = 'https://ygopro.online/assets/card-images/common'
+export const CARD_ART_BASE_FULL = 'https://ygopro.online/assets/card-arts'
 
 export const EXTRA_TYPES = ['fusion', 'synchro', 'xyz', 'link']
 

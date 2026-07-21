@@ -176,8 +176,8 @@ describe('TournamentPageClient', () => {
       'Round 2',
       'Round 1',
     ])
-    expect(labels[0].closest('details')).toHaveAttribute('open')
-    expect(labels[1].closest('details')).not.toHaveAttribute('open')
+    expect(labels[0]!.closest('details')).toHaveAttribute('open')
+    expect(labels[1]!.closest('details')).not.toHaveAttribute('open')
   })
 
   it('shows an ongoing badge for duels without a winner', () => {
@@ -214,11 +214,11 @@ describe('TournamentPageClient', () => {
     ).toBeInTheDocument()
 
     const rows = screen.getAllByRole('row')
-    expect(within(rows[1]).getByText('Duelist One')).toBeInTheDocument()
-    expect(within(rows[1]).getByText('75.00%')).toBeInTheDocument()
-    expect(within(rows[1]).getByText('99')).toBeInTheDocument()
-    expect(within(rows[2]).getByText('Duelist Two')).toBeInTheDocument()
-    expect(within(rows[2]).getByText('25.00%')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('Duelist One')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('75.00%')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('99')).toBeInTheDocument()
+    expect(within(rows[2]!).getByText('Duelist Two')).toBeInTheDocument()
+    expect(within(rows[2]!).getByText('25.00%')).toBeInTheDocument()
 
     expect(screen.getByRole('link', { name: /duelist one/i })).toHaveAttribute(
       'href',

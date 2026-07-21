@@ -1,11 +1,14 @@
 'use client'
 
-import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { ButtonComponent, ToggleComponent } from '@components'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import ButtonComponent from '@components/button/button.component'
+import ToggleComponent from '@components/toggle/toggle.component'
 import IconComponent from '../../components/icon/icon.component'
+import type { ToggleOption } from '../../components/toggle/toggle.types'
 import { DECK_CODE_MIN, DECK_NAME_MAX } from './decks.const'
-import { validateDeckEditorValues, type DeckEditorFieldErrors } from './decks.validation'
+import { isDeckEditorValues, validateDeckEditorValues, type DeckEditorFieldErrors } from './decks.validation'
 import type { DeckEditorValues } from './decks.types'
+import { readFormDraft, writeFormDraft } from '@lib/form-draft'
 import './deck-editor.styles.css'
 
 type DeckEditorProps = {
@@ -16,6 +19,9 @@ type DeckEditorProps = {
   cancelHref: string
   isSubmitting?: boolean
   error?: string | null
+  /** When set, unsaved input is mirrored to sessionStorage so it survives a
+   * session-expiry logout/redirect. Parent clears it via `clearFormDraft`. */
+  draftKey?: string
   onSubmit: (values: DeckEditorValues) => void
 }
 
@@ -29,7 +35,7 @@ const EMPTY_VALUES: DeckEditorValues = {
 
 type DeckVisibility = 'public' | 'private'
 
-const VISIBILITY_OPTIONS: { value: DeckVisibility; label: string; icon: string }[] = [
+const VISIBILITY_OPTIONS: ToggleOption<DeckVisibility>[] = [
   { value: 'public', label: 'Public', icon: 'mdi:earth' },
   { value: 'private', label: 'Private', icon: 'mdi:lock-outline' },
 ]
@@ -45,7 +51,9 @@ type ChipFieldProps = {
 }
 
 /** Free-form chip list: type + Enter (or comma) adds, click a chip removes.
- * With `options`, a datalist offers suggestions and exact picks add instantly. */
+ * With `options`, a datalist offers suggestions; a suggestion is committed the
+ * same way (Enter/blur) so partial names that are also whole options stay
+ * typeable (e.g. "Dark Magician" on the way to "Dark Magician Girl"). */
 const ChipFieldComponent = ({ id, label, values, placeholder, hint, options, onChange }: ChipFieldProps) => {
   const [input, setInput] = useState('')
   const listId = options ? `${id}-options` : undefined
@@ -63,22 +71,43 @@ const ChipFieldComponent = ({ id, label, values, placeholder, hint, options, onC
     }
   }
 
+  // 485+ archetype options: memoize so keystrokes (input state) don't re-diff
+  // the whole <option> subtree — only a change in options/values rebuilds it.
+  const datalist = useMemo(
+    () =>
+      options ? (
+        <datalist id={listId}>
+          {options
+            .filter((option) => !values.includes(option))
+            .map((option) => (
+              <option key={option} value={option} />
+            ))}
+        </datalist>
+      ) : null,
+    [options, values, listId],
+  )
+
   return (
     <div className="deck-form__field">
       <label htmlFor={id} className="deck-form__label">{label}</label>
       <div className="deck-form__chip-box">
-        {values.map((value) => (
-          <button
-            key={value}
-            type="button"
-            className="deck-form__chip"
-            onClick={() => onChange(values.filter((item) => item !== value))}
-            aria-label={`Remove ${value}`}
-          >
-            {value}
-            <IconComponent icon="mdi:close" width={13} height={13} aria-hidden />
-          </button>
-        ))}
+        {values.length > 0 ? (
+          <ul className="deck-form__chips">
+            {values.map((value) => (
+              <li key={value}>
+                <button
+                  type="button"
+                  className="deck-form__chip"
+                  onClick={() => onChange(values.filter((item) => item !== value))}
+                  aria-label={`Remove ${value}`}
+                >
+                  {value}
+                  <IconComponent icon="mdi:close" width={13} height={13} aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <input
           id={id}
           type="text"
@@ -88,24 +117,11 @@ const ChipFieldComponent = ({ id, label, values, placeholder, hint, options, onC
           value={input}
           autoComplete="off"
           aria-describedby={`${id}-hint`}
-          onChange={(event) => {
-            const value = event.target.value
-            // Picking a datalist option fills the exact value — add it right away.
-            if (options?.includes(value)) addChip(value)
-            else setInput(value)
-          }}
+          onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => addChip(input)}
         />
-        {options ? (
-          <datalist id={listId}>
-            {options
-              .filter((option) => !values.includes(option))
-              .map((option) => (
-                <option key={option} value={option} />
-              ))}
-          </datalist>
-        ) : null}
+        {datalist}
       </div>
       <p id={`${id}-hint`} className="deck-form__hint">{hint}</p>
     </div>
@@ -120,14 +136,30 @@ const DeckEditorComponent = ({
   cancelHref,
   isSubmitting = false,
   error = null,
+  draftKey,
   onSubmit,
 }: DeckEditorProps) => {
   const baseId = useId()
+  const nameRef = useRef<HTMLInputElement>(null)
+  const codeRef = useRef<HTMLTextAreaElement>(null)
   const [values, setValues] = useState<DeckEditorValues>(initialValues ?? EMPTY_VALUES)
   const [fieldErrors, setFieldErrors] = useState<DeckEditorFieldErrors>({})
 
   const nameId = `${baseId}-name`
   const codeId = `${baseId}-code`
+
+  // Restore an unsaved draft after mount — sessionStorage must not be read
+  // during the first render, or the SSR HTML (no draft) and the hydrating
+  // client render (draft) disagree and React reports a hydration mismatch.
+  useEffect(() => {
+    const draft = readFormDraft(draftKey)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration-safe restore from an external store
+    if (isDeckEditorValues(draft)) setValues(draft)
+  }, [draftKey])
+
+  useEffect(() => {
+    writeFormDraft(draftKey, values)
+  }, [draftKey, values])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -135,9 +167,12 @@ const DeckEditorComponent = ({
     const errors = validateDeckEditorValues(next)
     setFieldErrors(errors)
 
-    const firstInvalid = errors.name ? nameId : errors.code ? codeId : null
-    if (firstInvalid) {
-      document.getElementById(firstInvalid)?.focus()
+    if (errors.name) {
+      nameRef.current?.focus()
+      return
+    }
+    if (errors.code) {
+      codeRef.current?.focus()
       return
     }
 
@@ -159,6 +194,7 @@ const DeckEditorComponent = ({
         </label>
         <input
           id={nameId}
+          ref={nameRef}
           type="text"
           className={`deck-form__input${fieldErrors.name ? ' deck-form__input--invalid' : ''}`}
           value={values.name}
@@ -167,7 +203,7 @@ const DeckEditorComponent = ({
           autoComplete="off"
           placeholder="Blue-Eyes Control"
           aria-invalid={fieldErrors.name ? true : undefined}
-          aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
+          aria-describedby={fieldErrors.name ? `${nameId}-error` : `${nameId}-hint`}
           onChange={(event) => {
             const name = event.target.value
             setValues((prev) => ({ ...prev, name }))
@@ -180,7 +216,7 @@ const DeckEditorComponent = ({
               {fieldErrors.name}
             </span>
           ) : (
-            <span className="deck-form__hint">Shown on the community listing.</span>
+            <span id={`${nameId}-hint`} className="deck-form__hint">Shown on the community listing.</span>
           )}
           <span className="deck-form__count">
             {values.name.length}/{DECK_NAME_MAX}
@@ -194,6 +230,7 @@ const DeckEditorComponent = ({
         </label>
         <textarea
           id={codeId}
+          ref={codeRef}
           className={`deck-form__input deck-form__input--code${fieldErrors.code ? ' deck-form__input--invalid' : ''}`}
           value={values.code}
           rows={4}

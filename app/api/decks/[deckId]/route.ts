@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { API_ENDPOINTS } from '@const'
-import { authHeader } from '@lib/auth-header'
 import { getSessionToken } from '@lib/session.server'
+import { proxyJson } from '@lib/api-proxy'
 
 /** Proxies deck update/delete so the httpOnly session cookie can be
  * forwarded as a Bearer token — the browser cannot read it directly.
@@ -23,17 +22,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  const response = await fetch(
-    `${API_ENDPOINTS.MAIN}/saved-decks/${encodeURIComponent(deckId)}`,
-    {
-      method: 'PUT',
-      headers: { ...authHeader(token), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    },
-  )
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson(`/saved-decks/${encodeURIComponent(deckId)}`, { method: 'PUT', token, body })
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
@@ -44,11 +33,5 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   }
 
-  const response = await fetch(
-    `${API_ENDPOINTS.MAIN}/saved-decks/${encodeURIComponent(deckId)}`,
-    { method: 'DELETE', headers: authHeader(token) },
-  )
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson(`/saved-decks/${encodeURIComponent(deckId)}`, { method: 'DELETE', token })
 }

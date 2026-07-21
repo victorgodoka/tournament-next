@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { BackdropComponent, ButtonComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'
 import { useAuthContext } from '@contexts/Auth/auth.context'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
@@ -21,7 +22,7 @@ const ProfileIndexClient = () => {
     return (
       <div className="profile">
         <div className="profile__content omega-container">
-          <div className="page-fallback" aria-busy="true" aria-label="Loading profile" />
+          <div className="page-fallback" role="status" aria-busy="true" aria-label="Loading profile" />
         </div>
       </div>
     )

@@ -4,7 +4,7 @@ import IconComponent from '../../components/icon/icon.component'
 import { HOME_FEATURES, HOME_TOOLS, HOME_COMMUNITY } from './home.const'
 import HomeHeroActions from './home-hero-actions.component'
 import './home.styles.css'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 const HomePage = () => {
   return (

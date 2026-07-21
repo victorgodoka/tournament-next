@@ -1,72 +1,69 @@
 "use client";
 
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useRef, useState, useTransition } from 'react'
 import './decks.styles.css'
-import { DeckInfoResponse, DecksPageProps, SavedDecksResponse } from './decks.types'
+import { DeckQuery, DecksPageProps, SavedDecksResponse } from './decks.types'
 import { getDecksInfo, getSavedDecks } from './decks.api'
-import { BackdropComponent, ButtonComponent, ErrorPageComponent } from '@components'
-import IconComponent from '../../components/icon/icon.component'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
+import ErrorPageComponent from '@components/error-page/error-page.component'
+import IconComponent from '@components/icon/icon.component'
 import DeckFiltersComponent from './deck-filters.component'
 import DeckCardComponent from './deck-card.component'
-import { type DeckSortValue } from './decks.const'
-import { buildTagParam, parseDeckSearchQuery } from './decks.utils'
+import { INITIAL_DECK_QUERY, type DeckSortValue } from './decks.const'
+import {
+  buildDecksUrl,
+  buildSearchInput,
+  buildTagParam,
+  getArchetypeOptions,
+  parseDeckSearchQuery,
+} from './decks.utils'
 
-type DeckQueryState = {
-  name?: string
-  tag?: string
-  archetype: string
-  sortBy: DeckSortValue
-  order: 'asc' | 'desc'
-  page: number
-}
-
-const INITIAL_QUERY: DeckQueryState = {
-  name: undefined,
-  tag: undefined,
-  archetype: '',
-  sortBy: 'created_at',
-  order: 'desc',
-  page: 1,
-}
-
-const DecksPageClient = ({ initialData, initialError, inititalInfo }: DecksPageProps) => {
+const DecksPageClient = ({
+  initialData,
+  initialError,
+  initialInfo,
+  initialQuery,
+  initialNotice,
+}: DecksPageProps) => {
   const [error, setError] = useState<string | null>(initialError)
   const [data, setData] = useState<SavedDecksResponse | null>(initialData)
-  const [query, setQuery] = useState<DeckQueryState>(INITIAL_QUERY)
-  const [deckInfo, setDeckInfo] = useState<DeckInfoResponse>(inititalInfo)
-  const [searchInput, setSearchInput] = useState('')
+  const [query, setQuery] = useState<DeckQuery>(initialQuery)
+  const [deckInfo, setDeckInfo] = useState(initialInfo)
+  const [searchInput, setSearchInput] = useState(() => buildSearchInput(initialQuery))
+  const [noticeDismissed, setNoticeDismissed] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const lastQueryRef = useRef(initialQuery)
 
-  const fetchDecks = useCallback((next: DeckQueryState) => {
+  // Set when a guarded page (e.g. create-deck) bounced a signed-out visitor here.
+  const showSigninNotice = !noticeDismissed && initialNotice === 'signin'
+
+  const fetchDecks = useCallback((next: DeckQuery) => {
+    lastQueryRef.current = next
+
     startTransition(async () => {
-      const result = await getSavedDecks({
-        page: next.page,
-        name: next.name,
-        tag: next.tag,
-        archetype: next.archetype || undefined,
-        sortBy: next.sortBy,
-        order: next.order,
-      })
+      const [result, infoResult] = await Promise.all([
+        getSavedDecks({ ...next, archetype: next.archetype || undefined }),
+        getDecksInfo(),
+      ])
 
-      const infoResult = await getDecksInfo()
-
+      // Keep the current listing and filters on failure — the inline error
+      // (or full error page when nothing loaded yet) offers a retry.
       if (!result.ok) {
-        setQuery(INITIAL_QUERY)
-        setData(initialData)
         setError(result.message)
-        return
-      } else if (!infoResult.ok) {
-        setDeckInfo(inititalInfo)
-        setError(infoResult.message)
         return
       }
 
       setError(null)
       setData(result.data)
-      setDeckInfo(infoResult.data)
+      // Metadata is a nice-to-have; a failed refresh keeps the old options.
+      if (infoResult.ok) setDeckInfo(infoResult.data)
       setQuery(next)
+      // Mirror the committed query into the URL so filters survive
+      // refresh/back and are shareable — without a server round-trip.
+      window.history.replaceState(null, '', buildDecksUrl(next))
     })
-  }, [initialData])
+  }, [])
 
   const handleSearchSubmit = useCallback(() => {
     const { name, tags } = parseDeckSearchQuery(searchInput)
@@ -90,22 +87,23 @@ const DecksPageClient = ({ initialData, initialError, inititalInfo }: DecksPageP
   }, [fetchDecks, query])
 
   const handleRetry = useCallback(() => {
-    fetchDecks(query)
-  }, [fetchDecks, query])
+    fetchDecks(lastQueryRef.current)
+  }, [fetchDecks])
 
   const handleReset = useCallback(() => {
     setSearchInput('')
-    fetchDecks(INITIAL_QUERY)
+    fetchDecks(INITIAL_DECK_QUERY)
   }, [fetchDecks])
 
-  if (error) return <ErrorPageComponent onRetry={handleRetry} isPending={isPending} />
+  if (error && !data) {
+    return <ErrorPageComponent onRetry={handleRetry} isPending={isPending} />
+  }
 
   const decks = data?.data ?? []
   const total = data?.pagination.total ?? 0
   const totalPages = data?.pagination.totalPages ?? 1
   const currentPage = data?.pagination.page ?? query.page
-  // The info endpoint repeats some archetype names, so dedupe before listing them.
-  const availableArchetypes = [...new Set(deckInfo.archetypes?.map((a) => a.archetype) ?? [])]
+  const availableArchetypes = getArchetypeOptions(deckInfo)
   const hasActiveFilters = Boolean(query.archetype || query.name || query.tag)
 
   return (
@@ -119,6 +117,40 @@ const DecksPageClient = ({ initialData, initialError, inititalInfo }: DecksPageP
             Discover and share decks with the community
           </p>
         </header>
+
+        {showSigninNotice ? (
+          <div className="decks-page__notice" role="status">
+            <IconComponent icon="mdi:login-variant" className="decks-page__notice-icon" width={18} height={18} />
+            <p className="decks-page__notice-text">
+              Sign in to create and manage your own decks.
+            </p>
+            <button
+              type="button"
+              className="decks-page__notice-dismiss"
+              onClick={() => setNoticeDismissed(true)}
+              aria-label="Dismiss notice"
+            >
+              <IconComponent icon="mdi:close" width={16} height={16} aria-hidden />
+            </button>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="decks-page__notice decks-page__notice--error" role="alert">
+            <IconComponent icon="mdi:alert-circle-outline" className="decks-page__notice-icon" width={18} height={18} />
+            <p className="decks-page__notice-text">{error}</p>
+            <ButtonComponent
+              type="button"
+              variant="outline"
+              size="sm"
+              icon="mdi:refresh"
+              loading={isPending}
+              onClick={handleRetry}
+            >
+              Retry
+            </ButtonComponent>
+          </div>
+        ) : null}
 
         <DeckFiltersComponent
           searchValue={searchInput}

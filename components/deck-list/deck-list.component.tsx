@@ -46,7 +46,15 @@ const byExtraType = (a: DeckCardGroup, b: DeckCardGroup) => {
 const cardName = (group: DeckCardGroup) =>
   group.card?.name_en ?? `Card #${group.id}`;
 
-const DeckListComponent = ({ convertedDeck, name }: { convertedDeck: ConvertedDeck; name?: string }) => {
+type DeckListProps = {
+  convertedDeck: ConvertedDeck;
+  name?: string;
+  /** Section heading level — pick the next level below the parent heading
+   * so the document outline stays sequential (h1→h2, h3→h4, …). */
+  headingTag?: "h2" | "h3" | "h4";
+};
+
+const DeckListComponent = ({ convertedDeck, name, headingTag: HeadingTag = "h4" }: DeckListProps) => {
   const [listMode, setListMode] = useState<ListMode>("gallery");
   const { fullDeck, uniqueCardsData } = convertedDeck;
 
@@ -92,12 +100,12 @@ const DeckListComponent = ({ convertedDeck, name }: { convertedDeck: ConvertedDe
             className="deck-list__section"
             aria-label={section.label}
           >
-            <h4 className="deck-list__section-title">
+            <HeadingTag className="deck-list__section-title">
               {section.label}
               <span className="deck-list__section-count">
                 {sumCopies(section.groups)}
               </span>
-            </h4>
+            </HeadingTag>
 
             {listMode === "gallery" ? (
               <ul className="deck-list__grid">

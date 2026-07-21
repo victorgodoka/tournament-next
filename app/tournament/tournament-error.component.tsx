@@ -1,5 +1,6 @@
 import { Icon } from '@iconify/react'
-import { BackdropComponent, ButtonComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'
 
 type TournamentErrorProps = {

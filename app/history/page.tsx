@@ -11,8 +11,16 @@ export const metadata = pageMetadata({
     'Browse past and live Yu-Gi-Oh! tournaments on YGO Omega — rounds, banlists, and results.',
 })
 
-export default async function HistoryPage() {
-  const result = await getTournaments({ page: 1, limit: HISTORY_PAGE_LIMIT })
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const rawPage = Number(Array.isArray(params.page) ? params.page[0] : params.page)
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1
+
+  const result = await getTournaments({ page, limit: HISTORY_PAGE_LIMIT })
 
   return (
     <HistoryPageClient

@@ -11,8 +11,8 @@ describe('json-ld', () => {
 
     expect(jsonLd['@context']).toBe('https://schema.org')
     expect(jsonLd['@graph']).toHaveLength(2)
-    expect(jsonLd['@graph'][0]['@type']).toBe('WebApplication')
-    expect(jsonLd['@graph'][1]['@type']).toBe('Organization')
+    expect(jsonLd['@graph'][0]!['@type']).toBe('WebApplication')
+    expect(jsonLd['@graph'][1]!['@type']).toBe('Organization')
   })
 
   it('builds leaderboard JSON-LD with list items', () => {

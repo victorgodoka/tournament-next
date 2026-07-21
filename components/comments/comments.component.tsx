@@ -1,10 +1,22 @@
 import { ApiResult } from "@lib/api-result";
 import CommentComponent from "./comment.component";
-import type { Comment, SavedDeckComments } from '@app/decks/decks.types'
+import type { SavedDeckComments } from '@app/decks/decks.types'
 import { buildCommentTree, extractComments } from "@lib/comment.utils";
 
 const CommentsComponent = ({ commentsResult }: { commentsResult: ApiResult<SavedDeckComments> }) => {
-  if (!commentsResult || !commentsResult.ok) return;
+  // A failed fetch still renders the section shell — silently hiding it would
+  // read as "this deck has no comments".
+  if (!commentsResult.ok) {
+    return (
+      <section className="comments omega-surface" id="comment-section" aria-labelledby="comments-heading">
+        <h2 id="comments-heading" className="comments__title">Comments</h2>
+        <p className="comments__empty" role="status">
+          Couldn&apos;t load comments. Refresh the page to try again.
+        </p>
+      </section>
+    )
+  }
+
   const comments = extractComments(commentsResult.data)
   const commentTree = buildCommentTree(comments)
 

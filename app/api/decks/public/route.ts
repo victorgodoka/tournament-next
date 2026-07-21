@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server'
-import { API_ENDPOINTS } from '@const'
-import { authHeader } from '@lib/auth-header'
 import { getSessionToken } from '@lib/session.server'
+import { proxyJson } from '@lib/api-proxy'
 
 /** Proxies the public decks feed so the httpOnly session cookie can be
  * forwarded as a Bearer token — that's what lets the response carry `liked`
@@ -11,11 +9,5 @@ export async function GET(request: Request) {
   const token = await getSessionToken()
   const { search } = new URL(request.url)
 
-  const response = await fetch(
-    `${API_ENDPOINTS.MAIN}/saved-decks/public/all${search}`,
-    { headers: authHeader(token) },
-  )
-
-  const data: unknown = await response.json()
-  return NextResponse.json(data, { status: response.status })
+  return proxyJson(`/saved-decks/public/all${search}`, { method: 'GET', token })
 }

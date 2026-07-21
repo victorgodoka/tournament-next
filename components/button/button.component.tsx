@@ -78,12 +78,15 @@ function ButtonContent({
 }) {
   const showStartIcon = loading || (icon && iconPosition === 'start')
   const showEndIcon = !loading && icon && iconPosition === 'end'
+  const iconClasses = ['button__icon', iconClassname, loading ? 'button__icon--spin' : '']
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <>
       {showStartIcon && (
         <IconComponent
-          className={`button__icon ${iconClassname}${loading ? ' button__icon--spin' : ''}`}
+          className={iconClasses}
           icon={loading ? 'mdi:loading' : icon!}
           width={18}
           height={18}
@@ -92,7 +95,7 @@ function ButtonContent({
       )}
       {children && <div className="button__label">{children}</div>}
       {showEndIcon && (
-        <IconComponent className="button__icon" icon={icon} width={18} height={18} aria-hidden />
+        <IconComponent className={iconClasses} icon={icon} width={18} height={18} aria-hidden />
       )}
     </>
   )
@@ -148,6 +151,7 @@ const ButtonComponent = ({
           icon={icon}
           iconPosition={iconPosition}
           loading={loading}
+          iconClassname={iconClassname}
         >
           {children}
         </ButtonContent>
@@ -169,6 +173,7 @@ const ButtonComponent = ({
         icon={icon}
         iconPosition={iconPosition}
         loading={loading}
+        iconClassname={iconClassname}
       >
         {children}
       </ButtonContent>

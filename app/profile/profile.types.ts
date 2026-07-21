@@ -15,6 +15,6 @@ export interface ProfileCustomizationData {
   socialInstagram?: string
 }
 
-export interface UpdateProfileResponse {
-  data: ProfileCustomizationData
+export type ProfileIdClientProps = {
+  profileId: string
 }

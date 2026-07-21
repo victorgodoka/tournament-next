@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { TERMS_META, TERMS_SECTION_NAV } from './terms.const'
 import './terms.styles.css'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 const TermsPage = () => {
   return (

@@ -13,13 +13,3 @@ export function apiSuccess<T>(data: T): ApiResult<T> {
 export function apiFailure<T>(message: string): ApiResult<T> {
   return { ok: false, message }
 }
-
-export function unwrapApiData<T>(body: unknown): T | null {
-  if (!isRecord(body)) return null
-
-  if ('data' in body && body.data !== undefined) {
-    return body.data as T
-  }
-
-  return body as T
-}

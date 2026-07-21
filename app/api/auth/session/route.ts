@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import { API_ENDPOINTS } from '@const'
+import { isRecord } from '@lib/api-result'
 import { getSessionToken, SESSION_COOKIE } from '@lib/session.server'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 /**
  * Mints the app session from a Discord access token, never a client-supplied

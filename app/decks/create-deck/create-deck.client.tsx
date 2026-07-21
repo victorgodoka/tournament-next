@@ -2,11 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 import DeckEditorComponent from '../deck-editor.component'
 import { createDeck } from '../decks.api'
+import { clearFormDraft } from '@lib/form-draft'
 import type { DeckEditorValues } from '../decks.types'
 import type { CreateDeckClientProps } from './create-deck.types'
+
+const DRAFT_KEY = 'deck-create'
 
 const CreateDeckClient = ({ archetypeOptions }: CreateDeckClientProps) => {
   const router = useRouter()
@@ -22,22 +25,23 @@ const CreateDeckClient = ({ archetypeOptions }: CreateDeckClientProps) => {
         return
       }
 
-      router.push(`/decks/${result.data.data.id}`)
+      clearFormDraft(DRAFT_KEY)
+      router.push(`/decks/${result.data.id}`)
     })
   }
 
   return (
-    <div className="create-deck">
+    <div className="deck-form-page">
       <BackdropComponent />
 
-      <div className="create-deck__content omega-container omega-container--narrow">
-        <header className="create-deck__header">
-          <span className="create-deck__kicker">
-            <span className="create-deck__kicker-mark" aria-hidden="true" />
+      <div className="deck-form-page__content omega-container omega-container--narrow">
+        <header className="deck-form-page__header">
+          <span className="deck-form-page__kicker">
+            <span className="deck-form-page__kicker-mark" aria-hidden="true" />
             New Deck
           </span>
-          <h1 className="create-deck__title">Create Deck</h1>
-          <p className="create-deck__lead">
+          <h1 className="deck-form-page__title">Create Deck</h1>
+          <p className="deck-form-page__lead">
             Share a build with the community, or keep it private for your own collection.
           </p>
         </header>
@@ -49,6 +53,7 @@ const CreateDeckClient = ({ archetypeOptions }: CreateDeckClientProps) => {
           cancelHref="/decks"
           isSubmitting={isPending}
           error={error}
+          draftKey={DRAFT_KEY}
           onSubmit={handleSubmit}
         />
       </div>

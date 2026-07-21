@@ -6,25 +6,16 @@ declare global {
   }
 }
 
-function ensureDataLayer(): Array<Record<string, unknown>> {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  window.dataLayer = window.dataLayer ?? []
-  return window.dataLayer
-}
-
 export function pushGtmEvent<TEvent extends GtmEventName>(
   event: TEvent,
   params?: GtmEventPayload[TEvent],
 ) {
-  const dataLayer = ensureDataLayer()
-  if (dataLayer.length === 0 && typeof window === 'undefined') {
+  if (typeof window === 'undefined') {
     return
   }
 
-  dataLayer.push({
+  window.dataLayer = window.dataLayer ?? []
+  window.dataLayer.push({
     event,
     ...(params ?? {}),
   })

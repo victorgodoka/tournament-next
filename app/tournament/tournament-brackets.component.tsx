@@ -53,7 +53,9 @@ const TournamentBrackets = ({ rounds, users }: TournamentBracketsProps) => {
               </li>
             ))}
             {round.bye && (
-              <TournamentDuel duel={getMockByeDuelProps(round.bye, round.starttime)} users={users} />
+              <li>
+                <TournamentDuel duel={getMockByeDuelProps(round.bye, round.starttime)} users={users} />
+              </li>
             )}
           </ul>
         </details>

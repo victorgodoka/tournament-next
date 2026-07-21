@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import { AvatarComponent, DeckListComponent, SkeletonComponent } from "@components";
+import AvatarComponent from '@components/avatar/avatar.component'
+import DeckListComponent from '@components/deck-list/deck-list.component'
+import SkeletonComponent from '@components/skeleton/skeleton.component'
 import { discordAvatar } from "@assets/discord.avatar";
 import { cached } from "@lib/client-cache";
 import { convertDeck } from "../decks/decks.api";
@@ -53,6 +55,7 @@ const TournamentTopCut = ({ topcutPlayers, topcutData }: TournamentDetail) => {
     if (!topcutPlayers?.length) return;
 
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for the fetch this effect owns
     setState("loading");
 
     Promise.all(

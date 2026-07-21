@@ -1,6 +1,7 @@
 export interface TournamentDetailResponse {
   success: boolean;
-  data: TournamentDetail;
+  /** Absent when the upstream reports success: false (e.g. no live event). */
+  data?: TournamentDetail;
 }
 
 export type TournamentPageProps = {

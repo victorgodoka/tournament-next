@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { PRIVACY_META, PRIVACY_SECTION_NAV } from './privacy.const'
 import './privacy.styles.css'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 const PrivacyEmailLink = () => (
   <a href={`mailto:${PRIVACY_META.email}`}>{PRIVACY_META.email}</a>

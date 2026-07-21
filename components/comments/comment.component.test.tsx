@@ -6,7 +6,7 @@ import { buildCommentTree } from '@lib/comment.utils'
 describe('CommentComponent', () => {
   it('renders the Discord display name, handle and body', () => {
     const [comment] = buildCommentTree([createComment()])
-    render(<CommentComponent comment={comment} />)
+    render(<CommentComponent comment={comment!} />)
 
     expect(screen.getByText('Test Duelist')).toBeInTheDocument()
     expect(screen.getByText('@duelist')).toBeInTheDocument()
@@ -24,7 +24,7 @@ describe('CommentComponent', () => {
         },
       }),
     ])
-    render(<CommentComponent comment={comment} />)
+    render(<CommentComponent comment={comment!} />)
 
     expect(screen.getByText('handleonly')).toBeInTheDocument()
   })
@@ -44,7 +44,7 @@ describe('CommentComponent', () => {
         },
       }),
     ])
-    render(<CommentComponent comment={root} />)
+    render(<CommentComponent comment={root!} />)
 
     // Both the parent and its threaded reply render from a single top-level node.
     expect(screen.getByText('Parent comment')).toBeInTheDocument()
@@ -59,7 +59,7 @@ describe('CommentComponent', () => {
         updated_at: '2026-07-13T04:31:03.000Z',
       }),
     ])
-    render(<CommentComponent comment={comment} />)
+    render(<CommentComponent comment={comment!} />)
 
     expect(screen.getByText('(edited)')).toBeInTheDocument()
   })
@@ -74,8 +74,8 @@ describe('buildCommentTree', () => {
     ])
 
     expect(tree.map((node) => node.id)).toEqual([1, 2])
-    expect(tree[0].replies.map((node) => node.id)).toEqual([3])
-    expect(tree[1].replies).toEqual([])
+    expect(tree[0]!.replies.map((node) => node.id)).toEqual([3])
+    expect(tree[1]!.replies).toEqual([])
   })
 
   it('promotes orphaned replies (missing parent) to top level', () => {
@@ -84,6 +84,6 @@ describe('buildCommentTree', () => {
     ])
 
     expect(tree).toHaveLength(1)
-    expect(tree[0].id).toBe(5)
+    expect(tree[0]!.id).toBe(5)
   })
 })

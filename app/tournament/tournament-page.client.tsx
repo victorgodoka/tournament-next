@@ -16,7 +16,7 @@ import TournamentTable from './tournament-table.component'
 import TournamentTopCut from './tournament-topcut.component'
 import TournamentData from './tournament-data.component'
 import TournamentRefreshButton from './tournament-refresh-button.component'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 type TournamentPageClientProps = {
   detail: TournamentDetail | null

@@ -1,27 +1,21 @@
 import { API_ENDPOINTS } from "@const";
-import { apiFailure, ApiResult, apiSuccess } from "@lib/api-result";
+import { fetchJson } from "@lib/api-fetch";
+import { isRecord, type ApiResult } from "@lib/api-result";
 import { TournamentGetProps, TournamentsListResponse } from "./history.types";
 
-export const getTournaments = async ({ page = 1, limit = 20 }: TournamentGetProps): Promise<ApiResult<TournamentsListResponse>> => {
-  try {
-    const queryParams = new URLSearchParams();
-    queryParams.append("page", page.toString());
-    queryParams.append("limit", limit.toString());
-    const url = `${API_ENDPOINTS.MAIN}/tournaments?${queryParams.toString()}`
-    const response = await fetch(url)
-    if (!response.ok) {
-      return apiFailure('Failed to fetch player customization data')
-    }
+/** Envelope + list/pagination shape; tournament entries are narrowed once
+ * and consumed defensively by the listing UI. */
+function parseTournamentsListResponse(body: unknown): TournamentsListResponse | null {
+  if (!isRecord(body) || !isRecord(body.data)) return null
+  if (!Array.isArray(body.data.tournaments) || !isRecord(body.data.pagination)) return null
+  return body as unknown as TournamentsListResponse
+}
 
-    const data: TournamentsListResponse = await response.json()
-    return apiSuccess(data)
-  }
-  catch (error) {
-    console.error("Get Tournaments Error:", error);
-    return apiFailure(
-      error instanceof Error
-        ? error.message
-        : 'Failed to fetch player customization data',
-    )
-  }
+export const getTournaments = ({ page = 1, limit = 20 }: TournamentGetProps): Promise<ApiResult<TournamentsListResponse>> => {
+  const queryParams = new URLSearchParams({ page: String(page), limit: String(limit) })
+
+  return fetchJson(`${API_ENDPOINTS.MAIN}/tournaments?${queryParams}`, {
+    parse: parseTournamentsListResponse,
+    errorMessage: 'Failed to fetch tournament history',
+  })
 }

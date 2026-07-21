@@ -2,10 +2,10 @@ import { TournamentPlayerStats, TournamentDetail, TournamentSettings, Tournament
 import { calculateWinRate } from "../profile/profile.utils";
 
 export const decodeDuelData = (data: number): TournamentSettings => {
-  const result = {
-    mode: '',
+  const result: TournamentSettings = {
+    mode: 'Single',
     mr: 0,
-    region: '',
+    region: 'TCG',
     timer: 0,
     draw: false,
     startingHand: 0,
@@ -36,7 +36,7 @@ export const decodeDuelData = (data: number): TournamentSettings => {
   result.duelRule = Math.floor(data / 2 ** 32) & 0b111;
   result.allowBeta = (Math.floor(data / 2 ** 35) & 0b1) === 1;
 
-  return result as TournamentSettings;
+  return result;
 }
 
 /**
@@ -142,6 +142,12 @@ export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerSt
     const totalOpponentOpponentWinPercentage = opponentOpponentWinPercentage(user.user_id);
     const sumOfSquaresOfLostRounds = lostRounds.reduce((sum, round) => sum + (round * round), 0);
 
+    // Tiebreaker sort key, most-significant first, zero-padded so the
+    // concatenated string compares numerically:
+    //   AA  = match points (rating, clamped to 0–99)
+    //   BBB = opponents' win% ×10 (Buchholz-style strength of schedule)
+    //   CCC = opponents' opponents' win% ×10
+    //   DDD = sum of squares of the rounds lost (late losses weigh more)
     const AA = Math.max(0, Math.min(Math.round(user.stats.rating), 99)).toString().padStart(2, '0');
     const BBB = Math.min(Math.round(totalOpponentWinPercentage * 10), 999).toString().padStart(3, '0');
     const CCC = Math.min(Math.round(totalOpponentOpponentWinPercentage * 10), 999).toString().padStart(3, '0');
@@ -168,8 +174,8 @@ export function calculateTiebreakers(data: TournamentDetail): TournamentPlayerSt
   });
 
   return playerStats.sort((a, b) => {
-    const tiebreakerA = parseInt(a.tiebreaker);
-    const tiebreakerB = parseInt(b.tiebreaker);
+    const tiebreakerA = parseInt(a.tiebreaker, 10);
+    const tiebreakerB = parseInt(b.tiebreaker, 10);
     return tiebreakerB - tiebreakerA;
   });
 }

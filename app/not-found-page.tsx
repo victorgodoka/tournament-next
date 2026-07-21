@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import './not-found.styles.css'
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 const NotFoundPage = () => {
   return (

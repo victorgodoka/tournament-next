@@ -45,6 +45,7 @@ const TournamentTabs = ({
         ? (currentIndex + 1) % enabledTabs.length
         : (currentIndex - 1 + enabledTabs.length) % enabledTabs.length
     const nextTab = enabledTabs[nextIndex]
+    if (!nextTab) return
     onTabChange(nextTab.id)
     document.getElementById(`tournament-tab-${nextTab.id}`)?.focus()
   }

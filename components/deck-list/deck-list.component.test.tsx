@@ -3,7 +3,7 @@ import { createConvertedDeck } from '../../test/fixtures/deck.fixture'
 import { fireEvent, render, screen, userEvent, within } from '../../test/test-utils'
 import DeckListComponent from './deck-list.component'
 
-const renderDeck = () => render(<DeckListComponent {...createConvertedDeck()} />)
+const renderDeck = () => render(<DeckListComponent convertedDeck={createConvertedDeck()} />)
 
 describe('DeckListComponent', () => {
   it('splits cards into Main, Extra and Side sections', () => {
@@ -23,7 +23,7 @@ describe('DeckListComponent', () => {
       main.getByRole('img', { name: 'Ash Blossom & Joyous Spring' }),
     ).toHaveAttribute(
       'src',
-      'https://ygopro.online/assets/card-images/common//14558127.jpg',
+      'https://ygopro.online/assets/card-images/common/14558127.jpg',
     )
     // Ash appears three times in the main deck -> collapsed with a count badge.
     expect(main.getByText('×3')).toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('DeckListComponent', () => {
     // A single grouped row, not three separate lines.
     const ashRows = main.getAllByText('Ash Blossom & Joyous Spring')
     expect(ashRows).toHaveLength(1)
-    const ashRow = within(ashRows[0].closest('li') as HTMLElement)
+    const ashRow = within(ashRows[0]!.closest('li') as HTMLElement)
     expect(ashRow.getByText('3')).toBeInTheDocument()
 
     const side = within(screen.getByRole('region', { name: 'Side Deck' }))

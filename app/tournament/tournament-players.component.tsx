@@ -1,4 +1,4 @@
-import { AvatarComponent } from '@components'
+import AvatarComponent from '@components/avatar/avatar.component'
 import { discordAvatar } from '@assets/discord.avatar'
 import type { TournamentUser } from './tournament.types'
 import {

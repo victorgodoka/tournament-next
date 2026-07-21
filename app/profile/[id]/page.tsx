@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { discordAvatar } from '@assets/discord.avatar'
 import { getPlayer } from '../../discord/discord.api'
+import { getPlayerCustomization } from '../profile.api'
 import { profileJsonLd } from '@lib/json-ld'
 import { pageMetadata } from '@lib/page-metadata'
 import ProfilePageClient from './profile-page.client'
@@ -42,8 +43,15 @@ export async function generateMetadata({
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { id } = await params
-  const result = await getPlayer(id)
-  const player = result.ok ? result.data : null
+  // getPlayer here is deduped with generateMetadata's call by fetch
+  // memoization; customization is fetched in parallel rather than left for
+  // the client to re-request after hydration.
+  const [playerResult, customizationResult] = await Promise.all([
+    getPlayer(id),
+    getPlayerCustomization(id),
+  ])
+
+  const player = playerResult.ok ? playerResult.data ?? null : null
   const avatarUrl =
     player?.avatar ? discordAvatar(player.id, player.avatar) : undefined
 
@@ -66,7 +74,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           }}
         />
       ) : null}
-      <ProfilePageClient profileId={id} />
+      <ProfilePageClient
+        key={id}
+        profileId={id}
+        initialProfile={player}
+        initialCustomization={customizationResult.ok ? customizationResult.data : null}
+        initialError={playerResult.ok ? null : playerResult.message ?? 'Failed to load profile.'}
+      />
     </>
   )
 }

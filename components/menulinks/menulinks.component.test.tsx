@@ -14,7 +14,8 @@ describe('MenulinksComponent', () => {
     await user.click(playTrigger)
 
     expect(playTrigger).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('menu', { name: 'Play' })).toBeVisible()
+    // Disclosure pattern: an expanded list of plain links, no ARIA menu roles.
+    expect(screen.getByRole('list', { name: 'Play' })).toBeVisible()
 
     await user.keyboard('{Escape}')
 
@@ -66,7 +67,7 @@ describe('MenulinksComponent', () => {
       screen.getByRole('button', { name: /open navigation menu/i }),
     )
 
-    const playSection = screen.getAllByRole('button', { name: 'Play' })[1]
+    const playSection = screen.getAllByRole('button', { name: 'Play' })[1]!
     expect(playSection).toHaveAttribute('aria-expanded', 'false')
 
     await user.click(playSection)

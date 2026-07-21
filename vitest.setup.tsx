@@ -7,6 +7,31 @@ afterEach(() => {
   cleanup()
 })
 
+// Iconify fetches icon data over the network at runtime; in tests that means
+// stray timers that fire after environment teardown ("window is not defined").
+// Icons are decorative everywhere (aria-hidden), so a static stub is enough.
+vi.mock('@iconify/react', () => ({
+  Icon: ({
+    icon,
+    className,
+    width,
+    height,
+  }: {
+    icon: string
+    className?: string
+    width?: number | string
+    height?: number | string
+  }) => (
+    <svg
+      data-icon={icon}
+      className={className}
+      width={width}
+      height={height}
+      aria-hidden="true"
+    />
+  ),
+}))
+
 vi.mock('next/link', () => ({
   default: ({
     href,

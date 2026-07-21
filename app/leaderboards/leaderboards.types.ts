@@ -24,5 +24,5 @@ export interface PlayerStats {
   ot: string
 }
 
-export interface TCG extends PlayerStats {}
-export interface Genesys extends PlayerStats {}
+export type TCG = PlayerStats
+export type Genesys = PlayerStats

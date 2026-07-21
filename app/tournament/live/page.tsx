@@ -15,7 +15,7 @@ export const revalidate = 300
 
 export default async function TournamentLivePage() {
   const result = await getLiveTournament()
-  const detail = result.ok && result.data.success ? result.data.data : null
+  const detail = result.ok && result.data.success ? result.data.data ?? null : null
   const error = detail
     ? null
     : result.ok

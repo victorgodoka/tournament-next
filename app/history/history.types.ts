@@ -6,7 +6,7 @@ export type TournamentGetProps = {
 }
 export interface TournamentsListResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data: {
     tournaments: Tournament[];
     pagination: TournamentPagination;

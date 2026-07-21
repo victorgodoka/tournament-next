@@ -28,6 +28,7 @@ describe('LeaderboardsPageClient', () => {
       <LeaderboardsPageClient
         data={null}
         error="Failed to load leaderboard."
+        initialMode="TCG"
       />,
     )
 
@@ -45,7 +46,7 @@ describe('LeaderboardsPageClient', () => {
     const data = createLeaderboardData()
     data.TCG = []
 
-    render(<LeaderboardsPageClient data={data} error={null} />)
+    render(<LeaderboardsPageClient data={data} error={null} initialMode="TCG" />)
 
     expect(screen.getByText(/no ranked players yet for tcg/i)).toBeInTheDocument()
   })
@@ -54,7 +55,7 @@ describe('LeaderboardsPageClient', () => {
     const user = userEvent.setup()
     const data = createLeaderboardData()
 
-    render(<LeaderboardsPageClient data={data} error={null} />)
+    render(<LeaderboardsPageClient data={data} error={null} initialMode="TCG" />)
 
     expect(screen.getByText('TCG Champion')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /tcg champion/i })).toHaveAttribute(

@@ -10,7 +10,7 @@ import type { SavedDeck } from './decks.types'
 import { DECK_COVER_FALLBACK } from './decks.const'
 import { getDeckCreatorName, resolveDeckCoverId } from './decks.utils'
 import { toggleLike } from './decks.api'
-import { ButtonComponent } from '@components'
+import ButtonComponent from '@components/button/button.component'
 
 type DeckCardProps = {
   deck: SavedDeck
@@ -133,7 +133,12 @@ const DeckCardComponent = ({ deck, onArchetypeClick }: DeckCardProps) => {
             </ButtonComponent>
           </span>
           <span className="deck-card__stat">
-            <ButtonComponent iconClassname={true ? "deck-card__icon--commented" : ""} href={`${deckHref}/#comment-section`} variant="link" icon={true ? "mdi:comment" : "mdi:comment-outline"}>
+            <ButtonComponent
+              iconClassname={deck.comment_count ? 'deck-card__icon--commented' : ''}
+              href={`${deckHref}#comment-section`}
+              variant="link"
+              icon={deck.comment_count ? 'mdi:comment' : 'mdi:comment-outline'}
+            >
               {deck.comment_count ?? 0}
             </ButtonComponent>
           </span>

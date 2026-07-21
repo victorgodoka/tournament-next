@@ -1,4 +1,4 @@
-import { BackdropComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 import IconComponent from '../../components/icon/icon.component'
 import type { DiscordLoadingState } from '../../hooks/use-discord-login'
 

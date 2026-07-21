@@ -187,32 +187,29 @@ export interface FullDeck {
   side: number[]
 }
 
-export interface Set {
-  code: string
-  name: string
-}
+export type DeckSortValue = 'created_at' | 'likes' | 'comments'
 
-export interface BanlistData {
-  tcg?: Banlist
-  ocg?: Banlist
-  wcs: Banlist
-}
-
-export interface Banlist {
-  banlist: string
-  value: number
-  status: string
+/** The full filter/sort/page state of the community decks listing. */
+export interface DeckQuery {
+  name?: string
+  tag?: string
+  archetype: string
+  sortBy: DeckSortValue
+  order: 'asc' | 'desc'
+  page: number
 }
 
 export interface DecksPageProps {
   initialData: SavedDecksResponse | null
   initialError: string | null
-  inititalInfo: DeckInfoResponse
+  initialInfo: DeckInfoResponse
+  initialQuery: DeckQuery
+  initialNotice?: string | null
 }
 
 export interface LikedResponse {
-  success: boolean 
-  message: string 
+  success: boolean
+  message: string
   liked: boolean
   likes: number
 }
@@ -229,9 +226,4 @@ export interface DeckEditorValues {
   archetypes: string[]
   tags: string[]
   private: boolean
-}
-
-export interface CreatedDeckResponse {
-  success: boolean
-  data: { id: number }
 }

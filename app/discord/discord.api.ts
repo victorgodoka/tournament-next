@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@const'
+import { isRecord } from '@lib/api-result'
 import type { PlayerData } from '../../types/player.types'
 import type {
   DiscordMe,
@@ -6,10 +7,6 @@ import type {
   DiscordUserResponse,
   PlayerDataResponse,
 } from './discord.types'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
 
 function isDiscordUser(data: unknown): data is DiscordUser {
   if (!isRecord(data)) return false

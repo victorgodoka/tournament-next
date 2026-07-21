@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
-import { AuthManager } from '@contexts/Auth/auth.manager'
+import * as AuthManager from '@contexts/Auth/auth.manager'
 import { consumeAuthRedirectFrom } from '@contexts/Auth/auth.redirect'
 import { getPlayer, getUser } from '../app/discord/discord.api'
 import {
@@ -231,15 +231,8 @@ export function useDiscordLogin() {
         }
       }
 
-      if (
-        isAuthenticatedUser(currentUser) &&
-        oauthReady &&
-        !isDiscordTokenValid()
-      ) {
-        await completeLogin()
-        return
-      }
-
+      // Past the early return above, an authenticated user always has OAuth
+      // params present — so this pair of branches covers every remaining case.
       if (!isDiscordTokenValid() || !isAuthenticatedUser(currentUser)) {
         await completeLogin()
       } else {

@@ -1,73 +1,8 @@
-/* Block: edit-deck — owner-only saved deck editing page */
+/* Block: deck-danger — destructive action zone on the edit page.
+   The page shell (.deck-form-page*) is shared and lives in
+   ../../deck-editor.styles.css. */
 
-.edit-deck {
-  position: relative;
-  isolation: isolate;
-  min-height: calc(100dvh - var(--header-height) - var(--footer-height));
-  overflow: clip;
-}
-
-.edit-deck__content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  padding-block: var(--space-10) var(--space-12);
-  animation: edit-deck-enter var(--duration-slow) var(--ease-out) both;
-}
-
-/* Element: page header */
-
-.edit-deck__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.edit-deck__kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-text-subtle);
-}
-
-.edit-deck__kicker-mark {
-  width: 0.5rem;
-  height: 0.5rem;
-  rotate: 45deg;
-  background: var(--color-secondary);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-secondary) 70%, transparent);
-}
-
-.edit-deck__title {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 1.6rem + 1.8vw, 2.75rem);
-  font-weight: var(--weight-semibold);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-text);
-}
-
-.edit-deck__lead {
-  max-width: 52ch;
-  font-size: var(--text-base);
-  color: var(--color-text-muted);
-}
-
-.edit-deck__lead strong {
-  color: var(--color-text);
-  font-weight: var(--weight-medium);
-}
-
-/* Element: danger zone — visually separated destructive action */
-
-.edit-deck__danger {
+.deck-danger {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -79,59 +14,39 @@
   background-color: color-mix(in srgb, var(--color-error) 6%, var(--palette-dominant));
 }
 
-.edit-deck__danger-copy {
+.deck-danger__copy {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.edit-deck__danger-title {
+.deck-danger__title {
   font-family: var(--font-ui);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: var(--color-text);
 }
 
-.edit-deck__danger-text {
+.deck-danger__text {
   max-width: 44ch;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
-.edit-deck__danger-actions {
+.deck-danger__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 /* Outline button leans red inside the danger zone */
-.edit-deck__danger-trigger {
+.deck-danger__trigger {
   border-color: color-mix(in srgb, var(--color-error) 45%, transparent);
   color: var(--color-error);
 }
 
-.edit-deck__danger-error {
+.deck-danger__error {
   flex-basis: 100%;
   font-size: var(--text-sm);
   color: var(--color-error);
-}
-
-/* Animations */
-
-@keyframes edit-deck-enter {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .edit-deck__content {
-    animation: none;
-  }
 }

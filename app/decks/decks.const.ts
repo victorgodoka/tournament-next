@@ -1,8 +1,19 @@
-import { DeckInfoResponse } from "./decks.types"
+import { DeckInfoResponse, DeckQuery, DeckSortValue } from "./decks.types"
 
 export const DECK_COVER_FALLBACK = '/logo.png'
 
-export type DeckSortValue = 'created_at' | 'likes' | 'comments'
+export const DECKS_PAGE_SIZE = 20
+
+export type { DeckSortValue } from "./decks.types"
+
+export const INITIAL_DECK_QUERY: DeckQuery = {
+  name: undefined,
+  tag: undefined,
+  archetype: '',
+  sortBy: 'created_at',
+  order: 'desc',
+  page: 1,
+}
 
 export type DeckSortOption = {
   value: DeckSortValue

@@ -14,6 +14,13 @@ function getInitials(alt: string) {
     .join('')
 }
 
+const IMAGE_SIZES = {
+  sm: 30,
+  md: 38,
+  lg: 54,
+  xl: 78,
+} as const
+
 const AvatarComponent = ({
   src,
   alt,
@@ -40,17 +47,17 @@ const AvatarComponent = ({
     ? { border: `${borderWidth}px solid ${borderColor}` }
     : undefined
 
-  const imageSizes = {
-    sm: 30,
-    md: 38,
-    lg: 54,
-    xl: 78,
-  } as const
-
-  const dimension = imageSizes[size]
+  const dimension = IMAGE_SIZES[size]
 
   return (
-    <span className={classes} style={borderStyle}>
+    <span
+      className={classes}
+      style={borderStyle}
+      // The fallback initials are decorative — the accessible name has to
+      // live on the wrapper or the avatar is nameless when the image fails.
+      role={showImage ? undefined : 'img'}
+      aria-label={showImage ? undefined : alt}
+    >
       {showImage ? (
         <Image
           className="avatar__image"

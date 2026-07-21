@@ -40,8 +40,8 @@ describe('TournamentData', () => {
     const fills = [
       ...container.querySelectorAll<HTMLElement>('.tournament-data__share-bar > span'),
     ]
-    expect(fills[0].style.width).toBe('100%') // leader
-    expect(fills[1].style.width).toBe('60%') // 3 of 5
+    expect(fills[0]!.style.width).toBe('100%') // leader
+    expect(fills[1]!.style.width).toBe('60%') // 3 of 5
   })
 
   it('shows each archetype engine with a card-art thumbnail', () => {

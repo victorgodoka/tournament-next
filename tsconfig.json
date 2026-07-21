@@ -5,6 +5,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -19,9 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
       "@app/*": ["./app/*"],
-      "@components": ["./components/index.tsx"],
+      "@components/*": ["./components/*"],
       "@contexts": ["./contexts/index.tsx"],
       "@contexts/*": ["./contexts/*"],
       "@const": ["./const/index.ts"],
@@ -29,7 +29,6 @@
       "@assets": ["./assets"],
       "@assets/*": ["./assets/*"],
       "@lib/*": ["./lib/*"],
-      "@types/*": ["./types/*"],
       "@test/*": ["./test/*"],
     }
   },

@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation'
 import { noIndexMetadata } from '@lib/page-metadata'
 import { getSessionToken } from '@lib/session.server'
 import { getDecksInfo } from '../decks.api'
+import { getArchetypeOptions } from '../decks.utils'
+import { EMPTY_DECK_INFO } from '../decks.const'
 import CreateDeckClient from './create-deck.client'
-import './create-deck.styles.css'
 
 export const metadata = noIndexMetadata(
   'Create Deck',
@@ -13,13 +14,10 @@ export const metadata = noIndexMetadata(
 
 const CreateDeckPage = async () => {
   const token = await getSessionToken()
-  if (!token) redirect('/decks')
+  if (!token) redirect('/decks?notice=signin')
 
   const infoResult = await getDecksInfo()
-  // The info endpoint repeats some archetype names, so dedupe before listing.
-  const archetypeOptions = infoResult.ok
-    ? [...new Set(infoResult.data.archetypes?.map((a) => a.archetype) ?? [])]
-    : []
+  const archetypeOptions = getArchetypeOptions(infoResult.ok ? infoResult.data : EMPTY_DECK_INFO)
 
   return <CreateDeckClient archetypeOptions={archetypeOptions} />
 }

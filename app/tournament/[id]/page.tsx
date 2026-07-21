@@ -37,7 +37,7 @@ export default async function TournamentDetailPage({
 }: TournamentPageProps) {
   const { id } = await params
   const result = await getTournamentByID(Number(id))
-  const detail = result.ok && result.data.success ? result.data.data : null
+  const detail = result.ok && result.data.success ? result.data.data ?? null : null
   const error = detail
     ? null
     : result.ok

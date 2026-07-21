@@ -1,27 +1,24 @@
-import { API_ENDPOINTS } from "@const"
-import { ExportingDeck } from "./deck-export.types";
-import { isExtra } from "@lib/cards.utils";
+import { API_ENDPOINTS } from "@const";
+import { buildCardLookup, isExtra } from "@lib/cards.utils";
 import { ConvertedDeck } from "@app/decks/decks.types";
 
-export const downloadYDK = async ({ name, fullDeck, uniqueCards, primaryArchetypeWeighted, uniqueCardsData }: ConvertedDeck & { name?: string }) => {
-  const getData = (c: number) => uniqueCardsData[c] || null;
-
-  const exportingDeck: ExportingDeck = { 
-    main: fullDeck.main, 
-    side: fullDeck.side, 
-    extra: fullDeck.main.filter((cardId) => uniqueCards[cardId] && getData(cardId) && isExtra(getData(cardId)))
+export const downloadYDK = ({ name, fullDeck, primaryArchetypeWeighted, uniqueCardsData }: ConvertedDeck & { name?: string }) => {
+  // The encoded deck stores extra-deck cards mixed into `main`; split them
+  // out by card type so the .ydk sections are correct.
+  const lookup = buildCardLookup(uniqueCardsData ?? []);
+  const isExtraId = (id: number) => {
+    const card = lookup.get(id);
+    return card !== undefined && isExtra(card);
   };
 
-  const copyright = `#created by Duelist Unite\n`
-  const mainDeck = exportingDeck.main.map((cardId) => `${cardId}`).join("\n");
-  const extraDeck = exportingDeck.extra.map((cardId) => `${cardId}`).join("\n");
-  const sideDeck = exportingDeck.side.map((cardId) => `${cardId}`).join("\n");
-  const content = `${copyright}\n#main\n${mainDeck}\n#extra\n${extraDeck}\n!side\n${sideDeck}`
+  const main = fullDeck.main.filter((id) => !isExtraId(id));
+  const extra = fullDeck.main.filter(isExtraId);
 
-  return download(content, name || primaryArchetypeWeighted);
+  const content = `#created by Duelist Unite\n\n#main\n${main.join("\n")}\n#extra\n${extra.join("\n")}\n!side\n${fullDeck.side.join("\n")}`;
+  download(content, name || primaryArchetypeWeighted);
 }
 
-export const download = async (text: string, name?: string) => {
+export const download = (text: string, name?: string) => {
   const blob = new Blob([text], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -30,6 +27,7 @@ export const download = async (text: string, name?: string) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export const importOmega = async (code: string, name?: string) => {

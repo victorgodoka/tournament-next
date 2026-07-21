@@ -3,7 +3,9 @@
 import { useCallback, useState, useTransition, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
-import { BackdropComponent, ButtonComponent, ErrorPageComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
+import ErrorPageComponent from '@components/error-page/error-page.component'
 import { getTournaments } from './history.api'
 import { HISTORY_PAGE_LIMIT } from './history.const'
 import {
@@ -86,6 +88,12 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
         setData(result.data.data)
         setError(null)
         setPage(targetPage)
+        // Keep the page shareable/restorable without a server round-trip.
+        window.history.replaceState(
+          null,
+          '',
+          targetPage > 1 ? `/history?page=${targetPage}` : '/history',
+        )
         return
       }
 
@@ -97,7 +105,14 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
   const pagination = data?.pagination ?? null
 
   if (error && !data) {
-    return <ErrorPageComponent />
+    return (
+      <ErrorPageComponent
+        title="Tournament history unavailable"
+        description={error}
+        onRetry={() => loadPage(page)}
+        isPending={isPending}
+      />
+    )
   }
 
   return (

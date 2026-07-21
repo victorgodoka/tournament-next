@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import DecksPageClient from './decks.client'
-import type { SavedDeck, SavedDecksResponse } from './decks.types'
+import type { DeckInfoResponse, SavedDeck, SavedDecksResponse } from './decks.types'
 import { parseDeckSearchQuery, resolveDeckCoverId } from './decks.utils'
 
 function makeDeck(overrides: Partial<SavedDeck> = {}): SavedDeck {
@@ -27,9 +27,17 @@ function makeDeck(overrides: Partial<SavedDeck> = {}): SavedDeck {
 
 const initialData: SavedDecksResponse = {
   success: true,
-  data: [makeDeck(), makeDeck({ id: 2, name: 'Tearlaments Combo', cover_id: null, archetypes: ['Tearlaments'] })],
+  data: [makeDeck(), makeDeck({ id: 2, name: 'Tearlaments Combo', cover_id: null, archetypes: ['Tearlaments'], username: 'tearfan', displayname: 'Tear Fan' })],
   pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
   filters: { availableArchetypes: ['Blue-Eyes', 'Dragon', 'Tearlaments'] },
+}
+
+const initialInfo: DeckInfoResponse = {
+  archetypes: [
+    { archetype: 'Blue-Eyes', ids: [] },
+    { archetype: 'Tearlaments', ids: [] },
+  ],
+  tags: ['competitive'],
 }
 
 describe('decks.utils', () => {
@@ -60,13 +68,29 @@ describe('decks.utils', () => {
   })
 })
 
+const initialQuery = {
+  name: undefined,
+  tag: undefined,
+  archetype: '',
+  sortBy: 'created_at',
+  order: 'desc',
+  page: 1,
+} as const
+
 describe('DecksPageClient', () => {
   it('renders header, filters, deck cards and stats without crashing', () => {
-    render(<DecksPageClient initialData={initialData} initialError={null} />)
+    render(
+      <DecksPageClient
+        initialData={initialData}
+        initialError={null}
+        initialInfo={initialInfo}
+        initialQuery={initialQuery}
+      />,
+    )
 
     expect(screen.getByRole('heading', { name: 'Community Decks' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search by name or #tags')).toBeInTheDocument()
-    expect(screen.getByText('2 Decks')).toBeInTheDocument()
+    expect(screen.getByText('2 decks')).toBeInTheDocument()
     expect(screen.getByText('Blue-Eyes Control')).toBeInTheDocument()
     expect(screen.getByText('Tearlaments Combo')).toBeInTheDocument()
     expect(screen.getByText('@blueeyesfan')).toBeInTheDocument()
@@ -74,9 +98,16 @@ describe('DecksPageClient', () => {
   })
 
   it('clicking an archetype chip updates the archetype select', () => {
-    render(<DecksPageClient initialData={initialData} initialError={null} />)
+    render(
+      <DecksPageClient
+        initialData={initialData}
+        initialError={null}
+        initialInfo={initialInfo}
+        initialQuery={initialQuery}
+      />,
+    )
 
-    const chip = screen.getAllByText('Tearlaments')[0]
+    const chip = screen.getAllByText('Tearlaments')[0]!
     fireEvent.click(chip)
 
     const select = screen.getByLabelText('Archetype') as HTMLSelectElement

@@ -52,10 +52,12 @@ const MenuDropdown = ({
 
   return (
     <li className="menulinks__item menulinks__item--dropdown">
+      {/* Disclosure pattern (button + expanded list of links) — the ARIA
+          menu/menuitem roles promise arrow-key navigation this nav doesn't
+          (and shouldn't) implement. */}
       <button
         type="button"
         className="menulinks__trigger"
-        aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={menuId}
         onClick={onToggle}
@@ -68,16 +70,14 @@ const MenuDropdown = ({
         ref={panelRef}
         id={menuId}
         className={`menulinks__panel${isOpen ? ' menulinks__panel--open' : ''}`}
-        role="menu"
         aria-label={group.label}
         hidden={!isOpen}
       >
         {group.items.map((item: MenuLinkItem) => (
-          <li key={item.to} className="menulinks__panel-item" role="none">
+          <li key={item.to} className="menulinks__panel-item">
             <Link
               href={item.to}
               className="menulinks__panel-link"
-              role="menuitem"
               onClick={onClose}
             >
               <MenuIcon name={item.icon} />
@@ -192,6 +192,7 @@ const MenulinksComponent = () => {
 
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
+      if (!first || !last) return
       const active = document.activeElement
 
       if (event.shiftKey && active === first) {

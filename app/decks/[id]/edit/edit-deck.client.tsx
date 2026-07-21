@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BackdropComponent, ButtonComponent } from '@components'
+import BackdropComponent from '@components/backdrop/backdrop.component'
+import ButtonComponent from '@components/button/button.component'
 import DeckEditorComponent from '../../deck-editor.component'
 import { deleteDeck, updateDeck } from '../../decks.api'
 import type { DeckEditorValues } from '../../decks.types'
@@ -44,17 +45,17 @@ const EditDeckClient = ({ deckId, initialValues, archetypeOptions }: EditDeckCli
   }
 
   return (
-    <div className="edit-deck">
+    <div className="deck-form-page">
       <BackdropComponent />
 
-      <div className="edit-deck__content omega-container omega-container--narrow">
-        <header className="edit-deck__header">
-          <span className="edit-deck__kicker">
-            <span className="edit-deck__kicker-mark" aria-hidden="true" />
+      <div className="deck-form-page__content omega-container omega-container--narrow">
+        <header className="deck-form-page__header">
+          <span className="deck-form-page__kicker">
+            <span className="deck-form-page__kicker-mark" aria-hidden="true" />
             Deck Settings
           </span>
-          <h1 className="edit-deck__title">Edit Deck</h1>
-          <p className="edit-deck__lead">
+          <h1 className="deck-form-page__title">Edit Deck</h1>
+          <p className="deck-form-page__lead">
             Update <strong>{initialValues.name}</strong> — changes are visible as soon as you save.
           </p>
         </header>
@@ -70,22 +71,28 @@ const EditDeckClient = ({ deckId, initialValues, archetypeOptions }: EditDeckCli
           onSubmit={handleSubmit}
         />
 
-        <section className="edit-deck__danger" aria-labelledby="edit-deck-danger-title">
-          <div className="edit-deck__danger-copy">
-            <h2 id="edit-deck-danger-title" className="edit-deck__danger-title">
+        <section className="deck-danger" aria-labelledby="deck-danger-title">
+          <div className="deck-danger__copy">
+            <h2 id="deck-danger-title" className="deck-danger__title">
               Danger zone
             </h2>
-            <p className="edit-deck__danger-text">
+            <p className="deck-danger__text">
               Deleting a deck is permanent — its likes and comments are lost.
             </p>
           </div>
 
           {confirmingDelete ? (
-            <div className="edit-deck__danger-actions">
+            <div
+              className="deck-danger__actions"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setConfirmingDelete(false)
+              }}
+            >
               <ButtonComponent
                 variant="danger"
                 icon="mdi:delete-forever-outline"
                 loading={isDeleting}
+                autoFocus
                 onClick={handleDelete}
               >
                 Confirm delete
@@ -102,7 +109,7 @@ const EditDeckClient = ({ deckId, initialValues, archetypeOptions }: EditDeckCli
             <ButtonComponent
               variant="outline"
               icon="mdi:delete-outline"
-              className="edit-deck__danger-trigger"
+              className="deck-danger__trigger"
               onClick={() => {
                 setDeleteError(null)
                 setConfirmingDelete(true)
@@ -113,7 +120,7 @@ const EditDeckClient = ({ deckId, initialValues, archetypeOptions }: EditDeckCli
           )}
 
           {deleteError ? (
-            <p className="edit-deck__danger-error" role="alert">
+            <p className="deck-danger__error" role="alert">
               {deleteError}
             </p>
           ) : null}

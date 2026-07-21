@@ -20,10 +20,8 @@ export default defineConfig({
       { find: '@assets', replacement: path.resolve(__dirname, './assets') },
       { find: /^@const\/(.+)/, replacement: `${path.resolve(__dirname, './const')}/$1` },
       { find: '@const', replacement: path.resolve(__dirname, './const/index.ts') },
-      { find: /^@types\/(.+)/, replacement: `${path.resolve(__dirname, './types')}/$1` },
       { find: /^@test\/(.+)/, replacement: `${path.resolve(__dirname, './test')}/$1` },
-      { find: '@components', replacement: path.resolve(__dirname, './components/index.tsx') },
-      { find: '@', replacement: path.resolve(__dirname, './src') },
+      { find: /^@components\/(.+)/, replacement: `${path.resolve(__dirname, './components')}/$1` },
     ],
   },
 })

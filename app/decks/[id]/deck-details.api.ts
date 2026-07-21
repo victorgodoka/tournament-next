@@ -1,6 +1,7 @@
 import { apiFailure, apiSuccess, type ApiResult } from "@lib/api-result";
 import { authHeader } from "@lib/auth-header";
 import { SavedDeckComments, SavedDeckDetails } from "../decks.types";
+import { normalizeSavedDeckDetails, parseSavedDeckComments } from "../decks.validation";
 import { API_ENDPOINTS } from "@const";
 
 // Both helpers run on the server (deck detail page). The token is the raw
@@ -20,12 +21,12 @@ export const getDeck = async (
       return apiFailure("Failed to fetch deck data");
     }
 
-    const json: { data?: SavedDeckDetails } = await response.json();
-    if (!json.data) {
+    const deck = normalizeSavedDeckDetails(await response.json());
+    if (!deck) {
       return apiFailure("Invalid deck response");
     }
 
-    return apiSuccess(json.data);
+    return apiSuccess(deck);
   } catch (error) {
     console.error("Get Deck Error:", error);
     return apiFailure(error instanceof Error ? error.message : "Unknown error");
@@ -47,9 +48,12 @@ export const getDeckComments = async (
       return apiFailure("Failed to fetch deck comments");
     }
 
-    const json: SavedDeckComments = await response.json();
+    const comments = parseSavedDeckComments(await response.json());
+    if (!comments) {
+      return apiFailure("Invalid deck comments response");
+    }
 
-    return apiSuccess(json);
+    return apiSuccess(comments);
   } catch (error) {
     console.error("Get Deck Comments Error:", error);
     return apiFailure(error instanceof Error ? error.message : "Unknown error");

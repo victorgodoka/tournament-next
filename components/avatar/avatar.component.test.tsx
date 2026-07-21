@@ -25,7 +25,10 @@ describe('AvatarComponent', () => {
     const image = screen.getByRole('img', { name: 'Test Duelist' })
     fireEvent.error(image)
 
-    expect(screen.queryByRole('img', { name: 'Test Duelist' })).not.toBeInTheDocument()
+    // The wrapper keeps the accessible name (role="img") once the <img> is
+    // replaced by decorative initials — the avatar must never go nameless.
+    const fallback = screen.getByRole('img', { name: 'Test Duelist' })
+    expect(fallback.tagName).toBe('SPAN')
     expect(screen.getByText('TD')).toBeInTheDocument()
   })
 
