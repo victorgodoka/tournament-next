@@ -6,33 +6,15 @@ import { isAuthenticatedUser } from '@contexts/Auth/auth.const'
 import { useAuthContext } from '@contexts/Auth/auth.context'
 import * as AuthManager from '@contexts/Auth/auth.manager'
 import { consumeAuthRedirectFrom } from '@contexts/Auth/auth.redirect'
-import { getPlayer, getUser } from '../app/discord/discord.api'
-import {
-  cleanupOAuthParams,
-  exchangeAuthorizationCode,
-  getOAuthParams,
-  getPersistedDiscordToken,
-  hasOAuthParams,
-  isDiscordTokenValid,
-  parseOAuthCallbackFromUrl,
-  persistDiscordToken,
-} from '@lib/discord-oauth'
+import { getPlayer } from '../app/discord/discord.api'
+import { completeDiscordLogin, parseOAuthCallbackFromUrl } from '@lib/discord-oauth'
 import { trackLogin, trackLoginError } from '@lib/gtm'
 
 export type DiscordLoadingState =
   | 'authenticating'
   | 'fetching-profile'
-  | 'generating-token'
   | 'redirecting'
   | 'error'
-
-async function ensureAppSession(discordAccessToken: string, discordTokenType: string) {
-  const jwtResponse = await AuthManager.login(discordAccessToken, discordTokenType)
-
-  if (!jwtResponse.success) {
-    throw new Error(jwtResponse.message || 'Failed to create application session.')
-  }
-}
 
 export function useDiscordLogin() {
   const router = useRouter()
@@ -85,158 +67,74 @@ export function useDiscordLogin() {
       const callback = parseOAuthCallbackFromUrl()
 
       if (callback.kind === 'error') {
-        cleanupOAuthParams()
         fail(callback.message)
         return
       }
 
-      if (callback.kind === 'code') {
+      if (callback.kind === 'none') {
+        // No fresh OAuth redirect to handle. A still-valid app session is
+        // verified independently (via the httpOnly cookie) by
+        // AuthSessionGuard on every page load, so there's nothing to resume
+        // here — just send an already-authenticated visitor on their way.
+        if (isAuthenticatedUser(userRef.current)) {
+          router.push(redirectPath)
+          return
+        }
+        fail('Invalid authentication parameters. Please try logging in again.', 3000)
+        return
+      }
+
+      try {
         setLoadingState('authenticating')
-        const exchange = await exchangeAuthorizationCode(callback.code)
+
+        const loginInput =
+          callback.kind === 'code'
+            ? { code: callback.code }
+            : { accessToken: callback.tokens.accessToken, tokenType: callback.tokens.tokenType }
+
+        const loginResult = await completeDiscordLogin(loginInput)
+        if (!loginResult.ok) {
+          throw new Error(loginResult.message)
+        }
 
         if (cancelled) return
 
-        if (!exchange.ok) {
-          cleanupOAuthParams()
-          fail(exchange.message)
-          return
+        setLoadingState('fetching-profile')
+
+        const playerResponse = await getPlayer(loginResult.user.id)
+        if (!playerResponse.ok) {
+          throw new Error(playerResponse.message || 'Failed to fetch user profile data.')
         }
-      }
 
-      const currentUser = userRef.current
-      const oauthReady = hasOAuthParams()
+        if (cancelled) return
 
-      if (isAuthenticatedUser(currentUser) && !oauthReady) {
-        try {
-          const persisted = getPersistedDiscordToken()
-          if (!persisted) {
-            throw new Error('Your Discord session has expired. Please sign in again.')
-          }
+        const profile = playerResponse.data ?? null
 
-          await ensureAppSession(persisted.accessToken, persisted.tokenType)
-          if (!cancelled) {
-            router.push(redirectPath)
-          }
-        } catch (error) {
-          if (cancelled) return
+        dispatch({
+          type: 'SET_USER',
+          payload: {
+            id: loginResult.user.id,
+            username: loginResult.user.username,
+            displayname:
+              profile?.displayname || loginResult.user.global_name || loginResult.user.username,
+            avatar: profile?.avatar || loginResult.user.avatar || '',
+            profile: profile || undefined,
+          },
+        })
 
-          await AuthManager.logout()
-          dispatch({ type: 'LOGOUT' })
-          fail(
-            error instanceof Error
-              ? error.message
-              : 'Failed to restore your application session.',
-          )
-        }
-        return
-      }
+        trackLogin()
+        setLoadingState('redirecting')
+        scheduleRedirect(redirectPath, 1000)
+      } catch (error) {
+        if (cancelled) return
 
-      if (!oauthReady) {
-        fail('Invalid authentication parameters. Please try logging in again.', 3000)
-        return
-      }
-
-      const { accessToken, tokenType, expiresIn } = getOAuthParams()
-
-      if (!accessToken || !tokenType || !expiresIn) {
-        fail('Invalid authentication parameters. Please try logging in again.', 3000)
-        return
-      }
-
-      const completeLogin = async () => {
-        try {
-          setLoadingState('authenticating')
-
-          const discordResponse = await getUser(accessToken, tokenType)
-          if (!discordResponse.ok || !discordResponse.data) {
-            throw new Error(discordResponse.message || 'Failed to fetch Discord user data.')
-          }
-
-          if (cancelled) return
-
-          const discordData = discordResponse.data
-
-          setLoadingState('fetching-profile')
-
-          const playerResponse = await getPlayer(discordData.id)
-          if (!playerResponse.ok) {
-            throw new Error(playerResponse.message || 'Failed to fetch user profile data.')
-          }
-
-          if (cancelled) return
-
-          const profile = playerResponse.data ?? null
-
-          setLoadingState('generating-token')
-          await ensureAppSession(accessToken, tokenType)
-
-          if (cancelled) return
-
-          persistDiscordToken({ accessToken, tokenType, expiresIn })
-          cleanupOAuthParams()
-
-          dispatch({
-            type: 'SET_USER',
-            payload: {
-              id: discordData.id,
-              username: discordData.username,
-              displayname:
-                profile?.displayname || discordData.global_name || discordData.username,
-              avatar: profile?.avatar || discordData.avatar || '',
-              profile: profile || undefined,
-            },
-          })
-
-          trackLogin()
-          setLoadingState('redirecting')
-          scheduleRedirect(redirectPath, 1000)
-        } catch (error) {
-          if (cancelled) return
-
-          cleanupOAuthParams()
-          await AuthManager.logout()
-          fail(
-            error instanceof Error
-              ? error.message
-              : 'An unexpected error occurred during login.',
-          )
-        }
-      }
-
-      const resumeExistingSession = async () => {
-        try {
-          const sessionUser = userRef.current
-
-          if (isAuthenticatedUser(sessionUser)) {
-            const persisted = getPersistedDiscordToken()
-            if (!persisted) {
-              throw new Error('Your Discord session has expired. Please sign in again.')
-            }
-
-            await ensureAppSession(persisted.accessToken, persisted.tokenType)
-          }
-
-          if (!cancelled) {
-            router.push(redirectPath)
-          }
-        } catch (error) {
-          if (cancelled) return
-
-          await AuthManager.logout()
-          fail(
-            error instanceof Error
-              ? error.message
-              : 'Failed to restore your application session.',
-          )
-        }
-      }
-
-      // Past the early return above, an authenticated user always has OAuth
-      // params present — so this pair of branches covers every remaining case.
-      if (!isDiscordTokenValid() || !isAuthenticatedUser(currentUser)) {
-        await completeLogin()
-      } else {
-        await resumeExistingSession()
+        await AuthManager.logout()
+        dispatch({ type: 'LOGOUT' })
+        fail(
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred during login.',
+        )
       }
     }
 

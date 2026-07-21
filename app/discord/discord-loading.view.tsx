@@ -13,8 +13,6 @@ function getLoadingMessage(loadingState: DiscordLoadingState) {
       return 'Authenticating with Discord...'
     case 'fetching-profile':
       return 'Fetching your profile...'
-    case 'generating-token':
-      return 'Setting up your session...'
     case 'redirecting':
       return 'Welcome back! Redirecting...'
     case 'error':
@@ -89,13 +87,6 @@ const DiscordLoadingView = ({
               <span
                 className={`discord-login__progress-dot${
                   loadingState === 'fetching-profile'
-                    ? ' discord-login__progress-dot--active'
-                    : ''
-                }`}
-              />
-              <span
-                className={`discord-login__progress-dot${
-                  loadingState === 'generating-token'
                     ? ' discord-login__progress-dot--active'
                     : ''
                 }`}

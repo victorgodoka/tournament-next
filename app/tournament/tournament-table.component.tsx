@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import AvatarComponent from '@components/avatar/avatar.component'
 import { discordAvatar } from '@assets/discord.avatar'
 import type { TournamentDetail } from './tournament.types'

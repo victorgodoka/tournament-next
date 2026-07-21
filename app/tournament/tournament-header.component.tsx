@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import type { Tournament, TournamentSettings } from './tournament.types'
 import { formatTournamentDateTime } from './tournament-page.utils'
 import IconComponent from '../../components/icon/icon.component'

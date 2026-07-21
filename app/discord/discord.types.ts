@@ -28,12 +28,6 @@ export interface DiscordUser {
 
 export type DiscordMe = Pick<DiscordUser, 'id' | 'username' | 'avatar' | 'global_name'>
 
-export interface DiscordUserResponse {
-  ok: boolean
-  data?: DiscordMe
-  message?: string
-}
-
 export interface PlayerProfileEnvelope {
   success: true
   data: import('../../types/player.types').PlayerData | null

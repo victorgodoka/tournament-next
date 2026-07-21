@@ -9,7 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import AvatarComponent from '@components/avatar/avatar.component'
 import BackdropComponent from '@components/backdrop/backdrop.component'
 import ButtonComponent from '@components/button/button.component'

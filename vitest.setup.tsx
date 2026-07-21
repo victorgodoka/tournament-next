@@ -7,10 +7,10 @@ afterEach(() => {
   cleanup()
 })
 
-// Iconify fetches icon data over the network at runtime; in tests that means
-// stray timers that fire after environment teardown ("window is not defined").
-// Icons are decorative everywhere (aria-hidden), so a static stub is enough.
-vi.mock('@iconify/react', () => ({
+// Icons render from a bundled offline collection (@iconify/react/offline);
+// a static stub avoids pulling the real SVG-building logic into every test.
+// Icons are decorative everywhere (aria-hidden), so a stub is enough.
+vi.mock('@iconify/react/offline', () => ({
   Icon: ({
     icon,
     className,
@@ -30,6 +30,8 @@ vi.mock('@iconify/react', () => ({
       aria-hidden="true"
     />
   ),
+  addCollection: () => {},
+  addIcon: () => {},
 }))
 
 vi.mock('next/link', () => ({

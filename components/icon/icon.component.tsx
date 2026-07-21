@@ -1,6 +1,13 @@
 'use client'
 
-import { Icon } from '@iconify/react'
+import { addCollection, Icon } from '@iconify/react/offline'
+import mdiSubset from '@assets/icons/mdi-subset.generated.json'
+
+// Registers every mdi: icon the app uses so <Icon> renders synchronously
+// from bundled data instead of resolving each name against the Iconify API
+// at runtime. Regenerate the subset after adding a new icon name:
+//   node scripts/generate-icon-subset.mjs
+addCollection(mdiSubset)
 
 type IconComponentProps = {
   icon: string

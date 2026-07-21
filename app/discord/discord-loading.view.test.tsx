@@ -6,7 +6,6 @@ describe('DiscordLoadingView', () => {
   it.each([
     ['authenticating', 'Authenticating with Discord...'],
     ['fetching-profile', 'Fetching your profile...'],
-    ['generating-token', 'Setting up your session...'],
     ['redirecting', 'Welcome back! Redirecting...'],
     ['error', 'Authentication Error'],
   ] as const)(

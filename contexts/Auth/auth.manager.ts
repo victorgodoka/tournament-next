@@ -1,7 +1,10 @@
 import { isRecord } from '@lib/api-result'
 import { dispatchAuthExpired } from './auth.events'
-import type { LoginResponse, VerifyResponse } from './auth.types'
+import type { VerifyResponse } from './auth.types'
 
+// Only 'discord_token' was ever actually written under this scheme (pre
+// server-side login); the others are cleaned up defensively in case a
+// browser still has them from before that change shipped.
 const OAUTH_STORAGE_KEYS = [
   'access_token',
   'token_type',
@@ -20,37 +23,11 @@ function isVerifyPayload(data: unknown): data is {
 }
 
 /**
- * The app session lives in an httpOnly cookie set by /api/auth/session —
- * invisible to (and unreadable by) client JS. These functions only orchestrate
- * calls to that route; they never hold the JWT itself.
+ * The app session lives in an httpOnly cookie minted by
+ * /api/auth/discord/login — invisible to (and unreadable by) client JS.
+ * These functions only orchestrate calls to session-lifecycle routes; they
+ * never hold the JWT (or any Discord token) themselves.
  */
-export async function login(discordAccessToken: string, discordTokenType: string): Promise<LoginResponse> {
-  try {
-    const response = await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discordAccessToken, discordTokenType }),
-    })
-
-    const data: unknown = await response.json()
-    const success = isRecord(data) && data.success === true
-
-    if (response.ok && success) {
-      return { success: true }
-    }
-
-    const message =
-      isRecord(data) && typeof data.message === 'string' ? data.message : 'Login failed'
-
-    return { success: false, message }
-  } catch {
-    return {
-      success: false,
-      message: 'Network error during login',
-    }
-  }
-}
-
 export async function verifyToken(): Promise<VerifyResponse> {
   try {
     const response = await fetch('/api/auth/session')

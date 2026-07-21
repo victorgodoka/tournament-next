@@ -1,36 +1,11 @@
 import { API_ENDPOINTS } from '@const'
 import { isRecord } from '@lib/api-result'
 import type { PlayerData } from '../../types/player.types'
-import type {
-  DiscordMe,
-  DiscordUser,
-  DiscordUserResponse,
-  PlayerDataResponse,
-} from './discord.types'
+import type { PlayerDataResponse } from './discord.types'
 
-function isDiscordUser(data: unknown): data is DiscordUser {
-  if (!isRecord(data)) return false
-
-  const avatar = data.avatar
-  const globalName = data.global_name
-
-  return (
-    typeof data.id === 'string' &&
-    typeof data.username === 'string' &&
-    typeof data.discriminator === 'string' &&
-    (typeof avatar === 'string' || avatar === null) &&
-    (typeof globalName === 'string' || globalName === null)
-  )
-}
-
-function toDiscordMe(data: DiscordUser): DiscordMe {
-  return {
-    id: data.id,
-    username: data.username,
-    avatar: data.avatar,
-    global_name: data.global_name,
-  }
-}
+// Discord identity verification (getUser) lives server-side now, in
+// /api/auth/discord/login — the raw Discord access token never reaches the
+// browser, so there is nothing left for the client to call Discord with.
 
 function isPlayerData(data: unknown): data is PlayerData {
   if (!isRecord(data)) return false
@@ -64,40 +39,6 @@ function isProfileEnvelope(
     'data' in data &&
     (data.data === null || isPlayerData(data.data))
   )
-}
-
-export async function getUser(
-  token: string,
-  tokenType: string = 'Bearer',
-): Promise<DiscordUserResponse> {
-  try {
-    const response = await fetch(`${API_ENDPOINTS.DISCORD}/users/@me`, {
-      headers: { Authorization: `${tokenType} ${token}` },
-    })
-
-    if (!response.ok) {
-      return {
-        ok: false,
-        message: 'Failed to fetch Discord user data',
-      }
-    }
-
-    const data: unknown = await response.json()
-
-    if (!isDiscordUser(data)) {
-      return {
-        ok: false,
-        message: 'Invalid Discord user response',
-      }
-    }
-
-    return { ok: true, data: toDiscordMe(data) }
-  } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : 'Failed to fetch Discord user data',
-    }
-  }
 }
 
 export async function getPlayer(discordId: string): Promise<PlayerDataResponse> {

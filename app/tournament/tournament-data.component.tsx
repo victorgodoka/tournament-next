@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { cardImageUrl } from '@lib/cards.utils'
 import { CARD_PLACEHOLDER_SRC } from '../profile/profile.const'
 import type { TopcutData, TopcutStatsArchetype, TopcutStatsDeck } from './tournament.types'

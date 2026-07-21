@@ -12,7 +12,7 @@ import {
 } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import AvatarComponent from '@components/avatar/avatar.component'
 import BackdropComponent from '@components/backdrop/backdrop.component'
 import ButtonComponent from '@components/button/button.component'
@@ -79,6 +79,47 @@ type RankEntry = {
   thumbIds: number[]
 }
 
+type CardLinkFanProps = {
+  cardIds: number[]
+  getCardName: (cardId: number) => string
+  fanClassName: string
+  itemClassName: string
+}
+
+/** A stack of card-art links (TCGplayer search, new tab), later cards behind
+ * earlier ones via reverse z-index. Shared by the banner's top-archetype
+ * fan and the sidebar rank lists' per-deck thumbnails — same link/image/
+ * fallback behavior, only the CSS classes (size, spacing) differ. */
+function CardLinkFan({ cardIds, getCardName, fanClassName, itemClassName }: CardLinkFanProps) {
+  if (cardIds.length === 0) return null
+
+  return (
+    <div className={fanClassName}>
+      {cardIds.map((cardId, index) => (
+        <Link
+          key={cardId}
+          href={tcgHref(getCardName(cardId))}
+          target="_blank"
+          rel="noopener noreferrer"
+          prefetch={false}
+          className={itemClassName}
+          style={{ zIndex: cardIds.length - index }}
+          title={getCardName(cardId)}
+        >
+          <img
+            src={cardArtUrl(cardId)}
+            alt={getCardName(cardId)}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = CARD_PLACEHOLDER_SRC
+            }}
+          />
+        </Link>
+      ))}
+    </div>
+  )
+}
+
 type RankListProps = {
   title: string
   icon: string
@@ -106,31 +147,12 @@ function RankList({ title, icon, entries, emptyText, getCardName }: RankListProp
               <div className="profile__rank-body">
                 <p className="profile__rank-name">{entry.name}</p>
                 <div className="profile__rank-meta">
-                  {entry.thumbIds.length > 0 ? (
-                    <div className="profile__thumb-fan">
-                      {entry.thumbIds.map((cardId, cardIndex) => (
-                        <Link
-                          key={cardId}
-                          href={tcgHref(getCardName(cardId))}
-                          target="_blank"
-                          prefetch={false}
-                          rel="noopener noreferrer"
-                          className="profile__thumb"
-                          style={{ zIndex: entry.thumbIds.length - cardIndex }}
-                          title={getCardName(cardId)}
-                        >
-                          <img
-                            src={cardArtUrl(cardId)}
-                            alt={getCardName(cardId)}
-                            loading="lazy"
-                            onError={(event) => {
-                              event.currentTarget.src = CARD_PLACEHOLDER_SRC
-                            }}
-                          />
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
+                  <CardLinkFan
+                    cardIds={entry.thumbIds}
+                    getCardName={getCardName}
+                    fanClassName="profile__thumb-fan"
+                    itemClassName="profile__thumb"
+                  />
                   <span>{entry.total} games</span>
                 </div>
               </div>
@@ -534,29 +556,12 @@ const ProfilePageClient = ({
 
         {topArchetype ? (
           <div className="profile__banner-cards">
-            <div className="profile__banner-card-fan">
-              {topArchetype.ids.map((cardId, index) => (
-                <Link
-                  key={cardId}
-                  href={tcgHref(getCardName(cardId))}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  prefetch={false}
-                  className="profile__banner-card"
-                  style={{ zIndex: topArchetype.ids.length - index }}
-                  title={getCardName(cardId)}
-                >
-                  <img
-                    src={cardArtUrl(cardId)}
-                    alt={getCardName(cardId)}
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.src = CARD_PLACEHOLDER_SRC
-                    }}
-                  />
-                </Link>
-              ))}
-            </div>
+            <CardLinkFan
+              cardIds={topArchetype.ids}
+              getCardName={getCardName}
+              fanClassName="profile__banner-card-fan"
+              itemClassName="profile__banner-card"
+            />
             <p className="profile__banner-card-label">
               <span>Most Used · </span>
               {topArchetype.name}

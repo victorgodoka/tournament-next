@@ -4,65 +4,10 @@ import { isRecord } from '@lib/api-result'
 import { getSessionToken, SESSION_COOKIE } from '@lib/session.server'
 
 /**
- * Mints the app session from a Discord access token, never a client-supplied
- * user id — the backend is expected to verify the token against Discord
- * itself before issuing a JWT. See code review notes for the /auth/login
- * contract change this depends on.
+ * Session minting lives in /api/auth/discord/login (the only place a Discord
+ * token is ever verified) — this route just checks or clears the resulting
+ * httpOnly cookie.
  */
-export async function POST(request: Request) {
-  let body: unknown
-
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ success: false, message: 'Invalid request body.' }, { status: 400 })
-  }
-
-  const discordAccessToken =
-    isRecord(body) && typeof body.discordAccessToken === 'string' ? body.discordAccessToken : ''
-  const discordTokenType =
-    isRecord(body) && typeof body.discordTokenType === 'string' ? body.discordTokenType : 'Bearer'
-
-  if (!discordAccessToken) {
-    return NextResponse.json(
-      { success: false, message: 'Discord access token is required.' },
-      { status: 400 },
-    )
-  }
-
-  try {
-    const response = await fetch(`${API_ENDPOINTS.MAIN}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discordAccessToken, discordTokenType }),
-    })
-
-    const data: unknown = await response.json()
-    const token = isRecord(data) && typeof data.token === 'string' ? data.token : null
-    const expiresIn = isRecord(data) && typeof data.expiresIn === 'string' ? Number(data.expiresIn) : NaN
-
-    if (!response.ok || !token) {
-      const message = isRecord(data) && typeof data.message === 'string' ? data.message : 'Login failed.'
-      return NextResponse.json({ success: false, message }, { status: response.ok ? 401 : response.status })
-    }
-
-    const res = NextResponse.json({ success: true })
-    res.cookies.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: Number.isFinite(expiresIn) ? expiresIn : undefined,
-    })
-    return res
-  } catch {
-    return NextResponse.json(
-      { success: false, message: 'Network error during login.' },
-      { status: 502 },
-    )
-  }
-}
-
 export async function GET() {
   const token = await getSessionToken()
 

@@ -12,11 +12,6 @@ export interface User {
   profile?: PlayerData
 }
 
-export interface LoginResponse {
-  success: boolean
-  message?: string
-}
-
 export interface VerifyResponse {
   success: boolean
   user?: {

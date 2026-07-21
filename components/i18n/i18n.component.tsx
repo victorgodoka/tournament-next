@@ -1,6 +1,6 @@
 'use client'
 
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import { LANGUAGES } from './i18n.const'
 import './i18n.styles.css'
 

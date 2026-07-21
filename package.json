@@ -9,7 +9,8 @@
     "start": "next start -p 5173",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "icons:generate": "node scripts/generate-icon-subset.mjs"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
@@ -20,6 +21,7 @@
     "ygopro-deck-encode": "^1.0.16"
   },
   "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

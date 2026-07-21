@@ -1,12 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildDiscordOAuthUrl,
-  cleanupOAuthParams,
+  completeDiscordLogin,
   createOAuthState,
-  getOAuthParams,
-  hasOAuthParams,
-  isDiscordTokenValid,
-  persistDiscordToken,
 } from './discord-oauth'
 
 describe('discord-oauth', () => {
@@ -20,6 +16,7 @@ describe('discord-oauth', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   describe('buildDiscordOAuthUrl', () => {
@@ -44,63 +41,56 @@ describe('discord-oauth', () => {
     })
   })
 
-  describe('getOAuthParams and hasOAuthParams', () => {
-    it('reads transient OAuth params from localStorage', () => {
-      localStorage.setItem('access_token', 'token')
-      localStorage.setItem('token_type', 'Bearer')
-      localStorage.setItem('expires_in', '3600')
-
-      expect(getOAuthParams()).toEqual({
-        accessToken: 'token',
-        tokenType: 'Bearer',
-        expiresIn: '3600',
+  describe('completeDiscordLogin', () => {
+    it('posts the login input and returns the Discord identity on success', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({
+          success: true,
+          user: { id: '1', username: 'duelist', avatar: null, global_name: 'Duelist' },
+        }),
       })
-      expect(hasOAuthParams()).toBe(true)
-    })
+      vi.stubGlobal('fetch', fetchMock)
 
-    it('returns false when params are incomplete', () => {
-      localStorage.setItem('access_token', 'token')
-      expect(hasOAuthParams()).toBe(false)
-    })
-  })
+      const result = await completeDiscordLogin({ code: 'auth-code' })
 
-  describe('cleanupOAuthParams', () => {
-    it('removes transient OAuth params', () => {
-      localStorage.setItem('access_token', 'token')
-      localStorage.setItem('token_type', 'Bearer')
-      localStorage.setItem('expires_in', '3600')
-
-      cleanupOAuthParams()
-
-      expect(hasOAuthParams()).toBe(false)
-    })
-  })
-
-  describe('persistDiscordToken and isDiscordTokenValid', () => {
-    it('persists a token with expiration metadata', () => {
-      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'))
-
-      persistDiscordToken({
-        accessToken: 'token',
-        tokenType: 'Bearer',
-        expiresIn: '3600',
+      expect(fetchMock).toHaveBeenCalledWith('/api/auth/discord/login', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ code: 'auth-code' }),
+      }))
+      expect(result).toEqual({
+        ok: true,
+        user: { id: '1', username: 'duelist', avatar: null, global_name: 'Duelist' },
       })
-
-      expect(isDiscordTokenValid()).toBe(true)
     })
 
-    it('returns false for expired tokens', () => {
-      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'))
-
-      persistDiscordToken({
-        accessToken: 'token',
-        tokenType: 'Bearer',
-        expiresIn: '1',
+    it('never sends a raw Discord access token in the request body for the code flow', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true, user: { id: '1' } }),
       })
+      vi.stubGlobal('fetch', fetchMock)
 
-      vi.setSystemTime(new Date('2025-06-15T12:05:00Z'))
+      await completeDiscordLogin({ code: 'auth-code' })
 
-      expect(isDiscordTokenValid()).toBe(false)
+      const [, init] = fetchMock.mock.calls[0]!
+      expect((init as RequestInit).body).not.toContain('accessToken')
+    })
+
+    it('surfaces the server error message on failure', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: false, message: 'Invalid code.' }),
+      }))
+
+      const result = await completeDiscordLogin({ code: 'bad-code' })
+
+      expect(result).toEqual({ ok: false, message: 'Invalid code.' })
+    })
+
+    it('returns a generic message on network failure', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+
+      const result = await completeDiscordLogin({ code: 'auth-code' })
+
+      expect(result).toEqual({ ok: false, message: 'Network error during Discord sign-in.' })
     })
   })
 })

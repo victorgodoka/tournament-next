@@ -11,6 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      { find: /^@app\/(.+)/, replacement: `${path.resolve(__dirname, './app')}/$1` },
       { find: /^@contexts\/(.+)/, replacement: `${contextsDir}/$1` },
       { find: '@contexts', replacement: path.resolve(__dirname, './contexts/index.tsx') },
       { find: /^@lib\/(.+)/, replacement: `${path.resolve(__dirname, './lib')}/$1` },

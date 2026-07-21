@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import BackdropComponent from '@components/backdrop/backdrop.component'
 import ButtonComponent from '@components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'

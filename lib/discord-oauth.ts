@@ -1,19 +1,6 @@
-const DISCORD_TOKEN_KEY = 'discord_token'
+import type { DiscordMe } from '@app/discord/discord.types'
+
 const OAUTH_STATE_KEY = 'discord_oauth_state'
-
-const OAUTH_PARAM_KEYS = [
-  'access_token',
-  'token_type',
-  'expires_in',
-  'scope',
-  'state',
-] as const
-
-export type OAuthParams = {
-  accessToken: string | null
-  tokenType: string | null
-  expiresIn: string | null
-}
 
 export type OAuthTokens = {
   accessToken: string
@@ -27,8 +14,8 @@ type ParsedCallback =
   | { kind: 'tokens'; tokens: OAuthTokens }
   | { kind: 'error'; message: string }
 
-type TokenExchangeResponse =
-  | { ok: true; tokens: OAuthTokens }
+type CompleteLoginResult =
+  | { ok: true; user: DiscordMe }
   | { ok: false; message: string }
 
 function isBrowser() {
@@ -59,14 +46,6 @@ export function buildDiscordOAuthUrl(authorizeUrl: string): string {
   const url = new URL(authorizeUrl)
   url.searchParams.set('state', createOAuthState())
   return url.toString()
-}
-
-function storeTransientOAuthParams(tokens: OAuthTokens, scope = '', state = '') {
-  localStorage.setItem('access_token', tokens.accessToken)
-  localStorage.setItem('token_type', tokens.tokenType)
-  localStorage.setItem('expires_in', tokens.expiresIn)
-  localStorage.setItem('scope', scope)
-  localStorage.setItem('state', state)
 }
 
 function parseSearchParams(searchParams: string): ParsedCallback {
@@ -144,136 +123,56 @@ export function clearOAuthParamsFromUrl() {
   window.history.replaceState({}, document.title, window.location.pathname)
 }
 
+/** Reads the OAuth redirect (code, implicit-flow tokens, or an error) directly
+ * off the URL and clears it from the address bar. Nothing is written to
+ * storage here — the caller acts on the returned value immediately. */
 export function parseOAuthCallbackFromUrl(): ParsedCallback {
   const parsed = readCallbackFromUrl()
 
-  if (parsed.kind === 'tokens') {
-    storeTransientOAuthParams(parsed.tokens)
-    clearOAuthParamsFromUrl()
-    return { kind: 'none' }
-  }
-
-  if (parsed.kind === 'code' || parsed.kind === 'error') {
+  if (parsed.kind !== 'none') {
     clearOAuthParamsFromUrl()
   }
 
   return parsed
 }
 
-export async function exchangeAuthorizationCode(code: string): Promise<TokenExchangeResponse> {
+/**
+ * Completes the OAuth flow via /api/auth/discord/login: the server exchanges
+ * the code (or verifies the already-issued token), mints the app session
+ * cookie, and returns the Discord identity — never the access token itself.
+ */
+export async function completeDiscordLogin(
+  input: { code: string } | { accessToken: string; tokenType: string },
+): Promise<CompleteLoginResult> {
   try {
-    const response = await fetch('/api/auth/discord/token', {
+    const response = await fetch('/api/auth/discord/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify(input),
     })
 
     const data: unknown = await response.json()
 
-    if (!response.ok) {
-      const message =
-        typeof data === 'object' &&
-        data !== null &&
-        'message' in data &&
-        typeof data.message === 'string'
-          ? data.message
-          : 'Failed to exchange Discord authorization code.'
-
-      return { ok: false, message }
-    }
-
     if (
       typeof data === 'object' &&
       data !== null &&
-      'accessToken' in data &&
-      'tokenType' in data &&
-      'expiresIn' in data &&
-      typeof data.accessToken === 'string' &&
-      typeof data.tokenType === 'string' &&
-      typeof data.expiresIn === 'string'
+      'success' in data &&
+      data.success === true &&
+      'user' in data
     ) {
-      const tokens = {
-        accessToken: data.accessToken,
-        tokenType: data.tokenType,
-        expiresIn: data.expiresIn,
-      }
-      storeTransientOAuthParams(tokens)
-      return { ok: true, tokens }
+      return { ok: true, user: data.user as DiscordMe }
     }
 
-    return { ok: false, message: 'Invalid token response from server.' }
+    const message =
+      typeof data === 'object' &&
+      data !== null &&
+      'message' in data &&
+      typeof data.message === 'string'
+        ? data.message
+        : 'Failed to complete Discord sign-in.'
+
+    return { ok: false, message }
   } catch {
-    return { ok: false, message: 'Network error during Discord authorization.' }
+    return { ok: false, message: 'Network error during Discord sign-in.' }
   }
-}
-
-export function getOAuthParams(): OAuthParams {
-  return {
-    accessToken: localStorage.getItem('access_token'),
-    tokenType: localStorage.getItem('token_type'),
-    expiresIn: localStorage.getItem('expires_in'),
-  }
-}
-
-export function hasOAuthParams() {
-  const { accessToken, tokenType, expiresIn } = getOAuthParams()
-  return Boolean(accessToken && tokenType && expiresIn)
-}
-
-export function cleanupOAuthParams() {
-  for (const key of OAUTH_PARAM_KEYS) {
-    localStorage.removeItem(key)
-  }
-}
-
-export function getPersistedDiscordToken(): { accessToken: string; tokenType: string } | null {
-  const rawToken = localStorage.getItem(DISCORD_TOKEN_KEY)
-  if (!rawToken) return null
-
-  try {
-    const tokenData = JSON.parse(rawToken) as {
-      accessToken?: string
-      tokenType?: string
-      expiresAt?: number
-    }
-
-    if (
-      typeof tokenData.accessToken !== 'string' ||
-      typeof tokenData.tokenType !== 'string' ||
-      !tokenData.expiresAt ||
-      tokenData.expiresAt <= Date.now()
-    ) {
-      return null
-    }
-
-    return { accessToken: tokenData.accessToken, tokenType: tokenData.tokenType }
-  } catch {
-    localStorage.removeItem(DISCORD_TOKEN_KEY)
-    return null
-  }
-}
-
-export function isDiscordTokenValid() {
-  return getPersistedDiscordToken() !== null
-}
-
-export function persistDiscordToken({
-  accessToken,
-  tokenType,
-  expiresIn,
-}: OAuthTokens) {
-  const expiresAt = Date.now() + Number.parseInt(expiresIn, 10) * 1000
-
-  if (!Number.isFinite(expiresAt)) {
-    throw new Error('Invalid Discord token expiration.')
-  }
-
-  localStorage.setItem(
-    DISCORD_TOKEN_KEY,
-    JSON.stringify({
-      accessToken,
-      tokenType,
-      expiresAt,
-    }),
-  )
 }

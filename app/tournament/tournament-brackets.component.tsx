@@ -1,4 +1,4 @@
-import { Icon } from '@iconify/react'
+import { Icon } from '@iconify/react/offline'
 import type { Round, TournamentUser } from './tournament.types'
 import { getUserDisplayName, sortRoundsDescending } from './tournament-page.utils'
 import TournamentDuel from './tournament-duel.component'
