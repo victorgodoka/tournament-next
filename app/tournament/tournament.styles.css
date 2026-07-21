@@ -650,6 +650,16 @@
   color: var(--color-text-subtle);
 }
 
+.tournament-table__player-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tournament-table__meta {
+  font-size: var(--text-xs);
+}
+
 /* Element: drop indicator */
 
 .tournament-table__player-cell {

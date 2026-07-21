@@ -1,4 +1,4 @@
-import { CARD_ART_BASE, TIER_BADGE_BASE } from './profile.const'
+import { CARD_ART_BASE, CARD_ART_BASE_FULL, TIER_BADGE_BASE } from './profile.const'
 
 export { tcgHref } from '../../components/affiliate-link/affiliate-link-utils'
 
@@ -32,7 +32,7 @@ export function getTierInfo(rating: number): TierInfo {
 }
 
 export function cardArtUrl(cardId: number): string {
-  return `${CARD_ART_BASE}/${cardId}.jpg`
+  return `${CARD_ART_BASE_FULL}/${cardId}.jpg`
 }
 
 export function calculateWinRate(

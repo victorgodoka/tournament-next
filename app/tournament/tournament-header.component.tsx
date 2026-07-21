@@ -39,12 +39,14 @@ const TournamentHeader = ({
         </div>
         <div className="tournament__schedule-row">
           <IconComponent icon="mdi:calendar-check" aria-hidden="true" />
-          <span>Ended</span>
-          <span>
-            {finished
-              ? formatTournamentDateTime(tournament.endtime)
-              : 'In progress'}
-          </span>
+          {finished ? (
+            <>
+              <span>Ended</span>
+              <span>{formatTournamentDateTime(tournament.endtime)}</span>
+            </>
+          ) : (
+            <span>In progress</span>
+          )}
         </div>
       </div>
 

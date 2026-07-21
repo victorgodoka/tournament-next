@@ -561,6 +561,81 @@ a, link, a:visited, a:hover, a:active, a:focus {
     background-size: 200% 100%;
     animation: page-fallback-shimmer 1.4s ease-in-out infinite;
   }
+
+  /* --- Responsive visibility --------------------------------------------
+     Breakpoints match the values already used ad hoc across the app's
+     stylesheets (logo/footer/decks/tournament/leaderboards):
+       xs = 30rem (480px)   sm = 40rem (640px)   md = 48rem (768px)
+       lg = 64rem (1024px)  xl = 80rem (1280px)
+
+     `-up` hides at that breakpoint and wider (min-width) — use it to show
+     something mobile-only, e.g. <div class="omega-hide-md-up">.
+     `-down` hides at that breakpoint and narrower (max-width) — use it to
+     show something desktop-only, e.g. <div class="omega-hide-md-down">.
+
+     !important is intentional: these are single-purpose overrides meant to
+     win over any component's own `display`, regardless of that component
+     stylesheet's specificity or load order. -------------------------- */
+
+  @media (min-width: 30rem) {
+    .omega-hide-xs-up {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 29.98rem) {
+    .omega-hide-xs-down {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 40rem) {
+    .omega-hide-sm-up {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 39.98rem) {
+    .omega-hide-sm-down {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .omega-hide-md-up {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 47.98rem) {
+    .omega-hide-md-down {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .omega-hide-lg-up {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 63.98rem) {
+    .omega-hide-lg-down {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 80rem) {
+    .omega-hide-xl-up {
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 79.98rem) {
+    .omega-hide-xl-down {
+      display: none !important;
+    }
+  }
 }
 
 @keyframes page-fallback-shimmer {

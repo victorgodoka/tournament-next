@@ -6,6 +6,7 @@ import { discordAvatar } from '@assets/discord.avatar'
 import type { TournamentDetail } from './tournament.types'
 import { calculateTiebreakers } from './tournament.utils'
 import { getUserDisplayName } from './tournament-page.utils'
+import { cn } from "@sglara/cn";
 
 type TournamentTableProps = {
   detail: TournamentDetail
@@ -35,17 +36,17 @@ const TournamentTable = ({ detail }: TournamentTableProps) => {
         </caption>
         <thead>
           <tr>
-            <th scope="col" className="tournament-table__position-header">
+            <th scope="col" className="tournament-table__position-header omega-hide-md-down">
               #
             </th>
             <th scope="col">Player</th>
-            <th scope="col">
+            <th scope="col" className="omega-hide-md-down">
               <abbr title="Wins–Losses–Draws">W-L-D</abbr>
             </th>
-            <th scope="col">
+            <th scope="col" className="omega-hide-md-down">
               <abbr title="Win rate">W/R</abbr>
             </th>
-            <th scope="col">Rating</th>
+            <th scope="col" className="omega-hide-md-down">Rating</th>
             <th scope="col">Tiebreaker</th>
           </tr>
         </thead>
@@ -59,56 +60,89 @@ const TournamentTable = ({ detail }: TournamentTableProps) => {
               <tr
                 key={player.id}
                 className={
-                  player.dropped ? 'tournament-table__row--dropped' : undefined
+                  cn({ "tournament-table__row--dropped": player.dropped })
                 }
               >
                 <td
                   className={
-                    position <= 3
-                      ? 'tournament-table__position tournament-table__position--podium'
-                      : 'tournament-table__position'
+                    cn("tournament-table__position omega-hide-md-down", {
+                      "tournament-table__position--podium": position <= 3
+                    })
                   }
                 >
                   {position}
                 </td>
                 <td>
-                  <div className="tournament-table__player-cell">
-                    <Link
-                      href={`/profile/${player.id}`}
-                      className="tournament-table__player"
-                    >
-                      <AvatarComponent
-                        src={discordAvatar(player.id, player.avatar ?? '')}
-                        alt={name}
-                        size="sm"
-                        shape="circle"
-                      />
-                      <span className="tournament-table__player-names">
-                        <span className="tournament-table__player-name">
-                          {name}
-                        </span>
-                        <span className="tournament-table__player-username">
-                          @{player.username}
-                        </span>
-                      </span>
-                    </Link>
-                    {player.dropped ? (
-                      <span
-                        className="tournament-table__drop"
-                        title={`Dropped — ${player.droppedRounds} missed ${roundLabel} counted as losses`}
+                  <div className="tournament-table__player-stack">
+                    <div className="tournament-table__player-cell">
+                      <Link
+                        href={`/profile/${player.id}`}
+                        className="tournament-table__player"
                       >
-                        <Icon
-                          icon="mdi:exit-run"
-                          width={13}
-                          height={13}
-                          aria-hidden="true"
+                        <AvatarComponent
+                          src={discordAvatar(player.id, player.avatar ?? '')}
+                          alt={name}
+                          size="sm"
+                          shape="circle"
                         />
-                        Dropped
+                        <div className="tournament-table__player-names">
+                          <span className="tournament-table__player-name">
+                            {name}
+                          </span>
+                          <span className="tournament-table__player-username">
+                            @{player.username}
+                          </span>
+                        </div>
+                      </Link>
+                      {player.dropped ? (
+                        <span
+                          className="tournament-table__drop"
+                          title={`Dropped — ${player.droppedRounds} missed ${roundLabel} counted as losses`}
+                        >
+                          <Icon
+                            icon="mdi:exit-run"
+                            width={13}
+                            height={13}
+                            aria-hidden="true"
+                          />
+                          Dropped
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="omega-cluster omega-hide-md-up tournament-table__meta">
+                      <span className="tournament-table__record">
+                        <span className="visually-hidden">Record </span>
+                        <span className="tournament-table__record-wins">
+                          {player.wins}
+                        </span>
+                        <span aria-hidden="true">-</span>
+                        <span
+                          className="tournament-table__record-losses"
+                          title={
+                            player.dropped
+                              ? `Includes ${player.droppedRounds} drop ${roundLabel}`
+                              : undefined
+                          }
+                        >
+                          {player.losses}
+                        </span>
+                        <span aria-hidden="true">-</span>
+                        <span className="tournament-table__record-draws">
+                          {player.draws}
+                        </span>
                       </span>
-                    ) : null}
+                      <span className="tournament-table__numeric">
+                        <span className="visually-hidden">Win rate </span>
+                        {player.winPercentage}%
+                      </span>
+                      <span className="tournament-table__numeric">
+                        <span className="visually-hidden">Rating </span>
+                        {Math.round(player.rating)}
+                      </span>
+                    </div>
                   </div>
                 </td>
-                <td className="tournament-table__record">
+                <td className="tournament-table__record omega-hide-md-down">
                   <span className="tournament-table__record-wins">
                     {player.wins}
                   </span>
@@ -128,10 +162,10 @@ const TournamentTable = ({ detail }: TournamentTableProps) => {
                     {player.draws}
                   </span>
                 </td>
-                <td className="tournament-table__numeric">
+                <td className="tournament-table__numeric omega-hide-md-down">
                   {player.winPercentage}%
                 </td>
-                <td className="tournament-table__numeric">
+                <td className="tournament-table__numeric omega-hide-md-down">
                   {Math.round(player.rating)}
                 </td>
                 <td className="tournament-table__tiebreaker">

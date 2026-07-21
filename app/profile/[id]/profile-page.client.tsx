@@ -969,13 +969,6 @@ const ProfilePageClient = ({
                         className="profile__favorite-card-link"
                         title={favoriteCardName || 'Favorite card'}
                       ></Link>}
-                      <header className="profile__sidebar-header">
-                        <h3 className="profile__sidebar-title">Dossier</h3>
-                        <Icon
-                          icon="mdi:card-account-details-outline"
-                          className="profile__sidebar-icon"
-                        />
-                      </header>
                       {(sanitizedBio ||
                         (customizationData.duelist_favorite && favoriteCardName)) ? (
                         <div className="profile__dossier-content">
