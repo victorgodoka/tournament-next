@@ -128,6 +128,58 @@ const ProfileEditClient = ({ userId, initialValues }: ProfileEditClientProps) =>
     <div className="profile-edit">
       <BackdropComponent />
 
+      {/* Full-bleed hero — same height formula and background sizing as
+       * .profile__banner on the live profile page, so what's previewed here
+       * is exactly what visitors will see, not a boxed-in approximation. */}
+      <section
+        className="profile-edit__cover"
+        aria-label="Cover image"
+        style={coverPreview ? { backgroundImage: `url(${coverPreview})` } : undefined}
+        data-empty={coverPreview ? undefined : 'true'}
+      >
+        <div className="profile-edit__cover-scrim" aria-hidden="true" />
+        {!coverPreview ? (
+          <span className="profile-edit__cover-empty">
+            <IconComponent icon="mdi:image-outline" width={28} height={28} />
+            No cover yet
+          </span>
+        ) : null}
+        <div className="profile-edit__cover-bar">
+          <p className="profile-edit__cover-hint">
+            PNG or JPG up to 5 MB — shown full-width like this on your profile.
+          </p>
+          <div className="profile-edit__cover-actions">
+            <ButtonComponent
+              type="button"
+              variant="secondary"
+              size="sm"
+              icon="mdi:upload"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {coverPreview ? 'Change cover' : 'Upload cover'}
+            </ButtonComponent>
+            {values.coverFile ? (
+              <ButtonComponent
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon="mdi:undo"
+                onClick={() => patch({ coverFile: null })}
+              >
+                Discard
+              </ButtonComponent>
+            ) : null}
+          </div>
+        </div>
+      </section>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="profile-edit__file"
+        onChange={handleCoverChange}
+      />
+
       <div className="profile-edit__content omega-container omega-container--narrow">
         <header className="profile-edit__header">
           <span className="profile-edit__kicker">
@@ -147,55 +199,6 @@ const ProfileEditClient = ({ userId, initialValues }: ProfileEditClientProps) =>
               {error}
             </p>
           ) : null}
-
-          {/* Cover */}
-          <section className="profile-edit__field">
-            <span className="profile-edit__label">Cover image</span>
-            <div
-              className="profile-edit__cover"
-              style={coverPreview ? { backgroundImage: `url(${coverPreview})` } : undefined}
-              data-empty={coverPreview ? undefined : 'true'}
-            >
-              {!coverPreview ? (
-                <span className="profile-edit__cover-empty">
-                  <IconComponent icon="mdi:image-outline" width={28} height={28} />
-                  No cover yet
-                </span>
-              ) : null}
-              <div className="profile-edit__cover-actions">
-                <ButtonComponent
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  icon="mdi:upload"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {coverPreview ? 'Change cover' : 'Upload cover'}
-                </ButtonComponent>
-                {values.coverFile ? (
-                  <ButtonComponent
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    icon="mdi:undo"
-                    onClick={() => patch({ coverFile: null })}
-                  >
-                    Discard
-                  </ButtonComponent>
-                ) : null}
-              </div>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="profile-edit__file"
-              onChange={handleCoverChange}
-            />
-            <p className="profile-edit__hint">
-              PNG or JPG up to 5 MB. You&apos;ll position and crop it to a 3:1 banner.
-            </p>
-          </section>
 
           {/* Bio */}
           <section className="profile-edit__field">

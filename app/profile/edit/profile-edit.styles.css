@@ -105,15 +105,11 @@
 
 /* Element: cover uploader + preview */
 
+/* Full-bleed — mirrors .profile__banner (profile.styles.css) exactly so the
+ * edit-page preview matches the live profile 1:1, not a boxed approximation. */
 .profile-edit__cover {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  aspect-ratio: 3 / 1;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  height: clamp(14rem, 32vw, 22rem);
   background-color: var(--color-bg-subtle);
   background-size: cover;
   background-position: center top;
@@ -121,12 +117,24 @@
 }
 
 .profile-edit__cover[data-empty='true'] {
-  align-items: center;
-  justify-content: center;
-  border-style: dashed;
+  border-bottom: 1px dashed var(--color-border-subtle);
+}
+
+.profile-edit__cover-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    color-mix(in srgb, var(--palette-dominant) 80%, transparent) 100%
+  );
 }
 
 .profile-edit__cover-empty {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  translate: -50% -50%;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -136,21 +144,30 @@
   font-size: var(--text-xs);
 }
 
-/* Actions sit over the image, so give them a legible scrim */
-.profile-edit__cover-actions {
-  display: inline-flex;
-  gap: var(--space-2);
-  padding: var(--space-1);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--palette-dominant) 55%, transparent);
-  backdrop-filter: blur(6px);
+/* Bar sits over the scrim, roughly aligned with the narrow content column below */
+.profile-edit__cover-bar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) max(var(--space-4), calc((100% - var(--content-narrow)) / 2));
 }
 
-.profile-edit__cover[data-empty='true'] .profile-edit__cover-actions {
-  position: absolute;
-  bottom: var(--space-3);
-  background: none;
-  backdrop-filter: none;
+.profile-edit__cover-hint {
+  max-width: 32ch;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.profile-edit__cover-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
 }
 
 .profile-edit__file {
@@ -402,7 +419,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  width: min(48rem, 100%);
+  width: min(75rem, 100%);
   padding: var(--space-5);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -440,11 +457,12 @@
 }
 
 /* react-easy-crop fills an absolutely-positioned parent, so give it height */
+/* aspect-ratio is set inline from the ASPECT constant (cover-cropper.component.tsx)
+ * so the crop stage and the exported canvas can never drift out of sync. */
 .cover-cropper__stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 1;
-  min-height: 12rem;
+  min-height: 10rem;
   border-radius: var(--radius-md);
   background-color: var(--color-bg-subtle);
   overflow: hidden;

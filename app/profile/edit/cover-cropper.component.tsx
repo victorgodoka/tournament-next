@@ -5,10 +5,16 @@ import Cropper, { type Area } from 'react-easy-crop'
 import ButtonComponent from '@components/button/button.component'
 import IconComponent from '@components/icon/icon.component'
 
-// Banner is displayed 3:1; export at a fixed size so every cover is uniform.
-const ASPECT = 3
-const OUTPUT_WIDTH = 1500
-const OUTPUT_HEIGHT = OUTPUT_WIDTH / ASPECT
+// .profile__banner (profile.styles.css) renders full-bleed at
+// `clamp(14rem, 32vw, 22rem)` tall — past ~1100px wide the height plateaus at
+// 22rem while width keeps growing, so there's no single "true" aspect ratio.
+// 1600px is a representative desktop width; matching its aspect here (instead
+// of a boxy 3:1) keeps the crop close to how most visitors actually see it.
+const REFERENCE_WIDTH = 1600
+const MAX_BANNER_HEIGHT = 22 * 16 // 22rem
+const ASPECT = REFERENCE_WIDTH / MAX_BANNER_HEIGHT // ≈ 4.55
+const OUTPUT_WIDTH = REFERENCE_WIDTH
+const OUTPUT_HEIGHT = MAX_BANNER_HEIGHT
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -107,7 +113,7 @@ const CoverCropper = ({ src, fileName, onCancel, onCropped }: CoverCropperProps)
           </button>
         </header>
 
-        <div className="cover-cropper__stage">
+        <div className="cover-cropper__stage" style={{ aspectRatio: ASPECT }}>
           <Cropper
             image={src}
             crop={crop}
