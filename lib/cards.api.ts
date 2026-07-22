@@ -27,8 +27,10 @@ function buildSearchFields(params: CardsSearchParams): Record<string, string | n
   const fields: Record<string, string | number | Array<number | string>> = {}
 
   if (params.q) fields.q = params.q
+  if (params.fname) fields.fname = params.fname
   if (params.desc) fields.desc = params.desc
   if (params.id !== undefined) fields.id = params.id
+  if (params.ids !== undefined) fields.ids = params.ids
   if (params.region) fields.region = params.region.toUpperCase()
   if (params.atkMin !== undefined) fields.atkMin = params.atkMin
   if (params.atkMax !== undefined) fields.atkMax = params.atkMax
@@ -39,8 +41,11 @@ function buildSearchFields(params: CardsSearchParams): Record<string, string | n
   if (params.attribute) fields.attribute = params.attribute
   if (params.race) fields.race = params.race
   if (params.type) fields.type = params.type.toUpperCase()
+  if (params.pScale !== undefined) fields.pScale = params.pScale
   if (params.setcode) fields.setcode = params.setcode
   if (params.sets) fields.sets = params.sets
+  if (params.page !== undefined) fields.page = params.page
+  if (params.pageSize !== undefined) fields.pageSize = params.pageSize
 
   return fields
 }
