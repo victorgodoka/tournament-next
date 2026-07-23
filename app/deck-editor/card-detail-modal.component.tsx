@@ -8,6 +8,7 @@ import { CARD_PLACEHOLDER_SRC } from '@app/profile/profile.const'
 import { BAN_LABEL, FORMATS } from './deck-editor.const'
 import type { DeckFormat, DeckZone, EditorState } from './deck-editor.types'
 import { banStatus, canAdd, genesysCost, totalCopies } from './deck-editor.utils'
+import ShimmerImage from '@components/shimmer/shimmer.component'
 
 interface CardDetailModalProps {
   card: Card | null
@@ -63,16 +64,13 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
 
         <div className="neuron__body">
           <div className="neuron__art">
-            <img
-              src={cardImageUrl(card.id, true)}
+            <ShimmerImage
+              src={cardImageUrl(card.id)}
               alt={card.name_en}
+              width={192}
+              height={280}
               loading="lazy"
               decoding="async"
-              onError={(event) => {
-                if (event.currentTarget.src !== CARD_PLACEHOLDER_SRC) {
-                  event.currentTarget.src = cardImageUrl(card.id)
-                }
-              }}
             />
             {inDeck > 0 && <span className="neuron__in-deck">{inDeck} in deck</span>}
           </div>

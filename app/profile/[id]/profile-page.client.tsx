@@ -27,9 +27,11 @@ import { CARD_PLACEHOLDER_SRC } from '../profile.const'
 import ProfileSavedDeckCard from './profile-saved-deck-card.component'
 import { PlayerDecksResponse, SavedDeck, MatchHistory } from '../../decks/decks.types'
 import { ProfileCustomizationData } from '../profile.types'
-import { getTierInfo, calculateWinRate, isPlayerOnline, sanitizeBioHtml, buildTwitchUrl, buildYoutubeUrl, buildXUrl, buildInstagramUrl, tcgHref, cardArtUrl, formatLastSeen, getWinRateClass, formatMatchDuration } from '../profile.utils'
+import { getTierInfo, calculateWinRate, isPlayerOnline, sanitizeBioHtml, buildTwitchUrl, buildYoutubeUrl, buildXUrl, buildInstagramUrl, tcgHref, formatLastSeen, getWinRateClass, formatMatchDuration } from '../profile.utils'
 import type { PlayerData } from '../../../types/player.types'
 import IconComponent from '@components/icon/icon.component'
+import { cardImageUrl } from '@lib/cards.utils'
+import ShimmerImage from '@components/shimmer/shimmer.component'
 
 const MatchHistoryCard = dynamic(() => import('./match-history-card.component'))
 
@@ -85,13 +87,15 @@ type CardLinkFanProps = {
   getCardName: (cardId: number) => string
   fanClassName: string
   itemClassName: string
+  width: number
+  height: number
 }
 
 /** A stack of card-art links (TCGplayer search, new tab), later cards behind
  * earlier ones via reverse z-index. Shared by the banner's top-archetype
  * fan and the sidebar rank lists' per-deck thumbnails — same link/image/
  * fallback behavior, only the CSS classes (size, spacing) differ. */
-function CardLinkFan({ cardIds, getCardName, fanClassName, itemClassName }: CardLinkFanProps) {
+function CardLinkFan({ cardIds, getCardName, fanClassName, itemClassName, width, height }: CardLinkFanProps) {
   if (cardIds.length === 0) return null
 
   return (
@@ -107,13 +111,12 @@ function CardLinkFan({ cardIds, getCardName, fanClassName, itemClassName }: Card
           style={{ zIndex: cardIds.length - index }}
           title={getCardName(cardId)}
         >
-          <img
-            src={cardArtUrl(cardId)}
+          <ShimmerImage
+            src={cardImageUrl(cardId)}
             alt={getCardName(cardId)}
+            width={width}
+            height={height}
             loading="lazy"
-            onError={(event) => {
-              event.currentTarget.src = CARD_PLACEHOLDER_SRC
-            }}
           />
         </Link>
       ))}
@@ -153,6 +156,8 @@ function RankList({ title, icon, entries, emptyText, getCardName }: RankListProp
                     getCardName={getCardName}
                     fanClassName="profile__thumb-fan"
                     itemClassName="profile__thumb"
+                    width={22}
+                    height={30}
                   />
                   <span>{entry.total} games</span>
                 </div>
@@ -562,6 +567,8 @@ const ProfilePageClient = ({
               getCardName={getCardName}
               fanClassName="profile__banner-card-fan"
               itemClassName="profile__banner-card"
+              width={60}
+              height={92}
             />
             <p className="profile__banner-card-label">
               <span>Most Used · </span>
@@ -944,8 +951,8 @@ const ProfilePageClient = ({
                       style={
                         customizationData.duelist_favorite
                           ? ({
-                            '--favorite-bg': `url(${cardArtUrl(
-                              Number(customizationData.duelist_favorite),
+                            '--favorite-bg': `url(${cardImageUrl(
+                              Number(customizationData.duelist_favorite), true
                             )})`,
                           } as CSSProperties)
                           : undefined

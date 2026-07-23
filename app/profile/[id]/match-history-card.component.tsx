@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import type { MatchHistory } from '../../decks/decks.types'
 import { CARD_PLACEHOLDER_SRC } from '../profile.const'
-import { cardArtUrl, tcgHref } from '../profile.utils'
+import { tcgHref } from '../profile.utils'
 import IconComponent from '../../../components/icon/icon.component'
 import { cn } from '@sglara/cn'
+import { cardImageUrl } from '@lib/cards.utils'
+import ShimmerImage from '@components/shimmer/shimmer.component'
 
 type MatchHistoryCardProps = {
   match: MatchHistory
@@ -50,9 +52,11 @@ function DeckFan({ cards }: { cards: Array<{ id: number; name: string }> }) {
           style={{ zIndex: shown.length - index }}
           title={card.name}
         >
-          <img
-            src={cardArtUrl(card.id)}
+          <ShimmerImage
+            src={cardImageUrl(card.id, true)}
             alt={card.name}
+            width={38}
+            height={54}
             loading="lazy"
             onError={(event) => {
               event.currentTarget.src = CARD_PLACEHOLDER_SRC

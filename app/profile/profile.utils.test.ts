@@ -8,7 +8,6 @@ import {
   buildXUrl,
   buildYoutubeUrl,
   calculateWinRate,
-  cardArtUrl,
   formatLastSeen,
   formatMatchDuration,
   getTierInfo,
@@ -17,6 +16,7 @@ import {
   sanitizeBioHtml,
   tcgHref,
 } from './profile.utils'
+import { cardImageUrl } from '@lib/cards.utils'
 
 describe('profile.utils', () => {
   beforeEach(() => {
@@ -117,9 +117,9 @@ describe('profile.utils', () => {
     })
   })
 
-  describe('cardArtUrl', () => {
+  describe('cardImageUrl', () => {
     it('builds card art URL from card id', () => {
-      expect(cardArtUrl(89631139)).toContain('89631139.jpg')
+      expect(cardImageUrl(89631139)).toContain('89631139.jpg')
     })
   })
 

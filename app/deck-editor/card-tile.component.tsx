@@ -6,6 +6,7 @@ import { cardImageUrl } from '@lib/cards.utils'
 import { CARD_PLACEHOLDER_SRC } from '@app/profile/profile.const'
 import type { BanStatus } from './deck-editor.types'
 import { BanlistBadge, QuantityStepper } from './deck-editor.parts'
+import ShimmerImage from '@components/shimmer/shimmer.component'
 
 export interface CardTileProps {
   card: Card
@@ -15,6 +16,7 @@ export interface CardTileProps {
   max: number
   status: BanStatus
   points?: number
+  index?: number
   addDisabled: boolean
   onOpen: (card: Card) => void
   onAdd: (card: Card) => void
@@ -25,6 +27,7 @@ export interface CardTileProps {
 export const DRAG_MIME = 'application/x-ygo-card'
 
 function CardTileBase({
+  index,
   card,
   count,
   max,
@@ -54,16 +57,16 @@ function CardTileBase({
       title={`${card.name_en} — left-click for details, right-click to add`}
     >
       <div className="card-tile__art">
-        <img
+        <ShimmerImage
           className="card-tile__img"
+          width={116}
+          height={169}
           src={cardImageUrl(card.id)}
           alt={card.name_en}
           loading="lazy"
           decoding="async"
           draggable={false}
-          onError={(event) => {
-            event.currentTarget.src = CARD_PLACEHOLDER_SRC
-          }}
+          preload={Number(index) <= 24}
         />
         <span className="card-tile__badges">
           <BanlistBadge status={status} points={points} compact />

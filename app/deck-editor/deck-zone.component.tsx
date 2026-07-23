@@ -11,6 +11,7 @@ import { banStatus, canAdd, copyLimit, genesysCost } from './deck-editor.utils'
 import type { EditorState } from './deck-editor.types'
 import { BanlistBadge, QuantityStepper } from './deck-editor.parts'
 import { DRAG_MIME } from './card-tile.component'
+import ShimmerImage from '@components/shimmer/shimmer.component'
 
 export interface DragPayload {
   card: Card
@@ -116,16 +117,15 @@ const DeckZoneComponent = ({
                     onClick={() => onOpen(card)}
                     aria-label={`${card.name_en} details`}
                   >
-                    <img
+                    <ShimmerImage
                       className="deck-row__thumb"
-                      src={cardImageUrl(card.id)}
+                      src={cardImageUrl(card.id, true)}
                       alt=""
+                      width={25}
+                      height={25}
                       loading="lazy"
                       decoding="async"
                       draggable={false}
-                      onError={(event) => {
-                        event.currentTarget.src = CARD_PLACEHOLDER_SRC
-                      }}
                     />
                     <span className="deck-row__name">{card.name_en}</span>
                   </button>

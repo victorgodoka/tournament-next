@@ -31,10 +31,6 @@ export function getTierInfo(rating: number): TierInfo {
   }
 }
 
-export function cardArtUrl(cardId: number): string {
-  return `${CARD_ART_BASE_FULL}/${cardId}.jpg`
-}
-
 export function calculateWinRate(
   wins: number,
   losses: number,
