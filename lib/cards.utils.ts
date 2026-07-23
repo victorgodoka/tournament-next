@@ -40,6 +40,11 @@ export const cardCategory = (card: Card | null | undefined): CardCategory => {
   return 'monster'
 }
 
+/** Display name with the same EN → PT → id fallback used across the app,
+ * needed now that `name_en`/`name_pt` can come back null from the API. */
+export const cardDisplayName = (card: Card): string =>
+  card.name_en || card.name_pt || `Card #${card.id}`
+
 /** Full-art image URL for a card passcode. */
 export const cardImageUrl = (id: number, full?: boolean) => `${full ? CARD_ART_BASE_FULL : CARD_ART_BASE}/${id}.jpg`
 

@@ -38,7 +38,7 @@ function refine(cards: Card[], subtype?: string, tag?: string): Card[] {
   return cards.filter((c) => {
     if (sub && !c.type_tags.some((t) => t.toLowerCase() === sub)) return false
     if (needle) {
-      const hay = [...c.type_tags, ...c.genre_tags, ...c.category_tags, c.race ?? '', c.name_en]
+      const hay = [...c.type_tags, ...c.genre_tags, ...c.category_tags, c.race ?? '', c.name_en ?? '']
         .join(' ')
         .toLowerCase()
       if (!hay.includes(needle)) return false
@@ -61,7 +61,7 @@ export function useCardSearch(filters: CardFilters, format: DeckFormat) {
 
   const params = useMemo<CardsSearchParams>(
     () => ({
-      fname: filters.name || undefined,
+      name: filters.name || undefined,
       desc: filters.desc || undefined,
       type: filters.type,
       attribute: (filters.attribute || undefined) as CardsSearchParams['attribute'],

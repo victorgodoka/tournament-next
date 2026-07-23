@@ -2,16 +2,15 @@
 
 import { useState, type DragEvent } from 'react'
 import type { Card } from '@lib/cards.types'
-import { cardImageUrl, cardCategory, type DeckCardGroup } from '@lib/cards.utils'
+import { cardDisplayName, cardImageUrl, cardCategory, type DeckCardGroup } from '@lib/cards.utils'
 import IconComponent from '@components/icon/icon.component'
-import { CARD_PLACEHOLDER_SRC } from '@app/profile/profile.const'
 import { ZONE_LIMITS } from './deck-editor.const'
 import type { DeckFormat, DeckZone } from './deck-editor.types'
 import { banStatus, canAdd, copyLimit, genesysCost } from './deck-editor.utils'
 import type { EditorState } from './deck-editor.types'
 import { BanlistBadge, QuantityStepper } from './deck-editor.parts'
 import { DRAG_MIME } from './card-tile.component'
-import ShimmerImage from '@components/shimmer/shimmer.component'
+import Image from 'next/image'
 
 export interface DragPayload {
   card: Card
@@ -115,9 +114,9 @@ const DeckZoneComponent = ({
                     type="button"
                     className="deck-row__card"
                     onClick={() => onOpen(card)}
-                    aria-label={`${card.name_en} details`}
+                    aria-label={`${cardDisplayName(card)} details`}
                   >
-                    <ShimmerImage
+                    <Image
                       className="deck-row__thumb"
                       src={cardImageUrl(card.id, true)}
                       alt=""
@@ -127,7 +126,7 @@ const DeckZoneComponent = ({
                       decoding="async"
                       draggable={false}
                     />
-                    <span className="deck-row__name">{card.name_en}</span>
+                    <span className="deck-row__name">{cardDisplayName(card)}</span>
                   </button>
                   <BanlistBadge
                     status={banStatus(card, format)}
@@ -141,7 +140,7 @@ const DeckZoneComponent = ({
                     addDisabled={!canAdd(state, card, zone)}
                     onIncrement={() => onIncrement(zone, card)}
                     onDecrement={() => onDecrement(zone, group.id)}
-                    label={card.name_en}
+                    label={cardDisplayName(card)}
                   />
                 </li>
               )

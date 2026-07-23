@@ -3,8 +3,9 @@ export interface CardsSearchParams {
   method?: 'GET' | 'POST';
 
   // Text search
-  fname?: string;
   q?: string;
+  name?: string;
+  fname?: string;
   desc?: string;
 
   // ID / Alias
@@ -45,8 +46,8 @@ export interface CardsSearchResponse {
     cards: Card[];
     page: number;
     pageSize: number;
-    total: number;
-    totalPages: number;
+    total?: number;
+    totalPages?: number;
   };
   error?: string;
 }
@@ -58,25 +59,31 @@ export interface CardSet {
 
 export interface Card {
   id: number;
+  /** Only set when this card itself is a reprint (`alias != 0` upstream). */
   canonicalId?: number;
-  name_en: string;
-  desc_en?: string;
-  name_pt?: string;
-  desc_pt?: string;
-  level?: number;
-  atk?: number;
-  def?: number;
+  name_en: string | null;
+  desc_en?: string | null;
+  name_pt?: string | null;
+  desc_pt?: string | null;
+  level?: number | null;
+  atk?: number | null;
+  def?: number | null;
   sets: CardSet[];
-  attribute?: string;
-  race?: string;
-  type_primary: string;
+  attribute?: string | null;
+  race?: string | null;
+  type_primary: string | null;
   type_tags: string[];
   genre_tags: string[];
   category_tags: string[];
-  konami_id?: number;
+  konami_id?: number | null;
   leftScale?: number | null;
   rightScale?: number | null;
   banlist_data?: BanlistData;
+  /** Ids of every reprint/alt-art pointing to this card. Empty when none. */
+  alias: number[];
+  /** Id of a different card this one shares its 3-copy deck limit with
+   * (e.g. errata'd reprints under one banlist entry). Omitted when none. */
+  rule?: number;
 }
 
 export interface RegionBanlistInfo {

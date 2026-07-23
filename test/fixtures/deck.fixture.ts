@@ -81,6 +81,7 @@ export function createCard(overrides: Partial<Card> = {}): Card {
     type_tags: [],
     genre_tags: [],
     category_tags: [],
+    alias: [],
     ...overrides,
   }
 }

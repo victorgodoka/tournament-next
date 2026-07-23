@@ -49,9 +49,17 @@ export function formatLabel(format: DeckFormat): string {
   return FORMATS.find((f) => f.value === format)?.label ?? format
 }
 
-/** Total copies of `id` across every zone. */
+/** Cards sharing a `rule` id (e.g. errata'd reprints) share one 3-copy limit
+ * even though each id still lists as its own row — so the limit check groups
+ * by the shared id while every other lookup stays keyed by the exact id. */
+function limitGroupKey(state: EditorState, id: number): number {
+  return state.cards[id]?.rule ?? id
+}
+
+/** Total copies across every zone of every id that shares `id`'s copy limit. */
 export function totalCopies(state: EditorState, id: number): number {
-  const count = (ids: number[]) => ids.filter((x) => x === id).length
+  const key = limitGroupKey(state, id)
+  const count = (ids: number[]) => ids.filter((x) => limitGroupKey(state, x) === key).length
   return count(state.main) + count(state.extra) + count(state.side)
 }
 

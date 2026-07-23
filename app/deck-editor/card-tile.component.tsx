@@ -2,11 +2,12 @@
 
 import { memo, type DragEvent } from 'react'
 import type { Card } from '@lib/cards.types'
-import { cardImageUrl } from '@lib/cards.utils'
+import { cardDisplayName, cardImageUrl } from '@lib/cards.utils'
 import { CARD_PLACEHOLDER_SRC } from '@app/profile/profile.const'
 import type { BanStatus } from './deck-editor.types'
 import { BanlistBadge, QuantityStepper } from './deck-editor.parts'
 import ShimmerImage from '@components/shimmer/shimmer.component'
+import { CARDS_PER_PAGE } from './deck-editor.const'
 
 export interface CardTileProps {
   card: Card
@@ -54,7 +55,7 @@ function CardTileBase({
         event.preventDefault()
         onAdd(card)
       }}
-      title={`${card.name_en} — left-click for details, right-click to add`}
+      title={`${cardDisplayName(card)} — left-click for details, right-click to add`}
     >
       <div className="card-tile__art">
         <ShimmerImage
@@ -62,11 +63,11 @@ function CardTileBase({
           width={116}
           height={169}
           src={cardImageUrl(card.id)}
-          alt={card.name_en}
+          alt={cardDisplayName(card)}
           loading="lazy"
           decoding="async"
           draggable={false}
-          preload={Number(index) <= 24}
+          preload={Number(index) <= CARDS_PER_PAGE}
         />
         <span className="card-tile__badges">
           <BanlistBadge status={status} points={points} compact />
@@ -79,7 +80,7 @@ function CardTileBase({
       </div>
 
       <div className="card-tile__foot" onClick={(event) => event.stopPropagation()}>
-        <span className="card-tile__name">{card.name_en}</span>
+        <span className="card-tile__name">{cardDisplayName(card)}</span>
         <QuantityStepper
           size="sm"
           count={count}
@@ -87,7 +88,7 @@ function CardTileBase({
           addDisabled={addDisabled}
           onIncrement={() => onAdd(card)}
           onDecrement={() => onRemove(card)}
-          label={card.name_en}
+          label={cardDisplayName(card)}
         />
       </div>
     </article>

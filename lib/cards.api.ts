@@ -27,6 +27,7 @@ function buildSearchFields(params: CardsSearchParams): Record<string, string | n
   const fields: Record<string, string | number | Array<number | string>> = {}
 
   if (params.q) fields.q = params.q
+  if (params.name) fields.name = params.name
   if (params.fname) fields.fname = params.fname
   if (params.desc) fields.desc = params.desc
   if (params.id !== undefined) fields.id = params.id
@@ -70,7 +71,18 @@ export async function searchCards(
       throw new Error('Failed to fetch cards')
     }
 
-    return (await response.json()) as CardsSearchResponse
+    let body = (await response.json()) as CardsSearchResponse
+    if (!body.data) {
+      throw new Error('Failed to fetch cards')
+    }
+
+    body.data = { 
+      ...body.data,
+      cards: body.data.cards.filter(c => c.type_primary !== "Token") 
+    }
+
+    return body;
+
   } catch (error) {
     console.error('Cards Search Error:', error)
     throw new Error('Failed to fetch cards', { cause: error })

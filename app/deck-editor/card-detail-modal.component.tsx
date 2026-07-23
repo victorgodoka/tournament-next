@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import type { Card } from '@lib/cards.types'
-import { cardImageUrl, isExtra } from '@lib/cards.utils'
+import { cardDisplayName, cardImageUrl, isExtra } from '@lib/cards.utils'
 import IconComponent from '@components/icon/icon.component'
 import { CARD_PLACEHOLDER_SRC } from '@app/profile/profile.const'
 import { BAN_LABEL, FORMATS } from './deck-editor.const'
@@ -56,7 +56,7 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
     >
       <div className="neuron__inner">
         <header className="neuron__head">
-          <h2 className="neuron__name">{card.name_en}</h2>
+          <h2 className="neuron__name">{cardDisplayName(card)}</h2>
           <button type="button" className="neuron__close" onClick={onClose} aria-label="Close card details">
             <IconComponent icon="mdi:close" width={20} height={20} />
           </button>
@@ -66,7 +66,7 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
           <div className="neuron__art">
             <ShimmerImage
               src={cardImageUrl(card.id)}
-              alt={card.name_en}
+              alt={cardDisplayName(card)}
               width={192}
               height={280}
               loading="lazy"

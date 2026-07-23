@@ -13,6 +13,7 @@ const card = (id: number, over: Partial<Card> = {}): Card => ({
   type_tags: [],
   genre_tags: [],
   category_tags: [],
+  alias: [],
   ...over,
 })
 
