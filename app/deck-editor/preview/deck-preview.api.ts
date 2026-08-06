@@ -74,7 +74,7 @@ function toConvertedDeck(
     mainDeckSize: main.length,
     sideDeckSize: side.length,
     uniqueCards: uniq([...main, ...side]),
-    fullDeck: { main, side },
+    fullDeck: { main, side, extra },
     uniqueCardsData: omega.uniqueCardsData ?? [],
   }
 }
@@ -103,7 +103,7 @@ async function buildLocalDeck(payload: PreviewPayload): Promise<ConvertedDeck> {
     mainDeckSize: main.length,
     sideDeckSize: side.length,
     uniqueCards: ids,
-    fullDeck: { main, side },
+    fullDeck: { main, side, extra },
     uniqueCardsData: cards,
   }
 }

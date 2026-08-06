@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { TERMS_META, TERMS_SECTION_NAV } from './terms.const'
 import './terms.styles.css'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 
 const TermsPage = () => {
   return (
     <article className="terms" aria-labelledby="terms-title">
-      <BackdropComponent />
+      
       <div className="terms__content omega-container omega-container--narrow">
         <header className="terms__header">
           <span className="terms__eyebrow omega-badge omega-badge--secondary">

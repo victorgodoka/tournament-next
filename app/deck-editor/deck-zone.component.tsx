@@ -8,7 +8,7 @@ import { ZONE_LIMITS } from './deck-editor.const'
 import type { DeckFormat, DeckZone } from './deck-editor.types'
 import { banStatus, canAdd, copyLimit, genesysCost } from './deck-editor.utils'
 import type { EditorState } from './deck-editor.types'
-import { BanlistBadge, QuantityStepper } from './deck-editor.parts'
+import { ArtPicker, BanlistBadge, QuantityStepper } from './deck-editor.parts'
 import { DRAG_MIME } from './card-tile.component'
 import Image from 'next/image'
 
@@ -28,6 +28,7 @@ interface DeckZoneProps {
   onIncrement: (zone: DeckZone, card: Card) => void
   onDecrement: (zone: DeckZone, id: number) => void
   onDrop: (target: DeckZone, payload: DragPayload) => void
+  onSetArt: (id: number, artId: number) => void
 }
 
 const readPayload = (event: DragEvent): DragPayload | null => {
@@ -51,6 +52,7 @@ const DeckZoneComponent = ({
   onIncrement,
   onDecrement,
   onDrop,
+  onSetArt,
 }: DeckZoneProps) => {
   const [dragOver, setDragOver] = useState(false)
   const count = state[zone].length
@@ -96,6 +98,7 @@ const DeckZoneComponent = ({
             {groups.map((group) => {
               if (!group.card) return null
               const card = group.card
+              const artId = state.artOverrides[card.id] ?? card.id
               return (
                 <li
                   key={group.id}
@@ -118,7 +121,7 @@ const DeckZoneComponent = ({
                   >
                     <Image
                       className="deck-row__thumb"
-                      src={cardImageUrl(card.id, true)}
+                      src={cardImageUrl(artId, true)}
                       alt=""
                       width={25}
                       height={25}
@@ -128,6 +131,11 @@ const DeckZoneComponent = ({
                     />
                     <span className="deck-row__name">{cardDisplayName(card)}</span>
                   </button>
+                  <ArtPicker
+                    card={card}
+                    selectedId={artId}
+                    onSelect={(id) => onSetArt(card.id, id)}
+                  />
                   <BanlistBadge
                     status={banStatus(card, format)}
                     points={format === 'genesys' ? genesysCost(card) : undefined}

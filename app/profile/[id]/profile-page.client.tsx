@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { Icon } from '@iconify/react/offline'
 import { cn } from '@sglara/cn'
 import AvatarComponent from '@components/avatar/avatar.component'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import { discordAvatar } from '@assets/discord.avatar'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
@@ -54,7 +54,7 @@ type SocialLink = {
 function ProfileNotFound({ message }: { message: string }) {
   return (
     <div className="profile profile--empty" aria-labelledby="profile-error-title">
-      <BackdropComponent />
+      
 
       <div className="profile__empty omega-container omega-container--narrow">
         <span className="profile__empty-icon-wrap" aria-hidden="true">
@@ -539,7 +539,7 @@ const ProfilePageClient = ({
 
   return (
     <div className="profile profile--detail">
-      <BackdropComponent />
+      
 
       <section
         className="profile__banner"

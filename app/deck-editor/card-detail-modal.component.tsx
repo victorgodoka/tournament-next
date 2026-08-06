@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Card } from '@lib/cards.types'
 import { cardDisplayName, cardImageUrl, isExtra } from '@lib/cards.utils'
 import IconComponent from '@components/icon/icon.component'
@@ -30,6 +30,9 @@ function Stat({ label, value }: { label: string; value: string | number | undefi
 
 const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) => {
   const ref = useRef<HTMLDialogElement>(null)
+  // The art shown can be switched to an alt-art id without changing which
+  // card is being viewed — reset whenever a different card is opened.
+  const [artId, setArtId] = useState<number | null>(null)
 
   useEffect(() => {
     const dialog = ref.current
@@ -38,12 +41,18 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
     if (!card && dialog.open) dialog.close()
   }, [card])
 
+  useEffect(() => {
+    setArtId(card?.id ?? null)
+  }, [card?.id])
+
   if (!card) return null
 
   const extra = isExtra(card)
-  const inDeck = totalCopies(state, card.id)
+  const inDeck = totalCopies(state, card.id, card)
   const tags = [...card.type_tags, ...card.genre_tags]
   const zones: DeckZone[] = extra ? ['extra', 'side'] : ['main', 'side']
+  const artOptions = card.alias ? [card.id, ...card.alias] : [card.id]
+  const displayId = artId ?? card.id
 
   return (
     <dialog
@@ -65,7 +74,7 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
         <div className="neuron__body">
           <div className="neuron__art">
             <ShimmerImage
-              src={cardImageUrl(card.id)}
+              src={cardImageUrl(displayId)}
               alt={cardDisplayName(card)}
               width={192}
               height={280}
@@ -73,6 +82,31 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
               decoding="async"
             />
             {inDeck > 0 && <span className="neuron__in-deck">{inDeck} in deck</span>}
+            {artOptions.length > 1 && (
+              <ul className="neuron__alts" aria-label="Alternate arts">
+                {artOptions.map((id) => (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      className="neuron__alt"
+                      data-active={id === displayId || undefined}
+                      aria-label={id === card.id ? `Original art for ${card.name_en}` : `Alternate art ${id} for ${card.name_en}`}
+                      aria-pressed={id === displayId}
+                      onClick={() => setArtId(id)}
+                    >
+                      <ShimmerImage
+                        src={cardImageUrl(id)}
+                        alt={`Card art ${id} for ${card.name_en}`}
+                        width={40}
+                        height={58}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="neuron__details">
@@ -85,7 +119,7 @@ const CardDetailModal = ({ card, state, onClose, onAdd }: CardDetailModalProps) 
               <Stat label="DEF" value={card.def} />
               <Stat label="Level / Rank" value={card.level} />
               {card.leftScale != null && <Stat label="Scale" value={`${card.leftScale} / ${card.rightScale}`} />}
-              <Stat label="Passcode" value={card.id} />
+              <Stat label="Passcode" value={String(card.id).padStart(8, '0')} />
             </dl>
 
             {card.desc_en && <p className="neuron__desc">{card.desc_en}</p>}

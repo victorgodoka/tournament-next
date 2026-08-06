@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import IconComponent from '../../components/icon/icon.component'
 import { useAuthContext } from '@contexts/Auth/auth.context'
@@ -30,7 +30,7 @@ const ProfileIndexClient = () => {
 
   return (
     <div className="profile profile--empty" aria-labelledby="profile-empty-title">
-      <BackdropComponent />
+      
 
       <div className="profile__empty omega-container omega-container--narrow">
         <span className="profile__eyebrow omega-badge omega-badge--secondary">

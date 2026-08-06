@@ -17,7 +17,7 @@ const ErrorPage = ({
 }: ErrorPageProps) => {
   return (
     <div className="error-page" role="alert" aria-labelledby="error-page-title">
-      <BackdropComponent />
+      
 
       <div className="error-page__content omega-container omega-container--narrow">
         <span className="error-page__eyebrow">

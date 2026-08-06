@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useTransition } from 'react'
 import './decks.styles.css'
 import { DeckQuery, DecksPageProps, SavedDecksResponse } from './decks.types'
 import { getDecksInfo, getSavedDecks } from './decks.api'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import ErrorPageComponent from '@components/error-page/error-page.component'
 import IconComponent from '@components/icon/icon.component'
@@ -109,7 +109,7 @@ const DecksPageClient = ({
 
   return (
     <div className="decks-page">
-      <BackdropComponent />
+      
 
       <div className="decks-page__content omega-container">
         <header className="decks-page__header">

@@ -80,7 +80,7 @@ export interface Card {
   rightScale?: number | null;
   banlist_data?: BanlistData;
   /** Ids of every reprint/alt-art pointing to this card. Empty when none. */
-  alias: number[];
+  alias?: number[];
   /** Id of a different card this one shares its 3-copy deck limit with
    * (e.g. errata'd reprints under one banlist entry). Omitted when none. */
   rule?: number;

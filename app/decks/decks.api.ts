@@ -85,8 +85,8 @@ export async function getUserDecks(
   }
 }
 
-export const convertDeck = async (code: string): Promise<ConvertedDeck> => {
-  const url = `${API_ENDPOINTS.MAIN}/convert?code=${encodeURIComponent(code)}`
+export const convertDeck = async (code: string, full?: boolean): Promise<ConvertedDeck> => {
+  const url = `${API_ENDPOINTS.MAIN}/convert?code=${encodeURIComponent(code)}${full ? "&full=y" : ""}`
   const convertedDeckResponse = await fetch(url, { method: 'GET' })
   if (!convertedDeckResponse.ok) {
     throw new Error('Failed to convert deck')

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import DeckEditorComponent from '../deck-editor.component'
 import { createDeck } from '../decks.api'
 import { clearFormDraft } from '@lib/form-draft'
@@ -32,7 +32,7 @@ const CreateDeckClient = ({ archetypeOptions }: CreateDeckClientProps) => {
 
   return (
     <div className="deck-form-page">
-      <BackdropComponent />
+      
 
       <div className="deck-form-page__content omega-container omega-container--narrow">
         <header className="deck-form-page__header">

@@ -12,7 +12,7 @@ const WipComponent = ({
 }: WipComponentProps) => {
   return (
     <div className="wip" aria-labelledby="wip-title">
-      <BackdropComponent />
+      
 
       <div className="wip__content omega-container omega-container--narrow">
         <span className="wip__eyebrow">

@@ -11,7 +11,7 @@ import {
 import Link from 'next/link'
 import { Icon } from '@iconify/react/offline'
 import AvatarComponent from '@components/avatar/avatar.component'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import { discordAvatar } from '@assets/discord.avatar'
 import { getLeaderboard } from './leaderboards.api'
@@ -182,7 +182,7 @@ const LeaderboardsPageClient = ({
   if (error && !data) {
     return (
       <div className="leaderboards leaderboards--empty" aria-labelledby="leaderboards-error-title">
-        <BackdropComponent />
+        
 
         <div className="leaderboards__empty omega-container omega-container--narrow">
           <span className="leaderboards__empty-icon-wrap" aria-hidden="true">
@@ -212,7 +212,7 @@ const LeaderboardsPageClient = ({
 
   return (
     <div className="leaderboards">
-      <BackdropComponent />
+      
 
       <div className="leaderboards__content omega-container">
         <header className="leaderboards__header">

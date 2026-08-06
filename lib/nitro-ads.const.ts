@@ -12,9 +12,9 @@ export const NITRO_AD_SLOT_IDS = {
 export const STICKY_RAIL_AD_OPTIONS = {
   format: 'rail',
   rail: 'left',
-  railOffsetTop: 100,
+  railOffsetTop: 0,
   railOffsetBottom: 0,
-  railCollisionWhitelist: ['#main-content', 'footer', '.navbar'],
+  railCollisionWhitelist: ['#main-content', '.footer', '.navbar', '#nitro-ads-sticky-rail'],
   railCloseColor: '#666666',
   railSpacing: 10,
   railStack: true,
@@ -26,7 +26,7 @@ export const STICKY_RAIL_AD_OPTIONS = {
     wording: 'Report Ad',
     position: 'top-right',
   },
-  mediaQuery: '(min-width: 1025px), (min-width: 768px) and (max-width: 1024px)',
+  mediaQuery: '(min-width: 1280px)',
 } as const satisfies NitroRailAdOptions
 
 export const FLOATING_OUTSTREAM_AD_OPTIONS = {

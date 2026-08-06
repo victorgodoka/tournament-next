@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { getSessionToken } from '@lib/session.server'
 import { getDeck, getDeckComments } from './deck-details.api'
 import AvatarComponent from '@components/avatar/avatar.component'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import BadgesComponent from '@components/badges/badges.component'
 import CommentsComponent from '@components/comments/comments.component'
 import DeckListComponent from '@components/deck-list/deck-list.component'
@@ -62,7 +62,7 @@ export default async function DeckDetailsPage({ params }: DeckDetailsPageProps) 
   return (
     <div className="decks-detail">
       <article className="decks-detail__content omega-container">
-        <BackdropComponent />
+        
 
         <header className="decks-detail__header">
           {coverSrc ? (

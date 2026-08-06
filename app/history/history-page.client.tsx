@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { Icon } from '@iconify/react/offline'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import ErrorPageComponent from '@components/error-page/error-page.component'
 import { getTournaments } from './history.api'
@@ -118,7 +118,7 @@ const HistoryPageClient = ({ initialData, initialError }: HistoryPageClientProps
 
   return (
     <div className="history">
-      <BackdropComponent />
+      
 
       <div className="history__content omega-container">
         <header className="history__header">

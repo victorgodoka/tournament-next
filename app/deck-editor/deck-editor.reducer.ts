@@ -9,11 +9,12 @@ export type EditorAction =
   | { type: 'setCount'; zone: DeckZone; id: number; count: number }
   | { type: 'move'; from: DeckZone; to: DeckZone; id: number }
   | { type: 'setFormat'; format: DeckFormat }
+  | { type: 'setArt'; id: number; artId: number }
   | { type: 'clear' }
   | { type: 'hydrate'; state: EditorState }
 
 export function initialState(format: DeckFormat = 'tcg'): EditorState {
-  return { format, main: [], extra: [], side: [], cards: {} }
+  return { format, main: [], extra: [], side: [], cards: {}, artOverrides: {} }
 }
 
 const removeOne = (ids: number[], id: number): number[] => {
@@ -63,6 +64,13 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       // Keep the cards — validation surfaces any copies now illegal for the
       // new format rather than silently deleting the user's work.
       return { ...state, format: action.format }
+
+    case 'setArt': {
+      const artOverrides = { ...state.artOverrides }
+      if (action.artId === action.id) delete artOverrides[action.id]
+      else artOverrides[action.id] = action.artId
+      return { ...state, artOverrides }
+    }
 
     case 'clear':
       return initialState(state.format)

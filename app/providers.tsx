@@ -6,6 +6,7 @@ import { AuthProvider, CardsSearchProvider } from '@contexts'
 import AuthSessionGuard from '@contexts/Auth/auth.session-guard'
 import ErrorBanner from '../components/errorbanner/errorbanner.component'
 import dynamic from 'next/dynamic'
+import BackdropComponent from '@components/backdrop/backdrop.component'
 
 const AdsShell = dynamic(() => import('../components/ads/ads-shell.component'), {
   ssr: false
@@ -43,8 +44,11 @@ export function Providers({ children, navbar, footer }: ProvidersProps) {
         </a>
         <ErrorBanner />
         {navbar}
-        <main id="main-content">
-          {children}
+        <main className='main' id="main-content">
+          <BackdropComponent />
+          <div className="content">
+            {children}
+          </div>
         </main>
         {footer}
       </CardsSearchProvider>

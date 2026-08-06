@@ -213,12 +213,16 @@ describe('TournamentPageClient', () => {
       screen.getByRole('columnheader', { name: 'Tiebreaker' }),
     ).toBeInTheDocument()
 
+    // The desktop columns (`omega-hide-md-down`) are queried explicitly — the
+    // same values also render in the mobile cluster (CSS-only responsive
+    // split, both exist in jsdom since it doesn't evaluate media queries).
+    const numericSelector = '.tournament-table__numeric.omega-hide-md-down'
     const rows = screen.getAllByRole('row')
     expect(within(rows[1]!).getByText('Duelist One')).toBeInTheDocument()
-    expect(within(rows[1]!).getByText('75.00%')).toBeInTheDocument()
-    expect(within(rows[1]!).getByText('99')).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('75.00%', { selector: numericSelector })).toBeInTheDocument()
+    expect(within(rows[1]!).getByText('99', { selector: numericSelector })).toBeInTheDocument()
     expect(within(rows[2]!).getByText('Duelist Two')).toBeInTheDocument()
-    expect(within(rows[2]!).getByText('25.00%')).toBeInTheDocument()
+    expect(within(rows[2]!).getByText('25.00%', { selector: numericSelector })).toBeInTheDocument()
 
     expect(screen.getByRole('link', { name: /duelist one/i })).toHaveAttribute(
       'href',

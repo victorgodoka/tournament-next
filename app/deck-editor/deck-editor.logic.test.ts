@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Card } from '@lib/cards.types'
 import type { BanlistData } from '@lib/cards.types'
 import { editorReducer, initialState } from './deck-editor.reducer'
-import { banStatus, canAdd, genesysTotal, validateDeck } from './deck-editor.utils'
+import { banStatus, canAdd, genesysTotal, totalCopies, validateDeck } from './deck-editor.utils'
 import type { EditorState } from './deck-editor.types'
 
 const card = (id: number, over: Partial<Card> = {}): Card => ({
@@ -52,6 +52,23 @@ describe('reducer copy limits', () => {
     // 15-card extra cap, but a normal 3-copy limit applies first.
     expect(state.extra.filter((x) => x === 12)).toHaveLength(3)
     expect(state.main).toHaveLength(0)
+  })
+})
+
+describe('rule-shared copy limits', () => {
+  it('counts a not-yet-added card against its rule partner already in the deck', () => {
+    const original = card(30)
+    const reprint = card(31, { rule: 30 })
+    const state = addN(initialState('tcg'), original, 2)
+
+    // `reprint` was only ever searched, never added — state.cards has no
+    // entry for it, so its `rule` must come from the card object itself.
+    expect(totalCopies(state, reprint.id, reprint)).toBe(2)
+    expect(canAdd(state, reprint, 'main')).toBe(true)
+
+    const withReprint = editorReducer(state, { type: 'add', card: reprint })
+    expect(canAdd(withReprint, original, 'main')).toBe(false)
+    expect(canAdd(withReprint, reprint, 'main')).toBe(false)
   })
 })
 

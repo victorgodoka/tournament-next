@@ -245,9 +245,15 @@
 /* --- Search panel --------------------------------------------------------- */
 
 .search-panel__bar {
+  position: sticky;
+  top: 4rem;
+  z-index: var(--z-sticky);
   display: flex;
   gap: var(--space-2);
+  padding-block: var(--space-2);
   margin-block-end: var(--space-2);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .search-panel__search {
@@ -376,6 +382,44 @@
 
 /* --- Card grid ------------------------------------------------------------ */
 
+.card-grid-wrap {
+  padding: var(--space-3);
+  background: var(--surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.card-grid__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.card-grid__head-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.card-grid__head-count {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 0.1rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
@@ -418,11 +462,10 @@
 }
 
 .card-grid__status--end {
+  margin-block-start: var(--space-2);
+  padding-block: var(--space-3) 0;
+  border-block-start: 1px solid var(--color-border-subtle);
   color: var(--color-text-subtle);
-}
-
-.card-grid__spin {
-  animation: de-spin 0.8s linear infinite;
 }
 
 .card-grid__empty {
@@ -510,6 +553,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.card-tile--skeleton {
+  cursor: default;
+}
+
+.card-tile--skeleton .card-tile__foot {
+  align-items: center;
 }
 
 /* --- Banlist badge -------------------------------------------------------- */
@@ -945,9 +996,74 @@
   text-overflow: ellipsis;
 }
 
+/* --- Art picker (deck row alt-art switcher) -------------------------------- */
+
+.art-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.art-picker__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.art-picker__toggle:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.art-picker__menu {
+  position: absolute;
+  z-index: var(--z-dropdown, 20);
+  inset-block-start: calc(100% + var(--space-1));
+  inset-inline-end: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 2rem);
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+  max-width: min(90vw, 12rem);
+}
+
+.art-picker__option {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.7;
+}
+
+.art-picker__option:hover {
+  opacity: 1;
+}
+
+.art-picker__option[data-active] {
+  opacity: 1;
+  border-color: var(--color-secondary-light);
+}
+
 /* --- Neuron card-detail modal (blue theme) -------------------------------- */
 
 .neuron {
+  /* The global `* { margin: 0 }` reset wipes out <dialog>'s UA `margin: auto`
+     centering, so it's restored explicitly here. */
+  margin: auto;
   width: min(100% - var(--space-4), 46rem);
   max-height: 90dvh;
   padding: 0;
@@ -1035,6 +1151,36 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   white-space: nowrap;
+}
+
+.neuron__alts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin-block-start: var(--space-2);
+}
+
+.neuron__alt {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  overflow: hidden;
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.neuron__alt:hover {
+  opacity: 0.9;
+}
+
+.neuron__alt[data-active] {
+  opacity: 1;
+  border-color: var(--color-secondary-light);
 }
 
 .neuron__typeline {
@@ -1180,6 +1326,7 @@
 /* --- Import dialog -------------------------------------------------------- */
 
 .import-dialog {
+  margin: auto;
   width: min(100% - var(--space-4), 32rem);
   padding: 0;
   border: 1px solid var(--color-border);

@@ -51,14 +51,17 @@ export function formatLabel(format: DeckFormat): string {
 
 /** Cards sharing a `rule` id (e.g. errata'd reprints) share one 3-copy limit
  * even though each id still lists as its own row — so the limit check groups
- * by the shared id while every other lookup stays keyed by the exact id. */
-function limitGroupKey(state: EditorState, id: number): number {
-  return state.cards[id]?.rule ?? id
+ * by the shared id while every other lookup stays keyed by the exact id.
+ * `card` is an optional override for ids not yet in `state.cards` (a search
+ * result the player hasn't added yet still needs its `rule` read from the
+ * card object itself, not the deck's cache). */
+function limitGroupKey(state: EditorState, id: number, card?: Card): number {
+  return (card ?? state.cards[id])?.rule ?? id
 }
 
 /** Total copies across every zone of every id that shares `id`'s copy limit. */
-export function totalCopies(state: EditorState, id: number): number {
-  const key = limitGroupKey(state, id)
+export function totalCopies(state: EditorState, id: number, card?: Card): number {
+  const key = limitGroupKey(state, id, card)
   const count = (ids: number[]) => ids.filter((x) => limitGroupKey(state, x) === key).length
   return count(state.main) + count(state.extra) + count(state.side)
 }
@@ -140,7 +143,7 @@ export function canAdd(
   zone: DeckZone,
 ): boolean {
   if (state[zone].length >= ZONE_LIMITS[zone].max) return false
-  if (totalCopies(state, card.id) >= copyLimit(card, state.format)) return false
+  if (totalCopies(state, card.id, card) >= copyLimit(card, state.format)) return false
   return true
 }
 

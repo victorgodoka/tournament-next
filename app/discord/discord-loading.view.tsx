@@ -1,4 +1,4 @@
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import IconComponent from '../../components/icon/icon.component'
 import type { DiscordLoadingState } from '../../hooks/use-discord-login'
 import { cn } from '@sglara/cn'
@@ -43,7 +43,7 @@ const DiscordLoadingView = ({
 
   return (
     <div className="discord-login" aria-live="polite">
-      <BackdropComponent />
+      
 
       <div className="discord-login__content omega-container omega-container--narrow">
         <div

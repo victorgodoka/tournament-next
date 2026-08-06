@@ -17,6 +17,7 @@ import CardDetailModal from './card-detail-modal.component'
 import DeckImportDialog from './deck-import-dialog.component'
 import type { DragPayload } from './deck-zone.component'
 import './deck-editor.styles.css'
+import { convertDeck } from '@app/decks/decks.api'
 
 type MobileTab = 'browse' | 'deck'
 
@@ -43,7 +44,7 @@ const DeckEditorClient = () => {
         const parsed = JSON.parse(raw) as EditorState & { name?: string }
         if (Array.isArray(parsed.main) && parsed.cards) {
           const { name: savedName, ...deck } = parsed
-          dispatch({ type: 'hydrate', state: deck })
+          dispatch({ type: 'hydrate', state: { ...deck, artOverrides: deck.artOverrides ?? {} } })
           if (savedName) setName(savedName)
         }
       } catch {
@@ -100,6 +101,10 @@ const DeckEditorClient = () => {
   }, [])
 
   const handleFormat = useCallback((format: DeckFormat) => dispatch({ type: 'setFormat', format }), [])
+  const handleSetArt = useCallback(
+    (id: number, artId: number) => dispatch({ type: 'setArt', id, artId }),
+    [],
+  )
 
   const handleClear = () => {
     if (window.confirm('Clear the entire deck? This cannot be undone.')) dispatch({ type: 'clear' })
@@ -119,12 +124,9 @@ const DeckEditorClient = () => {
     setImportError(null)
     startImport(async () => {
       try {
-        const deck = YGOProDeck.fromYdkeURL(value)
-        const ids = [...deck.main, ...deck.extra, ...deck.side]
-        if (ids.length === 0) throw new Error('empty')
-        const response = await searchCards({ id: [...new Set(ids)], region: 'ALL', method: 'POST' })
+        const { fullDeck, uniqueCardsData } = await convertDeck(value, true);
         const cards: Record<number, Card> = {}
-        for (const card of extractCardsFromResponse(response)) {
+        for (const card of uniqueCardsData) {
           cards[card.id] = card
           if (card.canonicalId !== undefined && cards[card.canonicalId] === undefined) {
             cards[card.canonicalId] = card
@@ -132,11 +134,11 @@ const DeckEditorClient = () => {
         }
         dispatch({
           type: 'hydrate',
-          state: { format: state.format, main: deck.main, extra: deck.extra, side: deck.side, cards },
+          state: { format: state.format, main: fullDeck.main, extra: fullDeck.extra, side: fullDeck.side, cards, artOverrides: {} },
         })
         setImportOpen(false)
-      } catch {
-        setImportError("That doesn't look like a valid YDKE URL.")
+      } catch (err) {
+        setImportError("That doesn't look like a valid YDKE or Omega Code.")
       }
     })
   }
@@ -212,6 +214,7 @@ const DeckEditorClient = () => {
             onIncrement={handleIncrement}
             onDecrement={handleDecrement}
             onDrop={handleDrop}
+            onSetArt={handleSetArt}
           />
         </div>
       </div>

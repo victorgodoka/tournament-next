@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+import type { Card } from '@lib/cards.types'
+import { cardDisplayName, cardImageUrl } from '@lib/cards.utils'
 import IconComponent from '@components/icon/icon.component'
 import { BAN_LABEL } from './deck-editor.const'
 import type { BanStatus } from './deck-editor.types'
@@ -86,6 +89,74 @@ export function QuantityStepper({
       >
         <IconComponent icon="mdi:plus" width={15} height={15} />
       </button>
+    </div>
+  )
+}
+
+/** Cosmetic art switcher for a deck row — lets the player pick which of the
+ * card's alt arts (`card.alias`) is displayed, without changing the id
+ * actually in the deck. Renders nothing for a card with no alt arts. */
+export function ArtPicker({
+  card,
+  selectedId,
+  onSelect,
+}: {
+  card: Card
+  selectedId: number
+  onSelect: (id: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!boxRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
+
+  if (!card.alias || card.alias.length === 0) return null
+  const options = [card.id, ...card.alias]
+
+  return (
+    <div className="art-picker" ref={boxRef}>
+      <button
+        type="button"
+        className="art-picker__toggle"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Change art for ${cardDisplayName(card)}`}
+        onClick={(event) => {
+          event.stopPropagation()
+          setOpen((v) => !v)
+        }}
+      >
+        <IconComponent icon="mdi:image-multiple-outline" width={14} height={14} />
+      </button>
+      {open && (
+        <ul className="art-picker__menu" role="listbox">
+          {options.map((id) => (
+            <li key={id}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={id === selectedId}
+                className="art-picker__option"
+                data-active={id === selectedId || undefined}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onSelect(id)
+                  setOpen(false)
+                }}
+              >
+                <img src={cardImageUrl(id, true)} alt="" width={32} height={32} loading="lazy" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

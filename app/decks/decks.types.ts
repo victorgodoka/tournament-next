@@ -185,6 +185,7 @@ export interface Archetype {
 export interface FullDeck {
   main: number[]
   side: number[]
+  extra: number[]
 }
 
 export type DeckSortValue = 'created_at' | 'likes' | 'comments'

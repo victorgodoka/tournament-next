@@ -8,7 +8,7 @@ const AdsShell = () => {
   // NEXT_PUBLIC_ENV (not NODE_ENV) on purpose: staging deploys build with
   // NODE_ENV=production but still set NEXT_PUBLIC_ENV=development to keep
   // ads off non-production hosts.
-  if (process.env.NEXT_PUBLIC_ENV === 'development') return null
+  // if (process.env.NEXT_PUBLIC_ENV === 'development') return null
   return (
     <>
       <StickySideRailAd />

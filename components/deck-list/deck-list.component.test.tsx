@@ -67,6 +67,6 @@ describe('DeckListComponent', () => {
     }) as HTMLImageElement
     fireEvent.error(image)
 
-    expect(image.src).toContain('data:image/svg+xml')
+    expect(image.src).toContain('/cover.webp')
   })
 })

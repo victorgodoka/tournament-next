@@ -206,7 +206,7 @@ a, link, a:visited, a:hover, a:active, a:focus {
 
     /* --- Layout ----------------------------------------------------------- */
 
-    --content-max: 72rem;
+    --content-max: 61rem;
     --content-narrow: 42rem;
     --header-height: 4rem;
     --footer-height: 8rem;
@@ -275,7 +275,6 @@ a, link, a:visited, a:hover, a:active, a:focus {
 
   body {
     min-height: 100dvh;
-    background-color: var(--surface-canvas);
     color: var(--text-primary);
     font-size: var(--text-base);
     -webkit-font-smoothing: antialiased;
@@ -472,7 +471,6 @@ a, link, a:visited, a:hover, a:active, a:focus {
   }
 
   .omega-container {
-    width: min(100% - var(--space-8), var(--content-max));
     margin-inline: auto;
   }
 
@@ -605,11 +603,19 @@ a, link, a:visited, a:hover, a:active, a:focus {
     .omega-hide-md-up {
       display: none !important;
     }
+
+    .content {
+      padding-inline: 12ch;
+    }
   }
 
   @media (max-width: 47.98rem) {
     .omega-hide-md-down {
       display: none !important;
+    }
+
+    .content {
+      padding-inline: 8ch;
     }
   }
 
@@ -628,6 +634,10 @@ a, link, a:visited, a:hover, a:active, a:focus {
   @media (min-width: 80rem) {
     .omega-hide-xl-up {
       display: none !important;
+    }
+
+    .content {
+      padding-inline: 32ch;
     }
   }
 
@@ -653,4 +663,13 @@ a, link, a:visited, a:hover, a:active, a:focus {
     animation: none;
     background: var(--color-bg-raised);
   }
+}
+
+#nitro-ads-floating-outstream {
+  position: fixed;
+}
+
+.main {
+  overflow: hidden;
+  position: relative;
 }

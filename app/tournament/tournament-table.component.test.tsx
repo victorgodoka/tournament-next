@@ -48,10 +48,16 @@ describe('TournamentTable drop indicator', () => {
 
     expect(dropped.getByText('Dropped')).toBeInTheDocument()
     // Original record was 2-0-0; the missed round is added as a loss.
-    expect(dropped.getByText('1', { selector: '.tournament-table__record-losses' })).toBeInTheDocument()
+    // Scoped to the desktop column — the same record also renders in the
+    // mobile cluster (CSS-only responsive split, both exist in jsdom).
     expect(
-      dropped.getByTitle(/includes 1 drop round/i),
+      dropped.getByText('1', {
+        selector: '.tournament-table__record.omega-hide-md-down .tournament-table__record-losses',
+      }),
     ).toBeInTheDocument()
+    expect(
+      dropped.getAllByTitle(/includes 1 drop round/i),
+    ).toHaveLength(2)
   })
 
   it('does not mark players who played (or byed) every round', () => {

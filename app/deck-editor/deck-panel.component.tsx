@@ -25,6 +25,7 @@ interface DeckPanelProps {
   onIncrement: (zone: DeckZone, card: Card) => void
   onDecrement: (zone: DeckZone, id: number) => void
   onDrop: (target: DeckZone, payload: DragPayload) => void
+  onSetArt: (id: number, artId: number) => void
 }
 
 const CATEGORY_RANK: Record<CardCategory, number> = { monster: 0, spell: 1, trap: 2 }
@@ -48,6 +49,7 @@ const DeckPanelComponent = ({
   onIncrement,
   onDecrement,
   onDrop,
+  onSetArt,
 }: DeckPanelProps) => {
   const { mainGroups, extraGroups, sideGroups, breakdown } = useMemo(() => {
     const lookup = buildCardLookup(Object.values(state.cards))
@@ -140,16 +142,19 @@ const DeckPanelComponent = ({
           zone="main" label="Main Deck" icon="mdi:cards-outline"
           groups={mainGroups} state={state} format={state.format}
           onOpen={onOpen} onIncrement={onIncrement} onDecrement={onDecrement} onDrop={onDrop}
+          onSetArt={onSetArt}
         />
         <DeckZoneComponent
           zone="extra" label="Extra Deck" icon="mdi:star-four-points-outline"
           groups={extraGroups} state={state} format={state.format}
           onOpen={onOpen} onIncrement={onIncrement} onDecrement={onDecrement} onDrop={onDrop}
+          onSetArt={onSetArt}
         />
         <DeckZoneComponent
           zone="side" label="Side Deck" icon="mdi:swap-horizontal"
           groups={sideGroups} state={state} format={state.format}
           onOpen={onOpen} onIncrement={onIncrement} onDecrement={onDecrement} onDrop={onDrop}
+          onSetArt={onSetArt}
         />
       </div>
     </aside>

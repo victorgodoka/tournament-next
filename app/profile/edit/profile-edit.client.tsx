@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import IconComponent from '@components/icon/icon.component'
 import ToggleComponent from '@components/toggle/toggle.component'
@@ -126,7 +126,7 @@ const ProfileEditClient = ({ userId, initialValues }: ProfileEditClientProps) =>
 
   return (
     <div className="profile-edit">
-      <BackdropComponent />
+      
 
       {/* Full-bleed hero — same height formula and background sizing as
        * .profile__banner on the live profile page, so what's previewed here

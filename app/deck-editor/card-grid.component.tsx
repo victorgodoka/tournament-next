@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import type { Card } from '@lib/cards.types'
 import IconComponent from '@components/icon/icon.component'
+import SkeletonComponent from '@components/skeleton/skeleton.component'
 import CardTile from './card-tile.component'
 import type { EditorState } from './deck-editor.types'
 import {
@@ -13,6 +14,23 @@ import {
   genesysCost,
   totalCopies,
 } from './deck-editor.utils'
+
+/** Placeholder matching CardTile's footprint, shown while results load. */
+function CardTileSkeleton() {
+  return (
+    <div className="card-tile card-tile--skeleton" aria-hidden="true">
+      <div className="card-tile__art">
+        <SkeletonComponent width="100%" height="100%" radius="var(--radius-sm)" />
+      </div>
+      <div className="card-tile__foot">
+        <SkeletonComponent width="70%" height="0.65rem" />
+      </div>
+    </div>
+  )
+}
+
+const INITIAL_SKELETON_COUNT = 12
+const MORE_SKELETON_COUNT = 6
 
 interface CardGridProps {
   cards: Card[]
@@ -57,9 +75,20 @@ const CardGrid = ({
   }, [onLoadMore])
 
   const showEmpty = !loading && cards.length === 0 && !error
+  const skeletonCount = cards.length === 0 ? INITIAL_SKELETON_COUNT : MORE_SKELETON_COUNT
 
   return (
     <div className="card-grid-wrap">
+      <div className="card-grid__head">
+        <span className="card-grid__head-label">
+          <IconComponent icon="mdi:cards-outline" width={14} height={14} />
+          Results
+        </span>
+        {!showEmpty && (total > 0 || cards.length > 0) && (
+          <span className="card-grid__head-count">{total || cards.length}</span>
+        )}
+      </div>
+
       {error && (
         <p className="card-grid__error" role="alert">
           <IconComponent icon="mdi:alert-circle-outline" width={18} height={18} />
@@ -74,9 +103,9 @@ const CardGrid = ({
           <span>Try widening the search or clearing a filter.</span>
         </div>
       ) : (
-        <ul className="card-grid" role="list">
+        <ul className="card-grid" role="list" aria-busy={loading}>
           {cards.map((card) => {
-            const count = totalCopies(state, card.id)
+            const count = totalCopies(state, card.id, card)
             return (
               <li key={card.id} className="card-grid__item">
                 <CardTile
@@ -93,17 +122,17 @@ const CardGrid = ({
               </li>
             )
           })}
+          {loading &&
+            Array.from({ length: skeletonCount }).map((_, index) => (
+              <li key={`skeleton-${index}`} className="card-grid__item" aria-hidden="true">
+                <CardTileSkeleton />
+              </li>
+            ))}
         </ul>
       )}
 
       <div ref={sentinel} className="card-grid__sentinel" aria-hidden="true" />
 
-      {loading && (
-        <p className="card-grid__status">
-          <IconComponent icon="mdi:loading" className="card-grid__spin" width={20} height={20} />
-          Loading cards…
-        </p>
-      )}
       {!loading && !hasMore && cards.length > 0 && (
         <p className="card-grid__status card-grid__status--end">
           {cards.length} of {total || cards.length} cards

@@ -19,6 +19,9 @@ export interface EditorState {
   extra: number[]
   side: number[]
   cards: Record<number, Card>
+  /** Cosmetic alt-art choice per card id (a value from that card's `alias`
+   * list) — purely display, doesn't change which id is actually in the deck. */
+  artOverrides: Record<number, number>
 }
 
 /** The `{ main, side, extra }` body POSTed to `/convert?full=y`. */

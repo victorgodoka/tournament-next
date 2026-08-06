@@ -20,6 +20,7 @@ function withTimeout<T>(
       })
       .catch((error: unknown) => {
         window.clearTimeout(timeoutId)
+        console.log(error)
         reject(error)
       })
   })

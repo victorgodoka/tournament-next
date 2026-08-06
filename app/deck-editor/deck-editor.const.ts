@@ -9,7 +9,7 @@ export const FORMATS: {
   icon: string
 }[] = [
   { value: 'tcg', label: 'TCG', region: 'TCG', icon: 'mdi:earth' },
-  { value: 'ocg', label: 'OCG', region: 'OCG', icon: 'mdi:ideogram-cjk' },
+  // { value: 'ocg', label: 'OCG', region: 'OCG', icon: 'mdi:ideogram-cjk' },
   { value: 'genesys', label: 'Genesys', region: 'GENESYS', icon: 'mdi:diamond-stone' },
 ]
 

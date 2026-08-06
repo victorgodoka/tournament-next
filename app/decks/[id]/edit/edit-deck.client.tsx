@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import BackdropComponent from '@components/backdrop/backdrop.component'
+
 import ButtonComponent from '@components/button/button.component'
 import DeckEditorComponent from '../../deck-editor.component'
 import { deleteDeck, updateDeck } from '../../decks.api'
@@ -46,7 +46,7 @@ const EditDeckClient = ({ deckId, initialValues, archetypeOptions }: EditDeckCli
 
   return (
     <div className="deck-form-page">
-      <BackdropComponent />
+      
 
       <div className="deck-form-page__content omega-container omega-container--narrow">
         <header className="deck-form-page__header">
