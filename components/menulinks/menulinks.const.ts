@@ -18,8 +18,8 @@ export const MENU_LINKS_GROUPS: MenuEntry[] = [
     id: 'meta',
     label: 'Meta',
     items: [
-      { to: '/statistics', label: 'Statistics', icon: 'mdi:chart' },
-      { to: '/leaderboards', label: 'Leaderboard', icon: 'mdi:leaderboard' },
+      { to: '/statistics', label: 'Statistics', icon: 'mdi:chart-line' },
+      { to: '/leaderboards', label: 'Leaderboard', icon: 'mdi:podium-gold' },
       { to: '/deck-wiki', label: 'Deck Wiki', icon: 'mdi:book-open-page-variant' },
     ],
   },
