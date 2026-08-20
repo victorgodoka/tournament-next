@@ -46,9 +46,7 @@ export function Providers({ children, navbar, footer }: ProvidersProps) {
         {navbar}
         <main className='main' id="main-content">
           <BackdropComponent />
-          <div className="content">
-            {children}
-          </div>
+          {children}
         </main>
         {footer}
       </CardsSearchProvider>

@@ -158,7 +158,24 @@ interface DiscordUser {
 
 export interface ConvertDeckResponse {
   success: boolean
-  data: ConvertedDeck
+  data: RawConvertData
+}
+
+/** The upstream `/convert` response shape — nests archetype/code data and
+ * keeps extra-deck ids separate from `main`, unlike the flat `ConvertedDeck`
+ * every consumer here actually uses. `mapConvertedDeck` bridges the two. */
+export interface RawConvertData {
+  codes?: { omegaCode?: string; ydkeUrl?: string }
+  archetypeData?: {
+    primaryArchetype?: string | null
+    primaryArchetypeWeighted?: string | null
+    primaryArchetypes?: string[]
+    archetypesData?: Archetype[]
+  }
+  fullDeck?: { main?: number[]; extra?: number[]; side?: number[] }
+  uniqueCardsData?: Card[]
+  uniqueCards?: number[]
+  category?: string
 }
 
 export interface ConvertedDeck {

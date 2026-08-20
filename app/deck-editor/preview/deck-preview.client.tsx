@@ -69,8 +69,8 @@ const DeckPreviewClient = () => {
       let raw: string | null = null
       try {
         raw = sessionStorage.getItem(PREVIEW_KEY)
-      } catch {
-        /* storage blocked */
+      } catch (error) {
+        console.log(error)
       }
       if (!raw) {
         if (!cancelled) setStatus('empty')

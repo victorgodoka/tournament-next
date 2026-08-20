@@ -11,5 +11,7 @@ export const metadata = pageMetadata({
 })
 
 export default function Home() {
-  return <HomePage />
+  return <main className='content'>
+    <HomePage />
+  </main>
 }

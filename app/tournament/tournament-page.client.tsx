@@ -42,7 +42,7 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
   const settings = parseTournamentSettings(tournament.settings)
 
   return (
-    <div className="tournament">
+    <main className="tournament content">
       
 
       <div className="tournament__content omega-container">
@@ -86,7 +86,7 @@ const TournamentPageClient = ({ detail, error }: TournamentPageClientProps) => {
           ) : null}
         </div>
       </div>
-    </div>
+    </main>
   )
 }
 

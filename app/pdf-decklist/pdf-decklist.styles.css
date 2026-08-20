@@ -1,0 +1,280 @@
+/* ==========================================================================
+   PDF Decklist — a deck code + player/event form that generates the
+   official Konami tournament decklist PDF. Reuses `.deck-form__*` (see
+   app/decks/deck-editor.styles.css) for field styling.
+   ========================================================================== */
+
+.pdf-decklist {
+  width: min(100% - var(--space-4), 90rem);
+  margin-inline: auto;
+  padding-block: var(--space-6) var(--space-16);
+}
+
+.pdf-decklist__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  margin-block-end: var(--space-4);
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.pdf-decklist__kicker {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-secondary-light);
+}
+
+.pdf-decklist__title {
+  margin-block-start: var(--space-1);
+  font-size: var(--text-2xl);
+}
+
+.pdf-decklist__lead {
+  margin-block-start: var(--space-1);
+  max-width: 48ch;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* --- Progress bar ---------------------------------------------------------- */
+
+.pdf-decklist__progress {
+  margin-block-end: var(--space-4);
+}
+
+.pdf-decklist__progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-block-end: var(--space-2);
+  color: var(--color-text-subtle);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-decklist__progress-track {
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+}
+
+.pdf-decklist__progress-bar {
+  height: 100%;
+  background: var(--color-text-subtle);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.pdf-decklist__progress-bar--ready {
+  background: var(--color-secondary);
+}
+
+.pdf-decklist__progress-ready {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-block-start: var(--space-2);
+  color: var(--color-secondary-light);
+  font-size: var(--text-xs);
+}
+
+.pdf-decklist__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  margin-block-end: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+/* --- Two-column layout ------------------------------------------------------ */
+
+.pdf-decklist__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .pdf-decklist__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+}
+
+.pdf-decklist__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pdf-decklist__field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 24rem) {
+  .pdf-decklist__field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pdf-decklist__valid-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-success);
+  font-size: var(--text-xs);
+}
+
+.pdf-decklist__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding-block-start: var(--space-1);
+}
+
+/* --- Form section (step card) ----------------------------------------------- */
+
+.pdf-form-section {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.pdf-form-section--locked {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.pdf-form-section__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.pdf-form-section__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary-light);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.pdf-form-section__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.pdf-form-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+/* --- Preview panel ----------------------------------------------------------- */
+
+.pdf-decklist__preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 20rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+
+@media (min-width: 64rem) {
+  .pdf-decklist__preview {
+    position: sticky;
+    top: 5rem;
+    max-height: calc(100dvh - 6rem);
+    overflow-y: auto;
+  }
+}
+
+.pdf-decklist__preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.pdf-decklist__preview-head h2 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.pdf-decklist__preview-count {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-decklist__preview-body {
+  flex: 1;
+  padding: var(--space-4);
+}
+
+.pdf-decklist__preview-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-block: var(--space-16);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.pdf-decklist__preview-state span {
+  max-width: 22rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+.pdf-decklist__spin {
+  animation: pdf-decklist-spin 0.8s linear infinite;
+  color: var(--color-secondary-light);
+}
+
+@keyframes pdf-decklist-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdf-decklist__spin {
+    animation: none;
+  }
+}

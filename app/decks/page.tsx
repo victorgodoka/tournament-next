@@ -30,13 +30,15 @@ const DecksPage = async ({
   ])
 
   return (
-    <DecksPageClient
-      initialData={result.ok ? result.data : null}
-      initialError={result.ok ? null : result.message}
-      initialInfo={infoResult.ok ? infoResult.data : EMPTY_DECK_INFO}
-      initialQuery={query}
-      initialNotice={notice ?? null}
-    />
+    <main className='content'>
+      <DecksPageClient
+        initialData={result.ok ? result.data : null}
+        initialError={result.ok ? null : result.message}
+        initialInfo={infoResult.ok ? infoResult.data : EMPTY_DECK_INFO}
+        initialQuery={query}
+        initialNotice={notice ?? null}
+      />
+    </main>
   )
 }
 

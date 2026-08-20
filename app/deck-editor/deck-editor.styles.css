@@ -10,39 +10,11 @@
   padding-block-end: var(--space-16);
 }
 
-.deck-editor-page__intro {
-  width: min(100% - var(--space-6), var(--content-max));
-  margin-inline: auto;
-  padding-block: var(--space-6) var(--space-4);
-}
-
-.deck-editor-page__title {
-  font-size: var(--text-3xl);
-  background: linear-gradient(100deg, var(--color-text), var(--color-secondary-light));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .deck-editor-page__lead {
   margin-block-start: var(--space-2);
   max-width: 60ch;
   color: var(--color-text-muted);
   font-size: var(--text-base);
-}
-
-.deck-editor-page__seo {
-  width: min(100% - var(--space-6), var(--content-narrow));
-  margin: var(--space-12) auto 0;
-}
-
-.deck-editor-page__seo h2 {
-  font-size: var(--text-xl);
-  margin-block: var(--space-6) var(--space-3);
-}
-
-.deck-editor-page__seo p {
-  color: var(--color-text-muted);
 }
 
 .deck-editor-page__faq {
@@ -72,21 +44,28 @@
 
 /* --- App shell ------------------------------------------------------------ */
 
+/* The shared page shell clips `.main` for the backdrop decoration (which now
+   self-clips, see backdrop.styles.css), but that clip also breaks every
+   `position: sticky` descendant. Let it scroll normally on this page. */
+.main:has(.deck-editor) {
+  overflow: visible;
+}
+
 .deck-editor {
-  width: min(100% - var(--space-4), 100rem);
+  width: min(100% - var(--space-4), 1920px);
   margin-inline: auto;
-  padding-inline: var(--space-2);
+  padding: var(--space-4) var(--space-2);
 }
 
 .deck-editor__toolbar {
+  flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
   padding: var(--space-2);
   margin-block-end: var(--space-2);
   background: color-mix(in srgb, var(--color-bg) 88%, transparent);
@@ -216,6 +195,9 @@
     display: none;
   }
 
+  .deck-editor__toolbar {
+  }
+
   .deck-editor__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem);
@@ -250,7 +232,9 @@
   z-index: var(--z-sticky);
   display: flex;
   gap: var(--space-2);
+  border-radius: var(--radius-sm);
   padding-block: var(--space-2);
+  padding-inline: var(--space-2);
   margin-block-end: var(--space-2);
   background: color-mix(in srgb, var(--color-bg) 92%, transparent);
   backdrop-filter: blur(8px);
@@ -791,9 +775,11 @@
 .deck-stat[data-tone='monster'] {
   color: #e0a458;
 }
+
 .deck-stat[data-tone='spell'] {
   color: #38b48b;
 }
+
 .deck-stat[data-tone='trap'] {
   color: #c76fa0;
 }
@@ -956,9 +942,11 @@
 .deck-row[data-category='monster'] {
   border-inline-start-color: #e0a458;
 }
+
 .deck-row[data-category='spell'] {
   border-inline-start-color: #38b48b;
 }
+
 .deck-row[data-category='trap'] {
   border-inline-start-color: #c76fa0;
 }
@@ -1275,10 +1263,12 @@
   background: color-mix(in srgb, #e05252 26%, transparent);
   color: #ff9a9a;
 }
+
 .neuron__ban--limited {
   background: color-mix(in srgb, #d4a017 26%, transparent);
   color: #ffcf80;
 }
+
 .neuron__ban--semi-limited {
   background: color-mix(in srgb, #d4a017 16%, transparent);
   color: #ffe6a6;
@@ -1333,6 +1323,12 @@
   border-radius: var(--radius-xl);
   background: var(--color-bg-raised);
   color: var(--color-text);
+}
+
+.import-dialog--info {
+  width: min(100% - var(--space-4), 42rem);
+  max-height: min(80vh, 48rem);
+  overflow-y: auto;
 }
 
 .import-dialog::backdrop {

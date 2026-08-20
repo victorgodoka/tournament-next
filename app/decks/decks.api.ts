@@ -4,7 +4,7 @@ import { apiFailure, apiSuccess, isRecord, type ApiResult } from '@lib/api-resul
 import { authHeader } from '@lib/auth-header'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import { DECKS_PAGE_SIZE } from './decks.const'
-import type { ConvertDeckResponse, ConvertedDeck, DeckEditorValues, DeckInfoResponse, LikedResponse, PlayerDecksResponse, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
+import type { ConvertDeckResponse, ConvertedDeck, DeckEditorValues, DeckInfoResponse, LikedResponse, PlayerDecksResponse, RawConvertData, SavedDeck, SavedDecksProps, SavedDecksResponse } from './decks.types'
 import {
   parseDeckInfoResponse,
   parseLikedResponse,
@@ -85,25 +85,53 @@ export async function getUserDecks(
   }
 }
 
+/** Maps the upstream `/convert` response into the flat `ConvertedDeck` shape
+ * every consumer here uses. Extra-deck ids are merged back into `main`
+ * because DeckListComponent splits them out again by card type. */
+export const mapConvertedDeck = (raw: RawConvertData): ConvertedDeck => {
+  const fd = raw.fullDeck ?? {}
+  const main = [...(fd.main ?? []), ...(fd.extra ?? [])]
+  const side = fd.side ?? []
+  const archetypeInfo = raw.archetypeData
+  const archetypes = archetypeInfo?.archetypesData ?? []
+  const codes = raw.codes ?? {}
+  const primary = archetypeInfo?.primaryArchetype ?? archetypes[0]?.name ?? 'Untitled Deck'
+
+  return {
+    code: codes.omegaCode ?? codes.ydkeUrl ?? '',
+    primaryArchetype: primary,
+    primaryArchetypeWeighted: archetypeInfo?.primaryArchetypeWeighted ?? primary,
+    primaryArchetypes: archetypeInfo?.primaryArchetypes ?? archetypes.slice(0, 3).map((a) => a.name),
+    category: raw.category ?? '',
+    archetypes,
+    totalCards: main.length + side.length,
+    mainDeckSize: main.length,
+    sideDeckSize: side.length,
+    uniqueCards: raw.uniqueCards ?? [...new Set([...main, ...side])],
+    fullDeck: { main, side, extra: fd.extra ?? [] },
+    uniqueCardsData: raw.uniqueCardsData ?? [],
+  }
+}
+
 export const convertDeck = async (code: string, full?: boolean): Promise<ConvertedDeck> => {
-  const url = `${API_ENDPOINTS.MAIN}/convert?code=${encodeURIComponent(code)}${full ? "&full=y" : ""}`
+  const url = `/api/convert?code=${encodeURIComponent(code)}${full ? "&full=y" : ""}`
   const convertedDeckResponse = await fetch(url, { method: 'GET' })
   if (!convertedDeckResponse.ok) {
     throw new Error('Failed to convert deck')
   }
 
-  const { success, data: convertedDeck }: ConvertDeckResponse = await convertedDeckResponse.json()
+  const { success, data }: ConvertDeckResponse = await convertedDeckResponse.json()
   if (!success) {
     throw new Error('Failed to convert deck')
   }
 
+  const convertedDeck = mapConvertedDeck(data)
+
   // The convert endpoint returns card ids but omits full card data, so hydrate
   // it here from the cards endpoint. Failures degrade gracefully to an empty
   // array (the deck still renders by id, just without names/types).
-  if (!convertedDeck.uniqueCardsData?.length && convertedDeck.uniqueCards?.length) {
+  if (!convertedDeck.uniqueCardsData.length && convertedDeck.uniqueCards.length) {
     convertedDeck.uniqueCardsData = await fetchDeckCards(convertedDeck.uniqueCards)
-  } else if (!convertedDeck.uniqueCardsData) {
-    convertedDeck.uniqueCardsData = []
   }
 
   return convertedDeck;

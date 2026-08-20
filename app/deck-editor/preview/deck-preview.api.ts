@@ -1,5 +1,4 @@
 import YGOProDeck from 'ygopro-deck-encode'
-import { API_ENDPOINTS } from '@const'
 import { extractCardsFromResponse, searchCards } from '@lib/cards.api'
 import { isRecord } from '@lib/api-result'
 import type { ConvertedDeck } from '@app/decks/decks.types'
@@ -33,7 +32,7 @@ const ydkeFrom = ({ main, extra, side }: PreviewPayload) =>
   new YGOProDeck({ main, extra, side }).toYdkeURL()
 
 async function convertFullDeck(payload: PreviewPayload): Promise<OmegaDeckResponse> {
-  const response = await fetch(`${API_ENDPOINTS.MAIN}/convert?full=y`, {
+  const response = await fetch('/api/convert?full=y', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ main: payload.main, side: payload.side, extra: payload.extra }),
@@ -59,22 +58,23 @@ function toConvertedDeck(
   const fd = omega.fullDeck ?? {}
   const main = [...(fd.main ?? payload.main), ...(fd.extra ?? payload.extra)]
   const side = fd.side ?? payload.side
-  const archetypes = omega.archetypeData ?? []
+  const archetypeInfo = omega.archetypeData
+  const archetypes = archetypeInfo?.archetypesData ?? []
   const codes = omega.codes ?? {}
-  const primary = archetypes[0]?.name ?? payload.name ?? 'Untitled Deck'
+  const primary = archetypeInfo?.primaryArchetype ?? archetypes[0]?.name ?? payload.name ?? 'Untitled Deck'
 
   return {
-    code: codes.omega ?? codes.ydk ?? Object.values(codes)[0] ?? '',
-    primaryArchetype: omega.primaryArchetype ?? primary,
-    primaryArchetypeWeighted: primary,
-    primaryArchetypes: archetypes.slice(0, 3).map((a) => a.name),
+    code: codes.omegaCode ?? codes.ydkeUrl ?? '',
+    primaryArchetype: primary,
+    primaryArchetypeWeighted: archetypeInfo?.primaryArchetypeWeighted ?? primary,
+    primaryArchetypes: archetypeInfo?.primaryArchetypes ?? archetypes.slice(0, 3).map((a) => a.name),
     category: omega.category ?? '',
     archetypes,
     totalCards: main.length + side.length,
     mainDeckSize: main.length,
     sideDeckSize: side.length,
     uniqueCards: uniq([...main, ...side]),
-    fullDeck: { main, side, extra },
+    fullDeck: { main, side, extra: fd.extra ?? payload.extra },
     uniqueCardsData: omega.uniqueCardsData ?? [],
   }
 }
@@ -103,7 +103,7 @@ async function buildLocalDeck(payload: PreviewPayload): Promise<ConvertedDeck> {
     mainDeckSize: main.length,
     sideDeckSize: side.length,
     uniqueCards: ids,
-    fullDeck: { main, side, extra },
+    fullDeck: { main, side, extra: payload.extra },
     uniqueCardsData: cards,
   }
 }

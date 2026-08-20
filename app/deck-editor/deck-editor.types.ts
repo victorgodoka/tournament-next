@@ -66,14 +66,18 @@ export interface OmegaArchetype {
  * `ConvertedDeck` the shared deck-list/export components already understand.
  */
 export interface OmegaDeckResponse {
-  codes?: Record<string, string>
-  archetypeData?: OmegaArchetype[]
+  codes?: { omegaCode?: string; ydkeUrl?: string }
+  archetypeData?: {
+    primaryArchetype?: string | null
+    primaryArchetypeWeighted?: string | null
+    primaryArchetypes?: string[]
+    archetypesData?: OmegaArchetype[]
+  }
   fullDeck?: {
     main?: number[]
     extra?: number[]
     side?: number[]
   }
   uniqueCardsData?: Card[]
-  primaryArchetype?: string
   category?: string
 }

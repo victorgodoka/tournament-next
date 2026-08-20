@@ -15,6 +15,7 @@ import CardSearchPanel from './card-search-panel.component'
 import DeckPanelComponent from './deck-panel.component'
 import CardDetailModal from './card-detail-modal.component'
 import DeckImportDialog from './deck-import-dialog.component'
+import DeckEditorInfoDialog from './deck-editor-info-dialog.component'
 import type { DragPayload } from './deck-zone.component'
 import './deck-editor.styles.css'
 import { convertDeck } from '@app/decks/decks.api'
@@ -31,6 +32,7 @@ const DeckEditorClient = () => {
   const [importOpen, setImportOpen] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [importing, startImport] = useTransition()
+  const [infoOpen, setInfoOpen] = useState(false)
 
   const validation = useMemo(() => validateDeck(state), [state])
 
@@ -163,7 +165,29 @@ const DeckEditorClient = () => {
           <span className={`deck-editor__badge${validation.isLegal ? ' deck-editor__badge--ok' : ''}`}>
             {validation.isLegal ? 'Legal' : 'Draft'}
           </span>
+        <div className="deck-editor__mobile-tabs" role="tablist" aria-label="Editor view">
+          <button
+            type="button" role="tab" aria-selected={mobileTab === 'browse'}
+            className={`deck-editor__tab${mobileTab === 'browse' ? ' deck-editor__tab--active' : ''}`}
+            onClick={() => setMobileTab('browse')}
+          >
+            <IconComponent icon="mdi:view-grid-outline" width={17} height={17} />
+            Browse
+          </button>
+          <button
+            type="button" role="tab" aria-selected={mobileTab === 'deck'}
+            className={`deck-editor__tab${mobileTab === 'deck' ? ' deck-editor__tab--active' : ''}`}
+            onClick={() => setMobileTab('deck')}
+          >
+            <IconComponent icon="mdi:cards-outline" width={17} height={17} />
+            Deck
+            <span className="deck-editor__tab-count">{validation.counts.main + validation.counts.extra + validation.counts.side}</span>
+          </button>
         </div>
+        </div>
+
+        
+        
 
         <div className="deck-editor__actions">
           <ButtonComponent variant="ghost" size="sm" icon="mdi:refresh" onClick={handleClear}>
@@ -178,28 +202,15 @@ const DeckEditorClient = () => {
           <ButtonComponent variant="primary" size="sm" icon="mdi:content-save-outline" onClick={handleExport}>
             Save
           </ButtonComponent>
+          <ButtonComponent
+            variant="ghost"
+            size="sm"
+            icon="mdi:information-outline"
+            aria-label="About the deck builder"
+            onClick={() => setInfoOpen(true)}
+          />
         </div>
       </header>
-
-      <div className="deck-editor__mobile-tabs" role="tablist" aria-label="Editor view">
-        <button
-          type="button" role="tab" aria-selected={mobileTab === 'browse'}
-          className={`deck-editor__tab${mobileTab === 'browse' ? ' deck-editor__tab--active' : ''}`}
-          onClick={() => setMobileTab('browse')}
-        >
-          <IconComponent icon="mdi:view-grid-outline" width={17} height={17} />
-          Browse
-        </button>
-        <button
-          type="button" role="tab" aria-selected={mobileTab === 'deck'}
-          className={`deck-editor__tab${mobileTab === 'deck' ? ' deck-editor__tab--active' : ''}`}
-          onClick={() => setMobileTab('deck')}
-        >
-          <IconComponent icon="mdi:cards-outline" width={17} height={17} />
-          Deck
-          <span className="deck-editor__tab-count">{validation.counts.main + validation.counts.extra + validation.counts.side}</span>
-        </button>
-      </div>
 
       <div className="deck-editor__body">
         <div className="deck-editor__browse">
@@ -232,6 +243,7 @@ const DeckEditorClient = () => {
         onClose={() => setImportOpen(false)}
         onImport={handleImport}
       />
+      <DeckEditorInfoDialog open={infoOpen} onClose={() => setInfoOpen(false)} />
     </div>
   )
 }

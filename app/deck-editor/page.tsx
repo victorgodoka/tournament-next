@@ -64,40 +64,7 @@ export default function DeckEditorPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }}
       />
 
-      <section className="deck-editor-page__intro">
-        <div className="deck-editor-page__intro-copy">
-          <h1 className="deck-editor-page__title">Yu-Gi-Oh! Deck Builder</h1>
-          <p className="deck-editor-page__lead">
-            Build, edit, and test Yu-Gi-Oh! decks online — search the full card database, drag cards into
-            your Main, Extra, and Side Decks, and stay legal with live TCG, OCG, and Genesys banlist checks.
-          </p>
-        </div>
-      </section>
-
       <DeckEditorClient />
-
-      <section className="deck-editor-page__seo" aria-label="About the deck builder">
-        <div className="deck-editor-page__seo-inner">
-          <h2>The free Yu-Gi-Oh! deck editor built for every duelist</h2>
-          <p>
-            Whether you are a casual player brewing a fun combo or a competitor tuning a tournament list, the
-            YGO Omega deck maker gives you a fast, modern workspace. Filter the entire card pool by type,
-            attribute, level, ATK, DEF, Pendulum scale, archetype, and more, then right-click or drag any
-            card straight into your deck. The builder tracks Forbidden, Limited, and Semi-Limited cards for
-            your chosen format so your list is always ready for play.
-          </p>
-
-          <h2>Frequently asked questions</h2>
-          <dl className="deck-editor-page__faq">
-            {FAQ.map((item) => (
-              <div key={item.question} className="deck-editor-page__faq-item">
-                <dt>{item.question}</dt>
-                <dd>{item.answer}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
     </main>
   )
 }

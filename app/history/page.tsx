@@ -23,9 +23,11 @@ export default async function HistoryPage({
   const result = await getTournaments({ page, limit: HISTORY_PAGE_LIMIT })
 
   return (
-    <HistoryPageClient
-      initialData={result.ok ? result.data.data : null}
-      initialError={result.ok ? null : result.message}
-    />
+    <main className='content'>
+      <HistoryPageClient
+        initialData={result.ok ? result.data.data : null}
+        initialError={result.ok ? null : result.message}
+      />
+    </main>
   )
 }

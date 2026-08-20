@@ -1,4 +1,3 @@
-import { API_ENDPOINTS } from '@const'
 import { isRecord } from '@lib/api-result'
 import type { Card, CardsSearchParams, CardsSearchResponse } from './cards.types'
 
@@ -60,7 +59,7 @@ export async function searchCards(
   try {
     const response =
       method === 'POST'
-        ? await fetch(`${API_ENDPOINTS.MAIN}/cards`, {
+        ? await fetch('/api/cards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(fields),
@@ -95,5 +94,5 @@ function buildGetUrl(fields: Record<string, string | number | Array<number | str
     queryParams.append(key, Array.isArray(value) ? value.join('|') : String(value))
   }
   const query = queryParams.toString()
-  return `${API_ENDPOINTS.MAIN}/cards${query ? `?${query}` : ''}`
+  return `/api/cards${query ? `?${query}` : ''}`
 }

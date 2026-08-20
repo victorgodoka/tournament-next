@@ -11,7 +11,7 @@ export const metadata = noIndexMetadata(
 
 export default function DeckPreviewPage() {
   return (
-    <main className="deck-preview-page">
+    <main className="deck-preview-page content">
       <DeckPreviewClient />
     </main>
   )
