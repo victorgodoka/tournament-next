@@ -2,6 +2,7 @@
 
 import StickySideRailAd from './ads.sticky-side-rail.component'
 import FloatingOutstreamVideoPlayerAd from './ads.floating-video.component'
+import AdblockNotice from './adblock-notice.component'
 import './ads.styles.css'
 
 const AdsShell = () => {
@@ -13,6 +14,7 @@ const AdsShell = () => {
     <>
       <StickySideRailAd />
       <FloatingOutstreamVideoPlayerAd />
+      <AdblockNotice />
     </>
   )
 }

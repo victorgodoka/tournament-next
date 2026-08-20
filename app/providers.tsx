@@ -33,9 +33,6 @@ export function Providers({ children, navbar, footer }: ProvidersProps) {
     <AuthProvider>
       <CardsSearchProvider>
         <Suspense fallback={null}>
-          <AdsShell />
-        </Suspense>
-        <Suspense fallback={null}>
           <GtmPageView />
         </Suspense>
         <AuthSessionGuardBoundary />
@@ -48,6 +45,7 @@ export function Providers({ children, navbar, footer }: ProvidersProps) {
           <BackdropComponent />
           {children}
         </main>
+        <AdsShell />
         {footer}
       </CardsSearchProvider>
     </AuthProvider>

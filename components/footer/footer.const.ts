@@ -16,7 +16,7 @@ export const FOOTER_SOCIAL_LINKS = [
     label: 'Duelists Unite on Discord',
   },
   {
-    href: 'https://x.com/duelistsunite',
+    href: 'https://x.com/duelists_u',
     icon: 'mdi:twitter',
     label: 'Duelists Unite on X',
   },

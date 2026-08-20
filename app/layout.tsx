@@ -94,7 +94,7 @@ export default function RootLayout({
         />
         <GtmScripts />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <GtmNoScript />
         <Providers navbar={<NavbarComponent />} footer={<FooterComponent />}>
           {children}

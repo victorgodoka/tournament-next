@@ -7,14 +7,14 @@ export const HOME_FEATURES: HomeFeature[] = [
     title: 'Live Tournaments',
     description: 'Compete in organized events with real-time brackets and standings.',
     to: '/tournament/live',
-    icon: 'fluent:live-20-filled',
+    icon: 'mdi:video-wireless',
   },
   {
     id: 'rankings',
     title: 'Rankings & Stats',
     description: 'Track your rating, match history, and climb the leaderboards.',
     to: '/leaderboards',
-    icon: 'material-symbols:leaderboard',
+    icon: 'mdi:podium-gold',
   },
   {
     id: 'decks',
@@ -33,11 +33,11 @@ export const HOME_FEATURES: HomeFeature[] = [
 ]
 
 export const HOME_TOOLS: HomeToolLink[] = [
-  { label: 'Calculator', to: '/calculator', icon: 'tabler:math' },
-  { label: 'PDF Decklist', to: '/pdf-decklist', icon: 'teenyicons:pdf-outline' },
-  { label: 'Konami Decklist', to: '/konami-decklist', icon: 'si:json-alt-1-line' },
-  { label: 'Statistics', to: '/statistics', icon: 'picon:chart' },
-  { label: 'Past Tournaments', to: '/history', icon: 'material-symbols:trophy' },
+  { label: 'Calculator', to: '/calculator', icon: 'mdi:calculator' },
+  { label: 'PDF Decklist', to: '/pdf-decklist', icon: 'mdi:file-pdf' },
+  { label: 'Konami Decklist', to: '/konami-decklist', icon: 'mdi:code-block-braces' },
+  { label: 'Statistics', to: '/statistics', icon: 'mdi:chart-line' },
+  { label: 'Past Tournaments', to: '/history', icon: 'mdi:podium-gold' },
   { label: 'My Decks', to: '/decks', icon: 'mdi:cards-outline' },
 ]
 

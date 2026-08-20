@@ -35,7 +35,7 @@ const HomePage = () => {
             Site Features
           </h2>
           <p className="home__section-lead">
-            Everything you need to compete, analyze, and build — in one place.
+            Everything you need to compete, analyze, and build in one place.
           </p>
         </div>
 
