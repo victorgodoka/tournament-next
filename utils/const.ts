@@ -1,0 +1,14 @@
+export const FORMATS_SUPPORTED = [
+  "TCG",
+  "OCG",
+  "GOAT",
+  "EDISON",
+  "SPEED DUEL",
+  "DUEL LINKS",
+  "MASTER DUEL",
+  "RUSH DUEL",
+  "TRADITIONAL",
+  "CUSTOM BANLISTS",
+  "HISTORICAL BANLISTS",
+  "ANIME CARDS",
+]

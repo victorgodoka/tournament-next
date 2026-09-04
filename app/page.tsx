@@ -1,6 +1,6 @@
-import { pageMetadata } from '@lib/page-metadata'
-import { SITE_TITLE } from '@lib/site-config'
-import HomePage from './home/home.pages'
+import HomePage from './home'
+import { pageMetadata } from '@utils/metadata'
+import { SITE_TITLE } from '@utils/config'
 
 export const metadata = pageMetadata({
   title: SITE_TITLE,
@@ -11,7 +11,5 @@ export const metadata = pageMetadata({
 })
 
 export default function Home() {
-  return <main className='content'>
-    <HomePage />
-  </main>
+  return <HomePage />
 }

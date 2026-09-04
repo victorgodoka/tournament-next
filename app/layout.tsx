@@ -1,20 +1,16 @@
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
-import { GtmNoScript, GtmScripts } from '../components/gtm/gtm-scripts.component'
-import NavbarComponent from '../components/navbar/navbar.component'
-import FooterComponent from '../components/footer/footer.component'
-import { fontVariables } from './fonts'
-import { Providers } from './providers'
-import { siteJsonLd } from '@lib/json-ld'
-import { NITROPAY_SCRIPT_URL } from '@lib/nitro-ads.const'
 import {
   OG_IMAGE,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
   SITE_URL,
-} from '@lib/site-config'
-import '@assets/design.system.css'
+  JSON_LB_CONTEXT
+} from '@utils/config'
+import { FONTS_VARIABLES } from '@utils/fonts'
+import { twMerge } from 'tailwind-merge'
+import './styles.css'
+import { ModalProvider } from '../contexts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -59,46 +55,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={fontVariables} suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <link rel="dns-prefetch" href="//images.ygoprodeck.com" />
-        <link rel="dns-prefetch" href="//api.duelistsunite.org" />
-        <link rel="dns-prefetch" href="//discord.com" />
-        <link rel="dns-prefetch" href="//s.nitropay.com" />
-        <link rel="dns-prefetch" href="//www.googletagmanager.com" />
-        <link
-          rel="preconnect"
-          href="https://images.ygoprodeck.com"
-          crossOrigin="anonymous"
-        />
-        <link rel="preconnect" href="https://cdn.discordapp.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LB_CONTEXT) }}
         />
-        <Script
-          id="nitro-ads-stub"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html:
-              'window.nitroAds=window.nitroAds||{createAd:function(){return new Promise(e=>{window.nitroAds.queue.push(["createAd",arguments,e])})},addUserToken:function(){window.nitroAds.queue.push(["addUserToken",arguments])},queue:[]};',
-          }}
-        />
-        <Script
-          id="nitro-ads-loader"
-          src={NITROPAY_SCRIPT_URL}
-          strategy="afterInteractive"
-          data-cfasync="false"
-          data-log-level="warn"
-          data-spa="auto"
-        />
-        <GtmScripts />
       </head>
-      <body suppressHydrationWarning>
-        <GtmNoScript />
-        <Providers navbar={<NavbarComponent />} footer={<FooterComponent />}>
+      <body className={twMerge(FONTS_VARIABLES, 'relative bg-omega-ink-black text-white')} suppressHydrationWarning>
+        <ModalProvider>
           {children}
-        </Providers>
+        </ModalProvider>
       </body>
     </html>
   )

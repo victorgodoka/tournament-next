@@ -22,14 +22,8 @@
     "paths": {
       "@app/*": ["./app/*"],
       "@components/*": ["./components/*"],
-      "@contexts": ["./contexts/index.tsx"],
-      "@contexts/*": ["./contexts/*"],
-      "@const": ["./const/index.ts"],
-      "@hooks/*": ["./hooks/*"],
-      "@assets": ["./assets"],
-      "@assets/*": ["./assets/*"],
-      "@lib/*": ["./lib/*"],
-      "@test/*": ["./test/*"],
+      "@utils/*": ["./utils/*"],
+      "@hooks/*": ["./hooks/*"]
     }
   },
   "include": [

@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@theme {
+  --breakpoint-xs: 30rem;
+  --color-omega-ink-black: #141416;
+  --color-omega-faded: #f2efe92f;
+  --color-omega-cyan: #00E0A4;
+  --color-omega-magenta: #FF4D8D;
+  --color-omega-gray: #B9B5AC;
+  --color-omega-gray-light: #8E8B84;
+  --color-white: #f1f0ec;
+  --animate-marquee: marquee 45s linear infinite;
+
+  @keyframes marquee {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+  }
+
+  a,
+  a:visited,
+  a:hover,
+  a:active {
+    text-decoration: none;
+    text-decoration-skip-ink: auto;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.home-grid-right {
+  max-height: calc(100dvh - (calc(var(--spacing) * 16) * 2))
+}
+
+.home-grid-left {
+  max-height: calc(100dvh - (calc(var(--spacing) * 16) * 2))
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
