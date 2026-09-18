@@ -21,8 +21,10 @@
     ],
     "paths": {
       "@app/*": ["./app/*"],
-      "@components/*": ["./components/*"],
+      "@ui/*": ["./components/ui/*"],
+      "@omega/*": ["./components/omega/*"],
       "@utils/*": ["./utils/*"],
+      "@contexts/*": ["./contexts/*"],
       "@hooks/*": ["./hooks/*"]
     }
   },

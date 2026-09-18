@@ -1,1 +1,2 @@
-export { ModalProvider, useModal } from './modal/modal.context';
+export { AuthProvider } from './auth/auth.context';
+export { ModalProvider } from './modal/modal.context';

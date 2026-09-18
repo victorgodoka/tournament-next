@@ -1,28 +1,30 @@
-import { Anton, Open_Sans, Space_Mono } from "next/font/google";
+import { Anton, Figtree, Space_Mono } from "next/font/google";
 
 export const anton = Anton({
   subsets: ["latin"],
   weight: "400",
-  variable: "--font-display",
+  variable: "--font-anton",
   display: "swap",
 });
 
-export const openSans = Open_Sans({
+/** 400 prose, 700 body-strong and roster names. */
+export const figtree = Figtree({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-body",
+  weight: ["400", "700"],
+  variable: "--font-figtree",
   display: "swap",
 });
 
+/** 400 signal and data, 700 chips, tabs and counts. */
 export const spaceMono = Space_Mono({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-mono",
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
   display: "swap",
 });
 
 export const FONTS_VARIABLES = [
   anton.variable,
-  openSans.variable,
+  figtree.variable,
   spaceMono.variable,
 ].join(" ");

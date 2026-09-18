@@ -1,3 +1,5 @@
+export { useModal } from "@contexts/modal/modal.context"
+export { useAuth } from "@contexts/auth/auth.context"
 import { useEffect, useState, useRef, RefObject } from 'react';
 
 export function useIsOffScreen(): [RefObject<HTMLElement | null>, boolean] {

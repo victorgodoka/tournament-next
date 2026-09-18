@@ -1,4 +1,4 @@
-import { Icon } from "@iconify/react"
+"use client";
 import { useEffect } from "react"
 import { twMerge } from "tailwind-merge"
 
@@ -7,33 +7,38 @@ type ModalProps = React.HTMLAttributes<HTMLDivElement> & {
   onClose: () => void
 }
 
-export const Modal = ({ isOpen, onClose, ...props }: ModalProps) => {
-
-  const handleClickOutside = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose()
-    }
-  }
-
+/** Overlay at z-overlay over the page-color scrim. Closes on Escape, on the scrim, or on Close. */
+export const Modal = ({ isOpen, onClose, className, children, ...props }: ModalProps) => {
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose()
-      }
-    }
-    isOpen && (window.document.body.style.overflow = "hidden")
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => event.key === "Escape" && onClose()
+    document.body.style.overflow = "hidden"
     window.addEventListener("keydown", handleKeyDown)
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
-      window.document.body.style.overflow = "auto"
+      document.body.style.overflow = ""
     }
   }, [onClose, isOpen])
 
+  if (!isOpen) return null
+
   return (
-    <div onClick={handleClickOutside} className={twMerge("fixed transition-all ease-in-out inset-0 z-100 items-center justify-center bg-black/90 p-4 overflow-hidden", isOpen ? "flex visible opacity-100" : "hidden invisible opacity-0")} {...props}>
-      <Icon icon="mdi:close" className="text-4xl absolute top-2 right-2 cursor-pointer text-white" onClick={onClose} />
-      {props.children}
+    <div
+      role="dialog"
+      aria-modal
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+      className={twMerge("fixed inset-0 z-(--z-overlay) flex items-center justify-center overflow-hidden bg-scrim p-4", className)}
+      {...props}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-3 right-3 flex min-h-8 cursor-pointer items-center gap-2 border border-surface-400 bg-surface-000 px-2.75 text-ink signal hover:bg-ink hover:text-ink-on"
+      >
+        Close <span aria-hidden className="text-sm leading-none font-bold">×</span>
+      </button>
+      {children}
     </div>
   )
 }

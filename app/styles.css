@@ -1,70 +1,439 @@
 @import 'tailwindcss';
 
+/*
+ * YGO Omega design system. Values mirror project/tokens.json of the design-system artifact.
+ * Printed, not lit: hard 1px rules, square corners, zero-blur offset shadows, no white, no eases.
+ *
+ * Cascade, lowest to highest
+ *   @theme               tokens that generate utilities (bg-surface-000, text-ink, shadow-offset-cyan…)
+ *   @theme inline        font stacks, resolved against next/font variables at the point of use
+ *   :root                tokens read through var() only (z-index, opacity)
+ *   @layer base          element defaults
+ *   @layer components    the type scale and image treatments, one class per named style
+ *   @layer utilities     Tailwind; always refines a component class on the same element
+ *   unlayered            reduced-motion overrides, which must beat everything
+ */
+
 @theme {
-  --breakpoint-xs: 30rem;
-  --color-omega-ink-black: #141416;
-  --color-omega-faded: #f2efe92f;
-  --color-omega-cyan: #00E0A4;
-  --color-omega-magenta: #FF4D8D;
-  --color-omega-gray: #B9B5AC;
-  --color-omega-gray-light: #8E8B84;
-  --color-white: #f1f0ec;
-  --animate-marquee: marquee 45s linear infinite;
+  /* Off-system values fail to compile: no default palette, radii, blurred shadows or blur. */
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --blur-*: initial;
 
-  @keyframes marquee {
-    0% {
-      transform: translate3d(0, 0, 0);
-    }
+  /* Black range. 000 is the page; 100 raised; 200 recessed; 300 hover/pressed only; 400 inert. */
+  --color-surface-000: #171717;
+  --color-surface-100: #1f1f1f;
+  --color-surface-200: #252525;
+  --color-surface-300: #2b2b2b;
+  --color-surface-400: #353535;
 
-    100% {
-      transform: translate3d(-50%, 0, 0);
-    }
+  /* Ink. There is no #ffffff in this system. ink-muted is legible down to surface-200 only. */
+  --color-ink: #f0eee9;
+  --color-ink-dim: #b9b5ac;
+  --color-ink-muted: #8e8b84;
+  --color-ink-on: var(--color-surface-000);
+
+  /* Rules. line is decorative; line-strong closes a band and outlines secondary controls. */
+  --color-line: var(--color-surface-400);
+  --color-line-strong: var(--color-ink);
+
+  /* Gold is the brand and primary action. gold-deep is fill-only. */
+  --color-gold: #e0a83c;
+  --color-gold-deep: #6f560f;
+  --color-gold-on: var(--color-surface-000);
+
+  /* Cyan is live/online, the hover flip of a primary action and its offset shadow. */
+  --color-cyan: #00edff;
+  --color-cyan-on: var(--color-surface-000);
+
+  /* Indigo is fill-only (2.8:1). Use indigo-lift for text or meaningful borders. */
+  --color-indigo: #4850ca;
+  --color-indigo-lift: #8f97ff;
+  --color-indigo-on: var(--color-ink);
+
+  /* Washes over surface-000. Always pair with a matching border or label. */
+  --color-ground-subtle: #f0eee908;
+  --color-ground-soft: #f0eee90d;
+  --color-ground-gold: #e0a83c12;
+  --color-ground-cyan: #00edff12;
+  --color-ground-indigo: #4850ca1f;
+
+  --color-scrim: #1717179e;
+  --color-veil-top: #1717174d;
+  --color-veil-base: #171717e0;
+
+  /* Third-party brand, only on the "Log in with Discord" control. */
+  --color-discord: #5865f2;
+  --color-discord-press: #4752c4;
+  --color-discord-on: #e0e3ff;
+
+  /* Square everywhere; round only for avatars and the presence dot. */
+  --radius-round: 50%;
+
+  /* Hard offset shadows, zero blur. */
+  --shadow-offset-void-lg: 12px 12px 0 var(--color-surface-000);
+  --shadow-offset-void: 10px 10px 0 var(--color-surface-000);
+  --shadow-offset-void-sm: 8px 8px 0 var(--color-surface-000);
+  --shadow-offset-cyan: 8px 8px 0 var(--color-cyan);
+  --shadow-offset-cyan-press: 4px 4px 0 var(--color-cyan);
+  --shadow-offset-gold: 6px 6px 0 var(--color-gold);
+  --shadow-focus: 0 0 0 2px var(--color-surface-000), 0 0 0 4px var(--color-cyan);
+  /* Inset bars: the active tab, the current nav link (both a 2px gold underline) and a selected row. */
+  --shadow-tab-active: inset 0 -2px 0 var(--color-gold);
+  --shadow-tab-active-cyan: inset 0 -2px 0 var(--color-cyan);
+  --shadow-current: var(--shadow-tab-active);
+  --shadow-selected: inset 2px 0 0 var(--color-gold);
+
+  /* The only two motions: ticker translate and the stepped live blink. */
+  --animate-ticker: ticker 38s linear infinite;
+  --animate-blink: blink 1.8s steps(1, end) infinite;
+
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
   }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: var(--opacity-blink-low); }
+  }
+}
+
+/* next/font hashes family names, so every fallback goes through its variable too. */
+@theme inline {
+  --font-display: var(--font-anton), var(--font-figtree), system-ui, sans-serif;
+  --font-sans: var(--font-figtree), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Tailwind has no theme namespace for these; use as z-(--z-sticky) and opacity-(--opacity-dim). */
+:root {
+  --opacity-duotone-lead: 0.62;
+  --opacity-duotone: 0.5;
+  --opacity-duotone-plate: 0.42;
+  --opacity-dim: 0.35;
+  --opacity-blink-low: 0.18;
+
+  /* Fixed stacking order. Never invent a value between them. */
+  --z-dropdown: 30;
+  --z-dock: 40;
+  --z-dock-window: 41;
+  --z-scrim: 55;
+  --z-sticky: 60;
+  --z-overlay: 80;
 }
 
 @layer base {
-  * {
-    box-sizing: border-box;
+  /* Dark UA widgets: native selects, scrollbars, autofill and date pickers. */
+  html {
+    color-scheme: dark;
   }
 
-  html,
   body {
     min-height: 100dvh;
+    background: var(--color-surface-000);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    margin: 0;
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    font-weight: bold;
+    text-wrap: balance;
   }
 
-  a,
-  a:visited,
-  a:hover,
-  a:active {
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
     text-decoration: none;
-    text-decoration-skip-ink: auto;
+  }
+
+  /*
+   * Two-tone focus ring as an outline, so it never fights box-shadow utilities (offset shadows,
+   * tab underlines, selected bars). The 2px offset shows the page void between control and ring,
+   * which keeps the cyan visible over gold and cyan fills.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
   }
 }
 
-.font-display {
-  font-family: var(--font-display);
-}
+/* Named type styles sit below utilities, so text-*, leading-*, tracking-* on the same element win. */
+@layer components {
+  .display-hero {
+    font-family: var(--font-display);
+    font-size: clamp(46px, 6.6vw, 104px);
+    font-weight: bold;
+    line-height: 0.87;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
 
-.home-grid-right {
-  max-height: calc(100dvh - (calc(var(--spacing) * 16) * 2))
-}
+  .display-1 {
+    font-family: var(--font-display);
+    font-size: clamp(34px, 4vw, 58px);
+    font-weight: 400;
+    line-height: 0.94;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
 
-.home-grid-left {
-  max-height: calc(100dvh - (calc(var(--spacing) * 16) * 2))
+  .display-band {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.6vw, 54px);
+    font-weight: 400;
+    line-height: 0.94;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .display-2 {
+    font-family: var(--font-display);
+    font-size: 54px;
+    font-weight: 400;
+    line-height: 0.94;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .display-3 {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .display-4 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .display-5 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .display-6 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .brandmark {
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .dock-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .window-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .action-lg {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .action-md {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .action-sm {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .action-xs {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .lead {
+    font-family: var(--font-sans);
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .body-sm {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .body-strong {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .caption {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .micro {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .signal-lg {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .signal-nav {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .signal-tab {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .signal {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .signal-sm {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .signal-chip {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .signal-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+
+  .mono-data {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+
+  .mono-handle {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+  /* ---- duotone: grayscale the image, then blend an accent layer over it in color mode ------ */
+  .duotone { filter: grayscale(1) contrast(1.18) brightness(.86); }
+  .duotone-wash { position: absolute; inset: 0; mix-blend-mode: color; opacity: var(--opacity-duotone); pointer-events: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
+  .animate-ticker,
+  .animate-blink {
     animation: none;
   }
 }

@@ -10,7 +10,7 @@ import {
 import { FONTS_VARIABLES } from '@utils/fonts'
 import { twMerge } from 'tailwind-merge'
 import './styles.css'
-import { ModalProvider } from '../contexts'
+import { AuthProvider, ModalProvider } from '../contexts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#080808',
+  themeColor: '#171717',
 }
 
 export default function RootLayout({
@@ -62,10 +62,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LB_CONTEXT) }}
         />
       </head>
-      <body className={twMerge(FONTS_VARIABLES, 'relative bg-omega-ink-black text-white')} suppressHydrationWarning>
-        <ModalProvider>
-          {children}
-        </ModalProvider>
+      <body className={twMerge(FONTS_VARIABLES, 'relative')} suppressHydrationWarning>
+        <AuthProvider>
+          <ModalProvider>
+            {children}
+          </ModalProvider>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -1,24 +1,59 @@
+import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type ButtonOwnProps = {
+  /** `primary` gold plate, `secondary` ink outline, `ghost` hairline outline, `discord` third-party sign-in only. */
+  variant?: 'primary' | 'secondary' | 'ghost' | 'discord'
+  /** `lg` 60px, `md` 52px, `sm` 48px, `mono` 36px mono label. */
+  size?: 'lg' | 'md' | 'sm' | 'mono'
+  /** Cyan offset shadow. Primary only, for the one leading action on a view. */
   shadow?: boolean
-  size?: 'sm' | 'md' | 'lg'
 }
+
+type ButtonProps = ButtonOwnProps &
+  (
+    | (React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: undefined })
+    | (React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string })
+  )
 
 const sizeClasses = {
-  xs: 'min-h-8 px-6',
-  sm: 'min-h-12 px-8',
-  md: 'min-h-16 px-12',
-  lg: 'min-h-24 px-18',
+  lg: 'min-h-15 px-8.5 action-lg',
+  md: 'min-h-13 px-7.5 action-md',
+  sm: 'min-h-12 px-6 action-sm',
+  mono: 'min-h-9 px-3.75 signal-chip',
 }
 
-export const Button = ({ size ="md", children, className, shadow, ...props }: ButtonProps) => {
-  return (
-    <button
-      className={twMerge(`cursor-pointer transition-all ease-in-out inline-flex items-center bg-omega-cyan text-omega-ink-black font-display uppercase`, sizeClasses[size], shadow ? 'shadow-[8px_8px_0_#FF4D8D] hover:translate-[4px_4px] hover:shadow-[4px_4px_0_#FF4D8D]' : 'hover:text-white hover:bg-omega-magenta', className)}
-      {...props}
-    >
-      {children}
-    </button>
+const variantClasses = {
+  primary: 'bg-gold text-gold-on hover:bg-cyan hover:text-cyan-on',
+  secondary: 'border-line-strong text-ink hover:bg-ink hover:text-surface-000',
+  ghost: 'border-line text-ink-dim hover:border-gold hover:text-gold',
+  discord: 'bg-discord text-discord-on hover:bg-discord-press',
+}
+
+/** The plate slides into its own shadow on hover. */
+const SHADOW = 'shadow-offset-cyan hover:translate-1 hover:shadow-offset-cyan-press'
+
+const DISABLED =
+  'disabled:cursor-not-allowed disabled:border-surface-400 disabled:bg-surface-400 disabled:text-ink-muted disabled:shadow-none disabled:translate-0 ' +
+  'aria-disabled:pointer-events-none aria-disabled:border-surface-400 aria-disabled:bg-surface-400 aria-disabled:text-ink-muted aria-disabled:shadow-none'
+
+export const buttonClasses = ({ variant = 'primary', size = 'md', shadow }: ButtonOwnProps = {}) =>
+  twMerge(
+    'inline-flex cursor-pointer items-center justify-center gap-2.5 border border-transparent whitespace-nowrap',
+    sizeClasses[size],
+    variantClasses[variant],
+    shadow && variant === 'primary' && SHADOW,
+    DISABLED,
   )
+
+export const Button = ({ variant, size, shadow, className, ...props }: ButtonProps) => {
+  const classes = twMerge(buttonClasses({ variant, size, shadow }), className)
+
+  if (props.href !== undefined) {
+    const { href, ...rest } = props as React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }
+    return <Link href={href} className={classes} {...rest} />
+  }
+
+  const { type = 'button', ...rest } = props as React.ButtonHTMLAttributes<HTMLButtonElement>
+  return <button type={type} className={classes} {...rest} />
 }

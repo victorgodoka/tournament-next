@@ -1,0 +1,121 @@
+import { twMerge } from 'tailwind-merge'
+import { buttonClasses } from '@ui/button'
+import { Chip } from '@ui/chip'
+import type { Tone } from '@utils/wiki'
+
+/** Horizontal rhythm of every wiki block, lined up with the rails on the rest of the site. */
+export const WIKI_PAD = 'px-5.5 lg:px-11'
+
+/** A sidebar that pins itself beside the article once there is a column to pin it in. */
+export const WIKI_ASIDE = 'min-w-0 lg:sticky lg:top-0 lg:max-h-dvh lg:self-start lg:overflow-y-auto xl:top-16'
+
+type WikiSectionProps = {
+  id?: string
+  /** Ordinal shown in gold, e.g. `01`. */
+  index: string
+  title: string
+  children?: React.ReactNode
+  className?: string
+}
+
+/** SectionHead: gold mono ordinal, display-4 heading, hairline below. */
+export const WikiSection = ({ id, index, title, children, className }: WikiSectionProps) => (
+  <section id={id} className={twMerge('border-b border-line py-7.5', WIKI_PAD, className)}>
+    <div className="flex items-baseline gap-3.5">
+      <span className="text-gold signal-lg">{index}</span>
+      <h2 className="text-ink display-4">{title}</h2>
+    </div>
+    {children}
+  </section>
+)
+
+/** Body copy, held to a readable measure. */
+export const Prose = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <p className={twMerge('mt-3.5 max-w-[62ch] text-ink-dim body', className)}>{children}</p>
+)
+
+/** Gold caution callout, for the rules that are easy to read the wrong way round. */
+export const Callout = ({ children }: { children: React.ReactNode }) => (
+  <div className="mt-4.5 flex gap-3 border border-gold bg-ground-gold px-4.5 py-4">
+    <span aria-hidden className="mt-1.25 size-2.25 shrink-0 bg-gold" />
+    <p className="text-ink-dim body-sm">{children}</p>
+  </div>
+)
+
+/** Hairline-separated tiles: the stat row under a title, or a pair of release dates. */
+export const TileGrid = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <div className={twMerge('mt-5 grid gap-px bg-line', className)}>{children}</div>
+)
+
+export const Tile = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="bg-surface-000 px-4.5 py-3.5">
+    <p className="text-ink-muted signal-sm">{label}</p>
+    {children}
+  </div>
+)
+
+type WikiTableProps = {
+  /** CSS `grid-template-columns`, e.g. `1.4fr 1fr 1fr`. */
+  template: string
+  columns: string[]
+  rows: { key: string; cells: React.ReactNode[] }[]
+}
+
+/** Bordered grid table. The columns are free-form so both wiki pages can share one shape. */
+export const WikiTable = ({ template, columns, rows }: WikiTableProps) => (
+  <div className="mt-4 border border-line">
+    <div className="grid gap-3.5 border-b border-line bg-ground-soft px-4 py-2.5" style={{ gridTemplateColumns: template }}>
+      {columns.map((column) => (
+        <span key={column} className="text-ink-muted signal-sm tracking-[.18em]">{column}</span>
+      ))}
+    </div>
+    {rows.map(({ key, cells }) => (
+      <div key={key} className="grid items-center gap-3.5 border-b border-line px-4 py-3 last:border-b-0 hover:bg-surface-300" style={{ gridTemplateColumns: template }}>
+        {cells}
+      </div>
+    ))}
+  </div>
+)
+
+/** Status chip for table cells. */
+export const TonePill = ({ tone, children }: { tone: Tone; children: React.ReactNode }) => (
+  <Chip tone={tone} className={twMerge(tone === 'neutral' && 'border-surface-400')}>{children}</Chip>
+)
+
+/** A block in the right-hand infobox. */
+export const AsideBlock = ({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) => (
+  <div className={twMerge('border-b border-line px-5 py-4 last:border-b-0', className)}>
+    <p className="text-ink-muted signal-sm">{label}</p>
+    {children}
+  </div>
+)
+
+/** Label/value rows inside an infobox. */
+export const FactRows = ({ facts }: { facts: { label: string; value: string }[] }) => (
+  <div className="mt-2.5">
+    {facts.map(({ label, value }) => (
+      <div key={label} className="flex items-baseline justify-between gap-3.5 border-b border-line py-2 last:border-b-0">
+        <span className="whitespace-nowrap text-ink-muted signal">{label}</span>
+        <span className="min-w-0 text-right text-ink body-strong">{value}</span>
+      </div>
+    ))}
+  </div>
+)
+
+/** The endpoints a page was rendered from, shown verbatim so a reader can check the data. */
+export const SourceBlock = ({ endpoints, synced }: { endpoints: string[]; synced: string }) => (
+  <AsideBlock label="Source" className="bg-ground-subtle">
+    <div className="mt-2.5 flex flex-col gap-1.75">
+      {endpoints.map((endpoint) => (
+        <code key={endpoint} className="block border border-line bg-surface-200 px-2.25 py-1.75 font-mono text-[11px] text-gold">
+          {endpoint}
+        </code>
+      ))}
+    </div>
+    <p className="mt-2.5 text-ink-muted micro">{synced}</p>
+  </AsideBlock>
+)
+
+export const LINK = 'text-gold hover:text-cyan'
+
+export const GHOST_ACTION = twMerge(buttonClasses({ variant: 'secondary', size: 'mono' }), 'min-h-10.5 w-full')
