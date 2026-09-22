@@ -13,14 +13,14 @@ import { REGION_LABEL, SOCIAL } from "@omega/profile/labels";
 import { useAuth } from "@hooks/index";
 import { signIn } from "@utils/auth";
 import { archetypeCover, searchArchetypes, searchCards } from "@utils/cards";
-import { CoverRejectedError, coverUrl, getProfile, ProfileApiError, updateProfile, uploadCover } from "@utils/profile";
+import { getProfile, ProfileApiError, updateProfile } from "@utils/profile";
 import type { ProfileIdentity, ProfileSettingsPatch, Region, Visibility } from "@utils/types";
-import { bioProblem, BIO_MAX, COVER_MAX_BYTES, COVER_TYPES, DECK_NAME_MAX, diff, SOCIAL_FIELDS, toForm, type Form } from "./form";
+import { bioProblem, BIO_MAX, DECK_NAME_MAX, diff, SOCIAL_FIELDS, toForm, type Form } from "./form";
 
 /** Longest keys first, so `favoriteDeckCardId` is not read as another field. The API message names the field. */
 const FIELD_LABEL: [keyof ProfileSettingsPatch, string][] = [
   ['favoriteDeckCardId', 'favorite deck art'], ['favoriteDeckName', 'favorite deck'], ['favoriteCardId', 'favorite card'],
-  ['coverImageId', 'cover image'], ['visibility', 'privacy setting'], ['socials', 'socials'], ['region', 'region'], ['bio', 'bio'],
+  ['visibility', 'privacy setting'], ['socials', 'socials'], ['region', 'region'], ['bio', 'bio'],
 ]
 
 const saveError = (error: unknown) => {
@@ -56,8 +56,7 @@ function useSearch<T>(text: string, search: (text: string, signal: AbortSignal) 
 /* ── Shared styles ── */
 
 const LABEL = "block text-ink-muted signal-sm"
-const INPUT = "w-full border border-surface-400 bg-surface-200 px-3.5 py-3.25 text-[15px] text-ink placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
-const OUTLINE_BUTTON = buttonClasses({ variant: 'secondary', size: 'sm' })
+const INPUT = "w-full border border-surface-400 bg-surface-200 px-3.5 py-3.25 text-ink body placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
 const MINOR_BUTTON = "inline-flex min-h-11.5 cursor-pointer items-center border border-line px-5 text-ink-muted signal-tab"
 
 const Row = ({ index, title, blurb, className, children }: { index: string; title: string; blurb: string; className?: string; children: React.ReactNode }) => (
@@ -73,77 +72,7 @@ const Row = ({ index, title, blurb, className, children }: { index: string; titl
 
 type SetForm = (patch: Partial<Form> | ((form: Form) => Partial<Form>)) => void
 
-/* ── 01 Cover ── */
-
-const CoverSection = ({ coverImageId, set, onUploaded }: { coverImageId: string | null; set: SetForm; onUploaded: (coverImageId: string | null) => void }) => {
-  /** Cloudinary's versioned URL, shown right after an upload because the plain id URL may still be cached. */
-  const [freshUrl, setFreshUrl] = useState<string | null>(null)
-  const [upload, setUpload] = useState<{ state: 'idle' | 'uploading' | 'off' } | { state: 'error'; message: string }>({ state: 'idle' })
-
-  const src = coverImageId ? freshUrl ?? coverUrl(coverImageId) : null
-
-  const onFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    if (!COVER_TYPES.includes(file.type)) return setUpload({ state: 'error', message: 'Use a JPG or PNG image.' })
-    if (file.size > COVER_MAX_BYTES) return setUpload({ state: 'error', message: 'Keep the image under 4 MB.' })
-
-    setUpload({ state: 'uploading' })
-    try {
-      const result = await uploadCover(file)
-      setFreshUrl(result.coverUrl)
-      onUploaded(result.settings.coverImageId)
-      setUpload({ state: 'idle' })
-    } catch (error) {
-      if (error instanceof CoverRejectedError) return setUpload({ state: 'error', message: 'This image isn’t allowed. Pick a different one.' })
-      if (error instanceof ProfileApiError && error.code === 'NOT_CONFIGURED') return setUpload({ state: 'off' })
-      if (error instanceof ProfileApiError && error.status === 401) return signIn()
-      console.error(error)
-      setUpload({ state: 'error', message: 'Upload failed. Try again.' })
-    }
-  }
-
-  return (
-    <Row index="01" title="Cover image" blurb="Shown across the top of your public profile. 1920 × 1080 or wider, JPG or PNG, up to 4 MB. Uploads save right away.">
-      <div className="relative h-42.5 overflow-hidden border border-line sm:h-57.5">
-        {coverImageId ? (
-          <>
-            {src ? <Image src={src} alt="Current cover image" fill sizes="(min-width: 1024px) 60vw, 100vw" className="object-cover object-[center_40%] grayscale contrast-115" /> : null}
-            <span aria-hidden className="duotone-wash bg-cyan" />
-            <span aria-hidden className="absolute inset-0 bg-linear-to-b from-transparent from-55% to-veil-base" />
-            <span className="absolute top-0 left-0 bg-cyan px-3 py-2 text-cyan-on signal-chip">Current</span>
-          </>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center bg-surface-200 p-6 text-center">
-            <span aria-hidden className="size-2.5 bg-surface-400" />
-            <p className="mt-3.5 text-ink-dim display-6">No cover set</p>
-            <p className="mt-2 max-w-[38ch] text-ink-muted caption">Your profile shows no header image until you upload one.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-3.5 flex flex-wrap gap-2.5">
-        {upload.state === 'off' ? null : (
-          <label className={twMerge(OUTLINE_BUTTON, "has-focus-visible:shadow-focus", upload.state === 'uploading' && "pointer-events-none cursor-wait opacity-(--opacity-dim)")}>
-            <input type="file" accept={COVER_TYPES.join(',')} onChange={onFile} disabled={upload.state === 'uploading'} className="sr-only" />
-            {upload.state === 'uploading' ? 'Uploading…' : coverImageId ? 'Replace image' : 'Upload cover'}
-          </label>
-        )}
-        {coverImageId ? (
-          <button type="button" onClick={() => set({ coverImageId: null })} className={twMerge(MINOR_BUTTON, "hover:border-gold hover:text-gold")}>
-            Remove cover
-          </button>
-        ) : null}
-      </div>
-
-      {upload.state === 'error' ? <p role="alert" className="mt-3 text-gold caption">{upload.message}</p> : null}
-      {upload.state === 'off' ? <p className="mt-3 font-mono text-[11px] tracking-[.04em] text-ink-muted">Cover uploads aren’t available right now.</p> : null}
-    </Row>
-  )
-}
-
-/* ── 02 Favorites ── */
+/* ── 01 Favorites ── */
 
 const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
   const [cardText, setCardText] = useState(form.favoriteCard?.name ?? '')
@@ -160,7 +89,7 @@ const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
   }
 
   return (
-    <Row index="02" title="Favorites" blurb="Card and deck shown in the band under your name. Search for a card, and pick an archetype or type any deck name.">
+    <Row index="01" title="Favorites" blurb="Card and deck shown in the band under your name. Search for a card, and pick an archetype or type any deck name.">
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
         <div>
           <label htmlFor="fav-card" className={LABEL}>Favorite card</label>
@@ -196,7 +125,7 @@ const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
               )
             })}
           </div>
-          <p className="mt-2 font-mono text-[11px] text-ink-muted">
+          <p className="mt-2 text-ink-muted mono-note">
             {form.favoriteCard ? `Selected: ${form.favoriteCard.name ?? `card ${form.favoriteCard.id}`}` : 'No favorite card'}
           </p>
         </div>
@@ -234,7 +163,7 @@ const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
           {form.favoriteDeckArt ? (
             <div className="mt-3 flex items-center gap-2.5">
               <CardArt art={form.favoriteDeckArt} alt="" sizes="36px" className="size-9 border border-line" />
-              <p className="font-mono text-[11px] text-ink-muted">Deck art: {form.favoriteDeckArt.name}</p>
+              <p className="text-ink-muted mono-note">Deck art: {form.favoriteDeckArt.name}</p>
             </div>
           ) : null}
         </div>
@@ -243,18 +172,18 @@ const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
   )
 }
 
-/* ── 03 Bio ── */
+/* ── 02 Bio ── */
 
 const BioSection = ({ bio, set }: { bio: string; set: SetForm }) => {
   const problem = bioProblem(bio)
 
   return (
-    <Row index="03" title="Bio" blurb="Markdown is supported: **bold**, *italic*, ~~strike~~, `code`, [links](https://…) and - lists. No raw HTML.">
+    <Row index="02" title="Bio" blurb="Markdown is supported: **bold**, *italic*, ~~strike~~, `code`, [links](https://…) and - lists. No raw HTML.">
       <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
         <div>
           <div className="flex items-baseline justify-between gap-3">
             <label htmlFor="bio" className={LABEL}>Markdown source</label>
-            <span className={twMerge("font-mono text-[10px] tracking-[.14em]", bio.length > BIO_MAX ? "text-gold" : "text-ink-muted")}>
+            <span className={twMerge("mono-handle", bio.length > BIO_MAX ? "text-gold" : "text-ink-muted")}>
               {bio.length} / {BIO_MAX}
             </span>
           </div>
@@ -266,14 +195,14 @@ const BioSection = ({ bio, set }: { bio: string; set: SetForm }) => {
             placeholder="Tell duelists who you are…"
             aria-invalid={!!problem}
             aria-describedby={problem ? 'bio-problem' : undefined}
-            className={twMerge(INPUT, "mt-2.5 resize-y p-3.5 font-mono text-[13px] leading-[1.6]")}
+            className={twMerge(INPUT, "mt-2.5 resize-y p-3.5 mono-data leading-relaxed")}
           />
           {problem ? <p id="bio-problem" role="alert" className="mt-2 text-gold caption">{problem}</p> : null}
         </div>
         <div>
           <p className="text-cyan signal-sm">Live preview</p>
           <div className="mt-2.5 min-h-30 border border-line bg-surface-100 p-3.5">
-            {bio.trim() ? <ProfileBio markdown={bio} /> : <p className="text-[15px] text-ink-muted italic">Nothing written yet.</p>}
+            {bio.trim() ? <ProfileBio markdown={bio} /> : <p className="text-ink-muted body italic">Nothing written yet.</p>}
           </div>
         </div>
       </div>
@@ -281,12 +210,12 @@ const BioSection = ({ bio, set }: { bio: string; set: SetForm }) => {
   )
 }
 
-/* ── 04 Socials ── */
+/* ── 03 Socials ── */
 
 const SocialsSection = ({ socials, set }: { socials: Form['socials']; set: SetForm }) => (
-  <Row index="04" title="Socials" blurb="Empty fields stay hidden. Your profile shows the handle, and links to the platform.">
+  <Row index="03" title="Socials" blurb="Empty fields stay hidden. Your profile shows the handle, and links to the platform.">
     <div className="grid gap-px border border-line bg-line">
-      {SOCIAL_FIELDS.map(({ network, prefix, placeholder }) => (
+      {SOCIAL_FIELDS.map(({ network, prefix, placeholder, max }) => (
         <div key={network} className="flex flex-wrap items-center gap-3 bg-surface-000 px-3.5 py-3">
           <label htmlFor={`social-${network}`} className={twMerge(LABEL, "basis-32.5")}>{SOCIAL[network].label}</label>
           <span aria-hidden className="text-gold mono-data">{prefix}</span>
@@ -295,8 +224,9 @@ const SocialsSection = ({ socials, set }: { socials: Form['socials']; set: SetFo
             value={socials[network]}
             onChange={(e) => set((current) => ({ socials: { ...current.socials, [network]: e.target.value } }))}
             placeholder={placeholder}
+            maxLength={max}
             autoComplete="off"
-            className={twMerge(INPUT, "min-w-0 flex-[1_1_200px] px-3 py-2.5 font-mono text-[13px]")}
+            className={twMerge(INPUT, "min-w-0 flex-[1_1_200px] px-3 py-2.5 mono-data")}
           />
         </div>
       ))}
@@ -304,7 +234,7 @@ const SocialsSection = ({ socials, set }: { socials: Form['socials']; set: SetFo
   </Row>
 )
 
-/* ── 05 Privacy ── */
+/* ── 04 Privacy ── */
 
 const PRIVACY: { id: Visibility; label: string; hint: string }[] = [
   { id: 'nobody', label: 'No one', hint: 'Only you see your full profile.' },
@@ -314,7 +244,7 @@ const PRIVACY: { id: Visibility; label: string; hint: string }[] = [
 ]
 
 const PrivacySection = ({ visibility, set }: { visibility: Visibility; set: SetForm }) => (
-  <Row index="05" title="Privacy" blurb="Controls who sees your bio, favorites, socials, ranked standing and match history. Name, avatar and last login stay public.">
+  <Row index="04" title="Privacy" blurb="Controls who sees your bio, favorites, socials, ranked standing and match history. Name, avatar and last login stay public.">
     <div role="radiogroup" aria-label="Who can see your profile" className="grid gap-px border border-line bg-line">
       {PRIVACY.map(({ id, label, hint }) => {
         const selected = id === visibility
@@ -336,16 +266,16 @@ const PrivacySection = ({ visibility, set }: { visibility: Visibility; set: SetF
         )
       })}
     </div>
-    <p className="mt-3.5 font-mono text-[11px] leading-normal tracking-[.04em] text-ink-muted">
+    <p className="mt-3.5 text-ink-muted mono-note">
       Pending friend or rival requests don’t grant access until they’re accepted.
     </p>
   </Row>
 )
 
-/* ── 06 Region ── */
+/* ── 05 Region ── */
 
 const RegionSection = ({ region, set }: { region: Region | null; set: SetForm }) => (
-  <Row index="06" title="Region" blurb="The server region you usually play from. Pick it again to clear it." className="border-line-strong">
+  <Row index="05" title="Region" blurb="The server region you usually play from. Pick it again to clear it." className="border-line-strong">
     <div role="radiogroup" aria-label="Region" className="flex flex-wrap gap-2">
       {(Object.keys(REGION_LABEL) as Region[]).map((id) => {
         const selected = id === region
@@ -366,7 +296,7 @@ const RegionSection = ({ region, set }: { region: Region | null; set: SetForm })
         )
       })}
     </div>
-    <p className="mt-4 font-mono text-[11px] tracking-[.04em] text-ink-muted">
+    <p className="mt-4 text-ink-muted mono-note">
       {region ? `Region: ${REGION_LABEL[region]}` : 'No region set'}
     </p>
   </Row>
@@ -412,12 +342,6 @@ const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: For
     }
   }
 
-  /** Uploads are already saved, so they move the baseline too, not just the form. */
-  const onCoverUploaded = (coverImageId: string | null) => {
-    setSaved((current) => ({ ...current, coverImageId }))
-    setForm((current) => ({ ...current, coverImageId }))
-  }
-
   const note =
     status.state === 'error' ? { text: status.message, className: "text-gold" }
     : status.state === 'saving' ? { text: 'Saving…', className: "text-ink-muted" }
@@ -446,7 +370,6 @@ const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: For
         </Link>
       </div>
 
-      <CoverSection coverImageId={form.coverImageId} set={set} onUploaded={onCoverUploaded} />
       <FavoritesSection key={revision} form={form} set={set} />
       <BioSection bio={form.bio} set={set} />
       <SocialsSection socials={form.socials} set={set} />
@@ -498,7 +421,8 @@ export const EditProfile = () => {
     if (!user) return
 
     let active = true
-    getProfile(user.id)
+    // The form shows no duels, so ask for the smallest page the API allows instead of the default 6.
+    getProfile(user.id, null, 1)
       .then((profile) => {
         // As the owner the API always sends the full profile, `visibility` included.
         if (!profile || profile.isPrivate || !profile.visibility) throw new Error('Own profile came back without settings')
@@ -514,7 +438,7 @@ export const EditProfile = () => {
   }, [user, router])
 
   if (loaded === 'error') return <ErrorPage />
-  if (!loaded) return <p role="status" className="px-5 py-16 font-mono text-[11px] tracking-[.16em] uppercase text-ink-muted sm:px-6 lg:px-11">Loading your profile…</p>
+  if (!loaded) return <p role="status" className="px-5 py-16 text-ink-muted signal-nav sm:px-6 lg:px-11">Loading your profile…</p>
 
   return <Editor identity={loaded.identity} initial={loaded.initial} />
 }

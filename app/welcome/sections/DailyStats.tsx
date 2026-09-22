@@ -1,23 +1,25 @@
 import { twMerge } from "tailwind-merge";
+import { useTranslations } from "next-intl";
 import { CardArt } from "@omega/card-art";
 import { formatNumber } from "@omega/profile/labels";
 import { RailHead } from "@ui/rail-head";
 import type { TopDeck } from "@utils/welcome";
 import { ArrowLink, RailFooter } from "./rails";
 
-type DailyStatsProps = {
+export type DailyStatsProps = {
   decks: TopDeck[]
   stamp: string
   sampleNote?: string
 }
 
 export const DailyStats = ({ decks, stamp, sampleNote }: DailyStatsProps) => {
+  const t = useTranslations('Welcome.dailyStats');
   const topShare = decks[0]?.share ?? 1
 
   return (
     <section id="stats" className="border-b border-line-strong">
-      <RailHead num="01" label="Last 24 hours" stamp={stamp} />
-      <RailHead emphasis label="Most used decks" stamp={sampleNote} className="py-3.5 signal" />
+      <RailHead num="01" label={t('last24hours')} stamp={stamp} />
+      <RailHead emphasis label={t('mostUsedDecks')} stamp={sampleNote} className="py-3.5 signal" />
 
       <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-3">
         {decks.map((deck, i) => (
@@ -39,9 +41,9 @@ export const DailyStats = ({ decks, stamp, sampleNote }: DailyStatsProps) => {
               </div>
               <h3 className="mt-auto pt-5.5 text-ink display-4">{deck.name}</h3>
               <div className="mt-3 flex items-center gap-3 mono-data">
-                <span className="font-bold text-gold">{deck.share.toFixed(1)}%</span>
+                <span className="font-bold text-gold">{deck.share.toFixed(1)}{t('share')}</span>
                 <span aria-hidden className="h-3 w-px bg-line" />
-                <span className="text-ink-dim">{formatNumber(deck.duels)} duels</span>
+                <span className="text-ink-dim">{formatNumber(deck.duels)} {t('duels')}</span>
               </div>
               <div aria-hidden className="mt-3.5 h-1 bg-surface-400">
                 <span className={twMerge("block h-full", i ? "bg-ink-dim" : "bg-gold")} style={{ width: `${(deck.share / topShare) * 100}%` }} />
@@ -52,7 +54,7 @@ export const DailyStats = ({ decks, stamp, sampleNote }: DailyStatsProps) => {
       </div>
 
       <RailFooter>
-        <ArrowLink href="/statistics">See all statistics</ArrowLink>
+        <ArrowLink href="/statistics">{t('seeAll')}</ArrowLink>
       </RailFooter>
     </section>
   )

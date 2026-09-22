@@ -1,4 +1,4 @@
-import type { Region, SocialNetwork } from '@utils/types'
+import type { Region, SocialNetwork, Visibility } from '@utils/types'
 
 /** The API sends stable enums; labels and icons are the client's job. */
 export const REGION_LABEL: Record<Region, string> = {
@@ -11,6 +11,14 @@ export const REGION_LABEL: Record<Region, string> = {
   africa: 'Africa',
   asia: 'Asia',
   oceania: 'Oceania',
+}
+
+/** Only the owner ever sees this: it is their own privacy setting, not a viewer-facing state. */
+export const VISIBILITY_LABEL: Record<Visibility, string> = {
+  everyone: 'Public profile',
+  friends_rivals: 'Visible to friends & rivals',
+  friends: 'Visible to friends',
+  nobody: 'Visible to you only',
 }
 
 export const SOCIAL: Record<SocialNetwork, { label: string; icon: string }> = {

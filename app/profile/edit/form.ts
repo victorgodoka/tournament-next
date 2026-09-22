@@ -5,8 +5,6 @@ import type { CardArt, ProfileSettings, ProfileSettingsPatch, ProfileSocial, Reg
 
 export const BIO_MAX = 2000
 export const DECK_NAME_MAX = 64
-export const COVER_MAX_BYTES = 4 * 1024 * 1024
-export const COVER_TYPES = ['image/jpeg', 'image/png']
 
 export const bioProblem = (bio: string) => {
   if (bio.length > BIO_MAX) return `Keep your bio under ${BIO_MAX} characters.`
@@ -18,7 +16,6 @@ export const bioProblem = (bio: string) => {
 /* ── Form model ── */
 
 export type Form = {
-  coverImageId: string | null
   bio: string
   region: Region | null
   visibility: Visibility
@@ -32,12 +29,16 @@ export type Form = {
 const handleSocial = (network: SocialNetwork, base: string) => (value: string): ProfileSocial =>
   ({ network, handle: `@${value}`, href: `${base}${encodeURIComponent(value)}` })
 
-export const SOCIAL_FIELDS: { network: SocialNetwork; prefix: string; placeholder: string; toSocial: (value: string) => ProfileSocial }[] = [
-  { network: 'instagram', prefix: '@', placeholder: 'marufuji', toSocial: handleSocial('instagram', 'https://instagram.com/') },
-  { network: 'x', prefix: '@', placeholder: 'marufuji_ygo', toSocial: handleSocial('x', 'https://x.com/') },
-  { network: 'youtube', prefix: '@', placeholder: 'marufujiduels', toSocial: handleSocial('youtube', 'https://youtube.com/@') },
-  { network: 'twitch', prefix: '@', placeholder: 'marufuji_live', toSocial: handleSocial('twitch', 'https://twitch.tv/') },
-  { network: 'website', prefix: 'https://', placeholder: 'marufuji.gg', toSocial: (value) => ({ network: 'website', handle: null, href: `https://${value}` }) },
+/** `handle` is capped at 64 and `href` at 500 (§3.3). The `@` and the `https://` come out of the budget. */
+const HANDLE_MAX = 63
+const WEBSITE_MAX = 492
+
+export const SOCIAL_FIELDS: { network: SocialNetwork; prefix: string; placeholder: string; max: number; toSocial: (value: string) => ProfileSocial }[] = [
+  { network: 'instagram', prefix: '@', placeholder: 'marufuji', max: HANDLE_MAX, toSocial: handleSocial('instagram', 'https://instagram.com/') },
+  { network: 'x', prefix: '@', placeholder: 'marufuji_ygo', max: HANDLE_MAX, toSocial: handleSocial('x', 'https://x.com/') },
+  { network: 'youtube', prefix: '@', placeholder: 'marufujiduels', max: HANDLE_MAX, toSocial: handleSocial('youtube', 'https://youtube.com/@') },
+  { network: 'twitch', prefix: '@', placeholder: 'marufuji_live', max: HANDLE_MAX, toSocial: handleSocial('twitch', 'https://twitch.tv/') },
+  { network: 'website', prefix: 'https://', placeholder: 'marufuji.gg', max: WEBSITE_MAX, toSocial: (value) => ({ network: 'website', handle: null, href: `https://${value}` }) },
 ]
 
 const cleanSocial = (network: SocialNetwork, value: string) =>
@@ -53,7 +54,6 @@ const toSocials = (socials: Form['socials']) =>
   })
 
 export const toForm = (settings: ProfileSettings): Form => ({
-  coverImageId: settings.coverImageId,
   bio: settings.bio,
   region: settings.region,
   visibility: settings.visibility,
@@ -69,7 +69,6 @@ export const toForm = (settings: ProfileSettings): Form => ({
 /** Changed fields only, in the shape `PATCH /profiles/me` expects. */
 export const diff = (from: Form, to: Form): ProfileSettingsPatch => {
   const patch: ProfileSettingsPatch = {}
-  if (from.coverImageId !== to.coverImageId) patch.coverImageId = to.coverImageId
   if (from.bio !== to.bio) patch.bio = to.bio
   if (from.region !== to.region) patch.region = to.region
   if (from.visibility !== to.visibility) patch.visibility = to.visibility

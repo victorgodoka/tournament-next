@@ -27,22 +27,41 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return res.json()
 }
 
+/** Duels per page. The API defaults to 6 and caps at 50; one ledger screen is worth more than 6. */
+export const MATCH_PAGE_SIZE = 20
+
+/** One ranked ladder. Omit for both. History is ranked only: there is no casual room. */
+export type MatchFormat = 'tcg' | 'genesys'
+
 /**
  * `null` for an unknown or malformed id, anything else unexpected throws.
  * On the server, pass the incoming `cookie` header so the API sees the viewer's session.
+ * `limit` stays a plain number so `cache` still dedupes the metadata and the render call.
  */
-export const getProfile = cache(async (id: string, cookie?: string | null): Promise<Profile | null> => {
+export const getProfile = cache(async (id: string, cookie?: string | null, limit?: number): Promise<Profile | null> => {
+  const query = limit ? `?limit=${limit}` : ''
   try {
-    return await request<Profile>(`/profiles/${encodeURIComponent(id)}`, cookie ? { headers: { cookie } } : undefined)
+    return await request<Profile>(`/profiles/${encodeURIComponent(id)}${query}`, cookie ? { headers: { cookie } } : undefined)
   } catch (error) {
     if (error instanceof ProfileApiError && error.status === 404) return null
     throw error
   }
 })
 
-/** Older duels. A `403` means the profile turned private for this viewer: re-fetch the profile. */
-export const getMatches = (id: string, cursor: string, signal?: AbortSignal) =>
-  request<MatchPage>(`/profiles/${encodeURIComponent(id)}/matches?cursor=${encodeURIComponent(cursor)}`, { signal })
+/**
+ * Older duels. A `403` means the profile turned private for this viewer: re-fetch the profile.
+ * Keep `format` identical across a cursor walk — the pages of one walk must all use the same filter.
+ */
+export const getMatches = (
+  id: string,
+  { cursor, format, limit = MATCH_PAGE_SIZE }: { cursor?: string; format?: MatchFormat; limit?: number } = {},
+  signal?: AbortSignal,
+) => {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (cursor) params.set('cursor', cursor)
+  if (format) params.set('format', format)
+  return request<MatchPage>(`/profiles/${encodeURIComponent(id)}/matches?${params}`, { signal })
+}
 
 /** Send changed fields only. Render from the result: the server normalizes what it saves. */
 export const updateProfile = (patch: ProfileSettingsPatch) =>
@@ -52,48 +71,20 @@ export const updateProfile = (patch: ProfileSettingsPatch) =>
     body: JSON.stringify(patch),
   })
 
-/** `fields` is opaque and fully signed: append every entry unchanged. */
-type CoverSignature = {
-  uploadUrl: string
-  fields: Record<string, string | number>
-}
-
-/** Cloudinary's content moderation blocked the image. Tell the duelist; don't retry. */
-export class CoverRejectedError extends Error {}
+const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
 /**
- * Signs, uploads straight to Cloudinary, then saves the new id. Check type and size before calling.
- * `coverUrl` is Cloudinary's delivery URL, shown right away.
- * A `ProfileApiError` with code `NOT_CONFIGURED` means uploads are off, so hide the control.
+ * Cloudinary does the resizing and format choice on its own CDN, so covers skip Next's
+ * optimiser entirely (the `<Image>`s that render this pass `unoptimized`). 1600px is the
+ * widest a full-bleed cover is ever painted at.
  */
-export const uploadCover = async (file: File) => {
-  const { uploadUrl, fields } = await request<CoverSignature>('/profiles/me/cover-upload', { method: 'POST' })
-
-  const form = new FormData()
-  for (const [key, value] of Object.entries(fields)) form.append(key, String(value))
-  form.append('file', file)
-
-  const res = await fetch(uploadUrl, { method: 'POST', body: form })
-  const uploaded: {
-    public_id?: string
-    secure_url?: string
-    moderation?: { status: string }[]
-    error?: { message: string }
-  } = await res.json().catch(() => ({}))
-  if (!res.ok || uploaded.error || !uploaded.public_id) {
-    throw new Error(`Cover upload failed with ${res.status}: ${uploaded.error?.message ?? 'no public_id'}`)
-  }
-  if (uploaded.moderation?.some((entry) => entry.status === 'rejected')) throw new CoverRejectedError()
-
-  const settings = await updateProfile({ coverImageId: uploaded.public_id })
-  return { settings, coverUrl: uploaded.secure_url ?? null }
-}
-
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const COVER_TRANSFORM = 'f_auto,q_auto,w_1600,c_limit'
 
 /** `null` when there is no cover, or no cloud name configured to build the URL from. */
 export const coverUrl = (coverImageId: string | null) =>
-  coverImageId && CLOUDINARY_CLOUD ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/upload/${coverImageId}` : null
+  coverImageId && CLOUDINARY_CLOUD
+    ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/upload/${COVER_TRANSFORM}/${coverImageId}`
+    : null
 
 /**
  * Server-side fetch to get the current logged-in user's profile using the session cookie.

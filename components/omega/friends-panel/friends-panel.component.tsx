@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { twMerge } from "tailwind-merge";
 import { Avatar, useMessenger } from "@omega/messenger";
+import { TabBar, tabPanelProps } from "@ui/tab-bar";
 import { contactName, STATUS_MAX } from "@utils/messenger";
 import type { ChosenPresence, Relation } from "@utils/types";
 import { ChatWindow } from "./chat-window";
 import { NowPlaying } from "./now-playing";
-import { PRESENCE, RELATION_ACTIVE, SELECTABLE_PRESENCE } from "./presence";
+import { PRESENCE, SELECTABLE_PRESENCE } from "./presence";
 import { RosterList } from "./roster-list";
 
 /** Docked messenger: own presence, status and song, the friends / rivals lists, and a chat window. Hidden when signed out. */
@@ -21,6 +22,7 @@ export const FriendsPanel = () => {
   const [chatId, setChatId] = useState<string | null>(null)
   const statusInput = useRef<HTMLInputElement>(null)
   const cancelStatus = useRef(false)
+  const listId = useId()
 
   const signedIn = !!panel
   // Unread counts per contact come from the chat list: refetch it whenever the dock opens.
@@ -63,8 +65,8 @@ export const FriendsPanel = () => {
           {messenger.unreadChats ? (
             <span className="bg-surface-000 px-1.5 py-0.5 text-ink signal-count">{messenger.unreadChats} unread</span>
           ) : null}
-          <span className="font-mono text-[11px] font-bold tracking-[.1em]">{readyCount} ready</span>
-          <span aria-hidden className="font-mono text-[13px] font-bold">{isOpen ? '-' : '+'}</span>
+          <span className="signal-tab">{readyCount} ready</span>
+          <span aria-hidden className="mono-data font-bold">{isOpen ? '-' : '+'}</span>
         </button>
 
         {isOpen ? (
@@ -78,7 +80,7 @@ export const FriendsPanel = () => {
                   // Keeps focus in the input so its blur, not this click, saves.
                   onMouseDown={(e) => isEditing && e.preventDefault()}
                   onClick={() => (isEditing ? statusInput.current?.blur() : setStatusDraft(me.status ?? ''))}
-                  className="cursor-pointer border border-line py-0.5 font-mono text-[9px] font-bold tracking-[.12em] text-ink-muted uppercase hover:border-gold hover:text-gold"
+                  className="cursor-pointer border border-line py-0.5 text-ink-muted signal-sm font-bold hover:border-gold hover:text-gold"
                 >
                   {isEditing ? 'Done' : 'Edit'}
                 </button>
@@ -92,7 +94,7 @@ export const FriendsPanel = () => {
                     <select
                       value={me.presence}
                       onChange={(e) => messenger.setPresence(e.target.value as ChosenPresence)}
-                      className="border border-surface-400 bg-surface-200 px-1 py-0.5 font-mono text-[10px] tracking-[.1em] text-ink-dim uppercase hover:border-ink-muted"
+                      className="border border-surface-400 bg-surface-200 px-1 py-0.5 text-ink-dim signal hover:border-ink-muted"
                     >
                       {SELECTABLE_PRESENCE.map((option) => (
                         <option key={option} value={option}>{PRESENCE[option].label}</option>
@@ -115,11 +117,11 @@ export const FriendsPanel = () => {
                       }}
                       placeholder="Type a personal message…"
                       maxLength={STATUS_MAX}
-                      className="mt-2 w-full border border-cyan bg-surface-200 px-2 py-1.5 text-[13px] text-ink italic placeholder:text-ink-muted"
+                      className="mt-2 w-full border border-cyan bg-surface-200 px-2 py-1.5 text-ink caption italic placeholder:text-ink-muted"
                     />
                   </label>
                 ) : (
-                  <p className={twMerge("mt-2 px-2 py-1.5 text-[13px] wrap-break-word italic", me.status ? "text-ink" : "text-ink-muted")}>
+                  <p className={twMerge("mt-2 px-2 py-1.5 caption wrap-break-word italic", me.status ? "text-ink" : "text-ink-muted")}>
                     {me.status || 'No personal message'}
                   </p>
                 )}
@@ -128,29 +130,22 @@ export const FriendsPanel = () => {
 
             {me.song ? <NowPlaying song={me.song} /> : null}
 
-            <div className="flex shrink-0 border-b border-line">
-              {([
-                { kind: 'friend', label: `Friends ${friends.length}` },
-                { kind: 'rival', label: `Rivals ${rivals.length}` },
-              ] as const).map(({ kind, label }) => (
-                <button
-                  key={kind}
-                  type="button"
-                  aria-pressed={tab === kind}
-                  onClick={() => setTab(kind)}
-                  className={twMerge(
-                    "min-h-11 flex-1 cursor-pointer px-2.5 signal-tab",
-                    tab === kind ? RELATION_ACTIVE[kind] : "text-ink-muted hover:text-ink-dim",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
+            <TabBar
+              label="Duelist list"
+              idPrefix={listId}
+              active={tab}
+              onSelect={setTab}
+              tabs={[
+                { id: 'friend', label: `Friends ${friends.length}` },
+                { id: 'rival', label: `Rivals ${rivals.length}` },
+              ]}
+            />
+
+            <div {...tabPanelProps(listId, tab)} className="flex min-h-0 flex-1 flex-col">
+              <RosterList entries={entries} kind={tab} unread={unread} messenger={messenger} onChat={setChatId} />
             </div>
 
-            <RosterList entries={entries} kind={tab} unread={unread} messenger={messenger} onChat={setChatId} />
-
-            <div className="flex shrink-0 items-center justify-between gap-2.5 border-t border-line px-3.5 py-2.5 signal-nav text-[10px]">
+            <div className="flex shrink-0 items-center justify-between gap-2.5 border-t border-line px-3.5 py-2.5 signal">
               {panel.incomingRequests ? (
                 <Link href="/messenger?tab=requests" className="text-gold hover:text-cyan">
                   {panel.incomingRequests} {panel.incomingRequests === 1 ? 'request' : 'requests'}

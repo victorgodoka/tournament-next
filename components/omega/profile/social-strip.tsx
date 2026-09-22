@@ -1,33 +1,29 @@
-'use client'
-
-import { Icon } from "@iconify/react";
 import { twMerge } from "tailwind-merge";
 import type { ProfileSocial } from "@utils/types";
 import { SOCIAL } from "./labels";
 
-const host = (href: string) => {
+/** The API sends no label for a bare website, so fall back to the URL host (PROFILE_API.md §4.6). */
+const hostOf = (href: string) => {
   try {
-    return new URL(href).host
+    return new URL(href).host.replace(/^www\./, '')
   } catch {
     return href
   }
 }
 
-/** Hairline-gapped strip of external profiles, one icon plus handle each. */
+/** Row of outlined mono links to the duelist's external profiles. */
 export const SocialStrip = ({ socials, className }: { socials: ProfileSocial[]; className?: string }) => (
-  <ul className={twMerge("flex w-fit max-w-full flex-wrap gap-px border border-line bg-line", className)}>
+  <ul className={twMerge("flex flex-wrap gap-1.5", className)}>
     {socials.map(({ network, handle, href }) => (
-      <li key={network} className="flex-1">
+      <li key={network}>
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          title={SOCIAL[network].label}
-          className="flex h-full items-center gap-2.5 bg-surface-000 px-3.5 py-2.5 text-ink hover:bg-gold hover:text-gold-on"
+          title={handle ?? hostOf(href)}
+          className="inline-flex min-h-11 items-center border border-line-strong px-3 text-ink-dim signal-sm hover:border-gold hover:text-gold"
         >
-          <Icon icon={SOCIAL[network].icon} aria-hidden className="text-base" />
-          <span className="whitespace-nowrap mono-data">{handle ?? host(href)}</span>
-          <span className="sr-only">on {SOCIAL[network].label}</span>
+          {network === 'website' ? hostOf(href) : SOCIAL[network].label}
         </a>
       </li>
     ))}

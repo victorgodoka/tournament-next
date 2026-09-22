@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useAuth } from "@hooks/index";
 import { signIn } from "@utils/auth";
@@ -50,7 +50,7 @@ const buttonLabel = (status: RelationStatus) => {
 
 const buttonSkin = (status: RelationStatus) => {
   switch (status.state) {
-    case 'none': return "border-line-strong text-ink hover:bg-ink hover:text-ink-on"
+    case 'none': return "border-gold bg-gold text-gold-on hover:border-cyan hover:bg-cyan hover:text-cyan-on"
     case 'outgoing': return "border-line text-ink-muted"
     case 'incoming': return "border-gold bg-gold text-gold-on"
     case 'linked': return KIND[status.kind].button
@@ -76,10 +76,18 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
   /** The profile doesn't say whether the viewer blocks this duelist; a `409 BLOCKED` does. */
   const [isBlocked, setIsBlocked] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  /** Blocking is one misclick away from Friend/Rival, so it takes a second, explicit step. */
+  const [isConfirmingBlock, setIsConfirmingBlock] = useState(false)
+  const panelId = useId()
   const [isPending, setIsPending] = useState(false)
 
-  const run = async (request: () => Promise<RelationStatus | void>, fallback: RelationStatus = { state: 'none' }) => {
+  const close = () => {
     setIsOpen(false)
+    setIsConfirmingBlock(false)
+  }
+
+  const run = async (request: () => Promise<RelationStatus | void>, fallback: RelationStatus = { state: 'none' }) => {
+    close()
     setIsPending(true)
     try {
       setStatus((await request()) ?? fallback)
@@ -116,15 +124,15 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
   return (
     <div
       className="relative"
-      onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
-      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setIsOpen(false)}
+      onKeyDown={(e) => e.key === 'Escape' && close()}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && close()}
     >
       <button
         type="button"
         aria-expanded={isOpen}
-        aria-haspopup="menu"
+        aria-controls={panelId}
         disabled={isPending}
-        onClick={() => (user ? setIsOpen((open) => !open) : signIn())}
+        onClick={() => (!user ? signIn() : isOpen ? close() : setIsOpen(true))}
         className={twMerge(
           "inline-flex min-h-11 cursor-pointer items-center gap-2.5 border px-4.5 signal-tab disabled:cursor-wait disabled:opacity-(--opacity-dim)",
           buttonSkin(status),
@@ -134,51 +142,65 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
       </button>
 
       {isOpen ? (
-        <div role="menu" className="absolute top-[calc(100%+8px)] left-0 z-(--z-dropdown) w-66 border border-line-strong bg-surface-000 shadow-offset-void-sm">
-          <p className="border-b border-line bg-ground-soft px-3.5 py-3 leading-normal text-ink-muted signal">
-            {promptTitle(status, handle)}
-          </p>
-
-          {status.state === 'none' || status.state === 'incoming' ? (
-            (['friend', 'rival'] as const).map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                role="menuitem"
-                onClick={() => run(() => (status.state === 'incoming' ? messenger.accept(id, kind) : messenger.request(id, kind)))}
-                className={twMerge(OPTION, KIND[kind].hover)}
-              >
-                <span aria-hidden className={twMerge("size-2.25 shrink-0", KIND[kind].dot)} />
-                <span>{KIND[kind].verb}</span>
+        <div id={panelId} className="absolute top-[calc(100%+8px)] right-0 z-(--z-dropdown) w-66 border border-line-strong bg-surface-000 shadow-offset-void-sm">
+          {isConfirmingBlock ? (
+            <>
+              <p className="border-b border-line bg-ground-soft px-3.5 py-3 leading-normal text-ink-dim signal">
+                Block {handle}? You can unblock them later from this profile.
+              </p>
+              <button type="button" onClick={block} className={twMerge(OPTION, "hover:bg-gold hover:text-gold-on")}>
+                Block {handle}
               </button>
-            ))
+              <button type="button" onClick={() => setIsConfirmingBlock(false)} className={twMerge(MINOR, "border-b-0")}>
+                Cancel
+              </button>
+            </>
           ) : (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => run(() => messenger.setKind(id, OTHER[status.kind]))}
-              className={twMerge(OPTION, KIND[OTHER[status.kind]].hover)}
-            >
-              <span aria-hidden className={twMerge("size-2.25 shrink-0", KIND[OTHER[status.kind]].dot)} />
-              <span>{status.state === 'outgoing' ? `Change to ${KIND[OTHER[status.kind]].verb}` : KIND[OTHER[status.kind]].verb}</span>
-            </button>
+            <>
+              <p className="border-b border-line bg-ground-soft px-3.5 py-3 leading-normal text-ink-muted signal">
+                {promptTitle(status, handle)}
+              </p>
+
+              {status.state === 'none' || status.state === 'incoming' ? (
+                (['friend', 'rival'] as const).map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => run(() => (status.state === 'incoming' ? messenger.accept(id, kind) : messenger.request(id, kind)))}
+                    className={twMerge(OPTION, KIND[kind].hover)}
+                  >
+                    <span aria-hidden className={twMerge("size-2.25 shrink-0", KIND[kind].dot)} />
+                    <span>{KIND[kind].verb}</span>
+                  </button>
+                ))
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => run(() => messenger.setKind(id, OTHER[status.kind]))}
+                  className={twMerge(OPTION, KIND[OTHER[status.kind]].hover)}
+                >
+                  <span aria-hidden className={twMerge("size-2.25 shrink-0", KIND[OTHER[status.kind]].dot)} />
+                  <span>{status.state === 'outgoing' ? `Change to ${KIND[OTHER[status.kind]].verb}` : KIND[OTHER[status.kind]].verb}</span>
+                </button>
+              )}
+
+              {status.state !== 'none' ? (
+                <button type="button" onClick={() => run(() => messenger.remove(id))} className={MINOR}>
+                  {{ incoming: 'Decline', outgoing: 'Cancel request', linked: 'Remove from list' }[status.state]}
+                </button>
+              ) : null}
+
+              {status.state !== 'outgoing' ? (
+                <button type="button" onClick={() => setIsConfirmingBlock(true)} className={twMerge(MINOR, "hover:text-gold")}>
+                  Block
+                </button>
+              ) : null}
+
+              <button type="button" onClick={close} className={twMerge(MINOR, "border-b-0")}>
+                Close
+              </button>
+            </>
           )}
-
-          {status.state !== 'none' ? (
-            <button type="button" role="menuitem" onClick={() => run(() => messenger.remove(id))} className={MINOR}>
-              {{ incoming: 'Decline', outgoing: 'Cancel request', linked: 'Remove from list' }[status.state]}
-            </button>
-          ) : null}
-
-          {status.state !== 'outgoing' ? (
-            <button type="button" role="menuitem" onClick={block} className={twMerge(MINOR, "hover:text-gold")}>
-              Block
-            </button>
-          ) : null}
-
-          <button type="button" role="menuitem" onClick={() => setIsOpen(false)} className={twMerge(MINOR, "border-b-0")}>
-            Close
-          </button>
         </div>
       ) : null}
     </div>

@@ -1,60 +1,108 @@
+import Link from "next/link";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
 import type { Match, MatchSide } from "@utils/types";
+import { RESULT } from "./accent";
 import { LocalTime } from "./local-time";
 
-const MatchSideBlock = ({ side, mirrored }: { side: MatchSide; mirrored?: boolean }) => (
-  <div className={twMerge("flex items-center gap-4", mirrored && "lg:flex-row-reverse")}>
-    <ul className="flex shrink-0 gap-[3px]">
-      {side.cards.map((art) => (
-        <li key={art.id}>
-          <CardArt art={art} sizes="46px" className="size-11.5 border border-line" />
-        </li>
-      ))}
-    </ul>
-    <div className={twMerge("flex min-w-0 flex-col", mirrored && "lg:items-end lg:text-right")}>
-      <p className="text-ink display-6">{side.name ?? 'Unknown duelist'}</p>
-      {side.deck ? <p className="mt-1.5 font-mono text-[11px] text-ink-muted">{side.deck}</p> : null}
-    </div>
+/** Desktop column tracks, shared by the head and every row so they line up. */
+const COLS =
+  "lg:grid-cols-[40px_minmax(0,1.1fr)_minmax(0,1fr)_76px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-x-5"
+
+/** Every cell sits in column two on a phone and takes its own track from `lg` up. */
+const CELL = "col-start-2 lg:col-auto lg:row-auto"
+
+/** Column labels over the ledger. Hidden on phones, where each row stacks. */
+export const MatchLedgerHead = () => (
+  <div aria-hidden className={twMerge("hidden border-b border-line bg-ground-soft px-4 py-2.5 text-ink-muted signal-sm lg:grid", COLS)}>
+    <span>Res</span>
+    <span>Duelist</span>
+    <span>Deck</span>
+    <span>Score</span>
+    <span>Opponent</span>
+    <span>Their deck</span>
+    <span className="text-right">When</span>
   </div>
 )
 
-/** `win: null` is a draw or an unfinished duel, never a loss. */
-/** Same colors as the form streak: a win reads as confirmed (cyan), a loss as caution (gold). */
-const RESULT = {
-  win: { label: 'Win', bar: 'bg-cyan', tag: 'bg-cyan text-cyan-on', tint: 'bg-ground-cyan' },
-  loss: { label: 'Loss', bar: 'bg-gold', tag: 'bg-gold text-gold-on', tint: 'bg-ground-gold' },
-  draw: { label: 'Draw', bar: 'bg-surface-400', tag: 'bg-surface-400 text-ink-dim', tint: '' },
+/** A deck as a fan of up to three overlapping art chips plus its name. */
+const DeckCell = ({ side, muted, className }: { side: MatchSide; muted?: boolean; className?: string }) => (
+  <div className={twMerge("flex min-w-0 items-center gap-2.5", className)}>
+    {side.cards.length ? (
+      <ul aria-hidden className="flex shrink-0">
+        {side.cards.map((art) => (
+          <li key={art.id} className="-ml-2.5 first:ml-0">
+            <CardArt art={art} alt="" sizes="36px" className="size-9 border-2 border-surface-000" />
+          </li>
+        ))}
+      </ul>
+    ) : null}
+    {side.deck ? <span className={twMerge("truncate signal", muted ? "text-ink-muted" : "text-ink-dim")}>{side.deck}</span> : null}
+  </div>
+)
+
+/**
+ * One square per game: green for the games this duelist took, red for the opponent's.
+ * The order they were played in isn't recorded, so the squares are a count, not a sequence.
+ */
+const ScoreCell = ({ score }: { score: Match['score'] }) => {
+  if (!score.self && !score.opponent) return <span className="text-ink-muted mono-data">—</span>
+
+  return (
+    <span className="flex items-center gap-1">
+      <span className="sr-only">
+        {score.self}–{score.opponent}
+      </span>
+      {Array.from({ length: score.self }, (_, index) => (
+        <span key={`w${index}`} aria-hidden className="size-2.5 bg-win" />
+      ))}
+      {Array.from({ length: score.opponent }, (_, index) => (
+        <span key={`l${index}`} aria-hidden className="size-2.5 bg-loss" />
+      ))}
+    </span>
+  )
 }
 
+/** "TCG ranked · Ranked ladder" says ranked twice: keep the event only when it adds something. */
+const queueLabel = ({ format, event }: Match) => {
+  const kind = format.split(' ').pop()?.toLowerCase()
+  return !event || (kind && event.toLowerCase().includes(kind)) ? format : `${format} · ${event}`
+}
+
+/** One ledger line. `win: null` is a draw or an unfinished duel, never a loss. */
 export const MatchRow = ({ match }: { match: Match }) => {
   const result = RESULT[match.win === null ? 'draw' : match.win ? 'win' : 'loss']
 
   return (
-    <article className={twMerge("grid grid-cols-[6px_minmax(0,1fr)] border-b border-line", result.tint)}>
-      <div aria-hidden className={result.bar} />
-      <div className="px-5.5 py-5 lg:px-11">
-        <div className="flex flex-wrap items-center gap-3.5 signal">
-          <span className={twMerge("px-2.5 py-1 signal-chip tracking-[.2em]", result.tag)}>{result.label}</span>
-          <span className="text-ink">{match.score.self} - {match.score.opponent}</span>
-          <span className="text-ink-muted">{match.format}</span>
-          <span className="text-ink-muted">{match.event}</span>
-          <span className="min-w-0 flex-1" />
-          {match.when ? (
-            <span className="text-ink-muted">
-              <LocalTime iso={match.when} options={{ dateStyle: 'medium', timeStyle: 'short' }} />
-            </span>
-          ) : null}
-        </div>
+    <li className={twMerge("grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3.5 last:border-b-0", COLS)}>
+      <span className={twMerge("row-span-6 inline-flex size-10 items-center justify-center self-start text-surface-000 signal-tab lg:row-span-1 lg:self-center", result.fill)}>
+        <span aria-hidden>{result.label[0]}</span>
+        <span className="sr-only">{result.label}</span>
+      </span>
 
-        <div className="mt-4 grid grid-cols-1 items-center lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6">
-          <MatchSideBlock side={match.self} />
-          <div className="my-2.5 border-y border-line py-2.5 text-center text-ink-muted display-6 tracking-[.08em] lg:my-0 lg:border-x lg:border-y-0 lg:px-2 lg:py-0">
-            VS
-          </div>
-          <MatchSideBlock side={match.opponent} mirrored />
-        </div>
+      <div className={twMerge("min-w-0", CELL)}>
+        <p className="truncate text-ink body-strong">{match.self.name || 'Unknown duelist'}</p>
+        <p className="mt-0.5 truncate text-ink-muted signal-sm">{queueLabel(match)}</p>
       </div>
-    </article>
+
+      <DeckCell side={match.self} className={CELL} />
+
+      <span className={CELL}>
+        <ScoreCell score={match.score} />
+      </span>
+
+      <div className={twMerge("min-w-0", CELL)}>
+        <span className="sr-only">versus </span>
+        <Link href={`/profile/${match.opponent.id}`} className="block truncate text-ink body-strong hover:text-gold">
+          {match.opponent.name || 'Unknown duelist'}
+        </Link>
+      </div>
+
+      <DeckCell side={match.opponent} muted className={CELL} />
+
+      <p className={twMerge("text-ink-muted mono-data lg:text-right", CELL)}>
+        {match.when ? <LocalTime iso={match.when} options={{ dateStyle: 'medium', timeStyle: 'short' }} /> : '—'}
+      </p>
+    </li>
   )
 }

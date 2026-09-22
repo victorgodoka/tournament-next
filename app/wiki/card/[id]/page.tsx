@@ -127,13 +127,13 @@ const CardRoute = async ({ params }: CardRouteProps) => {
         <div className="grid flex-1 border-b border-line-strong lg:grid-cols-[minmax(0,1fr)_23.25rem]">
           <article className="min-w-0 lg:border-r lg:border-line">
             <header className={twMerge('border-b border-line pt-9 pb-6.5', WIKI_PAD)}>
-              <p className="font-mono text-[10px] tracking-[.24em] text-ink-muted uppercase">
+              <p className="text-ink-muted signal">
                 Card page · passcode {card.id}
               </p>
-              <h1 className="mt-3 text-[40px] leading-[.94] text-ink uppercase md:text-[54px]">{card.name}</h1>
+              <h1 className="mt-3 text-ink display-1">{card.name}</h1>
 
               {card.alias ? (
-                <Prose className="text-[15px]">
+                <Prose>
                   This is an alternate artwork.{' '}
                   <Link href={`/wiki/card/${card.alias}`} className={LINK}>See the original print</Link>{' '}for the
                   canonical page.
@@ -148,7 +148,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                 ))}
               </TileGrid>
 
-              <p className="mt-3.5 font-mono text-[11px] tracking-[.06em] text-ink-muted">
+              <p className="mt-3.5 text-ink-muted mono-note">
                 {card.kind === 'monster'
                   ? `[ ${typeLine(card)} ] · ${card.humanReadableCardType} · ${isExtraDeck(card) ? 'Extra' : 'Main'} Deck`
                   : `${card.humanReadableCardType} · Main Deck`}
@@ -159,7 +159,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               <div className="mt-4 border border-line bg-surface-100 p-5.5">
                 <p className="whitespace-pre-line text-ink body">{card.description}</p>
               </div>
-              <p className="mt-2.5 font-mono text-[10px] tracking-[.06em] text-ink-muted">
+              <p className="mt-2.5 text-ink-muted mono-note">
                 English text as printed. The card database markup is stripped before display.
               </p>
             </WikiSection>
@@ -170,12 +170,12 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                   {translations.map(({ label, value }) => (
                     <div key={label} className="bg-surface-000 px-4.5 py-4">
                       <p className="text-ink-muted signal-sm">{label}</p>
-                      <p className="mt-2 text-[17px] font-bold text-ink">{value?.name}</p>
+                      <p className="mt-2 text-ink body font-bold">{value?.name}</p>
                       <p className="mt-2 whitespace-pre-line text-ink-dim caption">{value?.desc}</p>
                     </div>
                   ))}
                 </div>
-                <p className="mt-2.5 font-mono text-[10px] tracking-[.06em] text-ink-muted">
+                <p className="mt-2.5 text-ink-muted mono-note">
                   Search and filters run on the English text only.
                 </p>
               </WikiSection>
@@ -192,11 +192,11 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                       cells: [
                         <span key="list" className="min-w-0 text-sm font-bold text-ink">{row.list}</span>,
                         <TonePill key="status" tone={row.tone}>{row.status}</TonePill>,
-                        <span key="copies" className="font-mono text-[13px] text-ink-dim">{row.copies}</span>,
+                        <span key="copies" className="text-ink-dim mono-data">{row.copies}</span>,
                       ],
                     }))}
                   />
-                  <Prose className="text-[13px] text-ink-muted">
+                  <Prose className="text-ink-muted caption">
                     Genesys prices cards against a {genesys?.pointCap ?? 100}-point deck cap instead of capping copies,
                     and bans {genesys?.bannedTypes.map(titleCase).join(' and ') || 'whole card types'} monsters outright.
                     A card with no points entry is free; a banned type is unplayable at any price.
@@ -240,7 +240,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                 </Tile>
               </TileGrid>
               {debut && debut !== card.released.tcg ? (
-                <Prose className="text-[13px] text-ink-muted">
+                <Prose className="text-ink-muted caption">
                   The current wording shipped {releaseDate(card.released.tcg)}; the debut above is the date of the oldest
                   text in the errata history.
                 </Prose>

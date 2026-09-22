@@ -1,0 +1,78 @@
+{
+  "Home": {
+    "page": {},
+    "AutomaticTournaments": {
+      "kicker": "Torneio automático de Yugioh",
+      "note": "Os decks são bloqueados na primeira rodada. A regra se mantém sem que ninguém a fiscalize.",
+      "button": "Comece a duelar",
+      "kicker_note": "Inscrição gratuita. Elo contado.",
+      "title": "Torneios suíços automáticos. Sem juiz, sem sistema de honra, sem <span>planilha</span>.",
+      "lead": "Inscreva-se, envie um deck e duele. O Omega verifica a lista em relação à banlist do formato, emparelha a rodada, registra o resultado e atualiza a classificação. Os decks são bloqueados no momento em que o torneio começa, então a regra se mantém sem que ninguém a fiscalize.",
+      "step": "Passo",
+      "step_handle": "Gerenciado pelo motor",
+      "step_means": "O que isso significa para você"
+    },
+    "ClosingCta": {
+      "title": "Simulador de Yu-Gi-Oh! automático e gratuito. Ranqueado, com scripts, julgado pelo <span>motor</span>.",
+      "button": "Baixar gratuitamente",
+      "button_note": "Sem cartão de crédito.<br />A instalação leva menos de 2 minutos.",
+      "platforms": "Windows / macOS / Linux / Android"
+    },
+    "DoubleScripts": {
+      "kicker": "Regras de Yugioh TCG OCG",
+      "title": "A mesma carta, com dois scripts: uma divisão para regras, outra para eras",
+      "lead": "O Omega executa o núcleo oficial Fluorohydride, ocgcore, com correções no cálculo de dano e nas regras do TCG. É o primeiro simulador automático que programa uma carta separadamente sempre que sua redação, regra ou era diverge: TCG versus OCG, e texto atual versus texto pré-errata. Escolha um formato e você terá a carta desse formato, resolvida por um script em vez da interpretação de um servidor."
+    },
+    "Faq": {
+      "kicker": "FAQ",
+      "title": "Perguntas antes de baixar",
+      "note": "Incluindo as partes que ainda estão faltando."
+    },
+    "FaqReasons": {
+      "kicker": "Uma alternativa gratuita ao Master Duel",
+      "reasons": "Razões pelas quais os jogadores deixam os clientes oficiais",
+      "title": "Yu-Gi-Oh! online ranqueado, gratuito, com o formato de torneio intacto",
+      "lead": "Três coisas afastam os jogadores competitivos dos clientes oficiais. O Omega remove todas as três.",
+      "button": "Baixar gratuitamente",
+      "button_note": "Sem cartão de crédito. A instalação leva menos de 2 minutos."
+    },
+    "FixedSections": {
+      "title": "Todas as cartas desbloqueadas",
+      "note": "Instalação em menos de 2 minutos",
+      "button": "Baixar gratuitamente"
+    },
+    "Formats": {
+      "kicker": "Yugioh todas as cartas grátis",
+      "title": "Todos os formatos e todas as banlists que o jogo já teve",
+      "lead": "Mude de era entre os duelos. Nada para comprar, nada para desbloquear, nenhum segundo cliente para instalar.",
+      "link": "Baixar gratuitamente →"
+    },
+    "MainHero": {
+      "eyebrow_meta": "Est. 2019 / Duelistas Unidos",
+      "eyebrow": "Gratuito. Todas as cartas desbloqueadas.",
+      "title": "O primeiro simulador de <span>Yu-Gi-Oh!</span> com um sistema de torneio <span>realmente automático</span>",
+      "lead": "Regras oficiais do TCG e OCG, todas as cartas desbloqueadas, ranking Elo e torneios suíços. Nenhuma instalação além do launcher. Gratuito.",
+      "button": "Baixar gratuitamente",
+      "button_note": "Sem cartão de crédito. A instalação leva menos de 2 minutos.",
+      "figure_1_label": "Sem moeda, sem criação, sem pacotes",
+      "figure_2_label": "Uma classificação que muda com seus resultados",
+      "figure_2_value": "Elo"
+    },
+    "MetaDecks": {
+      "kicker": "Yugioh ranqueado online grátis",
+      "title": "Jogue o meta atual na semana em que ele muda",
+      "lead": "Esses decks estão na fila ranqueada agora. Monte qualquer um deles, completo, de graça."
+    },
+    "Modes": {
+      "kicker": "Simulador de Yugioh manual e automático",
+      "title": "Automático e manual, no mesmo cliente",
+      "lead": "Ninguém precisa escolher uma plataforma. Pratique um torneio físico manualmente na segunda-feira, suba no Elo com o motor na terça-feira, mantenha uma única instalação."
+    },
+    "Tools": {
+      "kicker": "Construtor de decks de Yugioh online",
+      "title": "Monte o deck no navegador e depois duele com ele no cliente",
+      "lead": "Filtre o conjunto completo de cartas por atributo, nível, tipo, arquétipo e status na banlist. Salve a lista, compartilhe o link, carregue-o no Omega.",
+      "button": "Montar meu deck"
+    }
+  }
+}

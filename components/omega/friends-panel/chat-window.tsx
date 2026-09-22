@@ -28,7 +28,7 @@ export const ChatWindow = ({ contact, messenger, onClose }: ChatWindowProps) => 
         <span className="min-w-0 flex-1 truncate window-title">{name}</span>
         <Link
           href={`/messenger?with=${contact.id}`}
-          className="border border-ink-on px-1.75 py-1 font-mono text-[9px] tracking-[.12em] text-ink-on uppercase hover:bg-ink-on hover:text-ink"
+          className="border border-ink-on px-1.75 py-1 text-ink-on signal-sm hover:bg-ink-on hover:text-ink"
         >
           Expand
         </Link>
@@ -42,7 +42,7 @@ export const ChatWindow = ({ contact, messenger, onClose }: ChatWindowProps) => 
         </button>
       </div>
       <div className="flex shrink-0 items-center gap-2 border-b border-line bg-ground-soft px-3 py-2">
-        <span className="font-mono text-[9px] tracking-[.14em] text-ink-muted uppercase">{presence.label}</span>
+        <span className="text-ink-muted signal-sm">{presence.label}</span>
         <span className="flex-1" />
         {contact.status ? <span className="min-w-0 truncate text-xs text-ink-muted italic">{contact.status}</span> : null}
       </div>

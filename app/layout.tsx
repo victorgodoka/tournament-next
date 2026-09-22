@@ -1,3 +1,5 @@
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import type { Metadata, Viewport } from 'next'
 import {
   OG_IMAGE,
@@ -8,7 +10,6 @@ import {
   JSON_LB_CONTEXT
 } from '@utils/config'
 import { FONTS_VARIABLES } from '@utils/fonts'
-import { twMerge } from 'tailwind-merge'
 import './styles.css'
 import { AuthProvider, ModalProvider } from '../contexts'
 
@@ -49,25 +50,28 @@ export const viewport: Viewport = {
   themeColor: '#171717',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const messages = await getMessages();
   return (
-    <html lang="en">
+    <html lang="en" className={FONTS_VARIABLES}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LB_CONTEXT) }}
         />
       </head>
-      <body className={twMerge(FONTS_VARIABLES, 'relative')} suppressHydrationWarning>
-        <AuthProvider>
-          <ModalProvider>
-            {children}
-          </ModalProvider>
-        </AuthProvider>
+      <body className="relative" suppressHydrationWarning>
+        <NextIntlClientProvider messages={messages}>
+          <AuthProvider>
+            <ModalProvider>
+              {children}
+            </ModalProvider>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

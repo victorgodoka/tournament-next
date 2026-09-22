@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Icon } from "@iconify/react";
 import { twMerge } from "tailwind-merge";
 import { PRESENCE } from "@omega/friends-panel/presence";
 import { useMessenger } from "@omega/messenger";
 import { Button } from "@ui/button";
+import { TabBar, tabPanelProps } from "@ui/tab-bar";
 import { signIn } from "@utils/auth";
 import { contactHandle, contactName } from "@utils/messenger";
 import type { ChatSummary, Relation, RosterEntry } from "@utils/types";
@@ -13,7 +14,7 @@ import { ContactSettings } from "./ContactSettings";
 import { Conversation } from "./Conversation";
 import { Requests } from "./Requests";
 import { YouStrip } from "./YouStrip";
-import { MICRO_LABEL, tabClass } from "./ui";
+import { MICRO_LABEL } from "./ui";
 
 export type HubTab = Relation | 'requests'
 type Pane = 'messages' | 'settings'
@@ -54,6 +55,7 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
   const [query, setQuery] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(!!initialId)
   const [pane, setPane] = useState<Pane>('messages')
+  const listId = useId()
 
   const signedIn = !!panel
   useEffect(() => {
@@ -107,18 +109,22 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
 
       <section className="grid grid-cols-1 border-b border-line-strong lg:grid-cols-[320px_minmax(0,1fr)] lg:grid-rows-[38.75rem] xl:grid-cols-[360px_minmax(0,1fr)_330px]">
         <div className="flex min-h-0 min-w-0 flex-col lg:border-r lg:border-line">
-          <div className="flex shrink-0 border-b border-line">
-            <button type="button" aria-pressed={tab === 'friend'} onClick={() => setTab('friend')} className={tabClass(tab === 'friend')}>
-              Friends {friends.length}
-            </button>
-            <button type="button" aria-pressed={tab === 'rival'} onClick={() => setTab('rival')} className={tabClass(tab === 'rival')}>
-              Rivals {rivals.length}
-            </button>
-            <button type="button" aria-pressed={tab === 'requests'} onClick={() => setTab('requests')} className={tabClass(tab === 'requests')}>
-              Requests{panel.incomingRequests ? <span className="ml-1.5 bg-cyan px-1.5 py-0.5 text-cyan-on signal-count">{panel.incomingRequests}</span> : null}
-            </button>
-          </div>
+          <TabBar
+            label="Duelist list"
+            idPrefix={listId}
+            active={tab}
+            onSelect={setTab}
+            tabs={[
+              { id: 'friend', label: `Friends ${friends.length}` },
+              { id: 'rival', label: `Rivals ${rivals.length}` },
+              {
+                id: 'requests',
+                label: <>Requests{panel.incomingRequests ? <span className="ml-1.5 bg-cyan px-1.5 py-0.5 text-cyan-on signal-count">{panel.incomingRequests}</span> : null}</>,
+              },
+            ]}
+          />
 
+          <div {...tabPanelProps(listId, tab)} className="flex min-h-0 flex-1 flex-col">
           {tab === 'requests' ? <Requests messenger={messenger} /> : (
             <>
               <label className="shrink-0 border-b border-line px-3.5 py-3">
@@ -128,7 +134,7 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search name, nickname or handle"
-                  className="w-full border border-surface-400 bg-surface-200 px-2.75 py-2.25 text-[13px] text-ink placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
+                  className="w-full border border-surface-400 bg-surface-200 px-2.75 py-2.25 text-ink caption placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
                 />
               </label>
 
@@ -163,7 +169,7 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
                                 {unread}<span className="sr-only"> unread</span>
                               </span>
                             ) : null}
-                            <span className="font-mono text-[9px] tracking-[.1em] whitespace-nowrap text-ink-muted uppercase group-hover:text-ink-dim">{presence.short}</span>
+                            <span className="whitespace-nowrap text-ink-muted signal-sm group-hover:text-ink-dim">{presence.short}</span>
                           </span>
                         </button>
                       </li>
@@ -180,11 +186,12 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
                 </div>
               )}
 
-              <p className="shrink-0 border-t border-line px-3.5 py-2.75 text-ink-muted signal-nav text-[10px]">
+              <p className="shrink-0 border-t border-line px-3.5 py-2.75 text-ink-muted signal">
                 {list.length ? `${list.length} ${tab === 'friend' ? 'friends' : 'rivals'}, sorted by presence` : 'Nothing to show'}
               </p>
             </>
           )}
+          </div>
         </div>
 
         {/* Below lg the conversation and settings open as one drawer; from lg up the wrapper dissolves into the grid. */}
@@ -204,19 +211,18 @@ export const Hub = ({ initialId, initialTab }: { initialId?: string; initialTab?
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="flex min-h-8 cursor-pointer items-center gap-2 border border-surface-400 px-2.75 text-ink signal-nav text-[10px] hover:bg-ink hover:text-ink-on"
+                className="flex min-h-8 cursor-pointer items-center gap-2 border border-surface-400 px-2.75 text-ink signal hover:bg-ink hover:text-ink-on"
               >
-                Close <span aria-hidden className="text-[13px] font-bold">×</span>
+                Close <span aria-hidden className="caption font-bold">×</span>
               </button>
             </div>
-            <div className="flex border-t border-line">
-              <button type="button" aria-pressed={pane === 'messages'} onClick={() => setPane('messages')} className={tabClass(pane === 'messages')}>
-                Messages
-              </button>
-              <button type="button" aria-pressed={pane === 'settings'} onClick={() => setPane('settings')} className={tabClass(pane === 'settings')}>
-                Duelist settings
-              </button>
-            </div>
+            <TabBar
+              label="Duelist"
+              active={pane}
+              onSelect={setPane}
+              tabs={[{ id: 'messages', label: 'Messages' }, { id: 'settings', label: 'Duelist settings' }]}
+              className="border-t border-b-0"
+            />
           </div>
 
           <div className={twMerge("flex min-h-0 min-w-0 flex-col max-lg:flex-1", pane !== 'messages' && "max-lg:hidden")}>

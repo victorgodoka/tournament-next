@@ -6,7 +6,7 @@ import { twMerge } from "tailwind-merge";
 /** Collapsed height, roughly eight lines of the bio's 17px/1.55 rhythm. */
 const FOLD_PX = 216
 
-const TOGGLE = "relative inline-flex cursor-pointer items-center gap-1.5 text-gold signal-chip tracking-[.18em] hover:text-cyan"
+const TOGGLE = "relative inline-flex cursor-pointer items-center gap-1.5 text-gold signal-chip hover:text-cyan"
 
 type ProfileBioProps = {
   /** Bio HTML, already rendered from markdown. */
@@ -63,7 +63,7 @@ export const ProfileBio = ({ markdown, className }: ProfileBioProps) => {
       </div>
 
       {isFolded && isOpen ? (
-        <button type="button" onClick={() => setIsOpen(false)} aria-expanded aria-controls={bodyId} className={twMerge(TOGGLE, "mt-4")}>
+        <button type="button" onClick={() => setIsOpen(false)} aria-expanded aria-controls={bodyId} className={twMerge(TOGGLE, "mt-2 min-h-11")}>
           Show less
           <span aria-hidden>▴</span>
         </button>

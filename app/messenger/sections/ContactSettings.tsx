@@ -58,7 +58,7 @@ export const ContactSettings = ({ contact, messenger, onKindChange }: ContactSet
               setNickname('')
               saveNickname('')
             }}
-            className={twMerge(SMALL_BUTTON, "border-surface-400 px-2 py-0.75 text-[9px] text-ink-muted hover:border-line-strong hover:text-ink")}
+            className={twMerge(SMALL_BUTTON, "border-surface-400 px-2 py-0.75 text-ink-muted hover:border-line-strong hover:text-ink")}
           >
             Reset
           </button>
@@ -75,7 +75,7 @@ export const ContactSettings = ({ contact, messenger, onKindChange }: ContactSet
           rows={4}
           maxLength={NOTE_MAX}
           placeholder="Decks they play, ruling disputes, anything worth remembering."
-          className={twMerge(FIELD, "mt-2 resize-y text-[13px] leading-normal")}
+          className={twMerge(FIELD, "mt-2 resize-y caption")}
         />
         <p className={twMerge(HINT, "mt-1.5")}>{NOTE_MAX - note.length} characters left</p>
       </div>

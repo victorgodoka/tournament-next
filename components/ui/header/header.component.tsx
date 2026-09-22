@@ -79,7 +79,7 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
         )}
 
         <span className="hidden text-left sm:block">
-          <span className="block font-sans text-[13px] font-bold tracking-normal normal-case">{name}</span>
+          <span className="block caption font-bold tracking-normal normal-case">{name}</span>
           <span className="mt-0.5 flex items-center gap-1.5">
             <span aria-hidden className="block size-2 bg-cyan" />
             <span className="signal-sm">Online</span>

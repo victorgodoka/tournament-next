@@ -2,9 +2,10 @@ import { API_URL } from './auth'
 import type { CardArt, WelcomeData } from '@utils/types'
 import { cache } from 'react'
 
+/** Anonymous site-wide counters on the busiest page: one shared copy for 30 s is plenty. */
 export const getWelcomeData = cache(async (): Promise<WelcomeData | null> => {
   try {
-    const res = await fetch(`${API_URL}/welcome`, { cache: 'no-store' })
+    const res = await fetch(`${API_URL}/welcome`, { next: { revalidate: 30 } })
     if (!res.ok) {
       // Log the error instead of throwing, so the page can still render.
       console.error(`GET /welcome failed with ${res.status}`)
@@ -43,29 +44,6 @@ export const countdown = (iso: string, now: number) => {
   return hours ? `in ${hours} h ${minutes % 60} m` : `in ${minutes} m`
 }
 
-export type LiveTournament = {
-  name: string
-  format: string
-  structure: string
-  blurb: string
-  art: CardArt
-  round: number
-  rounds: number
-  playersLeft: number
-  duels: number
-  prizePool: string
-}
-
-export type PastTournament = {
-  id: string
-  name: string
-  format: string
-  endedAt: string
-  winner: string
-  deck: string
-  players: number
-}
-
 export type UpcomingTournament = {
   id: string
   name: string
@@ -93,31 +71,13 @@ export type CommunityDeck = {
 const HOUR = 3_600_000
 const at = (now: number, hours: number) => new Date(now + hours * HOUR).toISOString()
 
-// ponytail: mocks until the tournament, deck-stats and deck-community endpoints exist. Keep the shapes, swap the bodies.
-export const getTournaments = (now: number) => ({
-  live: {
-    name: 'Genesys Weekly #19',
-    format: 'Genesys',
-    structure: 'Swiss, 6 rounds',
-    blurb: 'Round 4 of 6 is underway. The top eight cut plays out tonight, streamed on the Duelists Unite channel.',
-    art: { id: 19652159, name: 'Light and Darkness Ritual' },
-    round: 4,
-    rounds: 6,
-    playersLeft: 38,
-    duels: 112,
-    prizePool: '$250',
-  } as LiveTournament | null,
-  past: [
-    { id: 'tna', name: 'Thursday Night Automatic', format: 'TCG swiss', endedAt: at(now, -22), winner: 'Kaibaholic', deck: 'Sky Striker', players: 32 },
-    { id: 'gw18', name: 'Genesys Weekly #18', format: 'Genesys', endedAt: at(now, -74), winner: 'RitualOnly', deck: 'Light and Darkness Ritual', players: 64 },
-    { id: 'ooq', name: 'Omega Open Qualifier', format: 'TCG single elim', endedAt: at(now, -150), winner: 'MaxxCandy', deck: 'Elfnote', players: 128 },
-  ] as PastTournament[],
-  upcoming: [
-    { id: 'fgl', name: 'Friday Genesys Ladder', format: 'Genesys swiss', startsAt: at(now, 2.67), slotsTaken: 48, slots: 64 },
-    { id: 'soc', name: 'Saturday Omega Cup', format: 'TCG single elim', startsAt: at(now, 28), slotsTaken: 91, slots: 128 },
-    { id: 'sdg', name: 'Sunday Draft Gauntlet', format: 'Draft', startsAt: at(now, 49), slotsTaken: 12, slots: 32 },
-  ] as UpcomingTournament[],
-})
+// ponytail: mocks until upcoming tournaments, deck-stats and deck-community endpoints exist. Keep the shapes, swap the bodies.
+/** The game database only knows started tournaments, so `/welcome` has no upcoming list. */
+export const getUpcomingTournaments = (now: number): UpcomingTournament[] => [
+  { id: 'fgl', name: 'Friday Genesys Ladder', format: 'Genesys swiss', startsAt: at(now, 2.67), slotsTaken: 48, slots: 64 },
+  { id: 'soc', name: 'Saturday Omega Cup', format: 'TCG single elim', startsAt: at(now, 28), slotsTaken: 91, slots: 128 },
+  { id: 'sdg', name: 'Sunday Draft Gauntlet', format: 'Draft', startsAt: at(now, 49), slotsTaken: 12, slots: 32 },
+]
 
 export const TOP_DECKS: TopDeck[] = [
   { name: 'Mitsurugi', format: 'TCG', share: 14.2, duels: 8934, art: { id: 13332685, name: 'Ame no Habakiri no Mitsurugi' } },

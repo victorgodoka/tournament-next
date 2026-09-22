@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { messenger, MessengerApiError, msSinceLastRequest, sortRoster } from "@utils/messenger";
 import type {
   BlockedDuelist,
@@ -16,6 +16,60 @@ import type {
 } from "@utils/types";
 
 const HEARTBEAT_MS = 60_000
+const CHAT_REFRESH_MS = 30_000
+/** How long a tab may sit hidden before its event stream is dropped. */
+const HIDDEN_CLOSE_MS = 5 * 60_000
+
+let audioContext: AudioContext | null = null
+
+const isNewerMessage = (next: ChatMessage, previous: ChatMessage) => {
+  try {
+    return BigInt(next.id) > BigInt(previous.id)
+  } catch {
+    return next.id !== previous.id
+  }
+}
+
+const hasNewIncomingMessage = (previous: ChatSummary[] | null, next: ChatSummary[]) => {
+  if (!previous) return false
+
+  const previousById = new Map(previous.map((chat) => [chat.id, chat]))
+  return next.some((chat) => {
+    if (chat.lastMessage.mine) return false
+
+    const old = previousById.get(chat.id)
+    return old ? isNewerMessage(chat.lastMessage, old.lastMessage) : chat.unread > 0
+  })
+}
+
+const playMessageSound = () => {
+  if (typeof window === 'undefined') return
+
+  const AudioContextClass = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return
+
+  audioContext ??= new AudioContextClass()
+  const context = audioContext
+  const play = () => {
+    const now = context.currentTime
+    const gain = context.createGain()
+    const tone = context.createOscillator()
+
+    tone.type = 'triangle'
+    tone.frequency.setValueAtTime(720, now)
+    tone.frequency.exponentialRampToValueAtTime(980, now + 0.08)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22)
+
+    tone.connect(gain).connect(context.destination)
+    tone.start(now)
+    tone.stop(now + 0.24)
+  }
+
+  if (context.state === 'suspended') context.resume().then(play).catch(() => {})
+  else play()
+}
 
 /**
  * The whole messenger for one mounted surface (the gadget or /messenger): first paint from
@@ -28,14 +82,28 @@ export const useMessenger = () => {
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
   const [requests, setRequests] = useState<Requests | null>(null)
   const [blocks, setBlocks] = useState<BlockedDuelist[] | null>(null)
+  const chatsRef = useRef<ChatSummary[] | null>(null)
 
   const fail = useCallback((error: unknown) => {
     if (error instanceof MessengerApiError && error.status === 401) setPanel(null)
     else console.error(error)
   }, [])
 
+  const replaceChats = useCallback((next: ChatSummary[]) => {
+    if (hasNewIncomingMessage(chatsRef.current, next)) playMessageSound()
+    chatsRef.current = next
+    setChats(next)
+  }, [])
+
+  const patchChats = useCallback((patch: (current: ChatSummary[]) => ChatSummary[]) => {
+    if (!chatsRef.current) return
+    const next = patch(chatsRef.current)
+    chatsRef.current = next
+    setChats(next)
+  }, [])
+
   const loadPanel = useCallback(() => messenger.panel().then(setPanel).catch(fail), [fail])
-  const loadChats = useCallback(() => messenger.chats().then(setChats).catch(fail), [fail])
+  const loadChats = useCallback(() => messenger.chats().then(replaceChats).catch(fail), [fail, replaceChats])
   const loadRequests = useCallback(() => messenger.requests().then(setRequests).catch(fail), [fail])
   const loadBlocks = useCallback(() => messenger.blocks().then(setBlocks).catch(fail), [fail])
 
@@ -43,29 +111,32 @@ export const useMessenger = () => {
 
   useEffect(() => {
     let stream: EventSource | undefined
+    let hiddenTimer: number | undefined
     let cancelled = false
+    /** The stream carries deltas only, so every open after the first starts from a fresh panel. */
+    let resyncOnOpen = false
 
-    messenger.panel().then((first) => {
-      if (cancelled) return
-      setPanel(first)
+    const attach = () => {
+      if (stream || cancelled) return
 
-      stream = new EventSource(messenger.streamUrl, { withCredentials: true })
-      let opened = false
-      // Deltas sent while disconnected are lost, so a reconnect starts from a fresh panel.
-      stream.addEventListener('open', () => {
-        if (opened) loadPanel()
-        opened = true
+      const source = new EventSource(messenger.streamUrl, { withCredentials: true })
+      stream = source
+
+      source.addEventListener('open', () => {
+        if (resyncOnOpen) loadPanel()
+        resyncOnOpen = true
       })
-      stream.addEventListener('error', () => {
-        if (stream?.readyState === EventSource.CLOSED) setPanel(null)
+      source.addEventListener('error', () => {
+        // Only a stream we still hold counts as a sign-out: `detach` drops its own first.
+        if (stream === source && source.readyState === EventSource.CLOSED) setPanel(null)
       })
-      stream.addEventListener('presence', (event) => {
+      source.addEventListener('presence', (event) => {
         const { id, presence, status, song }: PresenceEvent = JSON.parse(event.data)
         setPanel((current) => current && current.roster.some((entry) => entry.id === id)
           ? { ...current, roster: sortRoster(current.roster.map((entry) => entry.id === id ? { ...entry, presence, status, song } : entry)) }
           : current)
       })
-      stream.addEventListener('request', (event) => {
+      source.addEventListener('request', (event) => {
         const from: Identity = JSON.parse(event.data)
         setPanel((current) => current && { ...current, incomingRequests: current.incomingRequests + 1 })
         setRequests((current) => current && {
@@ -73,7 +144,7 @@ export const useMessenger = () => {
           incoming: [{ ...from, requestedAt: new Date().toISOString() }, ...current.incoming.filter((request) => request.id !== from.id)],
         })
       })
-      stream.addEventListener('relation', (event) => {
+      source.addEventListener('relation', (event) => {
         const { id }: { id: string } = JSON.parse(event.data)
         setRequests((current) => current && {
           incoming: current.incoming.filter((request) => request.id !== id),
@@ -82,13 +153,53 @@ export const useMessenger = () => {
         // Linked needs their roster entry, and none may change the request count: both refetch.
         loadPanel()
       })
+    }
+
+    const detach = () => {
+      if (!stream) return
+      const source = stream
+      stream = undefined
+      source.close()
+    }
+
+    /**
+     * The open connection *is* the presence (the API reads a missing one as offline), so a
+     * tab left in the background holds a socket on the proxy for a duelist nobody can reach.
+     * Drop it once they have been away a while; they read as offline, which is what they are.
+     */
+    const onVisibility = () => {
+      window.clearTimeout(hiddenTimer)
+      if (document.visibilityState === 'visible') attach()
+      else hiddenTimer = window.setTimeout(detach, HIDDEN_CLOSE_MS)
+    }
+
+    messenger.panel().then((first) => {
+      if (cancelled) return
+      setPanel(first)
+      attach()
+      document.addEventListener('visibilitychange', onVisibility)
     }).catch((error) => !cancelled && fail(error))
 
     return () => {
       cancelled = true
-      stream?.close()
+      window.clearTimeout(hiddenTimer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      detach()
     }
   }, [fail, loadPanel])
+
+  useEffect(() => {
+    if (!signedIn) return
+
+    loadChats()
+    const refresh = () => document.visibilityState === 'visible' && loadChats()
+    const timer = window.setInterval(refresh, CHAT_REFRESH_MS)
+    window.addEventListener('focus', loadChats)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', loadChats)
+    }
+  }, [signedIn, loadChats])
 
   // Scrolling and client-side navigation make no request, so real interaction sends a heartbeat.
   useEffect(() => {
@@ -146,7 +257,7 @@ export const useMessenger = () => {
       remove: (id: string) => optimistic(dropContact(id), messenger.remove(id)),
       block: (id: string) => {
         dropRequest(id)
-        setChats((current) => current && current.filter((chat) => chat.id !== id))
+        patchChats((current) => current.filter((chat) => chat.id !== id))
         return optimistic(dropContact(id), messenger.block(id))
       },
       unblock: (id: string) => {
@@ -182,15 +293,15 @@ export const useMessenger = () => {
 
       /** The first page of a conversation marks it read on the server. */
       markRead: (id: string) =>
-        setChats((current) => current && current.map((chat) => (chat.id === id ? { ...chat, unread: 0 } : chat))),
+        patchChats((current) => current.map((chat) => (chat.id === id ? { ...chat, unread: 0 } : chat))),
       /** Moves the conversation to the top of the list with the sent message as its preview. */
       sent: (contact: Identity & { nickname: string | null }, message: ChatMessage) =>
-        setChats((current) => current && [
+        patchChats((current) => [
           { ...(current.find((chat) => chat.id === contact.id) ?? { ...contact, unread: 0 }), lastMessage: message },
           ...current.filter((chat) => chat.id !== contact.id),
         ]),
     }
-  }, [fail, loadPanel, optimistic])
+  }, [fail, loadPanel, optimistic, patchChats])
 
   /** Once the chat list is loaded it is fresher than the panel's count. */
   const unreadChats = chats ? chats.filter((chat) => chat.unread > 0).length : panel?.unreadChats ?? 0

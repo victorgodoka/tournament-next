@@ -58,7 +58,7 @@ const SongField = ({ song, onSave }: { song: Panel['me']['song']; onSave: Messen
   return (
     <div>
       <div className="flex items-center gap-2.5">
-        <Equalizer />
+        <Equalizer active={!!song} />
         <p className="text-cyan signal-sm">Now playing</p>
       </div>
       {song ? (
@@ -112,7 +112,7 @@ export const YouStrip = ({ me, messenger }: YouStripProps) => (
           <select
             value={me.presence}
             onChange={(e) => messenger.setPresence(e.target.value as ChosenPresence)}
-            className="mt-2 w-full border border-surface-400 bg-surface-200 px-2 py-1.5 font-mono text-[10px] tracking-[.12em] text-ink uppercase hover:border-ink-muted"
+            className="mt-2 w-full border border-surface-400 bg-surface-200 px-2 py-1.5 text-ink signal hover:border-ink-muted"
           >
             {SELECTABLE_PRESENCE.map((option) => <option key={option} value={option}>{PRESENCE[option].label}</option>)}
           </select>

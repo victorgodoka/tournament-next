@@ -1,6 +1,7 @@
 import { twMerge } from 'tailwind-merge'
 import { buttonClasses } from '@ui/button'
 import { Chip } from '@ui/chip'
+import { SectionHead } from '@ui/section-head'
 import type { Tone } from '@utils/wiki'
 
 /** Horizontal rhythm of every wiki block, lined up with the rails on the rest of the site. */
@@ -18,13 +19,10 @@ type WikiSectionProps = {
   className?: string
 }
 
-/** SectionHead: gold mono ordinal, display-4 heading, hairline below. */
+/** A numbered wiki block with a hairline below. */
 export const WikiSection = ({ id, index, title, children, className }: WikiSectionProps) => (
   <section id={id} className={twMerge('border-b border-line py-7.5', WIKI_PAD, className)}>
-    <div className="flex items-baseline gap-3.5">
-      <span className="text-gold signal-lg">{index}</span>
-      <h2 className="text-ink display-4">{title}</h2>
-    </div>
+    <SectionHead num={index}>{title}</SectionHead>
     {children}
   </section>
 )
@@ -66,7 +64,7 @@ export const WikiTable = ({ template, columns, rows }: WikiTableProps) => (
   <div className="mt-4 border border-line">
     <div className="grid gap-3.5 border-b border-line bg-ground-soft px-4 py-2.5" style={{ gridTemplateColumns: template }}>
       {columns.map((column) => (
-        <span key={column} className="text-ink-muted signal-sm tracking-[.18em]">{column}</span>
+        <span key={column} className="text-ink-muted signal-sm">{column}</span>
       ))}
     </div>
     {rows.map(({ key, cells }) => (
@@ -107,7 +105,7 @@ export const SourceBlock = ({ endpoints, synced }: { endpoints: string[]; synced
   <AsideBlock label="Source" className="bg-ground-subtle">
     <div className="mt-2.5 flex flex-col gap-1.75">
       {endpoints.map((endpoint) => (
-        <code key={endpoint} className="block border border-line bg-surface-200 px-2.25 py-1.75 font-mono text-[11px] text-gold">
+        <code key={endpoint} className="block border border-line bg-surface-200 px-2.25 py-1.75 text-gold mono-note">
           {endpoint}
         </code>
       ))}

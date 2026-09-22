@@ -1,14 +1,14 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import ProfilePage from '@app/profile'
-import { getProfile } from '@utils/profile'
+import { getProfile, MATCH_PAGE_SIZE } from '@utils/profile'
 import { pageMetadata } from '@utils/metadata'
 import { parseBio } from "@utils/remark";
 
 type ProfileRouteProps = { params: Promise<{ id: string }> }
 
 /** Forwards the visitor's session so the API answers for them, not for an anonymous server. */
-const loadProfile = async (id: string) => getProfile(id, (await headers()).get('cookie'))
+const loadProfile = async (id: string) => getProfile(id, (await headers()).get('cookie'), MATCH_PAGE_SIZE)
 
 export async function generateMetadata({ params }: ProfileRouteProps) {
   const { id } = await params
@@ -31,11 +31,9 @@ const ProfileRoute = async ({ params }: ProfileRouteProps) => {
   const profile = await loadProfile(id)
   if (!profile) notFound()
 
-  if (!profile.isPrivate && Object.hasOwn(profile, "bio")) {
-    profile.bio = await parseBio(profile.bio)
-  }
-
-  return <ProfilePage profile={profile} />
+  // Copy instead of mutate: `generateMetadata` shares this cached object and needs the raw markdown.
+  if (profile.isPrivate) return <ProfilePage profile={profile} />
+  return <ProfilePage profile={{ ...profile, bio: await parseBio(profile.bio) }} />
 }
 
 export default ProfileRoute

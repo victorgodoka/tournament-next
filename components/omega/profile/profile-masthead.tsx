@@ -1,29 +1,20 @@
 import Image from "next/image";
-import { twMerge } from "tailwind-merge";
-import { Chip } from "@ui/chip";
-import type { ProfileIdentity, ProfileSocial, Region } from "@utils/types";
-import { MICRO_TAG, MUTED_TAG } from "./accent";
+import Link from "next/link";
+import type { ProfileIdentity, ProfileSocial, Region, Visibility } from "@utils/types";
 import { AddToList } from "./add-to-list";
-import { REGION_LABEL } from "./labels";
+import { REGION_LABEL, VISIBILITY_LABEL } from "./labels";
 import { LocalTime } from "./local-time";
-import { ProfileBio } from "./profile-bio";
 import { SocialStrip } from "./social-strip";
 
 type ProfileMastheadProps = ProfileIdentity & {
   isPrivate: boolean
-  /** The viewer owns this profile, so there is nobody to add. */
-  isOwner?: boolean
-  /** Withheld on private profiles. */
-  bio?: string
+  /** Sent to the owner only, so its presence is what says the viewer may edit this profile. */
+  visibility?: Visibility
   region?: Region | null
   socials?: ProfileSocial[]
-  /** Pulls the avatar up over the cover. */
-  hasCover?: boolean
-  /** Stat cells, placed under the bio or as a side column on wide screens. */
-  children?: React.ReactNode
 }
 
-const TAG_GHOST = twMerge(MICRO_TAG, "border-surface-400 font-normal text-ink-dim")
+const META = "text-ink-muted signal-sm"
 
 export const ProfileMasthead = ({
   id,
@@ -33,70 +24,48 @@ export const ProfileMasthead = ({
   lastLogin,
   relation,
   isPrivate,
-  isOwner,
-  bio,
+  visibility,
   region,
   socials,
-  hasCover,
-  children,
 }: ProfileMastheadProps) => {
   const name = displayName ?? handle ?? 'Unknown duelist'
+  const isOwner = visibility !== undefined
 
   return (
-    <section className="grid grid-cols-1 border-b border-line-strong xl:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="flex flex-col justify-center px-5.5 py-8 lg:px-11 lg:py-11">
-        <div
-          className={twMerge(
-            // `relative` so the row paints over the cover, which is positioned and would otherwise win.
-            "relative flex flex-wrap items-end gap-4.5 lg:gap-7",
-            // Lifts the whole row onto the cover: the avatar overlaps it, the badges land just above
-            // its bottom edge, and the bottom-aligned handle lines up with the avatar's base.
-            hasCover && "-mt-21 lg:-mt-32",
-          )}
-        >
-          {avatar ? (
-            // AvatarPlate: void-bordered duotone square lifted by the offset shadow.
-            <div className="relative size-31 shrink-0 overflow-hidden border-5 border-surface-000 bg-surface-200 shadow-offset-void lg:size-49">
-              <Image
-                src={avatar}
-                alt={`${name} profile picture`}
-                priority
-                sizes="(min-width: 1024px) 196px, 124px"
-                width={248}
-                height={248}
-                className="size-full object-cover duotone"
-              />
-              <span aria-hidden className="duotone-wash bg-cyan opacity-(--opacity-duotone-plate)" />
-            </div>
+    <section className="flex flex-wrap items-start gap-[clamp(16px,2.5vw,28px)] pt-section">
+      {avatar ? (
+        <div className="size-(--avatar) relative shrink-0 border-5 border-surface-000 bg-surface-100 shadow-offset-void-sm [--avatar:clamp(96px,13vw,148px)]">
+          <Image src={avatar} alt={`${name} profile picture`} priority sizes="148px" fill className="object-cover" />
+        </div>
+      ) : null}
+
+      <div className="min-w-0 flex-[1_1_240px] pt-[clamp(12px,2vw,22px)]">
+        <h1 className="text-ink display-1">{name}</h1>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+          {handle ? <span className="text-ink-muted mono-data">{handle}</span> : null}
+          {isPrivate ? <span className={META}>Private profile</span> : null}
+          {visibility ? (
+            <Link href="/profile/edit" className="text-gold signal-sm hover:text-cyan">
+              {VISIBILITY_LABEL[visibility]} · Edit
+            </Link>
           ) : null}
-
-          <div className="min-w-0 flex-[1_1_360px]">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Chip solid tone={isPrivate ? 'neutral' : 'gold'} className={twMerge(MICRO_TAG, isPrivate && MUTED_TAG)}>
-                {isPrivate ? 'Private profile' : 'Public profile'}
-              </Chip>
-              {lastLogin ? (
-                <Chip className={TAG_GHOST}>
-                  Last seen&nbsp;<LocalTime iso={lastLogin} options={{ dateStyle: 'medium' }} />
-                </Chip>
-              ) : null}
-              {region ? <Chip className={TAG_GHOST}>Region: {REGION_LABEL[region]}</Chip> : null}
-            </div>
-
-            <h1 className="mt-4.5 text-ink display-hero">{name}</h1>
-
-            <div className="mt-3.5 flex flex-wrap items-center gap-4">
-              {handle ? <p className="font-mono text-base text-gold">{handle}</p> : null}
-              {!isOwner && <AddToList id={id} handle={handle ?? name} status={relation} />}
-            </div>
-          </div>
+          {region ? <span className={META}>{REGION_LABEL[region]}</span> : null}
+          {lastLogin ? (
+            <span className={META}>
+              Last seen <LocalTime iso={lastLogin} options={{ dateStyle: 'medium' }} />
+            </span>
+          ) : null}
         </div>
 
-        {bio ? <ProfileBio markdown={bio} className="mt-5.5" /> : null}
-        {socials?.length ? <SocialStrip socials={socials} className="mt-6.5" /> : null}
+        {socials?.length ? <SocialStrip socials={socials} className="mt-4" /> : null}
       </div>
 
-      {children}
+      {!isOwner ? (
+        <div className="ml-auto pt-[clamp(0px,2vw,22px)]">
+          <AddToList id={id} handle={handle ?? name} status={relation} />
+        </div>
+      ) : null}
     </section>
   )
 }

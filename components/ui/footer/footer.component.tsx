@@ -8,7 +8,7 @@ export const Footer = ({ className }: { className?: string }) => (
     <div className="flex flex-wrap items-center justify-between gap-5">
       <div className="flex items-center gap-3">
         <Image src="/logo.png" alt="" width={24} height={24} className="w-6 h-6" />
-        <span className="text-ink-muted mono-handle text-[11px]">{FOOTER_DISCLAIMER}</span>
+        <span className="text-ink-muted mono-note">{FOOTER_DISCLAIMER}</span>
       </div>
       <nav aria-label="Footer" className="flex flex-wrap gap-6 signal-nav">
         {FOOTER_LINKS.map(({ item, to }) => (

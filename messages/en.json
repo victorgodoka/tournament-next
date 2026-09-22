@@ -1,0 +1,69 @@
+{
+  "Welcome": {
+    "page": {
+      "title": "Welcome",
+      "liveTournament": "{name} is live: {players} duelists across {rounds} Swiss rounds.",
+      "noTournamentRunning": "No tournament is running and nothing is scheduled yet.",
+      "nextTournament": "No tournament is running. {name} starts {time}, with {slots} slots left.",
+      "nextEvent": "Check our discord to see when the next tournament is gonna start.",
+      "nothingScheduled": "Nothing is scheduled yet. New events are announced on Discord first.",
+      "rollingWindow": "Rolling window, updated {time}",
+      "statsUnavailable": "Stats unavailable",
+      "sampledDuels": "Sampled across {count} duels"
+    },
+    "dailyStats": {
+      "last24hours": "Last 24 hours",
+      "mostUsedDecks": "Most used decks",
+      "share": "%",
+      "duels": "duels",
+      "seeAll": "See all statistics"
+    },
+    "deckCommunity": {
+      "title": "Deck community",
+      "publicDecks": "{count} public decks",
+      "author": "by {author}, updated {time}",
+      "openDeck": "Open deck",
+      "openBuilder": "Open deck builder",
+      "browseCommunity": "Browse deck community"
+    },
+    "tournaments": {
+      "liveNow": "Live now",
+      "watchBracket": "Watch bracket",
+      "standings": "Standings",
+      "swissRounds": "Swiss, {rounds} rounds",
+      "players_label": "Players",
+      "rounds": "Rounds",
+      "banlist": "Banlist",
+      "started": "Started",
+      "noTournamentRunning": "No tournament running",
+      "browseSchedule": "Browse schedule",
+      "lastTournaments": "Last tournaments",
+      "noFinishedTournaments": "No finished tournaments yet. Results land here when a bracket closes.",
+      "players": "players",
+      "upcoming": "Upcoming",
+      "register": "Register",
+      "nothingScheduled": "Nothing scheduled yet. New events are announced on Discord first.",
+      "allTournaments": "All tournaments",
+      "wonBy": "Won by {winner}, {deck}",
+      "wonByNoDeck": "Won by {winner}",
+      "unknownDuelist": "an unknown duelist",
+      "slotsTaken": "{slotsTaken} of {slots} slots taken",
+      "oneEventLive": "1 event live",
+      "noEventLive": "No event live",
+      "upcomingCount": ", {count} upcoming"
+    },
+    "welcomeHero": {
+      "duelistsActive": "Duelists active",
+      "vsPrevious24h": "vs previous 24 h",
+      "tcgDuels": "TCG duels",
+      "h24": "24 h",
+      "genesysDuels": "Genesys duels",
+      "casualDuels": "Casual duels",
+      "totalDuels": "Total duels",
+      "last24hours": "Last 24 hours",
+      "statsUnavailable": "Stats unavailable",
+      "statsServiceDown": "The stats service did not answer. Refresh in a minute.",
+      "welcomeBack": "Welcome back,"
+    }
+  }
+}

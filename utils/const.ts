@@ -112,6 +112,7 @@ export const NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Past tournaments", to: "https://tournament.duelistsunite.org/" },
     ],
   },
+  { item: "Leaderboard", to: "/leaderboard" },
   { item: "Wiki", to: "/wiki" },
   { item: "Statistics", to: "/statistics" },
   {
@@ -121,6 +122,7 @@ export const NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Hypergeometric calculator", to: "/tools/hypergeometric" },
     ],
   },
+  { item: "Shop", to: "/shop" },
 ]
 
 export const ERROR_MAP = [

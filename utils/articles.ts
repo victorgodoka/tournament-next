@@ -1,0 +1,129 @@
+/**
+ * Wiki articles on omega-server-v3 (see its WIKI_API.md).
+ * Reads work anonymously, but an editor's session is what makes drafts visible, so every read
+ * forwards credentials — on the server, pass the incoming `cookie` header.
+ * Writes need a session and the right `Origin`, so they only run in the browser.
+ */
+import { API_URL, type AuthUser, type Permission } from '@utils/auth'
+import type {
+  Article,
+  ArticleDraft,
+  ArticleIndex,
+  ArticlePatch,
+  Revision,
+  RevisionDetail,
+  WikiEditor,
+} from '@utils/types'
+
+export class WikiApiError extends Error {
+  status: number
+  /** Stable code (`FORBIDDEN`, `CONFLICT`, `UNAUTHENTICATED`, ...). Branch on this, never on `message`. */
+  code?: string
+
+  constructor(status: number, code?: string, message?: string) {
+    super(message ?? `Wiki API failed with ${status}`)
+    this.status = status
+    this.code = code
+  }
+}
+
+/** Editor responses carry drafts, so nothing here may land in a shared cache. */
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  const res = await fetch(`${API_URL}${path}`, { credentials: 'include', cache: 'no-store', ...init })
+  if (res.status === 204) return undefined as T
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new WikiApiError(res.status, body.error, body.message)
+  }
+  return res.json()
+}
+
+const json = (method: string, body?: unknown): RequestInit => ({
+  method,
+  headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+  body: body === undefined ? undefined : JSON.stringify(body),
+})
+
+const withCookie = (cookie?: string | null) => (cookie ? { headers: { cookie } } : undefined)
+
+const search = (query: Record<string, string | number | undefined>) => {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') params.set(key, String(value))
+  }
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+/** Permissions come from `GET /auth/me`; the server revalidates every route anyway. */
+export const can = (user: AuthUser | null | undefined, permission: Permission) =>
+  !!user?.permissions.includes(permission)
+
+/**
+ * An editor may delete only their own article. `wiki.delete` (admin) lifts that.
+ * Mirror it in the UI so the button isn't there to be refused.
+ */
+export const canDelete = (user: AuthUser | null | undefined, authorId: string) =>
+  can(user, 'wiki.delete') || (can(user, 'wiki.write') && user?.id === authorId)
+
+/** Newest first. Drafts appear only for a viewer with `wiki.write`. */
+export const listArticles = (
+  query: { search?: string; author?: string; cursor?: string; limit?: number } = {},
+  cookie?: string | null,
+  signal?: AbortSignal,
+) => request<ArticleIndex>(`/wiki${search(query)}`, { ...withCookie(cookie), signal })
+
+/** `null` for an unknown or malformed slug, and for a draft this viewer may not see. */
+export const getArticle = async (slug: string, cookie?: string | null): Promise<Article | null> => {
+  try {
+    return await request<Article>(`/wiki/${encodeURIComponent(slug)}`, withCookie(cookie))
+  } catch (error) {
+    if (error instanceof WikiApiError && error.status === 404) return null
+    throw error
+  }
+}
+
+/** Newest first, at most 50, no pagination. Deleting an article deletes its history with it. */
+export const getRevisions = async (slug: string, cookie?: string | null): Promise<Revision[]> => {
+  const { revisions } = await request<{ revisions: Revision[] }>(
+    `/wiki/${encodeURIComponent(slug)}/revisions`,
+    withCookie(cookie),
+  )
+  return revisions
+}
+
+/** `null` when the revision doesn't exist **or** belongs to another article. */
+export const getRevision = async (slug: string, id: string, cookie?: string | null): Promise<RevisionDetail | null> => {
+  try {
+    return await request<RevisionDetail>(
+      `/wiki/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(id)}`,
+      withCookie(cookie),
+    )
+  } catch (error) {
+    if (error instanceof WikiApiError && error.status === 404) return null
+    throw error
+  }
+}
+
+/** A restore is a normal edit: the old text comes back as a new revision, and publication is untouched. */
+export const restoreRevision = (slug: string, id: string) =>
+  request<Article>(`/wiki/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(id)}/restore`, json('POST'))
+
+/** `409 CONFLICT` means the slug is taken — ask for another, the server never appends a number. */
+export const createArticle = (draft: ArticleDraft) => request<Article>('/wiki', json('POST', draft))
+
+export const updateArticle = (slug: string, patch: ArticlePatch) =>
+  request<Article>(`/wiki/${encodeURIComponent(slug)}`, json('PATCH', patch))
+
+export const deleteArticle = (slug: string) => request<void>(`/wiki/${encodeURIComponent(slug)}`, json('DELETE'))
+
+/** Admins are listed alongside editors, so the panel doesn't pretend they can't write. */
+export const listEditors = (cookie?: string | null) => request<WikiEditor[]>('/wiki/editors', withCookie(cookie))
+
+/** `404` means the duelist has never signed in: promotion never creates a row. */
+export const promoteEditor = (userId: string) =>
+  request<WikiEditor>(`/wiki/editors/${encodeURIComponent(userId)}`, json('PUT'))
+
+/** Their articles stay; they simply can no longer write. */
+export const demoteEditor = (userId: string) =>
+  request<void>(`/wiki/editors/${encodeURIComponent(userId)}`, json('DELETE'))

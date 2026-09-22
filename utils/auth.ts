@@ -7,6 +7,8 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export type Permission =
+  | 'wiki.write'
+  | 'wiki.delete'
   | 'tournament.read'
   | 'tournament.create'
   | 'tournament.update'
@@ -18,7 +20,7 @@ export type AuthUser = {
   /** Discord snowflake. Keep it a string, it exceeds 2^53. */
   id: string
   status: 'ACTIVE'
-  role: 'USER' | 'MODERATOR' | 'ADMIN'
+  role: 'USER' | 'EDITOR' | 'MODERATOR' | 'ADMIN'
   /** Show/hide UI with this, never with `role`. The API still checks every call. */
   permissions: Permission[]
   profile: { username: string | null; avatarUrl: string | null }

@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { bioProblem, diff, toForm } from './form'
+import { bioProblem, diff, SOCIAL_FIELDS, toForm } from './form'
 
 const settings = {
   bio: 'Hi',
   region: 'brazil',
-  coverImageId: 'duelist_covers/1',
   visibility: 'everyone',
   favoriteCard: { id: 46986431, name: 'Dark Magician' },
   favoriteDeck: { name: 'Mitsurugi', art: { id: 13332685, name: 'Ame no Habakiri no Mitsurugi' } },
@@ -43,6 +42,14 @@ describe('edit profile form', () => {
         { network: 'youtube', handle: '@marufujiduels', href: 'https://youtube.com/@marufujiduels' },
       ],
     })
+  })
+
+  it('caps social inputs under the API limits', () => {
+    for (const { network, max, toSocial } of SOCIAL_FIELDS) {
+      const { handle, href } = toSocial('a'.repeat(max))
+      expect(handle?.length ?? 0, network).toBeLessThanOrEqual(64)
+      expect(href.length, network).toBeLessThanOrEqual(500)
+    }
   })
 
   it('catches bios the API would reject', () => {

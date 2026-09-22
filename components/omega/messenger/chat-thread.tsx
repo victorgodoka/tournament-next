@@ -121,7 +121,7 @@ export const ChatThread = ({ contactId, compact, emptyText, onRead, onSent, clas
           <button
             type="button"
             onClick={loadOlder}
-            className="mx-auto cursor-pointer border border-surface-400 px-2.5 py-1 font-mono text-[9px] tracking-[.14em] text-ink-muted uppercase hover:border-line-strong hover:text-ink"
+            className="mx-auto cursor-pointer border border-surface-400 px-2.5 py-1 text-ink-muted signal-sm hover:border-line-strong hover:text-ink"
           >
             Load older
           </button>
@@ -138,13 +138,13 @@ export const ChatThread = ({ contactId, compact, emptyText, onRead, onSent, clas
             <p
               className={twMerge(
                 "border whitespace-pre-wrap wrap-break-word text-ink",
-                compact ? "max-w-[88%] px-2.75 py-2.25 text-[13px] leading-[1.45]" : "max-w-[72%] px-3.5 py-3 text-sm leading-normal",
+                compact ? "max-w-[88%] px-2.75 py-2.25 caption" : "max-w-[72%] px-3.5 py-3 text-sm leading-normal",
                 message.mine ? "border-gold bg-ground-gold" : "border-line bg-surface-100",
               )}
             >
               {message.body}
             </p>
-            <span className="font-mono text-[9px] tracking-[.18em] text-ink-muted uppercase">
+            <span className="text-ink-muted signal-sm">
               {message.mine ? 'You, ' : ''}{messageTime(message.createdAt)}
             </span>
           </div>
@@ -180,7 +180,7 @@ export const ChatThread = ({ contactId, compact, emptyText, onRead, onSent, clas
               placeholder={compact ? 'Enter to send' : 'Write a message. Enter to send'}
               className={twMerge(
                 "block w-full resize-none border border-surface-400 bg-surface-200 text-ink placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan",
-                compact ? "px-2.25 py-2 text-[13px] leading-[1.4]" : "px-3 py-2.75 text-sm leading-[1.45]",
+                compact ? "px-2.25 py-2 caption" : "px-3 py-2.75 text-sm leading-[1.45]",
               )}
             />
           </label>

@@ -14,7 +14,7 @@ export const ArrowLink = ({ href, muted, children }: { href: string; muted?: boo
     className={twMerge("inline-flex items-center gap-2.5 font-bold signal-nav", muted ? "text-ink-muted hover:text-ink" : "text-gold hover:text-cyan")}
   >
     <span>{children}</span>
-    <span aria-hidden className="text-[13px]">→</span>
+    <span aria-hidden className="caption">→</span>
   </Link>
 )
 

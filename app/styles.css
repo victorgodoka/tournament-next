@@ -23,6 +23,11 @@
   --drop-shadow-*: initial;
   --blur-*: initial;
 
+  /* Fluid page layout: content width, side gutter and the gap between stacked sections. */
+  --container-page: 1120px;
+  --spacing-gutter: clamp(24px, 3.5vw, 44px);
+  --spacing-section: clamp(28px, 4vw, 44px);
+
   /* Black range. 000 is the page; 100 raised; 200 recessed; 300 hover/pressed only; 400 inert. */
   --color-surface-000: #171717;
   --color-surface-100: #1f1f1f;
@@ -61,6 +66,14 @@
   --color-ground-cyan: #00edff12;
   --color-ground-indigo: #4850ca1f;
 
+  /* Duel outcomes only: result labels, form squares, match-row edges. Always paired with a W/L/D label. */
+  --color-win: #2be08c;
+  --color-loss: #ff5c5c;
+  --color-draw: #8e8b84;
+  --color-ground-win: #2be08c14;
+  --color-ground-loss: #ff5c5c14;
+  --color-ground-draw: #9d9b960f;
+
   --color-scrim: #1717179e;
   --color-veil-top: #1717174d;
   --color-veil-base: #171717e0;
@@ -87,18 +100,30 @@
   --shadow-current: var(--shadow-tab-active);
   --shadow-selected: inset 2px 0 0 var(--color-gold);
 
-  /* The only two motions: ticker translate and the stepped live blink. */
+  /* Shared motions: ticker translate, stepped live blink, and the now-playing equalizer. */
   --animate-ticker: ticker 38s linear infinite;
   --animate-blink: blink 1.8s steps(1, end) infinite;
 
   @keyframes ticker {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(-50%);
+    }
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: var(--opacity-blink-low); }
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: var(--opacity-blink-low);
+    }
   }
 }
 
@@ -127,6 +152,7 @@
 }
 
 @layer base {
+
   /* Dark UA widgets: native selects, scrollbars, autofill and date pickers. */
   html {
     color-scheme: dark;
@@ -140,7 +166,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     font-weight: bold;
     text-wrap: balance;
@@ -152,6 +183,7 @@
 
   a {
     text-decoration: none;
+    color: var(--color-gold);
   }
 
   /*
@@ -420,20 +452,107 @@
     line-height: 1.45;
   }
 
+  /* Helper text, counts and footnotes in mono, sentence case. */
+  .mono-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+
   .mono-handle {
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 400;
     line-height: 1.2;
   }
+
+  .equalizer-bars {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    align-items: end;
+    gap: 2px;
+  }
+
+  .equalizer-bars__bar {
+    width: 3px;
+    height: 6px;
+    background: var(--color-cyan);
+    transform-origin: bottom;
+    animation: equalizer-pulse 0.82s steps(5, end) infinite;
+  }
+
+  .equalizer-bars__bar:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+
+  .equalizer-bars__bar:nth-child(3) {
+    animation-delay: -0.22s;
+  }
+
+  .equalizer-bars__bar:nth-child(4) {
+    animation-delay: -0.68s;
+  }
+
+  .equalizer-bars--idle .equalizer-bars__bar {
+    height: 4px;
+    opacity: var(--opacity-blink-low);
+    animation: none;
+  }
+
+  @keyframes equalizer-pulse {
+
+    0%,
+    100% {
+      transform: scaleY(0.38);
+    }
+
+    20% {
+      transform: scaleY(1);
+    }
+
+    45% {
+      transform: scaleY(0.58);
+    }
+
+    70% {
+      transform: scaleY(0.84);
+    }
+  }
+
   /* ---- duotone: grayscale the image, then blend an accent layer over it in color mode ------ */
-  .duotone { filter: grayscale(1) contrast(1.18) brightness(.86); }
-  .duotone-wash { position: absolute; inset: 0; mix-blend-mode: color; opacity: var(--opacity-duotone); pointer-events: none; }
+  .duotone {
+    filter: grayscale(1) contrast(1.18) brightness(.86);
+  }
+
+  .duotone-wash {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: color;
+    opacity: var(--opacity-duotone);
+    pointer-events: none;
+  }
+
+  /* Custom Wallpaper */
+  .custom-wallpaper {
+    background-attachment: fixed;
+    background-color: var(--color-surface-000);
+    background-image: linear-gradient(to bottom, rgba(255, 153, 153, 0) 0%, var(--color-surface-000) 50%, var(--color-surface-000) 100%),
+      var(--custom-wallpaper);
+    background-position: top center;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .animate-ticker,
-  .animate-blink {
+  .animate-blink,
+  .equalizer-bars__bar {
     animation: none;
   }
 }

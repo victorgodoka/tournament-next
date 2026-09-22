@@ -32,14 +32,32 @@ export type Visibility = 'everyone' | 'friends_rivals' | 'friends' | 'nobody'
 
 export type Tier = 'Iron' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Master' | 'Omega'
 
+export type LadderRecord = { wins: number; loses: number; draws: number }
+
+/** Open: live rating and record. Closed: frozen at the rollover. */
+export type LadderSeason = LadderRecord & {
+  /** Editable by an admin: link with it, never persist it as a key. */
+  code: string
+  label: string
+  ordinal: number
+  /** Exactly one `true` per ladder. */
+  open: boolean
+  startsAt: string
+  /** `null` on the open season. */
+  endsAt: string | null
+  elo: number
+  tier: Tier
+  /** `null` on the open season until the duelist's first game is synced. */
+  rank: number | null
+}
+
 export type LadderStats = {
-  season: string | null
   /** Live rating. Can be negative. */
   elo: number
   tier: Tier
-  wins: number
-  loses: number
-  draws: number
+  allTime: LadderRecord
+  /** Newest first. The open season is always there, even at 0-0-0. */
+  seasons: LadderSeason[]
   /** Recent results, oldest first. One character per duel: `W`, `L` or `D`. */
   recent: string | null
   topDeck: { name: string; art: CardArt } | null
@@ -62,7 +80,7 @@ export type MatchSide = {
 
 /** Always from the profile owner's point of view. */
 export type Match = {
-  /** `ranked:<n>` or `casual:<n>`. */
+  /** Always `ranked:<n>`: history is ranked only. */
   id: string
   /** `null` is a draw or unfinished duel, not a loss. */
   win: boolean | null
@@ -88,6 +106,10 @@ export type ProfileIdentity = {
   handle: string | null
   avatar: string | null
   lastLogin: string | null
+  isDonator: boolean
+  isAdmin: boolean
+  /** Expiry of the paid pass. `null` without one. */
+  passDueDate: string | null
   /** The viewer's standing with this duelist. `none` when signed out or viewing your own. */
   relation: RelationStatus
 }
@@ -116,6 +138,8 @@ export type Profile = ProfileIdentity & (
     duelsPlayed: number
     /** Always `TCG` then `Genesys`. */
     ladders: Ladder[]
+    /** Swiss-tournament record: totals, titles and the 3 latest entries. */
+    tournaments: PlayerTournaments
   })
 )
 
@@ -213,6 +237,28 @@ export type PresenceEvent = Pick<RosterEntry, 'id' | 'presence' | 'status' | 'so
 export interface WelcomeData {
   players: WelcomePlayers
   games: WelcomeGames
+  tournaments: {
+    /** Newest first. Usually 0 or 1. */
+    live: WelcomeTournament[]
+    /** Last 3 finished, newest first. */
+    recent: { tcg: WelcomeTournament[]; other: WelcomeTournament[] }
+  }
+}
+
+/** A tournament on the home page (WELCOME_API.md §2.2). */
+export type WelcomeTournament = {
+  id: number
+  name: string
+  status: TournamentStatus
+  banlist: string
+  format: string
+  /** Ladder season code (`tcg-1`) or the lowercased format (`edison`). Picks the banner. */
+  season: string
+  players: number
+  rounds: number
+  startedAt: string
+  endedAt: string | null
+  winner: (TournamentPlayer & { points: number; archetype: string | null }) | null
 }
 
 export interface WelcomePlayers {
@@ -230,11 +276,448 @@ export interface WelcomeGames {
 export interface WelcomeLast24h {
   tcg: number
   genesys: number
-  casual: number
 }
 
 export interface WelcomePrevious24h {
   tcg: number
   genesys: number
-  casual: number
+}
+
+/**
+ * Tournaments (see omega-server-v3 TOURNAMENT_API.md). Every endpoint is public and read-only.
+ * Player ids are Discord snowflakes, so they stay strings. Rates are fractions, never percentages.
+ */
+
+export type TournamentStatus = 'live' | 'finished'
+
+export type TournamentPlayer = {
+  id: string
+  /** `null` when the game has no Discord data for the duelist. */
+  name: string | null
+  handle: string | null
+  avatar: string | null
+}
+
+export type TournamentSettings = {
+  mode: 'single' | 'match' | 'tag'
+  masterRule: number
+  /** Raw value that doesn't match the old site's labels. Show `format` instead. */
+  region: number
+  timer: number
+  draw: boolean
+  startingHand: number
+  noShuffle: boolean
+  isPublic: boolean
+  startingLp: number
+  duelRule: number
+  allowBeta: boolean
+  unknownHighBits: string
+}
+
+export type TournamentSummary = {
+  id: number
+  status: TournamentStatus
+  /** Free text from the game, and the value the `banlist` filter takes. */
+  banlist: string
+  /** `TCG`, `Genesys`, `Edison` or `Rush Duel`. Never show the raw `OCG` banlist text. */
+  format: string
+  /** Swiss rounds. There is no top cut. */
+  rounds: number
+  players: number
+  startedAt: string
+  /** `null` while live. */
+  endedAt: string | null
+  /** Legal-card release window for retro formats. Only Edison sets it. */
+  cardPool: { releasedFrom: string | null; releasedUntil: string | null }
+  settings: TournamentSettings
+  /** What each bit means is unknown: raw data or nothing. */
+  extraRules: { raw: string; bits: number[] }
+  /** Rank 1 of the computed standings. `null` while live. */
+  winner: (TournamentPlayer & { points: number }) | null
+}
+
+export type DeckCard = {
+  /** Passcode: card art, and `GET /cards/{id}`. */
+  id: number
+  name: string | null
+  count: number
+  /** Fusion/Synchro/Xyz/Link, even when the copy sits in `side`. */
+  extra: boolean
+}
+
+export type TournamentDeck = {
+  /** Always `null` for now — nothing fills the categorization cache. Fall back to `archetype`. */
+  name: string | null
+  /** A heuristic, not a deck name: a hybrid is named after its bigger half. */
+  archetype: string | null
+  /** Top 3 by copies in main + extra. `art` is the passcode of that archetype's most-copied card **in this deck**. */
+  archetypes: { name: string; cards: number; art: number }[]
+  main: DeckCard[]
+  extra: DeckCard[]
+  side: DeckCard[]
+  /** The game's deck code, for a copy button. */
+  code: string
+}
+
+export type Standing = {
+  /** Computed by the API — the game stores neither placements nor tiebreakers. */
+  rank: number
+  player: TournamentPlayer
+  points: number
+  wins: number
+  loses: number
+  draws: number
+  /** Rounds with no opponent. Already counted inside `wins`. */
+  byes: number
+  dropped: boolean
+  tiebreakers: {
+    opponentsMatchWin: number
+    opponentsOpponentsMatchWin: number
+    /** 8 digits, `AABBBCCC`: points, OMW%, OOMW%. The order sorts on this string, descending. */
+    kts: string
+  }
+  /** `null` only when the stored deck code can't be decoded. */
+  deck: TournamentDeck | null
+}
+
+export type MatchOutcome = 'player1' | 'player2' | 'draw' | 'unplayed'
+
+export type TournamentMatch = {
+  /** Unique only within the round: key on round number + room. */
+  room: number
+  player1: string
+  player2: string
+  /** The official result. It doesn't always agree with `score`, and it still wins. */
+  outcome: MatchOutcome
+  score: { player1: number; player2: number }
+  games: { winner: 'player1' | 'player2' | 'draw' }[]
+  /**
+   * Who went first **in game 1**. `null` on unplayed matches and on the rows where the game
+   * didn't record it. Games 2 and 3 are not knowable: only bit 0 of the stored field reproduces.
+   */
+  first: 'player1' | 'player2' | null
+  endedAt: string | null
+}
+
+export type TournamentRound = {
+  number: number
+  startedAt: string
+  /** Player id that got the bye. */
+  bye: string | null
+  matches: TournamentMatch[]
+}
+
+export type ArchetypeStat = {
+  archetype: string
+  players: number
+  /** Fraction of entrants. */
+  share: number
+  /** Passcode of the archetype's most-copied card, for a slice image or a thumbnail. */
+  artCardId: number | null
+  wins: number
+  loses: number
+  draws: number
+  /** `null` when the archetype played no match. */
+  winRate: number | null
+  /** Only on `GET /tournaments/stats`. */
+  tournamentWins?: number
+}
+
+export type MatchupStat = { archetype: string; opponent: string; wins: number; loses: number; draws: number }
+
+/** Per-zone counts, so "staple of main" and "staple of side" can be separate lists. */
+export type CardZoneStat = { decks: number; copies: number }
+
+export type CardStat = {
+  id: number
+  name: string | null
+  /** Decks holding at least one copy anywhere, counted once even when the card is in main **and** side. */
+  decks: number
+  copies: number
+  main: CardZoneStat
+  extra: CardZoneStat
+  side: CardZoneStat
+  /** **Games** won and lost by decks carrying the card. Decklist presence, not play. */
+  wins: number
+  loses: number
+  draws: number
+}
+
+export type MatchTotals = {
+  total: number
+  played: number
+  unplayed: number
+  draws: number
+  games: number
+  threeGameMatches: number
+  /** Game 1 only: `games` = decided game 1s with a known `first`, `wins` = how many the player on the play took. */
+  onThePlay: { games: number; wins: number }
+}
+
+/** Split by card type, not zone: a sided extra-deck monster is in `extra`. Each list is its own top N by `decks`. */
+export type CardStats = { main: CardStat[]; extra: CardStat[] }
+
+export type TournamentStats = {
+  matches: MatchTotals
+  archetypes: ArchetypeStat[]
+  matchups: MatchupStat[]
+  cards: CardStats
+}
+
+export type TournamentDetail = {
+  tournament: TournamentSummary
+  standings: Standing[]
+  rounds: TournamentRound[]
+  stats: TournamentStats
+}
+
+export type TournamentPage = { tournaments: TournamentSummary[]; nextCursor: string | null }
+
+export type BanlistTotals = { banlist: string; format: string; tournaments: number; entries: number }
+
+export type TournamentLeader = TournamentPlayer & {
+  tournaments: number
+  tournamentWins: number
+  wins: number
+  loses: number
+  draws: number
+  points: number
+}
+
+export type TournamentsStats = {
+  tournaments: number
+  entries: number
+  uniquePlayers: number
+  averagePlayers: number
+  /** Also the list of valid `banlist` filter values. */
+  banlists: BanlistTotals[]
+  players: TournamentLeader[]
+  matches: MatchTotals
+  archetypes: ArchetypeStat[]
+  matchups: MatchupStat[]
+  cards: CardStats
+}
+
+/** One tournament a duelist entered: the tournament, and their row of its standings. */
+export type PlayerEntry = { tournament: TournamentSummary; standing: Standing }
+
+/** `GET /profiles/{id}.tournaments`. A duelist who never entered gets `played: 0` and `recent: []`. */
+export type PlayerTournaments = {
+  played: number
+  /** Tournaments won outright. Ties on points are resolved by the Konami tiebreaker. */
+  titles: number
+  /** Tournament **matches**, summed across every tournament. Byes count as wins. */
+  wins: number
+  loses: number
+  draws: number
+  /** Match points summed across every tournament (`3 x wins + draws`). */
+  points: number
+  /** The 3 latest tournaments, newest first. */
+  recent: PlayerEntry[]
+}
+
+/** `GET /tournaments/players/{id}` — the full history, cursor-paginated. */
+export type PlayerTournamentPage = { entries: PlayerEntry[]; nextCursor: string | null }
+
+/**
+ * Wiki articles (see omega-server-v3 WIKI_API.md). Articles are identified by `slug` in URLs;
+ * `id` is only the index cursor. `publishedAt: null` means draft, and a draft is invisible
+ * without `wiki.write`.
+ */
+
+/** A duelist as the wiki names them: author, last editor, or a row in the editors panel. */
+export type WikiUser = {
+  /** Discord snowflake. Keep it a string. */
+  id: string
+  username: string | null
+  avatarUrl: string | null
+}
+
+export type WikiRole = 'USER' | 'EDITOR' | 'ADMIN'
+
+/** Index row. No `body`: an article can be 100 KB of Markdown. */
+export type ArticleSummary = {
+  id: number
+  slug: string
+  title: string
+  author: WikiUser
+  /** `null` is a draft. */
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type Article = ArticleSummary & {
+  /** Raw Markdown. Render it through a Markdown pipeline, never as HTML. */
+  body: string
+  /** `null` until someone other than the creation edits it; then whoever saved last. */
+  updatedBy: WikiUser | null
+}
+
+export type ArticleIndex = {
+  articles: ArticleSummary[]
+  /** `null` on the last page. Pass it back as `cursor`; never build an offset. */
+  nextCursor: string | null
+}
+
+/** One save. The newest revision mirrors the current article. */
+export type Revision = {
+  /** Bigint as a string. */
+  id: string
+  title: string
+  editor: WikiUser
+  createdAt: string
+}
+
+export type RevisionDetail = Revision & { body: string }
+
+/** `GET /wiki/editors`. Rows with `role: 'ADMIN'` are not editable. */
+export type WikiEditor = WikiUser & { role: WikiRole }
+
+/** `POST /wiki`. An article is born a draft: `published` defaults to `false`. */
+export type ArticleDraft = {
+  /** Trimmed, 1–120 characters. */
+  title: string
+  /** Markdown, 1–100 000 characters. No raw HTML, and every link must be `http(s)`. */
+  body: string
+  /** Defaults to a slug derived from the title. */
+  slug?: string
+  published?: boolean
+}
+
+/** `PATCH /wiki/{slug}`. At least one key; an absent key leaves the column alone. */
+export type ArticlePatch = Partial<{
+  title: string
+  body: string
+  /** A new `title` never moves the URL: send `slug` to do that. */
+  slug: string
+  published: boolean
+}>
+
+/* ------------------------------------------------------------------ *
+ * Ranked ladders — omega-server-v3 RANKED_API.md
+ * ------------------------------------------------------------------ */
+
+/** The only two queues. `ocg` is a MySQL column prefix, never a ladder: sending it is a 400. */
+export type RankedLadderId = 'tcg' | 'genesys'
+export type RankedFormat = 'TCG' | 'Genesys'
+
+/** `ordinal` is the season number within its own format; `id` is a sequence shared by both. */
+export type RankedSeason = {
+  id: number
+  code: string
+  label: string
+  ordinal: number
+}
+
+/**
+ * One row of the snapshot. `elo` is the ladder number — there is no per-queue "points" column —
+ * and `tier` is its band, computed by the server. Don't recompute either.
+ */
+export type LeaderboardEntry = {
+  /** 1-based, dense, and also the cursor. */
+  rank: number
+  /** Discord snowflake. Keep it a string. */
+  id: string
+  /** `null` for a duelist who never authenticated through Discord. Not rare. */
+  name: string | null
+  handle: string | null
+  avatar: string | null
+  elo: number
+  tier: Tier
+  wins: number
+  loses: number
+  draws: number
+}
+
+export type LeaderboardPage = {
+  ladder: RankedLadderId
+  format: RankedFormat
+  /** The open season of that ladder. `null` means `entries` is empty. */
+  season: RankedSeason | null
+  /**
+   * When the game server was read — the honest "as of" for the whole list. Never `null` from the
+   * API; `null` here only means the page is our own fallback because the API was unreachable.
+   * A page whose `syncedAt` differs from the first page's means the walk crossed a refresh.
+   */
+  syncedAt: string | null
+  /** `wins`/`loses`/`draws` are the season's record, and only duelists who played it are listed. */
+  entries: LeaderboardEntry[]
+  /** `null` on the last page. Pass it back as `cursor`; never build an offset. */
+  nextCursor: string | null
+}
+
+/** A closed season. The open one is never in this list — it is the leaderboard. */
+export type PastSeason = {
+  code: string
+  label: string
+  ordinal: number
+  startsAt: string
+  endsAt: string
+  /** Duelists in the final results: everyone with at least one game in the season. */
+  standings: number
+}
+
+export type PastSeasons = { ladder: RankedLadderId; format: RankedFormat; seasons: PastSeason[] }
+
+/** Final results of a closed season: `elo`, `tier` and `rank` frozen at the rollover. */
+export type SeasonStandingsPage = {
+  ladder: RankedLadderId
+  format: RankedFormat
+  season: Omit<PastSeason, 'standings'>
+  entries: LeaderboardEntry[]
+  nextCursor: string | null
+}
+
+/* ------------------------------------------------------------------ *
+ * Shop — omega-server-v3 SHOP_API.md
+ * ------------------------------------------------------------------ */
+
+/**
+ * `type` and `category` are open sets kept in the database. Render the labels the catalog
+ * sends rather than hardcoding them: a new type appears without a frontend release.
+ */
+export type ShopEnum = {
+  value: string
+  name: string
+  description: string
+}
+
+export type ShopItem = {
+  /** Short hex id, not a number. */
+  id: string
+  name: string
+  type: string
+  category: string
+  /** Final price in Duel Points, multiplier already applied. Never recompute it. */
+  price: number
+  season: string | null
+  /** External link the item points at — the track behind a SONG, for instance. */
+  ext: string | null
+  /** `YYYY-MM-DD`, inclusive, or `null` when the item is always available. */
+  startsAt: string | null
+  endsAt: string | null
+}
+
+/** Only what is purchasable right now: category `SHOP`, inside its window if limited. */
+export type ShopCatalog = {
+  items: ShopItem[]
+  types: ShopEnum[]
+  categories: ShopEnum[]
+}
+
+export type ShopInventoryItem = ShopItem & {
+  acquiredAt: string
+}
+
+/** `GET /shop/me`. A duelist who never earned or spent anything is `{ balance: 0, items: [] }`. */
+export type ShopWallet = {
+  balance: number
+  items: ShopInventoryItem[]
+}
+
+/** `POST /shop/items/{id}/purchase`. Use this `balance`; don't re-fetch the wallet. */
+export type ShopPurchase = {
+  item: ShopItem
+  balance: number
 }

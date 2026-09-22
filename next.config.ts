@@ -1,52 +1,29 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  async headers() {
-    return [
-      {
-        // matching all API routes
-        source: "/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "*" }, // replace this your actual origin
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET,DELETE,PATCH,POST,PUT",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-          },
-        ],
-      },
-    ];
-  },
   images: {
-    localPatterns: [
-      {
-        pathname: "/**",
-      },
-    ],
+    /**
+     * Every distinct `url`+`w`+`q` is a fresh sharp decode/encode on the Node server that
+     * serves the pages, so the variant matrix stays small and the hosts stay narrow: a
+     * wildcard pathname lets a stranger mint unlimited optimisation jobs from one URL.
+     */
+    qualities: [75],
+    deviceSizes: [640, 828, 1080, 1920],
+    imageSizes: [64, 128, 256],
+    /** 31 days: a variant is worth keeping, recomputing it is the expensive part. */
+    minimumCacheTTL: 2_678_400,
+    localPatterns: [{ pathname: "/**" }],
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.discordapp.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ygopro.online",
-        pathname: "/assets/**",
-      },
+      { protocol: "https", hostname: "cdn.discordapp.com", pathname: "/avatars/**" },
+      { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-arts/**" },
     ],
+    // res.cloudinary.com is deliberately absent: `coverUrl` asks Cloudinary itself for a
+    // sized f_auto image and the cover <Image>s render it `unoptimized`, so covers never
+    // reach this optimiser at all.
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+export default withNextIntl(nextConfig);

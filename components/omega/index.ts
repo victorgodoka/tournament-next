@@ -7,8 +7,6 @@ export {
   MatchRow,
   PrivateNotice,
   ProfileBio,
-  ProfileCover,
   ProfileMasthead,
-  ProfileMeta,
   SocialStrip,
 } from "./profile"

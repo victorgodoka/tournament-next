@@ -29,12 +29,21 @@ const customSanitizeSchema = {
   }
 };
 
-export async function parseBio(markdownText: string) {
+/** One pipeline for every markdown surface: parse, class up, sanitize, stringify. */
+const toHtml = async (markdownText: string, classes: Record<string, string>) => {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
-    .use(rehypeClassNames, {
+    .use(rehypeClassNames, classes)
+    .use(rehypeSanitize, customSanitizeSchema)
+    .use(rehypeStringify)
+
+  const processedContent = await processor.process(markdownText)
+  return processedContent.toString()
+}
+
+const BIO_CLASSES = {
       'h1': 'font-display text-2xl uppercase leading-[1.06] text-white pb-1.5',
       'h2': 'font-display text-xl uppercase leading-[1.08] text-white pb-1.5',
       'h3': 'font-display text-lg uppercase leading-[1.1] text-white pb-1',
@@ -59,10 +68,39 @@ export async function parseBio(markdownText: string) {
       'td': 'px-3 py-4 text-omega-gray',
       'td:last-child': 'pr-0 px-3 py-4 text-omega-gray',
       'code': 'bg-white/10 px-1.5 py-px font-mono text-sm text-omega-green',
-    })
-    .use(rehypeSanitize, customSanitizeSchema)
-    .use(rehypeStringify);
-
-  const processedContent = await processor.process(markdownText)
-  return processedContent.toString()
 }
+
+export const parseBio = (markdownText: string) => toHtml(markdownText, BIO_CLASSES)
+
+/**
+ * Wiki article body, in the site's own type scale and colour tokens.
+ * The server rejects raw HTML and non-http(s) links on write; the sanitizer is the second wall.
+ */
+const ARTICLE_CLASSES = {
+  'h1': 'mt-9 mb-3.5 text-ink display-3 first:mt-0',
+  'h2': 'mt-8 mb-3 text-ink display-4 first:mt-0',
+  'h3': 'mt-6 mb-2.5 text-ink display-5 first:mt-0',
+  'h4': 'mt-5 mb-2 text-ink display-6 first:mt-0',
+  'p': 'mb-4 last:mb-0 text-ink-dim body',
+  'strong': 'font-bold text-ink',
+  'em': 'italic',
+  'del': 'text-ink-muted line-through',
+  'a': 'text-gold underline underline-offset-2 hover:text-cyan',
+  'ul': 'mb-4 last:mb-0 list-none p-0',
+  'ol': 'mb-4 last:mb-0 list-decimal pl-5 text-ink-dim marker:font-mono marker:text-gold',
+  'li': 'relative text-ink-dim body [&+li]:mt-1.5',
+  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-gold before:content-['']",
+  'hr': 'my-7 h-px w-full border-none bg-line',
+  'blockquote': 'my-4 border-l-2 border-gold bg-ground-gold py-2 pl-4 text-ink-dim italic',
+  'table': 'my-5 w-full border border-line',
+  'thead': 'border-b border-line bg-ground-soft text-ink-muted',
+  'th': 'px-3.5 py-2.5 text-left signal-sm',
+  'tbody': 'divide-y divide-line',
+  'td': 'px-3.5 py-3 text-ink-dim body-sm',
+  'code': 'border border-line bg-surface-200 px-1.5 py-px text-gold mono-note',
+  'pre': 'my-4 overflow-x-auto border border-line bg-surface-200 p-4',
+  'pre code': 'border-none bg-transparent p-0 text-ink-dim',
+  'img': 'my-4 max-w-full border border-line',
+}
+
+export const renderArticle = (markdownText: string) => toHtml(markdownText, ARTICLE_CLASSES)

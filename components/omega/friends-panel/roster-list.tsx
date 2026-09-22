@@ -72,7 +72,7 @@ const RosterRow = ({ entry, unread, onChat, onSettings, onRemove, onBlock }: Ros
                 <Icon icon="mdi:note-text-outline" />
               </span>
             ) : null}
-            <span className="font-mono text-[9px] tracking-[.14em] text-ink-muted uppercase group-hover:text-ink-dim">
+            <span className="text-ink-muted signal-sm group-hover:text-ink-dim">
               {presence.short}
             </span>
           </span>

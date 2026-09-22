@@ -1,7 +1,15 @@
+import { twMerge } from "tailwind-merge";
 import type { Song } from "@utils/types";
 
-/** Live indicator: an 8px cyan square stepping between full and dim opacity. */
-export const Equalizer = () => <span aria-hidden className="block size-2 shrink-0 animate-blink bg-cyan" />
+/** Live indicator: animated bars while a saved song is playing. */
+export const Equalizer = ({ active = true }: { active?: boolean }) => (
+  <span aria-hidden className={twMerge("equalizer-bars", !active && "equalizer-bars--idle")}>
+    <span className="equalizer-bars__bar" />
+    <span className="equalizer-bars__bar" />
+    <span className="equalizer-bars__bar" />
+    <span className="equalizer-bars__bar" />
+  </span>
+)
 
 /** The song the duelist shared, linked to YouTube. */
 export const NowPlaying = ({ song }: { song: Song }) => (
@@ -13,7 +21,7 @@ export const NowPlaying = ({ song }: { song: Song }) => (
         href={`https://youtu.be/${song.videoId}`}
         target="_blank"
         rel="noreferrer"
-        className="mt-0.5 block truncate text-[13px] font-bold text-ink hover:text-cyan"
+        className="mt-0.5 block truncate text-ink caption font-bold hover:text-cyan"
       >
         {song.title ?? 'Unknown title'}
       </a>

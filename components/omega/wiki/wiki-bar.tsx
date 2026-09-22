@@ -62,7 +62,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
     <>
       <div className={`flex flex-wrap items-center gap-3.5 border-b border-line bg-ground-subtle py-2.75 ${WIKI_PAD}`}>
         <span className="whitespace-nowrap text-ink-muted signal">Omega Wiki</span>
-        <span aria-hidden className="font-mono text-[10px] text-ink-muted">/</span>
+        <span aria-hidden className="text-ink-muted mono-handle">/</span>
         <span className="whitespace-nowrap text-ink-muted signal">{section}</span>
 
         <span className="min-w-0 flex-[1_1_12rem]">
@@ -72,11 +72,11 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
             aria-label="Search the card database"
-            className="w-full border border-surface-400 bg-surface-200 px-2.75 py-2.25 text-[13px] text-ink placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
+            className="w-full border border-surface-400 bg-surface-200 px-2.75 py-2.25 text-ink caption placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
           />
         </span>
 
-        <Link href={link.to} className="whitespace-nowrap text-gold signal-nav text-[10px] hover:text-cyan">
+        <Link href={link.to} className="whitespace-nowrap text-gold signal hover:text-cyan">
           {link.label}
         </Link>
       </div>
@@ -90,7 +90,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
                 <Link
                   key={card.id}
                   href={`/wiki/card/${card.id}`}
-                  className="inline-flex items-baseline gap-2 border border-line bg-surface-000 px-2.75 py-1.75 text-[13px] font-bold text-ink hover:bg-gold hover:text-gold-on"
+                  className="inline-flex items-baseline gap-2 border border-line bg-surface-000 px-2.75 py-1.75 text-ink caption font-bold hover:bg-gold hover:text-gold-on"
                 >
                   <span>{card.name ?? 'Unknown card'}</span>
                   <span className="mono-handle">{card.id}</span>
