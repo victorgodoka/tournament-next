@@ -8,6 +8,7 @@
  */
 import { cache } from 'react'
 import { API_URL } from '@utils/auth'
+import type { EloPoint } from '@utils/types'
 
 export class AnalyticsApiError extends Error {
   status: number
@@ -134,7 +135,8 @@ export type MatchStats = {
   games: GameStats[]
 }
 
-export type Record3 = { games: number; wins: number; losses: number; draws: number; winRate: number | null }
+
+export type Record3 ={ games: number; wins: number; losses: number; draws: number; winRate: number | null }
 export type Share = { games: number; rate: number | null }
 
 export type ResponseSplit = {
@@ -152,7 +154,21 @@ export type PlayerSeason = {
   season: { id: number; code: string; label: string; ladder: 'tcg' | 'genesys'; startsAt: string; endsAt: string | null }
   player: Duelist
   /** Over 1000 matches: only the newest 1000 were analyzed. */
-  truncated: boolean
+  truncated?: boolean
+  /** The duelist's row in the ladder snapshot; `null` = no row this season. Open season: up to 24 h old. */
+  standing: {
+    elo: number
+    rank: number
+    wins: number
+    loses: number
+    draws: number
+    recent: string | null
+    topDeck: { name: string; artCardId: number } | null
+    topDeckMeta: { duels: number; wins: number } | null
+    syncedAt: string
+  } | null
+  /** One point per recorded day, oldest first. Days with no sync have no point: never fill them. */
+  eloHistory: EloPoint[]
   gameCount: number
   matchCount: number
   record: Record3
@@ -185,7 +201,19 @@ export type PlayerSeason = {
     result: 'win' | 'loss' | 'draw' | null
     turns: number
     actions: number
+    /* Per-game detail. All `null` on a game stored before it existed (counted in `gamesWithoutDetail`). */
+    combo: { turns: number; actions: number; average: number | null } | null
+    deckCoverage: { main: number | null; extra: number | null } | null
+    /** By whoever went first. Summons, not a board. */
+    turn1SpecialSummons: number | null
+    longestChain: number | null
+    /** Canonical ids. Names are in `cardUsage[].name`. */
+    cards: { used: { cardId: number; uses: number }[]; activated: number[] } | null
+    /** Tracked hand-trap ids, one entry per activation. Names are in `responses[].name`. */
+    handTraps: { player: number[]; opponent: number[] } | null
   }[]
+  /** Games whose detail is `null`: a metric that needs it covers `gameCount - gamesWithoutDetail`. */
+  gamesWithoutDetail: number
   opponents: Record<string, Duelist>
 }
 

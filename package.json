@@ -17,6 +17,7 @@
     "@lexical/list": "0.48.0",
     "@lexical/react": "^0.48.0",
     "@sglara/cn": "^1.0.0",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.12",
     "lexical": "^0.48.0",

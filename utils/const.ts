@@ -102,6 +102,7 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     ],
   },
   { item: "Leaderboard", to: "/leaderboard" },
+  { item: "Analytics", to: "/analytics" },
   { item: "Wiki", to: "/wiki" },
   { item: "Statistics", to: "/statistics" },
   {

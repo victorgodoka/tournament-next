@@ -36,6 +36,9 @@ export type Tier = 'Iron' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond
 export type LadderRecord = { wins: number; loses: number; draws: number }
 
 /** Open: live rating and record. Closed: frozen at the rollover. */
+/** `day` is `YYYY-MM-DD` in the sync job's timezone; `seasonDay` 1 = the day the season opened. */
+export type EloPoint = { day: string; seasonDay: number; elo: number }
+
 export type LadderSeason = LadderRecord & {
   /** Editable by an admin: link with it, never persist it as a key. */
   code: string
@@ -50,6 +53,11 @@ export type LadderSeason = LadderRecord & {
   tier: Tier
   /** `null` on the open season until the duelist's first game is synced. */
   rank: number | null
+  /**
+   * Open season only: one point per day from the daily ladder sync, oldest first. Today's live value
+   * is `elo`, not the last point. `[]` before anything is recorded.
+   */
+  eloHistory?: EloPoint[]
 }
 
 export type LadderStats = {

@@ -42,14 +42,19 @@ export const RankedStanding = ({ num, profileId, ladders, currentSeasons, matche
         <p className="text-ink-muted signal-sm">
           {season?.label ?? 'Lifetime'} · {ladder.format}
         </p>
-        {ladder.played && season ? (
-          <Link
-            href={`/profile/${profileId}/statistics?season=${encodeURIComponent(season.code)}`}
-            className="inline-flex min-h-11 items-center gap-2 text-gold signal hover:text-cyan"
-          >
-            Season statistics →
+        <div className="flex flex-wrap gap-x-5">
+          {ladder.played && season ? (
+            <Link
+              href={`/profile/${profileId}/statistics?season=${encodeURIComponent(season.code)}`}
+              className="inline-flex min-h-11 items-center gap-2 text-gold signal hover:text-cyan"
+            >
+              Season statistics →
+            </Link>
+          ) : null}
+          <Link href={`/profile/${profileId}/analytics`} className="inline-flex min-h-11 items-center gap-2 text-gold signal hover:text-cyan">
+            Analytics →
           </Link>
-        ) : null}
+        </div>
       </div>
 
       <TabBar

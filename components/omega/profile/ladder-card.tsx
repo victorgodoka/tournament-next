@@ -6,6 +6,7 @@ import { MICRO_LABEL, RESULT } from "./accent";
 import { formatNumber } from "./labels";
 import { EmptyBox } from "./empty-box";
 import { TierBadge } from "@omega/ranked";
+import { EloChart } from "./elo-chart";
 
 /** How many of the latest duels the form streak shows. */
 const FORM_LENGTH = 5
@@ -144,10 +145,12 @@ export const LadderCard = ({ ladder, season, recent }: LadderCardProps) => {
   }
 
   const form = ladder.recent || recent
+  const open = openSeason(ladder)
 
   return (
     <div className="mt-4.5">
       <TierLadder season={season} current={ladder.tier} elo={ladder.elo} />
+      {open?.eloHistory ? <EloChart history={open.eloHistory} live={open.elo} season={open.label} /> : null}
 
       <div className="mt-6 flex flex-wrap items-start gap-[clamp(16px,3vw,36px)]">
         <div className="min-w-0 flex-[1_1_260px]">
