@@ -719,8 +719,13 @@ export type ShopItem = {
   name: string
   type: string
   category: string
-  /** Final price in Duel Points, multiplier already applied. Never recompute it. */
-  price: number
+  /** Over the base price of the type. Informational: `price` already applies it. */
+  multiplier: number
+  /**
+   * `round(base × multiplier)`, computed on every read. Never recompute it. `null` when the type has
+   * no base price (`CURRENCY`): such an item is never on sale, but can sit in an inventory.
+   */
+  price: number | null
   season: string | null
   /** External link the item points at — the track behind a SONG, for instance. */
   ext: string | null

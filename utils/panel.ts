@@ -7,7 +7,7 @@
  * tournament that actually ran so a schedule can be linked to it, never edits it.
  */
 import { API_URL } from './auth'
-import type { RankedLadderId, RankedFormat } from './types'
+import type { RankedLadderId, RankedFormat, ShopEnum, ShopItem } from './types'
 
 export class PanelApiError extends Error {
   status: number
@@ -271,3 +271,76 @@ export const rolloverSeason = (body: { ladder: RankedLadderId; season?: number; 
 
 export const renameSeason = (code: string, next: { code?: string; label?: string }) =>
   request<PanelSeason['season']>(`/ranked/seasons/${encodeURIComponent(code)}`, json('PATCH', next))
+
+/* ---------------------------------------------------------------- *
+ * Shop catalog (section 7) — what used to live in the spreadsheet
+ * ---------------------------------------------------------------- */
+
+export type ShopEnumKind = 'type' | 'category'
+export type PanelShopEnum = ShopEnum & { kind: ShopEnumKind }
+export type ShopPrice = { type: string; basePrice: number }
+/** The key comes from the URL; `price` is never written (base × multiplier, computed on read). */
+export type ShopItemBody = Omit<ShopItem, 'id' | 'price'>
+export type BattlepassTrack = 'free' | 'premium'
+/** `item` is the whole item, same shape as the items list. */
+export type BattlepassReward = { season: string; level: number; premium: boolean; itemId: string; qty: number; item: ShopItem }
+export type ShopImportResult = { written: number; warnings: string[] }
+export type ShopTab = 'enums' | 'prices' | 'items' | 'battlepass'
+
+const seg = encodeURIComponent
+
+export const listShopEnums = (signal?: AbortSignal) =>
+  request<{ enums: PanelShopEnum[] }>('/panel/shop/enums', { signal }).then((page) => page.enums)
+
+export const saveShopEnum = (kind: ShopEnumKind, value: string, body: { name: string; description: string }) =>
+  request<PanelShopEnum>(`/panel/shop/enums/${kind}/${seg(value)}`, json('PUT', body))
+
+/** `409 IN_USE` while an item or a base price still uses it. */
+export const deleteShopEnum = (kind: ShopEnumKind, value: string) =>
+  request<void>(`/panel/shop/enums/${kind}/${seg(value)}`, json('DELETE'))
+
+export const listShopPrices = (signal?: AbortSignal) =>
+  request<{ prices: ShopPrice[] }>('/panel/shop/prices', { signal }).then((page) => page.prices)
+
+/** Reprices every item of the type at once. */
+export const saveShopPrice = (type: string, basePrice: number) =>
+  request<ShopPrice>(`/panel/shop/prices/${seg(type)}`, json('PUT', { basePrice }))
+
+export const deleteShopPrice = (type: string) => request<void>(`/panel/shop/prices/${seg(type)}`, json('DELETE'))
+
+/** The admin view: includes items out of their window and outside `SHOP`. */
+export const listShopItems = (signal?: AbortSignal) =>
+  request<{ items: ShopItem[] }>('/panel/shop/items', { signal }).then((page) => page.items)
+
+/** `201` with a generated 8-hex id. `409 ALREADY_EXISTS` is a collision: retry. */
+export const createShopItem = (body: ShopItemBody) => request<ShopItem>('/panel/shop/items', json('POST', body))
+
+export const saveShopItem = (id: string, body: ShopItemBody) =>
+  request<ShopItem>(`/panel/shop/items/${seg(id)}`, json('PUT', body))
+
+export const deleteShopItem = (id: string) => request<void>(`/panel/shop/items/${seg(id)}`, json('DELETE'))
+
+export const listBattlepass = (season?: string, signal?: AbortSignal) =>
+  request<{ rewards: BattlepassReward[] }>(`/panel/shop/battlepass${search({ season })}`, { signal }).then(
+    (page) => page.rewards,
+  )
+
+const rewardPath = (season: string, level: number, track: BattlepassTrack) =>
+  `/panel/shop/battlepass/${seg(season)}/${level}/${track}`
+
+export const saveReward = (season: string, level: number, track: BattlepassTrack, body: { itemId: string; qty: number }) =>
+  request<BattlepassReward>(rewardPath(season, level, track), json('PUT', body))
+
+export const deleteReward = (season: string, level: number, track: BattlepassTrack) =>
+  request<void>(rewardPath(season, level, track), json('DELETE'))
+
+/**
+ * The tab's CSV as exported from the spreadsheet, raw. One transaction: a bad row is a `400` naming
+ * it and nothing is written. Rows missing from the file are not deleted.
+ */
+export const importShopCsv = (tab: ShopTab, csv: string, season?: string) =>
+  request<ShopImportResult>(`/panel/shop/${tab}/import${search({ season })}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/csv' },
+    body: csv,
+  })

@@ -69,7 +69,7 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
         {favourites.length ? <Favourites num={num()} items={favourites} /> : null}
       </div>
 
-      <RankedStanding num={num()} ladders={profile.ladders} currentSeasons={profile.currentSeasons} matches={profile.matches} />
+      <RankedStanding num={num()} profileId={profile.id} ladders={profile.ladders} currentSeasons={profile.currentSeasons} matches={profile.matches} />
       {/* Optional chaining: the field is new, so a server that predates it sends nothing. */}
       {profile.tournaments?.played ? (
         <TournamentRecord num={num()} profileId={profile.id} tournaments={profile.tournaments} />

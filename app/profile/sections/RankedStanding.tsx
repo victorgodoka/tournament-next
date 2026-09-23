@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState } from "react";
+import Link from "next/link";
 import { LadderCard, openSeason } from "@omega/profile/ladder-card";
 import { SectionHead } from "@ui/section-head";
 import { TabBar, tabPanelProps } from "@ui/tab-bar";
@@ -8,6 +9,7 @@ import type { CurrentSeason, Ladder, Match } from "@utils/types";
 
 type RankedStandingProps = {
   num: string
+  profileId: string
   /** Always `TCG` then `Genesys`. */
   ladders: Ladder[]
   /** Names the open season for a ladder the duelist never played (it has no `seasons`). */
@@ -26,7 +28,7 @@ const recentFrom = (matches: Match[], format: Ladder['format']) =>
     .join('')
 
 /** Tabbed per-format standing. Opens on the first ladder the duelist actually played. */
-export const RankedStanding = ({ num, ladders, currentSeasons, matches }: RankedStandingProps) => {
+export const RankedStanding = ({ num, profileId, ladders, currentSeasons, matches }: RankedStandingProps) => {
   const [active, setActive] = useState(() => (ladders.find((ladder) => ladder.played) ?? ladders[0])?.format)
   const idPrefix = useId()
   const ladder = ladders.find(({ format }) => format === active)
@@ -36,9 +38,19 @@ export const RankedStanding = ({ num, ladders, currentSeasons, matches }: Ranked
   return (
     <section id="ranked" className="pt-section">
       <SectionHead num={num}>Ranked standing</SectionHead>
-      <p className="mt-2 text-ink-muted signal-sm">
-        {season?.label ?? 'Lifetime'} · {ladder.format}
-      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <p className="text-ink-muted signal-sm">
+          {season?.label ?? 'Lifetime'} · {ladder.format}
+        </p>
+        {ladder.played && season ? (
+          <Link
+            href={`/profile/${profileId}/statistics?season=${encodeURIComponent(season.code)}`}
+            className="inline-flex min-h-11 items-center gap-2 text-gold signal hover:text-cyan"
+          >
+            Season statistics →
+          </Link>
+        ) : null}
+      </div>
 
       <TabBar
         label="Format"

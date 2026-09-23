@@ -1,7 +1,7 @@
 /**
  * Discord sign-in against omega-server-v3 (see its AUTH.md).
- * The `omega_session` cookie is HttpOnly and scoped to the API host, so every call runs in the
- * browser with `credentials: 'include'`. The Next server never sees the cookie.
+ * The `omega_session` cookie is HttpOnly. Browser calls use `credentials: 'include'`; SSR
+ * (`getMeServer`) only sees it when the API sets `COOKIE_DOMAIN` to the shared parent domain.
  */
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''

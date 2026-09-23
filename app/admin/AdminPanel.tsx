@@ -8,10 +8,11 @@ import { signIn } from '@utils/auth'
 import type { Banlist } from '@utils/wiki'
 import { FormatsPanel } from './FormatsPanel'
 import { OpsPanel } from './OpsPanel'
+import { ShopPanel } from './ShopPanel'
 import { StaffPanel } from './StaffPanel'
 import { TournamentsPanel } from './TournamentsPanel'
 
-type TabId = 'tournaments' | 'formats' | 'ops' | 'staff'
+type TabId = 'tournaments' | 'formats' | 'shop' | 'ops' | 'staff'
 
 /** A locked door, said plainly. The API refuses these routes anyway; this only saves the round trip. */
 const Locked = ({ title, blurb, action }: { title: string; blurb: string; action?: React.ReactNode }) => (
@@ -74,6 +75,7 @@ export const AdminPanel = ({ banlists }: { banlists: Banlist[] }) => {
       ? ([
           { id: 'tournaments', label: 'Tournaments' },
           { id: 'formats', label: 'Formats' },
+          { id: 'shop', label: 'Shop' },
           { id: 'ops', label: 'Ranked ops' },
         ] as const)
       : []),
@@ -98,6 +100,7 @@ export const AdminPanel = ({ banlists }: { banlists: Banlist[] }) => {
         <div {...tabPanelProps('admin', current)}>
           {current === 'tournaments' ? <TournamentsPanel banlists={banlists} /> : null}
           {current === 'formats' ? <FormatsPanel banlists={banlists} /> : null}
+          {current === 'shop' ? <ShopPanel /> : null}
           {current === 'ops' ? <OpsPanel /> : null}
           {current === 'staff' ? <StaffPanel /> : null}
         </div>

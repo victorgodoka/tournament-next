@@ -40,7 +40,8 @@ type ItemCardProps = {
 
 const ItemCard = ({ item, label, owned, balance, busy, signedIn, onBuy }: ItemCardProps) => {
   const limited = windowNote(item)
-  const short = balance !== null && balance < item.price
+  // The storefront only lists priced items; `null` is inventory-only, so it reads as unbuyable.
+  const short = balance !== null && item.price !== null && balance < item.price
 
   return (
     <li className="flex flex-col border border-line bg-surface-000 p-[clamp(14px,1.8vw,20px)]">
@@ -71,7 +72,7 @@ const ItemCard = ({ item, label, owned, balance, busy, signedIn, onBuy }: ItemCa
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
         <p className={twMerge('mono-data tabular-nums', owned ? 'text-ink-muted' : 'text-amber')}>
-          {formatNumber(item.price)} DP
+          {item.price === null ? '—' : `${formatNumber(item.price)} DP`}
         </p>
 
         {owned ? (
