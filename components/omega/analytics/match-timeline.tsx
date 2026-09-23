@@ -94,11 +94,16 @@ export const MatchTimelineView = ({ game, players }: { game: TimelineGame; playe
   }
 
   const bySeq = new Map(game.events.map((event) => [event.seq, event]))
+  const end =
+    game.winner === 'draw' ? { text: 'Game ended — Draw', tone: 'text-draw', ground: 'bg-ground-draw' }
+    : game.winner ? { text: `Game ended — ${duelistName(players[game.winner])} won`, tone: SIDE[game.winner].text, ground: SIDE[game.winner].ground }
+    : { text: 'Game not finished — no result was recorded', tone: 'text-ink-muted', ground: 'bg-surface-100' }
 
   return (
-    <div>
+    // Never taller than what is left of the screen under the 64px header: long games scroll inside.
+    <div tabIndex={0} aria-label={`Game ${game.gameNumber} timeline`} className="max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain border-b border-line">
       {/* Column heads line up with the two event columns from `lg` up. */}
-      <div aria-hidden className="sticky top-16 z-(--z-dropdown) hidden grid-cols-2 gap-px border border-line bg-line lg:grid">
+      <div aria-hidden className="sticky top-0 z-(--z-dropdown) hidden grid-cols-2 gap-px border border-line bg-line lg:grid">
         {(['player1', 'player2'] as const).map((side) => (
           <p key={side} className={twMerge('truncate bg-surface-100 px-3 py-2 signal-sm', SIDE[side].text)}>
             {duelistName(players[side])}
@@ -144,6 +149,8 @@ export const MatchTimelineView = ({ game, players }: { game: TimelineGame; playe
           )
         })}
       </ol>
+
+      <p className={twMerge('mt-4 mb-3 border border-line px-3 py-3 text-center display-6', end.ground, end.tone)}>{end.text}</p>
     </div>
   )
 }
