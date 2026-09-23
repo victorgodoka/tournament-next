@@ -43,7 +43,7 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
       person={personOf(profile)}
       eyebrow="Duelist analytics"
       back={{ href: `/profile/${id}`, label: 'Back to profile' }}
-      meta="Data through yesterday · refreshed daily at 01:00"
+      meta="Live · updates within 5 minutes"
       aside={
         shown ? (
           <div className={twMerge('w-full max-w-[330px] border px-3.5 py-3', owner ? 'border-gold bg-ground-gold' : 'border-line bg-surface-100')}>

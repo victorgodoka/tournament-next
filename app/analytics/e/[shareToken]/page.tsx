@@ -39,7 +39,7 @@ const SharedRoute = async ({ params }: SharedRouteProps) => {
     <AnalyticsShell
       person={personOfDuelist(owner)}
       eyebrow={VISIBILITY_EYEBROW[exploration.visibility]}
-      meta="Data through yesterday · refreshed daily at 01:00"
+      meta="Live · updates within 5 minutes"
       title={exploration.name}
       back={{ href: '/analytics', label: 'Public analytics' }}
       aside={

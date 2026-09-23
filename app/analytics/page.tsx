@@ -24,7 +24,7 @@ const AnalyticsFeed = async ({ searchParams }: AnalyticsFeedProps) => {
   return (
     <AnalyticsShell
       eyebrow="Public analytics"
-      meta="Ranked games · refreshed daily at 01:00"
+      meta="Ranked games · updates within 5 minutes"
       title="Explorations"
       aside={<p className="max-w-[46ch] text-ink-dim body-sm">Pivots duelists built over their own ranked games and chose to publish. Build yours from your profile&apos;s Analytics page.</p>}
     >
