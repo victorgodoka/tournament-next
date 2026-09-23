@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { NAVBAR_ITEMS, type NavbarItem } from '@utils/const'
 import { CELL, CELL_IDLE, CELL_ON, MOBILE_ITEM, PANEL, PANEL_ITEM, PANEL_RULE } from './bar'
+import { LanguageSwitcher } from './language-switcher.component'
 import Logo from '@ui/logo/logo.component'
 
 interface NavbarProps extends React.HTMLAttributes<HTMLElement> {
@@ -91,12 +92,16 @@ export const Navbar = ({ className, items, ...props }: NavbarProps) => {
           ))}
         </div>
 
+        <div className='ml-auto flex items-center pr-4'>
+          <LanguageSwitcher />
+        </div>
+
         <button
           type="button"
           aria-haspopup="dialog"
           aria-label="Open menu"
           onClick={() => drawer.current?.showModal()}
-          className={twMerge(CELL, CELL_IDLE, "ml-auto cursor-pointer border-l border-line font-bold min-[1081px]:hidden")}
+          className={twMerge(CELL, CELL_IDLE, "cursor-pointer border-l border-line font-bold min-[1081px]:hidden")}
         >
           <span aria-hidden className="flex flex-col gap-0.75">
             <span className="block h-0.5 w-4.25 bg-current" />

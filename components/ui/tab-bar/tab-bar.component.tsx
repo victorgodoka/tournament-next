@@ -49,7 +49,7 @@ export const TabBar = <T extends string>({ tabs, active, onSelect, label, idPref
   }
 
   return (
-    <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={twMerge('flex shrink-0 border-b border-line', className)}>
+    <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={twMerge('w-full flex shrink-0 border-b border-line', className)}>
       {tabs.map(({ id, label: tabLabel }) => {
         const isActive = id === active
         return (

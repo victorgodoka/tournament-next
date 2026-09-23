@@ -29,11 +29,11 @@
   --spacing-section: clamp(28px, 4vw, 44px);
 
   /* Black range. 000 is the page; 100 raised; 200 recessed; 300 hover/pressed only; 400 inert. */
-  --color-surface-000: #171717;
-  --color-surface-100: #1f1f1f;
-  --color-surface-200: #252525;
-  --color-surface-300: #2b2b2b;
-  --color-surface-400: #353535;
+  --color-surface-000: #101010;
+  --color-surface-100: #1b1b1b;
+  --color-surface-200: #212121;
+  --color-surface-300: #272727;
+  --color-surface-400: #313131;
 
   /* Ink. There is no #ffffff in this system. ink-muted is legible down to surface-200 only. */
   --color-ink: #f0eee9;
@@ -46,8 +46,8 @@
   --color-line-strong: var(--color-ink);
 
   /* Gold is the brand and primary action. gold-deep is fill-only. */
-  --color-gold: #e0a83c;
-  --color-gold-deep: #6f560f;
+  --color-gold: #6770ff;
+  --color-gold-deep: #2b3180;
   --color-gold-on: var(--color-surface-000);
 
   /* Cyan is live/online, the hover flip of a primary action and its offset shadow. */
@@ -62,21 +62,41 @@
   /* Washes over surface-000. Always pair with a matching border or label. */
   --color-ground-subtle: #f0eee908;
   --color-ground-soft: #f0eee90d;
-  --color-ground-gold: #e0a83c12;
+  --color-ground-gold: #6770ff12;
   --color-ground-cyan: #00edff12;
   --color-ground-indigo: #4850ca1f;
 
-  /* Duel outcomes only: result labels, form squares, match-row edges. Always paired with a W/L/D label. */
-  --color-win: #2be08c;
-  --color-loss: #ff5c5c;
-  --color-draw: #8e8b84;
+  /*
+   * Signal hues. Four meanings, fixed everywhere; never introduce a fifth.
+   *   positive  win · number rising · online · friend
+   *   negative  loss · number falling · busy · live tournament · rival · every error state
+   *   info      draw, and nothing else
+   *   amber     currencies, shop prices and upcoming (scheduled, not yet running) tournaments
+   * Color never carries the state alone: a word or icon always sits beside it.
+   */
+  --color-positive: #2be08c;
+  --color-negative: #ff5c5c;
+  --color-info: #4c9aff;
+  --color-amber: #e0a83c;
+  --color-positive-on: var(--color-surface-000);
+  --color-negative-on: var(--color-surface-000);
+  --color-info-on: var(--color-surface-000);
+  --color-amber-on: var(--color-surface-000);
+
+  /* Duel outcomes: result labels, form squares, match-row edges. Always paired with a W/L/D label. */
+  --color-win: var(--color-positive);
+  --color-loss: var(--color-negative);
+  --color-draw: var(--color-info);
   --color-ground-win: #2be08c14;
   --color-ground-loss: #ff5c5c14;
-  --color-ground-draw: #9d9b960f;
+  --color-ground-draw: #4c9aff14;
+  --color-ground-positive: var(--color-ground-win);
+  --color-ground-negative: var(--color-ground-loss);
+  --color-ground-amber: #e0a83c14;
 
-  --color-scrim: #1717179e;
-  --color-veil-top: #1717174d;
-  --color-veil-base: #171717e0;
+  --color-scrim: #1010109e;
+  --color-veil-top: #1010104d;
+  --color-veil-base: #101010e0;
 
   /* Third-party brand, only on the "Log in with Discord" control. */
   --color-discord: #5865f2;
@@ -97,6 +117,8 @@
   /* Inset bars: the active tab, the current nav link (both a 2px gold underline) and a selected row. */
   --shadow-tab-active: inset 0 -2px 0 var(--color-gold);
   --shadow-tab-active-cyan: inset 0 -2px 0 var(--color-cyan);
+  --shadow-tab-active-positive: inset 0 -2px 0 var(--color-positive);
+  --shadow-tab-active-negative: inset 0 -2px 0 var(--color-negative);
   --shadow-current: var(--shadow-tab-active);
   --shadow-selected: inset 2px 0 0 var(--color-gold);
 
@@ -136,6 +158,9 @@
 
 /* Tailwind has no theme namespace for these; use as z-(--z-sticky) and opacity-(--opacity-dim). */
 :root {
+  /* Page grain: desaturated fractal noise tile, laid over surface-000 on body. */
+  --texture-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+
   --opacity-duotone-lead: 0.62;
   --opacity-duotone: 0.5;
   --opacity-duotone-plate: 0.42;
@@ -160,7 +185,9 @@
 
   body {
     min-height: 100dvh;
-    background: var(--color-surface-000);
+    background-color: var(--color-surface-000);
+    background-image: var(--texture-noise);
+    background-size: 200px 200px;
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

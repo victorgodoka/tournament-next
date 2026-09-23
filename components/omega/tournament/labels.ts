@@ -33,8 +33,6 @@ export const TIME_ONLY: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: 
 /** For the page title, where the day is the tournament's identity and the clock is noise. */
 export const DATE_ONLY: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
 
-/** Only Edison sets a card pool, and only ever an upper bound. */
-export const cardPoolNote = (cardPool: { releasedFrom: string | null; releasedUntil: string | null }) => {
-  const until = cardPool.releasedUntil
-  return until ? `cards released until ${new Date(until).getUTCFullYear()}` : null
-}
+/** Only Edison sets a card pool, and only ever an upper bound: the cutoff year, for the caller to word. */
+export const cardPoolYear = (cardPool: { releasedFrom: string | null; releasedUntil: string | null }) =>
+  cardPool.releasedUntil ? new Date(cardPool.releasedUntil).getUTCFullYear() : null

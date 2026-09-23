@@ -10,10 +10,14 @@ import type {
   ArticleDraft,
   ArticleIndex,
   ArticlePatch,
+  DocArticleDraft,
+  DocArticlePatch,
   Revision,
   RevisionDetail,
   WikiEditor,
+  WikiUser,
 } from '@utils/types'
+import type { WikiAsset } from '@utils/wiki-doc'
 
 export class WikiApiError extends Error {
   status: number
@@ -66,12 +70,28 @@ export const can = (user: AuthUser | null | undefined, permission: Permission) =
 export const canDelete = (user: AuthUser | null | undefined, authorId: string) =>
   can(user, 'wiki.delete') || (can(user, 'wiki.write') && user?.id === authorId)
 
-/** Newest first. Drafts appear only for a viewer with `wiki.write`. */
-export const listArticles = (
-  query: { search?: string; author?: string; cursor?: string; limit?: number } = {},
-  cookie?: string | null,
-  signal?: AbortSignal,
-) => request<ArticleIndex>(`/wiki${search(query)}`, { ...withCookie(cookie), signal })
+export type ArticleQuery = {
+  search?: string
+  author?: string
+  /** Only honoured for a viewer with `wiki.write`; for anyone else drafts don't exist. */
+  status?: 'draft' | 'published'
+  /** `published` orders drafts by creation. Defaults to `published` / `desc`. */
+  sort?: 'published' | 'updated'
+  order?: 'asc' | 'desc'
+  /** `YYYY-MM-DD`, both inclusive, on the same date the list is sorted by. */
+  from?: string
+  to?: string
+  cursor?: string
+  limit?: number
+}
+
+/** Newest published first by default. Drafts appear only for a viewer with `wiki.write`. */
+export const listArticles = (query: ArticleQuery = {}, cookie?: string | null, signal?: AbortSignal) =>
+  request<ArticleIndex>(`/wiki${search(query)}`, { ...withCookie(cookie), signal })
+
+/** Everyone with at least one article this viewer can see: the index's author filter. */
+export const listAuthors = async (cookie?: string | null) =>
+  (await request<{ authors: WikiUser[] }>('/wiki/authors', withCookie(cookie))).authors
 
 /** `null` for an unknown or malformed slug, and for a draft this viewer may not see. */
 export const getArticle = async (slug: string, cookie?: string | null): Promise<Article | null> => {
@@ -110,10 +130,32 @@ export const restoreRevision = (slug: string, id: string) =>
   request<Article>(`/wiki/${encodeURIComponent(slug)}/revisions/${encodeURIComponent(id)}/restore`, json('POST'))
 
 /** `409 CONFLICT` means the slug is taken — ask for another, the server never appends a number. */
-export const createArticle = (draft: ArticleDraft) => request<Article>('/wiki', json('POST', draft))
+export const createArticle = (draft: ArticleDraft | DocArticleDraft) => request<Article>('/wiki', json('POST', draft))
 
-export const updateArticle = (slug: string, patch: ArticlePatch) =>
+export const updateArticle = (slug: string, patch: ArticlePatch | DocArticlePatch) =>
   request<Article>(`/wiki/${encodeURIComponent(slug)}`, json('PATCH', patch))
+
+/**
+ * One image into the wiki's storage (docs/WIKI_BLOCKS.md §4), the same way profile covers go:
+ * the API signs, the browser uploads straight to Cloudinary, and the API only accepts the result
+ * after asking Cloudinary itself that it exists and passed moderation. The returned asset carries
+ * Cloudinary's own width and height.
+ */
+export const uploadWikiAsset = async (file: File, alt: string) => {
+  const { uploadUrl, fields } = await request<{ uploadUrl: string; fields: Record<string, string | number> }>(
+    '/wiki/assets/sign',
+    json('POST'),
+  )
+
+  const form = new FormData()
+  for (const [key, value] of Object.entries(fields)) form.set(key, String(value))
+  form.set('file', file)
+  const res = await fetch(uploadUrl, { method: 'POST', body: form })
+  if (!res.ok) throw new WikiApiError(res.status, 'UPLOAD_FAILED')
+  const { public_id: publicId } = (await res.json()) as { public_id: string }
+
+  return request<WikiAsset>('/wiki/assets', json('POST', { publicId, alt }))
+}
 
 export const deleteArticle = (slug: string) => request<void>(`/wiki/${encodeURIComponent(slug)}`, json('DELETE'))
 

@@ -1,16 +1,16 @@
 export const FORMATS_SUPPORTED = [
-{ title: "TCG", text: "Current Konami wording, resolved the way official tournaments call it." },
-{ title: "OCG", text: "Japan's rulings, scripted separately whenever they diverge from the English text." },
-{ title: "GOAT", text: "2005 Master Rules, pre-errata cards, the format's original power level intact." },
-{ title: "EDISON", text: "2010 format on old rules and old text; Six Samurai and Blackwings as they broke the game." },
-{ title: "SPEED DUEL", text: "4-card hands, 20 Life Points, a Skill Card in play; its own rulebook, its own scripts." },
-{ title: "DUEL LINKS", text: "Konami's mobile ruleset: 3 Main Monster Zones, no Link Zones, EX cap enforced." },
-{ title: "MASTER DUEL", text: "Konami's current digital ruleset, matched card for card, restriction for restriction." },
-{ title: "RUSH DUEL", text: "One Normal Summon suspended, a hand no one plays face-down; a different game, scripted true to it." },
-{ title: "TRADITIONAL", text: "No Forbidden list. Every banned card back on the field, full strength." },
-{ title: "CUSTOM BANLISTS", text: "Write your own list, ban or limit anything, and Omega enforces it card for card." },
-{ title: "HISTORICAL BANLISTS", text: "Any list from any month since the game began; pick the date, duel that era." },
-{ title: "ANIME CARDS", text: "Effects straight off the screen, never printed, scripted the way the show played them." }
+  { title: "TCG", text: "Current Konami wording, resolved the way official tournaments call it." },
+  { title: "OCG", text: "Japan's rulings, scripted separately whenever they diverge from the English text." },
+  { title: "GOAT", text: "2005 Master Rules, pre-errata cards, the format's original power level intact." },
+  { title: "EDISON", text: "2010 format on old rules and old text; Six Samurai and Blackwings as they broke the game." },
+  { title: "SPEED DUEL", text: "4-card hands, 20 Life Points, a Skill Card in play; its own rulebook, its own scripts." },
+  { title: "DUEL LINKS", text: "Konami's mobile ruleset: 3 Main Monster Zones, no Link Zones, EX cap enforced." },
+  { title: "MASTER DUEL", text: "Konami's current digital ruleset, matched card for card, restriction for restriction." },
+  { title: "RUSH DUEL", text: "One Normal Summon suspended, a hand no one plays face-down; a different game, scripted true to it." },
+  { title: "TRADITIONAL", text: "No Forbidden list. Every banned card back on the field, full strength." },
+  { title: "CUSTOM BANLISTS", text: "Write your own list, ban or limit anything, and Omega enforces it card for card." },
+  { title: "HISTORICAL BANLISTS", text: "Any list from any month since the game began; pick the date, duel that era." },
+  { title: "ANIME CARDS", text: "Effects straight off the screen, never printed, scripted the way the show played them." }
 ]
 
 export const HOME_FAQ_ALTERNATIVE = [
@@ -87,23 +87,12 @@ export type NavbarItem = {
   item: string
   /** A plain link. Mutually exclusive with `children`. */
   to?: string
+  loggedIn?: boolean
   /** Turns the entry into a dropdown; the parent stops being a link. */
   children?: { item: string; to: string }[]
 }
 
-export const HOME_NAVBAR_ITEMS: NavbarItem[] = [
-  { item: "Home", to: '#top' },
-  { item: "Why Omega?", to: '#alternative' },
-  { item: "Our Tournaments", to: '#tournaments' },
-  { item: "Different Rullings", to: '#rullings' },
-  { item: "Formats", to: '#formats' },
-  { item: "Ranked", to: '#meta' },
-  { item: "Our Tools", to: '#tools' },
-  { item: "Auto and Manual", to: '#modes' },
-  { item: "FAQ", to: '#faq' },
-]
-
-export const NAVBAR_ITEMS: NavbarItem[] = [
+const BASE_NAVBAR_ITEMS: NavbarItem[] = [
   { item: "Home", to: "/welcome" },
   {
     item: "Tournaments",
@@ -122,7 +111,27 @@ export const NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Hypergeometric calculator", to: "/tools/hypergeometric" },
     ],
   },
-  { item: "Shop", to: "/shop" },
+]
+
+export const HOME_NAVBAR_ITEMS: NavbarItem[] = [
+  {
+    item: "About Omega", children: [
+      { item: "Our Simulator", to: '#top' },
+      { item: "Why Omega?", to: '#alternative' },
+      { item: "Our Tournaments", to: '#tournaments' },
+      { item: "Different Rullings", to: '#rullings' },
+      { item: "Formats", to: '#formats' },
+      { item: "Ranked", to: '#meta' },
+      { item: "Our Tools", to: '#tools' },
+      { item: "Auto and Manual", to: '#modes' },
+      { item: "FAQ", to: '#faq' },
+    ]
+  },
+  ...BASE_NAVBAR_ITEMS,
+]
+
+export const NAVBAR_ITEMS: NavbarItem[] = [
+  ...BASE_NAVBAR_ITEMS,
 ]
 
 export const ERROR_MAP = [

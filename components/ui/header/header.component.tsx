@@ -8,6 +8,7 @@ import { twMerge } from "tailwind-merge";
 import { CELL, Navbar, PANEL, PANEL_ITEM, PANEL_RULE } from "@ui/navbar";
 import { useAuth } from "@hooks/index";
 import { signIn, type AuthUser } from "@utils/auth";
+import { can } from "@utils/articles";
 import { DOWNLOAD_URL, NavbarItem } from "@utils/const";
 import Button from "@ui/button";
 
@@ -97,6 +98,10 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
           <Link href="/messenger" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Messenger</Link>
           <p className={PANEL_RULE}>Account</p>
           <Link href="/profile/edit" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Edit profile</Link>
+          {/* The panel refuses anyone without it anyway; this only keeps the door out of sight. */}
+          {can(user, 'system.manage') || can(user, 'user.manage') ? (
+            <Link href="/admin" role="menuitem" onClick={() => setIsOpen(false)} className={twMerge(PANEL_ITEM, "text-gold")}>Admin panel</Link>
+          ) : null}
           <button type="button" role="menuitem" onClick={signOut} className={twMerge(PANEL_ITEM, "w-full cursor-pointer hover:bg-cyan hover:text-cyan-on")}>
             Log out
           </button>

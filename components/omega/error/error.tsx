@@ -9,7 +9,7 @@ interface ErrorProps {
 }
 
 const GoNext = ({ title, text, to }: { title: string, text: string, to: string }) => (
-  <Link href={to} className="flex flex-col gap-3 border-b border-line px-8 py-6 text-ink hover:bg-gold hover:text-gold-on sm:odd:border-r xl:flex-row xl:items-baseline xl:justify-between">
+  <Link href={to} className="flex flex-col gap-3 border-b border-line px-8 py-6 text-ink hover:bg-negative hover:text-negative-on sm:odd:border-r xl:flex-row xl:items-baseline xl:justify-between">
     <span className="display-6">{title}</span>
     <span className="signal">{text}</span>
   </Link>
@@ -21,9 +21,9 @@ export const Error = ({ errorCode }: ErrorProps) => {
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_540px] xl:grid-cols-[1fr_720px]">
       <ArtTile lead wash="gold" src={image} alt="" width={720} height={720} sizes="(min-width: 1280px) 720px, (min-width: 1024px) 540px, 100vw" className="aspect-video max-h-64 w-full lg:order-2 lg:aspect-auto lg:max-h-none lg:border-l lg:border-line" imageClassName="object-top" />
       <div className="flex w-full max-w-5xl flex-col px-5.5 py-13 lg:order-1 lg:px-11">
-        <Eyebrow meta={eyebrow[1]}>{eyebrow[0]}</Eyebrow>
+        <Eyebrow tone="negative" meta={eyebrow[1]}>{eyebrow[0]}</Eyebrow>
         <div className="flex-1 pt-6 md:max-w-3xl">
-          <p className="inline-block bg-gold px-2 font-display text-[clamp(96px,14vw,240px)] leading-[.9] text-gold-on">{code ?? "????"}</p>
+          <p className="inline-block bg-negative px-2 font-display text-[clamp(96px,14vw,240px)] leading-[.9] text-negative-on">{code ?? "????"}</p>
           <h1 className="py-8 text-ink display-1 xl:py-12">{title}</h1>
           <p className="max-w-[62ch] text-ink-dim lead">{text}</p>
         </div>

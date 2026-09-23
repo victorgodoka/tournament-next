@@ -22,7 +22,7 @@ const LoginRoute = async ({ searchParams }: LoginRouteProps) => {
           {message ? <Eyebrow meta={code}>Sign-in failed</Eyebrow> : <Eyebrow tone="cyan" meta="Discord only">Sign in</Eyebrow>}
           <h1 className="pt-8 pb-6 text-ink display-1">Sign in to Omega</h1>
           {message
-            ? <p role="alert" className="border border-gold bg-ground-gold px-4.5 py-4 text-ink-dim body">{message}</p>
+            ? <p role="alert" className="border border-negative bg-ground-negative px-4.5 py-4 text-ink-dim body">{message}</p>
             : <p className="max-w-[62ch] text-ink-dim lead">Use the Discord account linked to your Omega account.</p>}
           <SignIn redirectIfSignedIn={!message} />
         </section>

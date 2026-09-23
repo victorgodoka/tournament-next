@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import type { TournamentPlayer } from '@utils/types'
 
@@ -7,7 +8,8 @@ import type { TournamentPlayer } from '@utils/types'
  * `name` is `null` when the game has no Discord data for the duelist, and empty for a few rows
  * the game stored blank — both have to fall back, or the cell renders as nothing at all.
  */
-export const playerName = (player: TournamentPlayer | undefined) => player?.name?.trim() || 'Unknown duelist'
+export const playerName = (player: TournamentPlayer | undefined, fallback = 'Unknown duelist') =>
+  player?.name?.trim() || fallback
 
 type AvatarProps = { player: TournamentPlayer | undefined; size?: number; className?: string }
 
@@ -48,7 +50,9 @@ type PlayerCellProps = {
 }
 
 /** Avatar plus a link to the duelist's profile. An unknown duelist keeps the plate but loses the link. */
-export const PlayerCell = ({ player, note, size, className }: PlayerCellProps) => (
+export const PlayerCell = ({ player, note, size, className }: PlayerCellProps) => {
+  const t = useTranslations('Tournaments.player')
+  return (
   <span className={twMerge('flex min-w-0 items-center gap-2.5', className)}>
     <PlayerAvatar player={player} size={size} />
     <span className="min-w-0">
@@ -57,12 +61,13 @@ export const PlayerCell = ({ player, note, size, className }: PlayerCellProps) =
           href={`/profile/${player.id}`}
           className={twMerge('block truncate body-strong hover:text-gold', player.name?.trim() ? 'text-ink' : 'text-ink-muted')}
         >
-          {playerName(player)}
+          {playerName(player, t('unknown'))}
         </Link>
       ) : (
-        <span className="block truncate text-ink-muted body-strong">Unknown duelist</span>
+        <span className="block truncate text-ink-muted body-strong">{t('unknown')}</span>
       )}
       {note ? <span className="block truncate text-ink-muted signal">{note}</span> : null}
     </span>
   </span>
-)
+  )
+}

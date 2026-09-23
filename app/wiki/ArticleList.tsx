@@ -1,16 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { ArticleRow } from '@omega/wiki/article'
+import { ArticleCard } from '@omega/wiki/article'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { buttonClasses } from '@ui/button'
-import { listArticles } from '@utils/articles'
+import { listArticles, type ArticleQuery } from '@utils/articles'
 import type { ArticleIndex } from '@utils/types'
 
 type ArticleListProps = {
   first: ArticleIndex
   /** The filters the server used, replayed on every "load more" so a cursor walk stays consistent. */
-  query: { search?: string; author?: string }
+  query: ArticleQuery
   /** Copy for the empty state, which differs between a search, "my articles" and an empty wiki. */
   empty: { title: string; note: string }
 }
@@ -24,7 +24,7 @@ export const ArticleList = ({ first, query, empty }: ArticleListProps) => {
     if (!nextCursor) return
     setStatus('loading')
     try {
-      const page = await listArticles({ ...query, cursor: nextCursor, limit: 20 })
+      const page = await listArticles({ ...query, cursor: nextCursor, limit: 24 })
       setPage((current) => ({ articles: [...current.articles, ...page.articles], nextCursor: page.nextCursor }))
       setStatus('idle')
     } catch (error) {
@@ -43,19 +43,9 @@ export const ArticleList = ({ first, query, empty }: ArticleListProps) => {
 
   return (
     <>
-      <div
-        aria-hidden
-        className="hidden border-b border-line pb-2.5 text-ink-muted signal-sm lg:grid lg:grid-cols-[minmax(0,1fr)_200px_150px_110px] lg:gap-4"
-      >
-        <span>Article</span>
-        <span>Author</span>
-        <span>Updated</span>
-        <span>Status</span>
-      </div>
-
-      <ul>
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {articles.map((article) => (
-          <ArticleRow key={article.id} article={article} />
+          <ArticleCard key={article.id} article={article} />
         ))}
       </ul>
 
@@ -72,7 +62,7 @@ export const ArticleList = ({ first, query, empty }: ArticleListProps) => {
         ) : null}
         <p className="text-ink-muted signal-sm">{articles.length} shown</p>
         {status === 'error' ? (
-          <p role="alert" className="text-gold body-sm">
+          <p role="alert" className="text-negative body-sm">
             Couldn&apos;t load more articles. Try again.
           </p>
         ) : null}

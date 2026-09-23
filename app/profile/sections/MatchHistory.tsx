@@ -118,7 +118,7 @@ export const MatchHistory = ({ num, profileId, duelsPlayed, ...firstPage }: Matc
             {isLoading ? 'Loading…' : 'Load older duels'}
           </button>
           {status === 'error' ? (
-            <p role="alert" className="text-gold body-sm">Couldn&apos;t load older duels. Try again.</p>
+            <p role="alert" className="text-negative body-sm">Couldn&apos;t load older duels. Try again.</p>
           ) : null}
         </div>
       ) : null}

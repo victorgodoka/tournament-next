@@ -43,7 +43,7 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
         <WikiBar
           section="Articles"
           placeholder="Search cards by name or part of one"

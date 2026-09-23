@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
@@ -5,12 +6,10 @@ import { listTournaments } from '@utils/tournaments'
 import type { TournamentPage } from '@utils/types'
 import { TournamentBrowser } from './TournamentBrowser'
 
-export const metadata = pageMetadata({
-  title: 'Tournaments',
-  path: '/tournaments',
-  description:
-    'Every tournament YGO Omega has run: Swiss pairings, standings, decklists and results, recorded by the engine itself.',
-})
+export async function generateMetadata() {
+  const t = await getTranslations('Tournaments.meta')
+  return pageMetadata({ title: t('title'), path: '/tournaments', description: t('description') })
+}
 
 const EMPTY: TournamentPage = { tournaments: [], nextCursor: null }
 

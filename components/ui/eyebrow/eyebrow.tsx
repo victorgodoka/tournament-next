@@ -1,7 +1,7 @@
 import { twMerge } from 'tailwind-merge'
 
 type EyebrowProps = {
-  tone?: 'gold' | 'cyan' | 'neutral'
+  tone?: 'gold' | 'cyan' | 'neutral' | 'positive' | 'negative' | 'amber'
   /** Blinks the leading square on a steps(1,end) loop. Only for genuinely live state. */
   live?: boolean
   /** Set `false` to drop the rule that fills the remaining width. */
@@ -16,6 +16,9 @@ const toneClasses = {
   gold: { text: 'text-gold', dot: 'bg-gold' },
   cyan: { text: 'text-cyan', dot: 'bg-cyan' },
   neutral: { text: 'text-ink-muted', dot: 'bg-ink-muted' },
+  positive: { text: 'text-positive', dot: 'bg-positive' },
+  negative: { text: 'text-negative', dot: 'bg-negative' },
+  amber: { text: 'text-amber', dot: 'bg-amber' },
 }
 
 /** Mono label above a hero or band: a square, the label, a rule, then provenance. */

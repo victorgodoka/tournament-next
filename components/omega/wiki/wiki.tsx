@@ -7,8 +7,9 @@ import type { Tone } from '@utils/wiki'
 /** Horizontal rhythm of every wiki block, lined up with the rails on the rest of the site. */
 export const WIKI_PAD = 'px-5.5 lg:px-11'
 
-/** A sidebar that pins itself beside the article once there is a column to pin it in. */
-export const WIKI_ASIDE = 'min-w-0 lg:sticky lg:top-0 lg:max-h-dvh lg:self-start lg:overflow-y-auto xl:top-16'
+/** A sidebar that pins itself beside the article once there is a column to pin it in, always one viewport tall (below the fixed header from xl). */
+export const WIKI_ASIDE =
+  'min-w-0 lg:sticky lg:top-0 lg:h-dvh lg:self-start lg:overflow-y-auto xl:top-16 xl:h-[calc(100dvh-4rem)]'
 
 type WikiSectionProps = {
   id?: string

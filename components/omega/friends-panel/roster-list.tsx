@@ -13,13 +13,13 @@ const EMPTY_COPY: Record<Relation, { title: string; body: string; cta: string; m
     title: 'No friends yet',
     body: 'Add duelists from their profile or straight after a duel. They show up here with status and presence.',
     cta: 'Find duelists',
-    mark: 'bg-cyan',
+    mark: 'bg-positive',
   },
   rival: {
     title: 'No rivals yet',
     body: 'Name a duelist your rival and their ladder runs stay in sight. Nobody is on the list right now.',
     cta: 'Browse ladder',
-    mark: 'bg-indigo-lift',
+    mark: 'bg-negative',
   },
 }
 

@@ -15,15 +15,15 @@ export const BODY_MAX = 100_000
 /** The server rejects raw HTML instead of stripping it, so the writer learns it isn't allowed. */
 const RAW_HTML = /<[a-zA-Z/!]/
 
-const FIELD =
+export const FIELD =
   'w-full border border-surface-400 bg-surface-200 px-3 py-2.5 text-ink body-sm placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan'
 
-const LABEL = 'block text-ink-muted signal-sm'
+export const LABEL = 'block text-ink-muted signal-sm'
 
-const HELP = 'mt-1.5 text-ink-muted mono-note'
+export const HELP = 'mt-1.5 text-ink-muted mono-note'
 
 /** `message` is written for developers, so every failure maps to copy an editor can act on. */
-const failure = (error: unknown) => {
+export const failure = (error: unknown) => {
   if (!(error instanceof WikiApiError)) return "Couldn't reach the wiki. Try again."
   if (error.status === 409) return 'That address is already taken. Choose a different one.'
   if (error.status === 401) return 'Your session expired. Sign in again.'

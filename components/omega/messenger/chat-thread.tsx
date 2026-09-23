@@ -151,7 +151,7 @@ export const ChatThread = ({ contactId, compact, emptyText, onRead, onSent, clas
         ))}
       </div>
 
-      {error ? <p role="alert" className="shrink-0 border-t border-gold bg-ground-gold px-3 py-2 text-ink-dim micro">{error}</p> : null}
+      {error ? <p role="alert" className="shrink-0 border-t border-negative bg-ground-negative px-3 py-2 text-ink-dim micro">{error}</p> : null}
 
       {isNotLinked ? (
         <p className="shrink-0 border-t border-line px-5 py-3.5 text-ink-muted caption">

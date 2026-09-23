@@ -1,78 +1,238 @@
 {
-  "Home": {
-    "page": {},
-    "AutomaticTournaments": {
-      "kicker": "Torneio automático de Yugioh",
-      "note": "Os decks são bloqueados na primeira rodada. A regra se mantém sem que ninguém a fiscalize.",
-      "button": "Comece a duelar",
-      "kicker_note": "Inscrição gratuita. Elo contado.",
-      "title": "Torneios suíços automáticos. Sem juiz, sem sistema de honra, sem <span>planilha</span>.",
-      "lead": "Inscreva-se, envie um deck e duele. O Omega verifica a lista em relação à banlist do formato, emparelha a rodada, registra o resultado e atualiza a classificação. Os decks são bloqueados no momento em que o torneio começa, então a regra se mantém sem que ninguém a fiscalize.",
-      "step": "Passo",
-      "step_handle": "Gerenciado pelo motor",
-      "step_means": "O que isso significa para você"
+  "Welcome": {
+    "page": {
+      "title": "Boas-vindas",
+      "liveTournament": "{name} está ao vivo: {players} duelistas em {rounds} rodadas suíças.",
+      "noTournamentRunning": "Nenhum torneio está acontecendo e nada está agendado ainda.",
+      "nextTournament": "Nenhum torneio está acontecendo. {name} começa {time}, com {slots} vagas restantes.",
+      "nextEvent": "Confira nosso Discord para saber quando o próximo torneio vai começar.",
+      "nothingScheduled": "Nada está agendado ainda. Novos eventos são anunciados primeiro no Discord.",
+      "rollingWindow": "Janela móvel, atualizada {time}",
+      "statsUnavailable": "Estatísticas indisponíveis",
+      "sampledDuels": "Amostra de {count} duelos"
     },
-    "ClosingCta": {
-      "title": "Simulador de Yu-Gi-Oh! automático e gratuito. Ranqueado, com scripts, julgado pelo <span>motor</span>.",
-      "button": "Baixar gratuitamente",
-      "button_note": "Sem cartão de crédito.<br />A instalação leva menos de 2 minutos.",
-      "platforms": "Windows / macOS / Linux / Android"
+
+    "dailyStats": {
+      "last24hours": "Últimas 24 horas",
+      "mostUsedDecks": "Decks mais usados",
+      "share": "%",
+      "duels": "duelos",
+      "seeAll": "Ver todas as estatísticas"
     },
-    "DoubleScripts": {
-      "kicker": "Regras de Yugioh TCG OCG",
-      "title": "A mesma carta, com dois scripts: uma divisão para regras, outra para eras",
-      "lead": "O Omega executa o núcleo oficial Fluorohydride, ocgcore, com correções no cálculo de dano e nas regras do TCG. É o primeiro simulador automático que programa uma carta separadamente sempre que sua redação, regra ou era diverge: TCG versus OCG, e texto atual versus texto pré-errata. Escolha um formato e você terá a carta desse formato, resolvida por um script em vez da interpretação de um servidor."
+
+    "deckCommunity": {
+      "title": "Comunidade de decks",
+      "publicDecks": "{count} decks públicos",
+      "author": "por {author}, atualizado {time}",
+      "openDeck": "Abrir deck",
+      "openBuilder": "Abrir construtor de decks",
+      "browseCommunity": "Explorar comunidade de decks"
     },
-    "Faq": {
-      "kicker": "FAQ",
-      "title": "Perguntas antes de baixar",
-      "note": "Incluindo as partes que ainda estão faltando."
+
+    "tournaments": {
+      "liveNow": "Ao vivo agora",
+      "watchBracket": "Ver chave",
+      "standings": "Classificação",
+      "swissRounds": "Suíço, {rounds} rodadas",
+      "players_label": "Jogadores",
+      "rounds": "Rodadas",
+      "banlist": "Banlist",
+      "started": "Iniciado",
+      "noTournamentRunning": "Nenhum torneio acontecendo",
+      "browseSchedule": "Ver programação",
+      "lastTournaments": "Últimos torneios",
+      "noFinishedTournaments": "Nenhum torneio finalizado ainda. Os resultados aparecerão aqui quando uma chave for encerrada.",
+      "players": "jogadores",
+      "upcoming": "Próximos",
+      "register": "Inscrever-se",
+      "nothingScheduled": "Nada agendado ainda. Novos eventos são anunciados primeiro no Discord.",
+      "allTournaments": "Todos os torneios",
+      "wonBy": "Vencido por {winner}, {deck}",
+      "wonByNoDeck": "Vencido por {winner}",
+      "unknownDuelist": "um duelista desconhecido",
+      "slotsTaken": "{slotsTaken} de {slots} vagas ocupadas",
+      "oneEventLive": "1 evento ao vivo",
+      "noEventLive": "Nenhum evento ao vivo",
+      "upcomingCount": ", {count} próximos"
     },
-    "FaqReasons": {
-      "kicker": "Uma alternativa gratuita ao Master Duel",
-      "reasons": "Razões pelas quais os jogadores deixam os clientes oficiais",
-      "title": "Yu-Gi-Oh! online ranqueado, gratuito, com o formato de torneio intacto",
-      "lead": "Três coisas afastam os jogadores competitivos dos clientes oficiais. O Omega remove todas as três.",
-      "button": "Baixar gratuitamente",
-      "button_note": "Sem cartão de crédito. A instalação leva menos de 2 minutos."
+
+    "welcomeHero": {
+      "duelistsActive": "Duelistas ativos",
+      "vsPrevious24h": "vs. últimas 24 h",
+      "tcgDuels": "Duelos de TCG",
+      "h24": "24 h",
+      "genesysDuels": "Duelos de Genesys",
+      "casualDuels": "Duelos casuais",
+      "totalDuels": "Total de duelos",
+      "last24hours": "Últimas 24 horas",
+      "statsUnavailable": "Estatísticas indisponíveis",
+      "statsServiceDown": "O serviço de estatísticas não respondeu. Atualize a página daqui a um minuto.",
+      "welcomeBack": "Bem-vindo de volta,"
+    }
+  },
+  "Tournaments": {
+    "meta": {
+      "title": "Torneios de Yu-Gi-Oh!: resultados ao vivo e decklists",
+      "description": "Acompanhe torneios ao vivo do YGO Omega e veja resultados anteriores. Todo evento joga rodadas suíças, com classificação, decklists, pareamentos e estatísticas de arquétipos."
     },
-    "FixedSections": {
-      "title": "Todas as cartas desbloqueadas",
-      "note": "Instalação em menos de 2 minutos",
-      "button": "Baixar gratuitamente"
+    "detailMeta": {
+      "title": "Torneio {format} #{id}: resultados e decklists",
+      "descriptionWon": "{winner} venceu este torneio {format} na banlist {banlist}, superando um campo de {players} duelistas em {rounds} rodadas suíças. Veja classificação, decklists, pareamentos e estatísticas de arquétipos.",
+      "descriptionOpen": "{players} duelistas jogaram {rounds} rodadas suíças na banlist {banlist}. Veja classificação, decklists, pareamentos e estatísticas de arquétipos.",
+      "descriptionLive": "{players} duelistas estão jogando {rounds} rodadas suíças na banlist {banlist}. Acompanhe classificação e pareamentos a cada rodada.",
+      "notFound": "Torneio não encontrado"
     },
-    "Formats": {
-      "kicker": "Yugioh todas as cartas grátis",
-      "title": "Todos os formatos e todas as banlists que o jogo já teve",
-      "lead": "Mude de era entre os duelos. Nada para comprar, nada para desbloquear, nenhum segundo cliente para instalar.",
-      "link": "Baixar gratuitamente →"
+    "status": {
+      "live": "Ao vivo",
+      "finished": "Encerrado"
     },
-    "MainHero": {
-      "eyebrow_meta": "Est. 2019 / Duelistas Unidos",
-      "eyebrow": "Gratuito. Todas as cartas desbloqueadas.",
-      "title": "O primeiro simulador de <span>Yu-Gi-Oh!</span> com um sistema de torneio <span>realmente automático</span>",
-      "lead": "Regras oficiais do TCG e OCG, todas as cartas desbloqueadas, ranking Elo e torneios suíços. Nenhuma instalação além do launcher. Gratuito.",
-      "button": "Baixar gratuitamente",
-      "button_note": "Sem cartão de crédito. A instalação leva menos de 2 minutos.",
-      "figure_1_label": "Sem moeda, sem criação, sem pacotes",
-      "figure_2_label": "Uma classificação que muda com seus resultados",
-      "figure_2_value": "Elo"
+    "browser": {
+      "eyebrow": "Suíço automático",
+      "eyebrowMeta": "Pareado e pontuado pela engine do jogo",
+      "heading": "Torneios de Yu-Gi-Oh!",
+      "lead": "O YGO Omega roda vários torneios de Yu-Gi-Oh! por dia. Cada um joga rodadas suíças sem top cut e dura de uma a duas horas e meia. A engine do jogo pareia as rodadas e registra os resultados, então ninguém reporta placar à mão.",
+      "noneTitle": "Nenhum torneio ao vivo",
+      "noneText": "Nenhum torneio está rodando. Vários começam todo dia, e cada um dura de uma a duas horas e meia.",
+      "liveTitle": "Ao vivo agora",
+      "liveMeta": "Atualiza a cada 30 segundos",
+      "liveSummary": "#{id} · {players, plural, one {# jogador} other {# jogadores}} · {rounds, plural, one {# rodada suíça} other {# rodadas suíças}} · começou",
+      "watchLive": "Assistir ao vivo",
+      "totals": {
+        "tournaments": "Torneios",
+        "entries": "Inscrições",
+        "uniqueDuelists": "Duelistas únicos",
+        "averagePlayers": "Média de jogadores",
+        "note": "Os totais atualizam a cada 10 minutos."
+      },
+      "tabs": {
+        "label": "Filtrar torneios por status",
+        "all": "Todos",
+        "live": "Ao vivo",
+        "finished": "Encerrados"
+      },
+      "allBanlists": "Todas as banlists",
+      "columns": {
+        "tournament": "Torneio",
+        "banlist": "Banlist",
+        "winner": "Vencedor",
+        "ended": "Terminou"
+      },
+      "rowLabel": "Torneio #{id}, banlist {banlist}",
+      "rowSummary": "{players, plural, one {# jogador} other {# jogadores}} · {rounds, plural, one {# rodada} other {# rodadas}}",
+      "points": "{points} pts",
+      "undecided": "Indefinido",
+      "noWinner": "Nenhum vencedor registrado",
+      "inProgress": "Em andamento",
+      "emptyTitle": "Nenhum torneio encontrado",
+      "emptyLive": "Nenhum torneio está rodando. Abra Encerrados para ver resultados anteriores.",
+      "emptyBanlist": "Nenhum torneio usou esta banlist ainda.",
+      "showing": "Mostrando {count, plural, one {# torneio} other {# torneios}}",
+      "loading": "Carregando…",
+      "loadMore": "Carregar mais",
+      "error": "Não conseguimos carregar os torneios. Tente de novo.",
+      "schedule": "Os torneios não têm agenda pública. O jogo registra um torneio quando ele começa, então esta página lista só eventos ao vivo e encerrados. Deixe a aba Ao vivo aberta para pegar o próximo."
     },
-    "MetaDecks": {
-      "kicker": "Yugioh ranqueado online grátis",
-      "title": "Jogue o meta atual na semana em que ele muda",
-      "lead": "Esses decks estão na fila ranqueada agora. Monte qualquer um deles, completo, de graça."
+    "detail": {
+      "breadcrumb": "Trilha de navegação",
+      "breadcrumbRoot": "Torneios",
+      "heading": "Torneio {format}",
+      "copyWinningDeck": "Copiar deck vencedor",
+      "banlist": "Banlist",
+      "players": "{count, plural, one {# jogador} other {# jogadores}}",
+      "swissRounds": "{count, plural, one {# rodada suíça} other {# rodadas suíças}}",
+      "noTopCut": "sem top cut",
+      "stillRunning": "em andamento",
+      "summary": "{winner} venceu com {deck}, fechando {record} e {points} pontos.",
+      "winnerLabel": "Vencedor · 1º lugar",
+      "record": "Campanha",
+      "pointsLabel": "Pontos",
+      "deck": "Deck",
+      "unclassified": "Sem classificação",
+      "tabs": {
+        "label": "Seções do torneio",
+        "standings": "Classificação",
+        "rounds": "Rodadas",
+        "stats": "Estatísticas"
+      }
     },
-    "Modes": {
-      "kicker": "Simulador de Yugioh manual e automático",
-      "title": "Automático e manual, no mesmo cliente",
-      "lead": "Ninguém precisa escolher uma plataforma. Pratique um torneio físico manualmente na segunda-feira, suba no Elo com o motor na terça-feira, mantenha uma única instalação."
+    "cardPool": "cartas lançadas até {year}",
+    "standings": {
+      "rank": "#",
+      "duelist": "Duelista",
+      "deck": "Deck",
+      "points": "Pts",
+      "record": "V–D–E",
+      "omw": "OMW",
+      "oomw": "OOMW",
+      "kts": "KTS",
+      "main": "Main",
+      "extra": "Extra",
+      "side": "Side",
+      "byes": "{count, plural, one {# bye} other {# byes}}",
+      "dropped": "desistiu",
+      "noDiscord": "sem dados do Discord",
+      "deckUnavailable": "Não conseguimos decodificar este código de deck, então a lista está indisponível.",
+      "noDeckName": "sem nome de deck ainda",
+      "empty": "Nenhum inscrito ainda.",
+      "note": "Abra uma linha para ver a decklist que o duelista registrou. Calculamos colocação e desempates a partir dos registros de partidas, porque o jogo não guarda nenhum dos dois. OMW% é a taxa média de vitórias em partidas dos oponentes de um duelista, e OOMW% é a mesma taxa para os oponentes desses oponentes. KTS junta pontos, OMW% e OOMW% num número de oito dígitos que define a ordem."
     },
-    "Tools": {
-      "kicker": "Construtor de decks de Yugioh online",
-      "title": "Monte o deck no navegador e depois duele com ele no cliente",
-      "lead": "Filtre o conjunto completo de cartas por atributo, nível, tipo, arquétipo e status na banlist. Salve a lista, compartilhe o link, carregue-o no Omega.",
-      "button": "Montar meu deck"
+    "rounds": {
+      "round": "Rodada {number}",
+      "room": "Sala {room}",
+      "onThePlay": "começou jogando",
+      "drawn": "Partida empatada.",
+      "unplayed": "Partida não jogada.",
+      "won": "{name} venceu a partida.",
+      "bye": "Bye · {name}, conta como vitória",
+      "empty": "Nenhuma rodada pareada ainda.",
+      "note": "O resultado da engine decide a partida, mesmo quando o placar dos games discorda. Uma partida pode terminar 1–1 e ainda ter vencedor depois de uma desconexão ou desistência. Partidas não jogadas continuam não jogadas. “Começou jogando” marca só o game 1, porque o registro de quem começou nos games 2 e 3 não é confiável."
+    },
+    "stats": {
+      "matches": "Partidas",
+      "played": "Jogadas",
+      "unplayed": "Não jogadas",
+      "draws": "Empates",
+      "games": "Games",
+      "wentToGame3": "Foram ao game 3",
+      "wonGoingFirst": "Vitórias começando",
+      "game1sCounted": "Games 1 contados",
+      "goingFirstNote": "“Vitórias começando” conta só o game 1. O jogo guarda a informação de todo game, mas os valores dos games 2 e 3 não se sustentam.",
+      "archetypes": "Arquétipos",
+      "entrants": "{count, plural, one {# inscrito} other {# inscritos}}",
+      "archetype": "Arquétipo",
+      "players": "Jogadores",
+      "share": "Presença",
+      "record": "V–D–E",
+      "winRate": "Taxa de vitória",
+      "noArchetypes": "Nenhum deck inscrito bateu com um arquétipo conhecido.",
+      "archetypesNote": "A tabela conta todo deck do torneio, não um top cut. Uma heurística define o arquétipo, então um deck híbrido leva o nome da metade maior. Byes não contam como vitórias aqui.",
+      "matchups": "Confrontos",
+      "matchupsMeta": "Espelhos fora · {count, plural, one {# par de partida única oculto} other {# pares de partida única ocultos}}",
+      "against": "Contra",
+      "topCards": "Cartas mais jogadas",
+      "topCardsMeta": "Top {count} por decks",
+      "topCardsNote": "A campanha cobre todo deck que usou a carta, em games, tendo ela sido comprada ou não. Duelos de torneio não guardam log de jogadas."
+    },
+    "cards": {
+      "anywhere": "Qualquer lugar",
+      "main": "Main",
+      "extra": "Extra",
+      "side": "Side",
+      "zoneMain": "main {count}",
+      "zoneExtra": "extra {count}",
+      "zoneSide": "side {count}",
+      "usage": "{decks} decks · {copies} cópias",
+      "decksRunning": "decks que usaram: {record}",
+      "fallbackName": "Carta {id}",
+      "empty": "Nenhuma carta deste torneio apareceu nessa zona."
+    },
+    "copyDeck": {
+      "label": "Copiar código do deck",
+      "copied": "Copiado",
+      "failed": "Não deu para copiar"
+    },
+    "player": {
+      "unknown": "Duelista desconhecido"
     }
   }
 }

@@ -50,25 +50,25 @@ export const Byline = ({ user, size = 20, className }: { user: WikiUser | null; 
   </span>
 )
 
-/** Index row: title, who wrote it, when it last moved, and whether it is live. */
-export const ArticleRow = ({ article }: { article: ArticleSummary }) => (
-  <li>
+/** Index card: title, summary, who wrote it, when it last moved, and whether it is live. */
+export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
+  <li className="flex">
     <Link
       href={`/wiki/${article.slug}`}
-      className="grid grid-cols-1 gap-2.5 border-b border-line py-4 hover:bg-ground-soft lg:grid-cols-[minmax(0,1fr)_200px_150px_110px] lg:items-center lg:gap-4"
+      className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-surface-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
     >
-      <span className="min-w-0">
-        <span className="block truncate text-ink body-strong">{article.title}</span>
-        <span className="mt-1 block truncate text-ink-muted signal-sm">/{article.slug}</span>
+      <span className="flex items-start justify-between gap-3">
+        <span className="min-w-0 text-ink body-strong">{article.title}</span>
+        {article.publishedAt ? null : <StatusChip publishedAt={null} />}
       </span>
+      {article.summary ? <span className="line-clamp-3 text-ink-dim body-sm">{article.summary}</span> : null}
 
-      <Byline user={article.author} className="text-ink-dim body-sm" />
-
-      <span className="text-ink-muted mono-data">
-        <LocalTime iso={article.updatedAt} options={ARTICLE_DATE} />
+      <span className="mt-auto flex items-center justify-between gap-3 pt-2">
+        <Byline user={article.author} className="text-ink-dim body-sm" />
+        <span className="shrink-0 text-ink-muted mono-data">
+          <LocalTime iso={article.publishedAt ?? article.updatedAt} options={ARTICLE_DATE} />
+        </span>
       </span>
-
-      <StatusChip publishedAt={article.publishedAt} />
     </Link>
   </li>
 )

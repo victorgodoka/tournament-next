@@ -65,5 +65,170 @@
       "statsServiceDown": "The stats service did not answer. Refresh in a minute.",
       "welcomeBack": "Welcome back,"
     }
+  },
+  "Tournaments": {
+    "meta": {
+      "title": "Yu-Gi-Oh! Tournaments: Live Results & Decklists",
+      "description": "Follow live YGO Omega tournaments and browse past results. Every event plays Swiss rounds, with full standings, decklists, pairings and archetype stats."
+    },
+    "detailMeta": {
+      "title": "{format} Tournament #{id} Results & Decklists",
+      "descriptionWon": "{winner} won this {format} tournament on the {banlist} banlist, topping a field of {players} duelists over {rounds} Swiss rounds. See standings, decklists, pairings and archetype stats.",
+      "descriptionOpen": "{players} duelists played {rounds} Swiss rounds on the {banlist} banlist. See standings, decklists, pairings and archetype stats.",
+      "descriptionLive": "{players} duelists are playing {rounds} Swiss rounds on the {banlist} banlist. Follow standings and pairings as each round ends.",
+      "notFound": "Tournament not found"
+    },
+    "status": {
+      "live": "Live",
+      "finished": "Finished"
+    },
+    "browser": {
+      "eyebrow": "Automatic Swiss",
+      "eyebrowMeta": "Paired and scored by the game engine",
+      "heading": "Yu-Gi-Oh! tournaments",
+      "lead": "YGO Omega runs several Yu-Gi-Oh! tournaments a day. Each one plays Swiss rounds with no top cut and lasts one to two and a half hours. The game engine pairs the rounds and records the results, so nobody reports scores by hand.",
+      "noneTitle": "No tournament live",
+      "noneText": "No tournament is running. Several start each day, and each lasts one to two and a half hours.",
+      "liveTitle": "Live now",
+      "liveMeta": "Refreshes every 30 seconds",
+      "liveSummary": "#{id} · {players, plural, one {# player} other {# players}} · {rounds, plural, one {# Swiss round} other {# Swiss rounds}} · started",
+      "watchLive": "Watch live",
+      "totals": {
+        "tournaments": "Tournaments",
+        "entries": "Entries",
+        "uniqueDuelists": "Unique duelists",
+        "averagePlayers": "Average players",
+        "note": "Totals refresh every 10 minutes."
+      },
+      "tabs": {
+        "label": "Filter tournaments by status",
+        "all": "All",
+        "live": "Live",
+        "finished": "Finished"
+      },
+      "allBanlists": "All banlists",
+      "columns": {
+        "tournament": "Tournament",
+        "banlist": "Banlist",
+        "winner": "Winner",
+        "ended": "Ended"
+      },
+      "rowLabel": "Tournament #{id}, {banlist} banlist",
+      "rowSummary": "{players, plural, one {# player} other {# players}} · {rounds, plural, one {# round} other {# rounds}}",
+      "points": "{points} pts",
+      "undecided": "Undecided",
+      "noWinner": "No winner recorded",
+      "inProgress": "In progress",
+      "emptyTitle": "No tournaments found",
+      "emptyLive": "No tournament is running. Open Finished to see past results.",
+      "emptyBanlist": "No tournament has used this banlist yet.",
+      "showing": "Showing {count, plural, one {# tournament} other {# tournaments}}",
+      "loading": "Loading…",
+      "loadMore": "Load more",
+      "error": "We couldn’t load tournaments. Try again.",
+      "schedule": "Tournaments have no public schedule. The game records a tournament once it starts, so this page lists live and finished events only. Keep the Live tab open to catch the next one."
+    },
+    "detail": {
+      "breadcrumb": "Breadcrumb",
+      "heading": "{format} tournament",
+      "copyWinningDeck": "Copy winning deck",
+      "banlist": "Banlist",
+      "players": "{count, plural, one {# player} other {# players}}",
+      "swissRounds": "{count, plural, one {# Swiss round} other {# Swiss rounds}}",
+      "noTopCut": "no top cut",
+      "stillRunning": "still running",
+      "summary": "{winner} won with {deck}, finishing {record} for {points} points.",
+      "winnerLabel": "Winner · rank 1",
+      "record": "Record",
+      "pointsLabel": "Points",
+      "deck": "Deck",
+      "unclassified": "Unclassified",
+      "tabs": {
+        "label": "Tournament sections",
+        "standings": "Standings",
+        "rounds": "Rounds",
+        "stats": "Stats"
+      },
+      "breadcrumbRoot": "Tournaments"
+    },
+    "cardPool": "cards released until {year}",
+    "standings": {
+      "rank": "#",
+      "duelist": "Duelist",
+      "deck": "Deck",
+      "points": "Pts",
+      "record": "W–L–D",
+      "omw": "OMW",
+      "oomw": "OOMW",
+      "kts": "KTS",
+      "main": "Main",
+      "extra": "Extra",
+      "side": "Side",
+      "byes": "{count, plural, one {# bye} other {# byes}}",
+      "dropped": "dropped",
+      "noDiscord": "no Discord data",
+      "deckUnavailable": "We couldn’t decode this deck code, so the list is unavailable.",
+      "noDeckName": "no deck name yet",
+      "empty": "No entrants yet.",
+      "note": "Open a row to see the decklist the duelist registered. We compute rank and tiebreakers from the match records, because the game stores neither. OMW% is the average match-win rate of a duelist’s opponents, and OOMW% is the same figure for those opponents’ opponents. KTS packs points, OMW% and OOMW% into one eight-digit number that sets the order."
+    },
+    "rounds": {
+      "round": "Round {number}",
+      "room": "Room {room}",
+      "onThePlay": "on the play",
+      "drawn": "Drawn match.",
+      "unplayed": "Match not played.",
+      "won": "{name} won the match.",
+      "bye": "Bye · {name}, counts as a win",
+      "empty": "No rounds paired yet.",
+      "note": "The engine’s outcome decides the match, even when the game score disagrees. A match can end 1–1 and still have a winner after a disconnect or a concession. Unplayed matches stay unplayed. “On the play” marks game 1 only, because the game’s record of who went first in games 2 and 3 is unreliable."
+    },
+    "stats": {
+      "matches": "Matches",
+      "played": "Played",
+      "unplayed": "Unplayed",
+      "draws": "Draws",
+      "games": "Games",
+      "wentToGame3": "Went to game 3",
+      "wonGoingFirst": "Won going first",
+      "game1sCounted": "Game 1s counted",
+      "goingFirstNote": "“Won going first” counts game 1 only. The game stores the flag for every game, but the values for games 2 and 3 don’t hold up.",
+      "archetypes": "Archetypes",
+      "entrants": "{count, plural, one {# entrant} other {# entrants}}",
+      "archetype": "Archetype",
+      "players": "Players",
+      "share": "Share",
+      "record": "W–L–D",
+      "winRate": "Win rate",
+      "noArchetypes": "No entrant’s deck matched a known archetype.",
+      "archetypesNote": "The table counts every deck in the tournament, not a top cut. A heuristic assigns the archetype, so a hybrid deck takes the name of its bigger half. Byes don’t count as match wins here.",
+      "matchups": "Matchups",
+      "matchupsMeta": "Mirrors left out · {count, plural, one {# single-match pair hidden} other {# single-match pairs hidden}}",
+      "against": "Against",
+      "topCards": "Most played cards",
+      "topCardsMeta": "Top {count} by decks",
+      "topCardsNote": "The record covers every deck that ran the card, in games, whether or not the card was drawn. Tournament duels keep no play log."
+    },
+    "cards": {
+      "anywhere": "Anywhere",
+      "main": "Main",
+      "extra": "Extra",
+      "side": "Side",
+      "zoneMain": "main {count}",
+      "zoneExtra": "extra {count}",
+      "zoneSide": "side {count}",
+      "usage": "{decks} decks · {copies} copies",
+      "decksRunning": "decks running it: {record}",
+      "fallbackName": "Card {id}",
+      "empty": "No card in this tournament appeared in that zone."
+    },
+    "copyDeck": {
+      "label": "Copy deck code",
+      "copied": "Copied",
+      "failed": "Couldn’t copy"
+    },
+    "player": {
+      "unknown": "Unknown duelist"
+    }
   }
 }

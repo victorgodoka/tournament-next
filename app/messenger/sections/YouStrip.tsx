@@ -92,7 +92,7 @@ const SongField = ({ song, onSave }: { song: Panel['me']['song']; onSave: Messen
           {isPending ? 'Saving…' : 'Save'}
         </button>
       </form>
-      {error ? <p role="alert" className="mt-1.5 text-gold micro">{error}</p> : null}
+      {error ? <p role="alert" className="mt-1.5 text-negative micro">{error}</p> : null}
     </div>
   )
 }

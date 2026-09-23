@@ -121,7 +121,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
         <WikiBar section="Cards" placeholder="Search cards by name or part of one" link={{ label: 'Articles', to: '/wiki' }} />
 
         <div className="grid flex-1 border-b border-line-strong lg:grid-cols-[minmax(0,1fr)_23.25rem]">

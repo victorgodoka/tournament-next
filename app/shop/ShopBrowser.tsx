@@ -70,7 +70,7 @@ const ItemCard = ({ item, label, owned, balance, busy, signedIn, onBuy }: ItemCa
       ) : null}
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
-        <p className={twMerge('mono-data tabular-nums', owned ? 'text-ink-muted' : 'text-gold')}>
+        <p className={twMerge('mono-data tabular-nums', owned ? 'text-ink-muted' : 'text-amber')}>
           {formatNumber(item.price)} DP
         </p>
 
@@ -164,7 +164,7 @@ export const ShopBrowser = ({ catalog }: ShopBrowserProps) => {
   return (
     <div className="mx-auto w-full max-w-page px-gutter">
       <section>
-        <Eyebrow meta="Cosmetics only · no card is ever sold">Duel Points</Eyebrow>
+        <Eyebrow tone="amber" meta="Cosmetics only · no card is ever sold">Duel Points</Eyebrow>
         <h1 className="mt-4 text-ink display-1">Shop</h1>
         <p className="mt-3.5 max-w-[62ch] text-ink-dim lead">
           Profile frames, backgrounds, songs, messenger bubbles, custom ranked badges and animated favorites. Everything
@@ -179,7 +179,7 @@ export const ShopBrowser = ({ catalog }: ShopBrowserProps) => {
             {signedIn === false ? (
               <p className="mt-1.5 text-ink display-4">Signed out</p>
             ) : (
-              <p className="mt-1.5 text-gold display-2 tabular-nums">
+              <p className="mt-1.5 text-amber display-2 tabular-nums">
                 {balance === null ? '—' : formatNumber(balance)} <span className="text-ink-muted display-5">DP</span>
               </p>
             )}
@@ -201,7 +201,7 @@ export const ShopBrowser = ({ catalog }: ShopBrowserProps) => {
             role={notice.tone === 'error' ? 'alert' : 'status'}
             className={twMerge(
               'mt-3.5 border px-4 py-3 body-sm',
-              notice.tone === 'error' ? 'border-gold bg-ground-gold text-ink-dim' : 'border-cyan bg-ground-cyan text-ink-dim',
+              notice.tone === 'error' ? 'border-negative bg-ground-negative text-ink-dim' : 'border-positive bg-ground-positive text-ink-dim',
             )}
           >
             {notice.text}

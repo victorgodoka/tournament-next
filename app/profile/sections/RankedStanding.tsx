@@ -4,12 +4,14 @@ import { useId, useState } from "react";
 import { LadderCard, openSeason } from "@omega/profile/ladder-card";
 import { SectionHead } from "@ui/section-head";
 import { TabBar, tabPanelProps } from "@ui/tab-bar";
-import type { Ladder, Match } from "@utils/types";
+import type { CurrentSeason, Ladder, Match } from "@utils/types";
 
 type RankedStandingProps = {
   num: string
   /** Always `TCG` then `Genesys`. */
   ladders: Ladder[]
+  /** Names the open season for a ladder the duelist never played (it has no `seasons`). */
+  currentSeasons: CurrentSeason[]
   /** Newest first. Stands in for `ladder.recent` while the API still sends it as `null`. */
   matches: Match[]
 }
@@ -24,17 +26,18 @@ const recentFrom = (matches: Match[], format: Ladder['format']) =>
     .join('')
 
 /** Tabbed per-format standing. Opens on the first ladder the duelist actually played. */
-export const RankedStanding = ({ num, ladders, matches }: RankedStandingProps) => {
+export const RankedStanding = ({ num, ladders, currentSeasons, matches }: RankedStandingProps) => {
   const [active, setActive] = useState(() => (ladders.find((ladder) => ladder.played) ?? ladders[0])?.format)
   const idPrefix = useId()
   const ladder = ladders.find(({ format }) => format === active)
   if (!ladder) return null
+  const season = ladder.played ? openSeason(ladder) : currentSeasons.find(({ format }) => format === ladder.format)
 
   return (
     <section id="ranked" className="pt-section">
       <SectionHead num={num}>Ranked standing</SectionHead>
       <p className="mt-2 text-ink-muted signal-sm">
-        {ladder.played ? openSeason(ladder)?.label ?? 'Lifetime' : 'No season played'} · {ladder.format}
+        {season?.label ?? 'Lifetime'} · {ladder.format}
       </p>
 
       <TabBar
@@ -47,7 +50,7 @@ export const RankedStanding = ({ num, ladders, matches }: RankedStandingProps) =
       />
 
       <div {...tabPanelProps(idPrefix, ladder.format)}>
-        <LadderCard ladder={ladder} recent={recentFrom(matches, ladder.format)} />
+        <LadderCard ladder={ladder} season={season?.code} recent={recentFrom(matches, ladder.format)} />
       </div>
     </section>
   )

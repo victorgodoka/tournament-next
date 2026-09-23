@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
 import { TIME_ONLY } from '@omega/tournament/labels'
@@ -24,13 +25,14 @@ const COLS =
   'grid grid-cols-1 gap-2.5 lg:grid-cols-[76px_minmax(0,1fr)_132px_minmax(0,1fr)_96px] lg:items-center lg:gap-4'
 
 type Roster = Map<string, TournamentPlayer>
+type T = ReturnType<typeof useTranslations<'Tournaments'>>
 
 /** Spoken, never drawn: the visual marks belong to the winner's own cell. */
-const resultText = (match: TournamentMatch, roster: Roster) => {
-  if (match.outcome === 'draw') return 'Drawn match.'
-  if (match.outcome === 'unplayed') return 'Match not played.'
+const resultText = (match: TournamentMatch, roster: Roster, t: T) => {
+  if (match.outcome === 'draw') return t('rounds.drawn')
+  if (match.outcome === 'unplayed') return t('rounds.unplayed')
   const winner = roster.get(match.outcome === 'player1' ? match.player1 : match.player2)
-  return `${playerName(winner)} won the match.`
+  return t('rounds.won', { name: playerName(winner, t('player.unknown')) })
 }
 
 /**
@@ -53,6 +55,7 @@ const NoWinner = ({ outcome }: { outcome: MatchOutcome }) =>
   )
 
 const MatchRow = ({ match, roster }: { match: TournamentMatch; roster: Roster }) => {
+  const t = useTranslations('Tournaments')
   const decided = match.outcome === 'player1' || match.outcome === 'player2'
   const { player1: one, player2: two } = match.score
 
@@ -65,13 +68,13 @@ const MatchRow = ({ match, roster }: { match: TournamentMatch; roster: Roster })
         COLS,
       )}
     >
-      <span className="text-ink-muted signal">Room {match.room}</span>
+      <span className="text-ink-muted signal">{t('rounds.room', { room: match.room })}</span>
 
       <span className="flex min-w-0 items-center gap-2.5">
         <WinBar won={match.outcome === 'player1'} />
         <PlayerCell
           player={roster.get(match.player1)}
-          note={match.first === 'player1' ? 'on the play' : undefined}
+          note={match.first === 'player1' ? t('rounds.onThePlay') : undefined}
           className={match.outcome === 'player1' ? '' : 'opacity-(--opacity-duotone-lead)'}
         />
       </span>
@@ -98,14 +101,14 @@ const MatchRow = ({ match, roster }: { match: TournamentMatch; roster: Roster })
           ))}
         </span>
 
-        <span className="sr-only">{resultText(match, roster)}</span>
+        <span className="sr-only">{resultText(match, roster, t)}</span>
       </span>
 
       <span className="flex min-w-0 items-center gap-2.5">
         <WinBar won={match.outcome === 'player2'} />
         <PlayerCell
           player={roster.get(match.player2)}
-          note={match.first === 'player2' ? 'on the play' : undefined}
+          note={match.first === 'player2' ? t('rounds.onThePlay') : undefined}
           className={match.outcome === 'player2' ? '' : 'opacity-(--opacity-duotone-lead)'}
         />
       </span>
@@ -119,11 +122,12 @@ const MatchRow = ({ match, roster }: { match: TournamentMatch; roster: Roster })
 
 /** Round-by-round pairings. Byes are listed with the round they belong to, not as a match. */
 export const Rounds = ({ rounds, standings }: { rounds: TournamentRound[]; standings: Standing[] }) => {
+  const t = useTranslations('Tournaments')
   // Only `standings` carries full players; rounds reference them by id.
   const roster: Roster = new Map(standings.map(({ player }) => [player.id, player]))
 
   if (!rounds.length) {
-    return <p className="text-ink-muted body-sm">No rounds have been paired yet.</p>
+    return <p className="text-ink-muted body-sm">{t('rounds.empty')}</p>
   }
 
   return (
@@ -131,7 +135,7 @@ export const Rounds = ({ rounds, standings }: { rounds: TournamentRound[]; stand
       {rounds.map((round) => (
         <section key={round.number} className="mb-6.5">
           <Eyebrow tone="neutral" meta={<LocalTime iso={round.startedAt} options={TIME_ONLY} />}>
-            Round {round.number}
+            {t('rounds.round', { number: round.number })}
           </Eyebrow>
 
           <ul className="mt-3 border border-line">
@@ -140,7 +144,7 @@ export const Rounds = ({ rounds, standings }: { rounds: TournamentRound[]; stand
             ))}
             {round.bye ? (
               <li className="bg-ground-subtle px-3.5 py-3 text-ink-muted signal">
-                Bye · {playerName(roster.get(round.bye))} — counts as a win
+                {t('rounds.bye', { name: playerName(roster.get(round.bye), t('player.unknown')) })}
               </li>
             ) : null}
           </ul>
@@ -148,11 +152,7 @@ export const Rounds = ({ rounds, standings }: { rounds: TournamentRound[]; stand
       ))}
 
       <div className="max-w-[72ch]">
-        <Callout>
-          The engine&apos;s outcome is the result, even when the game score disagrees with it: a match can end 1–1 and
-          still have a winner, after a disconnect or a concession. Matches left unplayed stay unplayed. &ldquo;On the
-          play&rdquo; marks game 1 only — who went first in games 2 and 3 isn&apos;t recorded reliably.
-        </Callout>
+        <Callout>{t('rounds.note')}</Callout>
       </div>
     </>
   )

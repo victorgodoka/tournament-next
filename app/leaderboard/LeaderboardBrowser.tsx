@@ -65,7 +65,7 @@ const Handle = ({ entry, className }: { entry: LeaderboardEntry; className?: str
  * ---------------------------------------------------------------- */
 
 /** Rank 1 takes a band of its own: the only row that gets the gold plate and the display Elo. */
-const Champion = ({ entry }: { entry: LeaderboardEntry }) => (
+const Champion = ({ entry, season }: { entry: LeaderboardEntry; season?: string }) => (
   <Link
     href={profileHref(entry)}
     aria-label={describe(entry)}
@@ -73,7 +73,7 @@ const Champion = ({ entry }: { entry: LeaderboardEntry }) => (
   >
     <span className="flex items-center gap-[clamp(12px,2vw,20px)]">
       <span className="text-gold display-2 tabular-nums">01</span>
-      <TierBadge tier={entry.tier} sizes="120px" className="size-[clamp(72px,9vw,112px)] border-line-strong" />
+      <TierBadge season={season} tier={entry.tier} sizes="120px" className="size-[clamp(72px,9vw,112px)] border-line-strong" />
     </span>
 
     <span className="min-w-0 flex-[1_1_240px]">
@@ -102,14 +102,14 @@ const Champion = ({ entry }: { entry: LeaderboardEntry }) => (
 )
 
 /** Ranks 2 to 5: the same card four times, so nothing in the group outranks the others by layout. */
-const RunnerUp = ({ entry }: { entry: LeaderboardEntry }) => (
+const RunnerUp = ({ entry, season }: { entry: LeaderboardEntry; season?: string }) => (
   <Link
     href={profileHref(entry)}
     aria-label={describe(entry)}
     className="group flex items-center gap-3.5 border border-line bg-surface-000 p-[clamp(12px,1.6vw,18px)] hover:border-gold"
   >
     <span className="text-ink-muted display-5 tabular-nums">{String(entry.rank).padStart(2, '0')}</span>
-    <TierBadge tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
+    <TierBadge season={season} tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
     <span className="min-w-0 flex-1">
       <span className="block truncate text-ink body-strong group-hover:text-gold">{playerName(entry)}</span>
       <Handle entry={entry} />
@@ -137,7 +137,7 @@ const LedgerHead = () => (
 )
 
 /** Below `lg` the four stat columns fold into one line under the name, so a row stays two lines tall. */
-const Row = ({ entry, mine }: { entry: LeaderboardEntry; mine: boolean }) => (
+const Row = ({ entry, mine, season }: { entry: LeaderboardEntry; mine: boolean; season?: string }) => (
   <li>
     <Link
       href={profileHref(entry)}
@@ -172,7 +172,7 @@ const Row = ({ entry, mine }: { entry: LeaderboardEntry; mine: boolean }) => (
       </span>
 
       <span className="hidden items-center gap-2 lg:flex">
-        <TierBadge tier={entry.tier} sizes="32px" className="size-7 border-0 bg-transparent" />
+        <TierBadge season={season} tier={entry.tier} sizes="32px" className="size-7 border-0 bg-transparent" />
         <span className="truncate text-ink-dim signal">{entry.tier}</span>
       </span>
 
@@ -198,13 +198,14 @@ type YouProps = {
   /** Present while there is another page to reach. */
   onLoadMore?: () => void
   loading: boolean
+  season?: string
 }
 
 /**
  * The API has no "my position" read, so this highlights the viewer's row when the pages loaded
  * reach it and offers the next page when they do not.
  */
-const YourStanding = ({ entry, signedIn, loaded, format, onLoadMore, loading }: YouProps) => {
+const YourStanding = ({ entry, signedIn, loaded, format, onLoadMore, loading, season }: YouProps) => {
   if (signedIn === undefined) return <div aria-hidden className={twMerge(STRIP, 'border-line bg-surface-100')} />
 
   if (!signedIn) {
@@ -249,7 +250,7 @@ const YourStanding = ({ entry, signedIn, loaded, format, onLoadMore, loading }: 
         <span className="block text-ink-muted signal">Your rank</span>
         <span className="block text-cyan display-3 tabular-nums">#{formatNumber(entry.rank)}</span>
       </span>
-      <TierBadge tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
+      <TierBadge season={season} tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-ink body-strong">{playerName(entry)}</span>
         <span className="block text-ink-dim mono-data">
@@ -268,11 +269,11 @@ const YourStanding = ({ entry, signedIn, loaded, format, onLoadMore, loading }: 
  * ---------------------------------------------------------------- */
 
 /** Points are Elo: each tier is a band of it, and this is where each band starts. */
-const TierLegend = () => (
+const TierLegend = ({ season }: { season?: string }) => (
   <ul className="grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4 xl:grid-cols-8">
     {TIER_FLOORS.map(([tier, floor]) => (
       <li key={tier} className="flex items-center gap-2.5 bg-surface-000 px-3.5 py-3">
-        <TierBadge tier={tier} sizes="40px" className="size-9 border-0 bg-transparent" />
+        <TierBadge season={season} tier={tier} sizes="40px" className="size-9 border-0 bg-transparent" />
         <span className="min-w-0">
           <span className="block truncate text-ink signal">{tier}</span>
           <span className="block text-ink-muted mono-data">{floor === null ? 'under 50' : `${formatNumber(floor)}+`}</span>
@@ -312,6 +313,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
   const current = boards[key] ?? BLANK
   const season = past[active].find((entry) => entry.code === code)
   const { entries, nextCursor, syncedAt } = current
+  const seasonCode = (isLive ? current.season : season)?.code
   const champion = entries[0]
   const runnersUp = entries.slice(1, 5)
   const rest = entries.slice(5)
@@ -478,7 +480,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
         </div>
 
         {refresh === 'error' && isLive ? (
-          <p role="alert" className="mt-3 text-gold body-sm">
+          <p role="alert" className="mt-3 text-negative body-sm">
             Couldn&apos;t refresh the leaderboard. Try again.
           </p>
         ) : null}
@@ -491,13 +493,13 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
 
         {entries.length ? (
           <>
-            <div className="mt-4.5">{champion ? <Champion entry={champion} /> : null}</div>
+            <div className="mt-4.5">{champion ? <Champion season={seasonCode} entry={champion} /> : null}</div>
 
             {runnersUp.length ? (
               <ul className="mt-3.5 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                 {runnersUp.map((entry) => (
                   <li key={entry.id}>
-                    <RunnerUp entry={entry} />
+                    <RunnerUp season={seasonCode} entry={entry} />
                   </li>
                 ))}
               </ul>
@@ -511,6 +513,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
                 format={format}
                 onLoadMore={nextCursor ? loadMore : undefined}
                 loading={loading}
+                season={seasonCode}
               />
             </div>
 
@@ -519,7 +522,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
                 <LedgerHead />
                 <ul>
                   {rest.map((entry) => (
-                    <Row key={entry.id} entry={entry} mine={entry.id === user?.id} />
+                    <Row key={entry.id} season={seasonCode} entry={entry} mine={entry.id === user?.id} />
                   ))}
                 </ul>
               </div>
@@ -534,7 +537,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
               {nextCursor ? (
                 <span className="flex flex-wrap items-center gap-3">
                   {current.status === 'error' ? (
-                    <span role="alert" className="text-gold body-sm">
+                    <span role="alert" className="text-negative body-sm">
                       Couldn&apos;t load the next page.
                     </span>
                   ) : null}
@@ -558,7 +561,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
           </p>
         ) : current.status === 'error' ? (
           <div className="mt-4.5 flex flex-wrap items-center gap-3">
-            <p role="alert" className="text-gold body-sm">
+            <p role="alert" className="text-negative body-sm">
               Couldn&apos;t load {title}.
             </p>
             <button type="button" onClick={loadMore} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
@@ -576,7 +579,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
           A tier is a band of Elo, not a separate score, and it has no subdivisions. The Elo below is where each band
           starts.
         </p>
-        <TierLegend />
+        <TierLegend season={seasonCode} />
       </section>
 
       <section className="pt-section">

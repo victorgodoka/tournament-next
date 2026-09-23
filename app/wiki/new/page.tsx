@@ -9,7 +9,7 @@ import { Header } from '@ui/header'
 import { can } from '@utils/articles'
 import { getMeServer } from '@utils/auth'
 import { noIndexMetadata } from '@utils/metadata'
-import { ArticleForm } from '../ArticleForm'
+import { DocEditor } from '../editor/DocEditor'
 
 export const metadata = noIndexMetadata('New article', '/wiki/new')
 
@@ -21,7 +21,7 @@ const NewArticlePage = async () => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
         <WikiBar section="Articles" placeholder="Search cards by name or part of one" link={{ label: 'All articles', to: '/wiki' }} />
 
         <div className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
@@ -37,12 +37,12 @@ const NewArticlePage = async () => {
           </Eyebrow>
           <h1 className="mt-3.5 text-ink display-2">New article</h1>
           <p className="mt-3 max-w-[62ch] text-ink-dim body">
-            Saving as a draft keeps it off the index and answers 404 for everyone but editors. Publishing is a separate
-            act, from the article itself.
+            Build the page from components: drag them in from the left, fill them in, check the Preview. Saving as a draft
+            keeps it off the index and answers 404 for everyone but editors.
           </p>
 
           <div className="mt-7">
-            <ArticleForm />
+            <DocEditor />
           </div>
         </div>
       </main>

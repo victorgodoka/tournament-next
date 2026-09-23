@@ -130,7 +130,7 @@ export const TournamentRecord = ({ num, profileId, tournaments }: TournamentReco
             {status === 'loading' ? 'Loading…' : cursor === undefined ? 'See all tournaments' : 'Load older'}
           </button>
           {status === 'error' ? (
-            <p role="alert" className="text-gold body-sm">
+            <p role="alert" className="text-negative body-sm">
               Couldn&apos;t load this duelist&apos;s tournaments. Try again.
             </p>
           ) : null}

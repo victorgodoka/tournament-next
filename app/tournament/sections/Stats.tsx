@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { CardArt } from '@omega/card-art'
 import { formatNumber, formatRate, formatRecord } from '@omega/tournament/labels'
 import { StatGrid } from '@omega/tournament/stat-grid'
@@ -62,6 +63,7 @@ const Share = ({ share }: { share: number }) => (
 const MIN_MATCHES = 2
 
 export const Stats = ({ stats, players }: { stats: TournamentStats; players: number }) => {
+  const t = useTranslations('Tournaments.stats')
   const { matches, archetypes, matchups } = stats
   // The API splits by card type so extra-deck staples keep their own top list; the board filters by zone instead.
   const cards = [...stats.cards.main, ...stats.cards.extra].sort((a, b) => b.decks - a.decks)
@@ -73,30 +75,27 @@ export const Stats = ({ stats, players }: { stats: TournamentStats; players: num
     <>
       <StatGrid
         items={[
-          { label: 'Matches', value: formatNumber(matches.total) },
-          { label: 'Played', value: formatNumber(matches.played) },
-          { label: 'Unplayed', value: formatNumber(matches.unplayed), tone: matches.unplayed ? 'gold' : undefined },
-          { label: 'Draws', value: formatNumber(matches.draws) },
-          { label: 'Games', value: formatNumber(matches.games) },
-          { label: 'Went to game 3', value: formatNumber(matches.threeGameMatches), tone: 'cyan' },
+          { label: t('matches'), value: formatNumber(matches.total) },
+          { label: t('played'), value: formatNumber(matches.played) },
+          { label: t('unplayed'), value: formatNumber(matches.unplayed), tone: matches.unplayed ? 'gold' : undefined },
+          { label: t('draws'), value: formatNumber(matches.draws) },
+          { label: t('games'), value: formatNumber(matches.games) },
+          { label: t('wentToGame3'), value: formatNumber(matches.threeGameMatches), tone: 'cyan' },
           {
-            label: 'Going first won',
+            label: t('wonGoingFirst'),
             value: play?.games ? formatRate(play.wins / play.games) : '—',
             tone: 'gold',
           },
-          { label: 'Game 1s counted', value: play?.games ? formatNumber(play.games) : '—' },
+          { label: t('game1sCounted'), value: play?.games ? formatNumber(play.games) : '—' },
         ]}
       />
 
-      <p className="mt-2.5 text-ink-muted signal">
-        &ldquo;Going first&rdquo; covers game 1 only: the stored field carries a bit per game, but the later ones
-        don&apos;t reproduce.
-      </p>
+      <p className="mt-2.5 text-ink-muted signal">{t('goingFirstNote')}</p>
 
       <section className="pt-section">
-        <Eyebrow meta={`${formatNumber(players)} entrants`}>Archetypes</Eyebrow>
+        <Eyebrow meta={t('entrants', { count: players })}>{t('archetypes')}</Eyebrow>
         {archetypes.length ? (
-          <Table head={['Archetype', 'Players', 'Share', 'W–L–D', 'Win rate']}>
+          <Table head={[t('archetype'), t('players'), t('share'), t('record'), t('winRate')]}>
             {archetypes.map((row) => (
               <tr key={row.archetype} className="border-b border-line last:border-b-0">
                 <ArchetypeName row={row} />
@@ -108,20 +107,17 @@ export const Stats = ({ stats, players }: { stats: TournamentStats; players: num
             ))}
           </Table>
         ) : (
-          <p className="mt-3 text-ink-muted body-sm">No entrant&apos;s deck matched a known archetype.</p>
+          <p className="mt-3 text-ink-muted body-sm">{t('noArchetypes')}</p>
         )}
-        <p className="mt-2.5 text-ink-muted signal">
-          Every deck in the tournament is counted, not a top cut. Archetype is a heuristic — a hybrid deck is named
-          after its bigger half. Byes are not counted as match wins here.
-        </p>
+        <p className="mt-2.5 text-ink-muted signal">{t('archetypesNote')}</p>
       </section>
 
       {played.length ? (
         <section className="pt-section">
-          <Eyebrow tone="neutral" meta={`Mirrors left out · ${formatNumber(hidden)} single-match pairs hidden`}>
-            Matchups
+          <Eyebrow tone="neutral" meta={t('matchupsMeta', { count: hidden })}>
+            {t('matchups')}
           </Eyebrow>
-          <Table head={['Archetype', 'Against', 'W–L–D']}>
+          <Table head={[t('archetype'), t('against'), t('record')]}>
             {played.map((row) => (
               <tr key={`${row.archetype}-${row.opponent}`} className="border-b border-line last:border-b-0">
                 <th scope="row" className="px-3.5 py-2.5 text-left text-ink body-strong">
@@ -137,14 +133,11 @@ export const Stats = ({ stats, players }: { stats: TournamentStats; players: num
 
       {cards.length ? (
         <section className="pt-section">
-          <Eyebrow tone="neutral" meta={`Top ${formatNumber(cards.length)} by decks`}>
-            Most played cards
+          <Eyebrow tone="neutral" meta={t('topCardsMeta', { count: cards.length })}>
+            {t('topCards')}
           </Eyebrow>
           <CardBoard cards={cards} />
-          <p className="mt-2.5 text-ink-muted signal">
-            The record is of every deck carrying the card, in games, whether or not it was ever drawn — tournament
-            duels have no play log.
-          </p>
+          <p className="mt-2.5 text-ink-muted signal">{t('topCardsNote')}</p>
         </section>
       ) : null}
     </>

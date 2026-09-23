@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { CopyDeckButton } from '@omega/tournament/copy-deck'
@@ -18,34 +19,38 @@ const COLS =
 
 const NUMERIC = 'text-right lg:text-left lg:col-auto lg:row-auto'
 
-const Head = () => (
+type T = ReturnType<typeof useTranslations<'Tournaments.standings'>>
+
+const Head = ({ t }: { t: T }) => (
   <div aria-hidden className={twMerge('border-b border-line pb-2.5 text-ink-muted signal', COLS)}>
-    <span>#</span>
-    <span>Duelist</span>
-    <span className="col-start-2 row-start-2 lg:col-auto lg:row-auto">Deck</span>
-    <span className={twMerge('col-start-3 row-start-1', NUMERIC)}>Pts</span>
-    <span className={twMerge('col-start-3 row-start-2', NUMERIC)}>W–L–D</span>
-    <span className="hidden lg:block">OMW</span>
-    <span className="hidden lg:block">OOMW</span>
-    <span className="hidden lg:block">KTS</span>
+    <span>{t('rank')}</span>
+    <span>{t('duelist')}</span>
+    <span className="col-start-2 row-start-2 lg:col-auto lg:row-auto">{t('deck')}</span>
+    <span className={twMerge('col-start-3 row-start-1', NUMERIC)}>{t('points')}</span>
+    <span className={twMerge('col-start-3 row-start-2', NUMERIC)}>{t('record')}</span>
+    <span className="hidden lg:block">{t('omw')}</span>
+    <span className="hidden lg:block">{t('oomw')}</span>
+    <span className="hidden lg:block">{t('kts')}</span>
     <span />
   </div>
 )
 
-const slots = (deck: TournamentDeck) =>
+const slots = (deck: TournamentDeck, t: T) =>
   [
-    { label: 'Main', cards: deck.main },
-    { label: 'Extra', cards: deck.extra },
-    { label: 'Side', cards: deck.side },
+    { label: t('main'), cards: deck.main },
+    { label: t('extra'), cards: deck.extra },
+    { label: t('side'), cards: deck.side },
   ].filter((slot) => slot.cards.length)
 
 const total = (cards: DeckCard[]) => cards.reduce((sum, card) => sum + card.count, 0)
 
 const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) => {
+  const t = useTranslations('Tournaments')
+  const ts = useTranslations('Tournaments.standings')
   if (!deck) {
     return (
       <div id={id} className="border border-line bg-surface-100 px-4.5 py-4 text-ink-muted body-sm">
-        The stored deck code couldn&apos;t be decoded, so this list is unavailable.
+        {t('standings.deckUnavailable')}
       </div>
     )
   }
@@ -71,13 +76,13 @@ const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) =>
       </div>
 
       <p className="mt-4 text-ink-muted signal">
-        {slots(deck)
+        {slots(deck, ts)
           .map((slot) => `${slot.label} ${total(slot.cards)}`)
           .join(' · ')}
-        {deck.name ? '' : ' · deck name not categorised yet'}
+        {deck.name ? '' : ` · ${t('standings.noDeckName')}`}
       </p>
 
-      {slots(deck).map(({ label, cards }) => (
+      {slots(deck, ts).map(({ label, cards }) => (
         <div key={label} className="mt-3.5">
           <p className="text-ink-dim signal">{label}</p>
           <ul className="mt-2 grid grid-cols-2 gap-px border border-line bg-line lg:grid-cols-3">
@@ -85,7 +90,7 @@ const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) =>
               <li key={card.id} className="flex items-center gap-2.5 bg-surface-000 p-2.5">
                 <CardArt art={card} alt="" sizes="38px" className="size-9.5 shrink-0 border border-line" />
                 <span className="min-w-0">
-                  <span className="block truncate text-ink body-sm">{card.name ?? `Card ${card.id}`}</span>
+                  <span className="block truncate text-ink body-sm">{card.name ?? t('cards.fallbackName', { id: card.id })}</span>
                   <span className="block text-ink-muted signal">×{card.count}</span>
                 </span>
               </li>
@@ -97,22 +102,24 @@ const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) =>
   )
 }
 
-const note = ({ player, byes, dropped }: Standing) => {
-  const parts = [player.handle, byes ? `${byes} bye${byes > 1 ? 's' : ''}` : null, dropped ? 'dropped' : null]
-  return parts.filter(Boolean).join(' · ') || 'no Discord data'
+const note = ({ player, byes, dropped }: Standing, t: T) => {
+  const parts = [player.handle, byes ? t('byes', { count: byes }) : null, dropped ? t('dropped') : null]
+  return parts.filter(Boolean).join(' · ') || t('noDiscord')
 }
 
 /** Standings table. A row opens into the decklist it was registered with. */
 export const Standings = ({ standings }: { standings: Standing[] }) => {
+  const t = useTranslations('Tournaments')
+  const ts = useTranslations('Tournaments.standings')
   const [open, setOpen] = useState<number | null>(null)
 
   if (!standings.length) {
-    return <p className="text-ink-muted body-sm">No entrants recorded yet.</p>
+    return <p className="text-ink-muted body-sm">{ts('empty')}</p>
   }
 
   return (
     <>
-      <Head />
+      <Head t={ts} />
       <ul>
         {standings.map((standing) => {
           const { rank, player, points, deck, tiebreakers } = standing
@@ -139,9 +146,9 @@ export const Standings = ({ standings }: { standings: Standing[] }) => {
                   <PlayerAvatar player={player} />
                   <span className="min-w-0">
                     <span className={twMerge('block truncate body-strong', player.name ? 'text-ink' : 'text-ink-muted')}>
-                      {playerName(player)}
+                      {playerName(player, t('player.unknown'))}
                     </span>
-                    <span className="block truncate text-ink-muted signal">{note(standing)}</span>
+                    <span className="block truncate text-ink-muted signal">{note(standing, ts)}</span>
                   </span>
                 </span>
 
@@ -149,7 +156,7 @@ export const Standings = ({ standings }: { standings: Standing[] }) => {
                   {cover ? (
                     <CardArt art={cover} alt="" sizes="24px" className="size-6 shrink-0 border border-line" />
                   ) : null}
-                  <span className="truncate text-ink-dim signal">{deck?.archetype ?? 'Unclassified'}</span>
+                  <span className="truncate text-ink-dim signal">{deck?.archetype ?? t('detail.unclassified')}</span>
                 </span>
 
                 <span
@@ -194,10 +201,7 @@ export const Standings = ({ standings }: { standings: Standing[] }) => {
         })}
       </ul>
 
-      <p className="mt-3.5 text-ink-muted signal">
-        Open a row for the decklist it was registered with. Rank and tiebreakers are computed from the records — the game stores neither. KTS is points, OMW% and OOMW% in
-        eight digits, and the order sorts on it.
-      </p>
+      <p className="mt-3.5 max-w-[72ch] text-ink-muted signal">{ts('note')}</p>
     </>
   )
 }

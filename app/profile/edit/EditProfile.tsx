@@ -197,7 +197,7 @@ const BioSection = ({ bio, set }: { bio: string; set: SetForm }) => {
             aria-describedby={problem ? 'bio-problem' : undefined}
             className={twMerge(INPUT, "mt-2.5 resize-y p-3.5 mono-data leading-relaxed")}
           />
-          {problem ? <p id="bio-problem" role="alert" className="mt-2 text-gold caption">{problem}</p> : null}
+          {problem ? <p id="bio-problem" role="alert" className="mt-2 text-negative caption">{problem}</p> : null}
         </div>
         <div>
           <p className="text-cyan signal-sm">Live preview</p>
@@ -343,11 +343,11 @@ const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: For
   }
 
   const note =
-    status.state === 'error' ? { text: status.message, className: "text-gold" }
+    status.state === 'error' ? { text: status.message, className: "text-negative" }
     : status.state === 'saving' ? { text: 'Saving…', className: "text-ink-muted" }
-    : dirty && problem ? { text: 'Fix your bio before saving', className: "text-gold" }
+    : dirty && problem ? { text: 'Fix your bio before saving', className: "text-negative" }
     : dirty ? { text: 'Unsaved changes', className: "text-gold" }
-    : status.state === 'saved' ? { text: 'All changes saved', className: "text-cyan" }
+    : status.state === 'saved' ? { text: 'All changes saved', className: "text-positive" }
     : { text: 'Everything up to date', className: "text-ink-muted" }
 
   const name = identity.displayName ?? identity.handle ?? 'Duelist'

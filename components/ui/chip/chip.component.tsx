@@ -1,6 +1,6 @@
 import { twMerge } from 'tailwind-merge'
 
-export type ChipTone = 'gold' | 'cyan' | 'indigo' | 'neutral'
+export type ChipTone = 'gold' | 'cyan' | 'indigo' | 'neutral' | 'positive' | 'negative' | 'amber'
 
 type ChipProps = React.HTMLAttributes<HTMLSpanElement> & {
   tone?: ChipTone
@@ -15,6 +15,9 @@ const outline: Record<ChipTone, string> = {
   cyan: 'text-cyan',
   indigo: 'text-indigo-lift',
   neutral: 'text-ink-muted',
+  positive: 'text-positive',
+  negative: 'text-negative',
+  amber: 'text-amber',
 }
 
 const fill: Record<ChipTone, string> = {
@@ -22,6 +25,9 @@ const fill: Record<ChipTone, string> = {
   cyan: 'border-cyan bg-cyan text-cyan-on',
   indigo: 'border-indigo bg-indigo text-indigo-on',
   neutral: 'border-ink bg-ink text-surface-000',
+  positive: 'border-positive bg-positive text-positive-on',
+  negative: 'border-negative bg-negative text-negative-on',
+  amber: 'border-amber bg-amber text-amber-on',
 }
 
 /** Status label: mono, square, outlined in its own color. */

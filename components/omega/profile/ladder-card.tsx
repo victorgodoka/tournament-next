@@ -1,12 +1,11 @@
-import Image from "next/image";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
 import { TIER_FLOORS } from "@utils/ranked";
 import type { Ladder, LadderRecord, LadderSeason, LadderStats, Tier } from "@utils/types";
-import { badgeSrc } from "@omega/ranked/tier-badge";
 import { MICRO_LABEL, RESULT } from "./accent";
 import { formatNumber } from "./labels";
 import { EmptyBox } from "./empty-box";
+import { TierBadge } from "@omega/ranked";
 
 /** How many of the latest duels the form streak shows. */
 const FORM_LENGTH = 5
@@ -18,7 +17,7 @@ const tierNote = (floor: number | null, elo?: number) => {
 }
 
 /** Every tier across the full width, the reached one ringed in gold. Hover or focus shows the Elo it takes. */
-const TierLadder = ({ current, elo }: { current?: Tier; elo?: number }) => (
+const TierLadder = ({ current, elo, season }: { current?: Tier; elo?: number; season?: string }) => (
   <ul className="grid grid-cols-8 gap-[clamp(4px,1vw,10px)]">
     {TIER_FLOORS.map(([tier, floor], i) => {
       const isCurrent = tier === current
@@ -33,7 +32,7 @@ const TierLadder = ({ current, elo }: { current?: Tier; elo?: number }) => (
             isCurrent && "border-2 border-gold",
           )}
         >
-          <Image src={badgeSrc(tier)} alt={tier} fill sizes="(min-width: 1120px) 130px, 12vw" className="object-contain p-[8%]" />
+          <TierBadge tier={tier} season={season} alt={tier} sizes="(min-width: 1120px) 130px, 12vw" className="size-full border-0 bg-transparent" />
           <span
             className={twMerge(
               "pointer-events-none invisible absolute bottom-[calc(100%+8px)] z-(--z-dropdown) border border-line-strong bg-surface-100 px-2.5 py-1.5 whitespace-nowrap text-ink signal-sm group-hover:visible group-focus-visible:visible",
@@ -125,16 +124,18 @@ export const openSeason = (ladder: LadderStats): LadderSeason | undefined => lad
 
 type LadderCardProps = {
   ladder: Ladder
+  /** Season code for the badge art. */
+  season?: string
   /** `W`/`L`/`D` per duel, oldest first. Falls back to the ladder's own `recent`. */
   recent?: string
 }
 
 /** One format's standing: the tier ladder, then tier, stats and recent form; or an empty state if never played. */
-export const LadderCard = ({ ladder, recent }: LadderCardProps) => {
+export const LadderCard = ({ ladder, season, recent }: LadderCardProps) => {
   if (!ladder.played) {
     return (
       <div className="mt-4.5">
-        <TierLadder />
+        <TierLadder season={season} />
         <EmptyBox title="No ranked duels yet" note="Unranked · 0 matches" className="mt-3.5">
           Play one ranked {ladder.format} match to earn a tier, an Elo and a record. Nothing is placed until the first duel is finished.
         </EmptyBox>
@@ -146,14 +147,12 @@ export const LadderCard = ({ ladder, recent }: LadderCardProps) => {
 
   return (
     <div className="mt-4.5">
-      <TierLadder current={ladder.tier} elo={ladder.elo} />
+      <TierLadder season={season} current={ladder.tier} elo={ladder.elo} />
 
       <div className="mt-6 flex flex-wrap items-start gap-[clamp(16px,3vw,36px)]">
         <div className="min-w-0 flex-[1_1_260px]">
           <div className="flex items-center gap-3.5">
-            <div className="relative size-[clamp(76px,9vw,104px)] shrink-0 border border-line-strong bg-surface-100">
-              <Image src={badgeSrc(ladder.tier)} alt="" fill sizes="104px" className="object-contain p-1.5" />
-            </div>
+            <TierBadge tier={ladder.tier} season={season} sizes="104px" className="size-[clamp(76px,9vw,104px)] border-line-strong" />
             <div className="min-w-0">
               <p className={MICRO_LABEL}>Tier</p>
               <p className="mt-0.5 text-ink display-5">{ladder.tier}</p>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { formatNumber } from '@omega/tournament/labels'
@@ -8,27 +9,29 @@ import type { CardStat } from '@utils/types'
 
 type Zone = 'all' | 'main' | 'extra' | 'side'
 
-const ZONES: { id: Zone; label: string }[] = [
-  { id: 'all', label: 'Anywhere' },
-  { id: 'main', label: 'Main' },
-  { id: 'extra', label: 'Extra' },
-  { id: 'side', label: 'Side' },
-]
+const ZONES = [
+  { id: 'all', label: 'anywhere' },
+  { id: 'main', label: 'main' },
+  { id: 'extra', label: 'extra' },
+  { id: 'side', label: 'side' },
+] as const satisfies { id: Zone; label: string }[]
 
 /** Decks that carried the card, in games. Draws are dropped when there are none — usually. */
 const deckRecord = ({ wins, loses, draws }: CardStat) => `${wins}W–${loses}L${draws ? `–${draws}D` : ''}`
 
+type T = ReturnType<typeof useTranslations<'Tournaments.cards'>>
+
 /** "main 13 · side 3": the zones the card actually appears in. */
-const zoneNote = (card: CardStat) =>
+const zoneNote = (card: CardStat, t: T) =>
   (
     [
-      ['main', card.main],
-      ['extra', card.extra],
-      ['side', card.side],
+      ['zoneMain', card.main],
+      ['zoneExtra', card.extra],
+      ['zoneSide', card.side],
     ] as const
   )
     .filter(([, zone]) => zone.decks)
-    .map(([label, zone]) => `${label} ${formatNumber(zone.decks)}`)
+    .map(([key, zone]) => t(key, { count: formatNumber(zone.decks) }))
     .join(' · ')
 
 /**
@@ -36,6 +39,7 @@ const zoneNote = (card: CardStat) =>
  * and the API answers both — so a side-deck card doesn't get buried by main-deck volume.
  */
 export const CardBoard = ({ cards }: { cards: CardStat[] }) => {
+  const t = useTranslations('Tournaments.cards')
   const [zone, setZone] = useState<Zone>('all')
 
   const shown = useMemo(() => {
@@ -69,7 +73,7 @@ export const CardBoard = ({ cards }: { cards: CardStat[] }) => {
                 on ? 'border-gold bg-ground-gold text-gold' : 'border-line text-ink-dim hover:border-gold hover:text-gold',
               )}
             >
-              {label}
+              {t(label)}
             </button>
           )
         })}
@@ -81,23 +85,23 @@ export const CardBoard = ({ cards }: { cards: CardStat[] }) => {
             <CardArt art={card} alt="" sizes="44px" className="size-11 shrink-0 border border-line" />
             <span className="min-w-0">
               <span className="flex min-w-0 items-baseline gap-2">
-                <span className="truncate text-ink body-sm">{card.name ?? `Card ${card.id}`}</span>
+                <span className="truncate text-ink body-sm">{card.name ?? t('fallbackName', { id: card.id })}</span>
                 {card.name && repeated.has(card.name) ? (
                   <span className="shrink-0 text-ink-muted mono-handle">{card.id}</span>
                 ) : null}
               </span>
               <span className="block text-ink-muted mono-data">
-                {formatNumber(card.decks)} decks · {formatNumber(card.copies)} copies
+                {t('usage', { decks: formatNumber(card.decks), copies: formatNumber(card.copies) })}
               </span>
               <span className="block truncate text-ink-muted signal">
-                {zoneNote(card)} · decks running it: {deckRecord(card)}
+                {zoneNote(card, t)} · {t('decksRunning', { record: deckRecord(card) })}
               </span>
             </span>
           </li>
         ))}
       </ul>
 
-      {shown.length ? null : <p className="mt-3 text-ink-muted body-sm">No card in this tournament sat in that zone.</p>}
+      {shown.length ? null : <p className="mt-3 text-ink-muted body-sm">{t('empty')}</p>}
     </>
   )
 }

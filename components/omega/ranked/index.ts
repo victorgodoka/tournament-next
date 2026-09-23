@@ -1,1 +1,1 @@
-export { TierBadge, badgeSrc } from './tier-badge'
+export { TierBadge } from './tier-badge'

@@ -9,7 +9,8 @@ import { Header } from '@ui/header'
 import { can, getArticle } from '@utils/articles'
 import { getMeServer } from '@utils/auth'
 import { noIndexMetadata } from '@utils/metadata'
-import { ArticleForm } from '../../ArticleForm'
+import { LegacyEditor } from '../../editor/LegacyEditor'
+import { DocEditor } from '../../editor/DocEditor'
 
 type EditRouteProps = { params: Promise<{ slug: string }> }
 
@@ -29,7 +30,7 @@ const EditArticlePage = async ({ params }: EditRouteProps) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
         <WikiBar
           section="Articles"
           placeholder="Search cards by name or part of one"
@@ -61,7 +62,8 @@ const EditArticlePage = async ({ params }: EditRouteProps) => {
           </p>
 
           <div className="mt-7">
-            <ArticleForm article={article} />
+            {/* Block articles open in the block editor; Markdown ones keep the text form, with a way to convert. */}
+            {article.doc ? <DocEditor article={{ ...article, doc: article.doc }} /> : <LegacyEditor article={article} />}
           </div>
         </div>
       </main>

@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { TabBar, tabPanelProps } from '@ui/tab-bar/tab-bar.component'
 
 type Tab = 'standings' | 'rounds' | 'stats'
 
-const TABS = [
-  { id: 'standings', label: 'Standings' },
-  { id: 'rounds', label: 'Rounds' },
-  { id: 'stats', label: 'Stats' },
-] as const
+const TABS = ['standings', 'rounds', 'stats'] as const
 
 /** The API's own advice for a running tournament: re-read it every 30 s until it finishes. */
 const POLL_MS = 30_000
@@ -24,6 +21,7 @@ type TournamentTabsProps = {
 }
 
 export const TournamentTabs = ({ standings, rounds, stats, live }: TournamentTabsProps) => {
+  const t = useTranslations('Tournaments.detail.tabs')
   const [tab, setTab] = useState<Tab>('standings')
   const router = useRouter()
 
@@ -45,10 +43,10 @@ export const TournamentTabs = ({ standings, rounds, stats, live }: TournamentTab
   return (
     <>
       <TabBar
-        tabs={TABS}
+        tabs={TABS.map((id) => ({ id, label: t(id) }))}
         active={tab}
         onSelect={setTab}
-        label="Tournament sections"
+        label={t('label')}
         idPrefix="tournament"
         className="max-w-115"
       />

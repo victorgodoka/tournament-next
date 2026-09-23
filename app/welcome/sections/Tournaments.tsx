@@ -22,7 +22,7 @@ const LiveBoard = ({ live }: { live: WelcomeTournament }) => {
         <div aria-hidden className="absolute inset-0 bg-linear-100 from-veil-base via-veil-base to-veil-top" />
         <div className={twMerge("relative py-7.5 lg:py-9.5", ROW_PAD)}>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 bg-cyan px-3 py-1.5 text-cyan-on signal-chip">
+            <span className="inline-flex items-center gap-2 bg-negative px-3 py-1.5 text-negative-on signal-chip">
               <span aria-hidden className="block size-2 animate-blink bg-current" />
               {t('liveNow')}
             </span>

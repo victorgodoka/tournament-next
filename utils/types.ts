@@ -2,6 +2,7 @@
  * Shapes returned by omega-server-v3 (see its PROFILE_API.md). Dates are ISO 8601 strings and
  * numbers are raw: format both at render time. An absent field was withheld; `null` means unset.
  */
+import type { WikiDoc } from '@utils/wiki-doc'
 
 export type CardArt = {
   /** Card passcode. The client builds the image URL. */
@@ -64,6 +65,12 @@ export type LadderStats = {
   topDeckMeta: { duels: number; wins: number } | null
 }
 
+/** Which season is running now on one ladder. Nothing about the duelist. */
+export type CurrentSeason = Pick<LadderSeason, 'code' | 'label' | 'ordinal' | 'startsAt'> & {
+  format: 'TCG' | 'Genesys'
+  accent: Accent
+}
+
 /** A format ladder. `played: false` means the duelist never entered it. */
 export type Ladder = { format: 'TCG' | 'Genesys'; accent: Accent } & (
   | ({ played: true } & LadderStats)
@@ -106,10 +113,16 @@ export type ProfileIdentity = {
   handle: string | null
   avatar: string | null
   lastLogin: string | null
+  /** Game `accountrank >= 1`. Staff are VIP too; the raw rank is never exposed. */
+  isVip: boolean
+  /** @deprecated Alias of `isVip`. */
   isDonator: boolean
+  /** The site's one full admin. Only a badge: routes are gated by the site role. */
   isAdmin: boolean
-  /** Expiry of the paid pass. `null` without one. */
+  /** When the battlepass ends. Can be in the past: check `hasPass`, not `!== null`. */
   passDueDate: string | null
+  /** `passDueDate` is set and still in the future. */
+  hasPass: boolean
   /** The viewer's standing with this duelist. `none` when signed out or viewing your own. */
   relation: RelationStatus
 }
@@ -136,6 +149,8 @@ export type Profile = ProfileIdentity & (
     /** Only present when the viewer owns the profile, which also means they can edit it. */
     visibility?: Visibility
     duelsPlayed: number
+    /** The open season of each ladder, same order as `ladders`. Names the season even for an unplayed ladder. */
+    currentSeasons: CurrentSeason[]
     /** Always `TCG` then `Genesys`. */
     ladders: Ladder[]
     /** Swiss-tournament record: totals, titles and the 3 latest entries. */
@@ -540,6 +555,8 @@ export type ArticleSummary = {
   id: number
   slug: string
   title: string
+  /** The doc's one-line summary; `''` on a legacy Markdown article. */
+  summary: string
   author: WikiUser
   /** `null` is a draft. */
   publishedAt: string | null
@@ -548,8 +565,10 @@ export type ArticleSummary = {
 }
 
 export type Article = ArticleSummary & {
-  /** Raw Markdown. Render it through a Markdown pipeline, never as HTML. */
+  /** Raw Markdown. Render it through a Markdown pipeline, never as HTML. On a block article: the server's plain-text projection of `doc`. */
   body: string
+  /** Block document (docs/WIKI_BLOCKS.md). `null`/absent on a legacy Markdown article. */
+  doc?: WikiDoc | null
   /** `null` until someone other than the creation edits it; then whoever saved last. */
   updatedBy: WikiUser | null
 }
@@ -584,6 +603,16 @@ export type ArticleDraft = {
   slug?: string
   published?: boolean
 }
+
+/** `POST /wiki` for a block article. The title and the searchable `body` are derived from `doc` on the server. */
+export type DocArticleDraft = {
+  doc: WikiDoc
+  slug?: string
+  published?: boolean
+}
+
+/** `PATCH /wiki/{slug}` for a block article. `doc` is replaced whole, never merged. */
+export type DocArticlePatch = Partial<{ doc: WikiDoc; slug: string; published: boolean }>
 
 /** `PATCH /wiki/{slug}`. At least one key; an absent key leaves the column alone. */
 export type ArticlePatch = Partial<{

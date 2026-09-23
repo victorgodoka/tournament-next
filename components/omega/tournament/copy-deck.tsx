@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { buttonClasses } from '@ui/button'
 
@@ -12,7 +13,8 @@ type CopyDeckButtonProps = {
 }
 
 /** Copies a decklist to the clipboard and says so, because nothing else on screen changes. */
-export const CopyDeckButton = ({ code, label = 'Copy deck code', className }: CopyDeckButtonProps) => {
+export const CopyDeckButton = ({ code, label, className }: CopyDeckButtonProps) => {
+  const t = useTranslations('Tournaments.copyDeck')
   const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const copy = async () => {
@@ -29,10 +31,10 @@ export const CopyDeckButton = ({ code, label = 'Copy deck code', className }: Co
   return (
     <span className={twMerge('inline-flex items-center gap-3', className)}>
       <button type="button" onClick={copy} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-        {label}
+        {label ?? t('label')}
       </button>
       <span aria-live="polite" className="text-ink-muted signal-sm">
-        {state === 'copied' ? 'Copied' : state === 'error' ? "Couldn't copy" : ''}
+        {state === 'copied' ? t('copied') : state === 'error' ? t('failed') : ''}
       </span>
     </span>
   )

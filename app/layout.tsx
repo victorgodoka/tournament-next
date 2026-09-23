@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 import type { Metadata, Viewport } from 'next'
 import {
   OG_IMAGE,
@@ -55,9 +55,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const messages = await getMessages();
+  const locale = await getLocale()
   return (
-    <html lang="en" className={FONTS_VARIABLES}>
+    <html lang={locale} className={FONTS_VARIABLES}>
       <head>
         <script
           type="application/ld+json"
@@ -65,7 +65,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="relative" suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider>
           <AuthProvider>
             <ModalProvider>
               {children}
