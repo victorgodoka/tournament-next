@@ -20,10 +20,16 @@ export const archetypeCover = async (archetype: string, signal?: AbortSignal): P
   return cards[0] ? { id: cards[0].id, name: cards[0].name } : null
 }
 
-export const searchArchetypes = async (text: string, signal?: AbortSignal): Promise<string[]> => {
-  const archetypes = await get<{ name: string }[]>(`/archetypes?q=${encodeURIComponent(text)}`, signal)
-  return archetypes.map(({ name }) => name)
+export type Archetype = { code: number; name: string }
+
+/** With their setcode, for the places that store the code rather than the name. */
+export const findArchetypes = async (text: string, signal?: AbortSignal): Promise<Archetype[]> => {
+  const archetypes = await get<Archetype[]>(`/archetypes?q=${encodeURIComponent(text)}`, signal)
+  return archetypes.map(({ code, name }) => ({ code, name }))
 }
+
+export const searchArchetypes = async (text: string, signal?: AbortSignal): Promise<string[]> =>
+  (await findArchetypes(text, signal)).map(({ name }) => name)
 
 /** A card and every artwork it has: its own passcode first, then the alternates. */
 export type CardArts = { id: number; name: string; arts: number[] }

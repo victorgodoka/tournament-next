@@ -4,26 +4,33 @@ import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Eyebrow } from '@ui/eyebrow'
 import { FriendsPanel } from '@omega/friends-panel'
-import { seasonChoices } from '@app/profile/statistics/PlayerStatistics'
 import { duelistName, type Duelist } from '@utils/analytics'
 import type { SegmentOption } from '@utils/explorer'
-import type { Profile } from '@utils/types'
+import { getPastSeasons } from '@utils/ranked'
+import type { PastSeasons, Profile } from '@utils/types'
 
 export const duelistLabel = (profile: Profile) => profile.displayName ?? profile.handle ?? 'Unknown duelist'
 
 /**
  * What the Segments panel offers: each ladder's `current:*` (follows the open season), then every
- * season the duelist has a record in. The first is what a new exploration compares.
+ * ended season of both ladders. The open one is only offered as `current:*`, never twice.
+ * The first is what a new exploration compares.
  */
-export const segmentOptions = (profile: Extract<Profile, { isPrivate: false }>): SegmentOption[] => [
+export const segmentOptions = (profile: Extract<Profile, { isPrivate: false }>, past: PastSeasons[]): SegmentOption[] => [
   ...profile.currentSeasons.map(({ format, code, label }) => ({
     id: `current:${format.toLowerCase()}`,
     label: `Current ${format}`,
     sub: `Follows the ladder · now ${label}`,
     code,
   })),
-  ...seasonChoices(profile).map(({ code, label, format, open }) => ({ id: code, label: `${format} · ${label}`, sub: open ? 'Open' : 'Ended', code })),
+  ...past.flatMap(({ format, seasons }) => seasons.map(({ code, label }) => ({ id: code, label: `${format} · ${label}`, sub: 'Ended', code }))),
 ]
+
+/** Ended seasons of both ladders. A failed read leaves only `current:*`, not a broken page. */
+export const loadPastSeasons = () =>
+  Promise.all((['tcg', 'genesys'] as const).map((ladder) => getPastSeasons(ladder).catch(() => null))).then((all) =>
+    all.filter((p): p is PastSeasons => p !== null),
+  )
 
 /** The ladder the duelist actually plays, else TCG. */
 export const defaultSegment = (profile: Extract<Profile, { isPrivate: false }>) =>

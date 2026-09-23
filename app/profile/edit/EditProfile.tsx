@@ -10,7 +10,7 @@ import { CardArt } from "@omega/card-art";
 import ErrorPage from "@omega/error";
 import { ProfileBio } from "@omega/profile";
 import { REGION_LABEL, SOCIAL } from "@omega/profile/labels";
-import { useAuth } from "@hooks/index";
+import { useAuth, useSearch } from "@hooks/index";
 import { signIn } from "@utils/auth";
 import { archetypeCover, searchArchetypes, searchCards } from "@utils/cards";
 import { getProfile, ProfileApiError, updateProfile } from "@utils/profile";
@@ -35,23 +35,6 @@ const saveError = (error: unknown) => {
 
 const findCards = (text: string, signal: AbortSignal) => searchCards(text, 6, signal)
 const findArchetypes = async (text: string, signal: AbortSignal) => (await searchArchetypes(text, signal)).slice(0, 5)
-
-function useSearch<T>(text: string, search: (text: string, signal: AbortSignal) => Promise<T[]>) {
-  const [results, setResults] = useState<T[]>([])
-  const query = text.trim()
-
-  useEffect(() => {
-    if (query.length < 2) return
-    const controller = new AbortController()
-    const timer = setTimeout(() => search(query, controller.signal).then(setResults).catch(() => {}), 250)
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [query, search])
-
-  return query.length < 2 ? [] : results
-}
 
 /* ── Shared styles ── */
 

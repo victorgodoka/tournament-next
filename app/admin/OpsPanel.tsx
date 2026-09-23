@@ -3,8 +3,19 @@
 import { useEffect, useState } from 'react'
 import { Button, Chip } from '@ui/index'
 import { refreshLeaderboard } from '@utils/ranked'
-import { listSeasons, renameSeason, rolloverSeason, syncRanked, type PanelSeason } from '@utils/panel'
-import { Empty, errorText, Field, INPUT, List, ListRow, Notice, Row, RowButton, dateTime } from './ui'
+import {
+  getAnalyticsSweep,
+  listSeasons,
+  renameSeason,
+  rolloverSeason,
+  startAnalyticsSweep,
+  syncPlayerAnalytics,
+  syncRanked,
+  type AnalyticsSweep,
+  type AnalyticsSweepStatus,
+  type PanelSeason,
+} from '@utils/panel'
+import { Empty, errorText, Field, INPUT, List, ListRow, MONO_INPUT, Notice, Row, RowButton, dateTime } from './ui'
 
 /* ---------------------------------------------------------------- *
  * One ladder's open season
@@ -140,6 +151,158 @@ const SeasonRow = ({ entry, onChanged }: { entry: PanelSeason; onChanged: () => 
 }
 
 /* ---------------------------------------------------------------- *
+ * Season analytics sweep
+ * ---------------------------------------------------------------- */
+
+const sweepSummary = (sweep: AnalyticsSweep) => {
+  const matches = sweep.done.reduce((sum, day) => sum + day.matches, 0)
+  const rows = sweep.done.reduce((sum, day) => sum + day.rows, 0)
+  return `${sweep.from} → ${sweep.to}: ${sweep.done.length} day${sweep.done.length === 1 ? '' : 's'} swept, ${matches.toLocaleString()} matches, ${rows.toLocaleString()} rows.`
+}
+
+const AnalyticsPanel = () => {
+  const [status, setStatus] = useState<AnalyticsSweepStatus | null>(null)
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [playerId, setPlayerId] = useState('')
+  const [season, setSeason] = useState('')
+  const [busy, setBusy] = useState<'sweep' | 'player' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+
+  const load = () => getAnalyticsSweep().then(setStatus)
+
+  // First read, then every 3 s while a sweep runs — the cron's own run shows up here too.
+  const running = status?.running ?? null
+  useEffect(() => {
+    if (status !== null && !running) return
+    const abort = new AbortController()
+    const timer = setTimeout(
+      () =>
+        getAnalyticsSweep(abort.signal)
+          .then(setStatus)
+          .catch((failure) => !abort.signal.aborted && setError(errorText(failure))),
+      status === null ? 0 : 3000,
+    )
+    return () => {
+      clearTimeout(timer)
+      abort.abort()
+    }
+  }, [status, running])
+
+  const sweep = async () => {
+    setBusy('sweep')
+    setError(null)
+    setDone(null)
+    try {
+      const started = await startAnalyticsSweep({ from: from || undefined, to: to || undefined })
+      setDone(`Sweep started: ${started.from} → ${started.to}.`)
+      await load()
+    } catch (failure) {
+      setError(errorText(failure))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const syncPlayer = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setBusy('player')
+    setError(null)
+    setDone(null)
+    try {
+      const result = await syncPlayerAnalytics(playerId.trim(), season.trim() || undefined)
+      const seasons = result.seasons.map((entry) => `${entry.code}: ${entry.matches} matches over ${entry.days} days`)
+      setDone(`${result.playerId} recomputed in ${result.ms} ms. ${seasons.join(' · ') || 'No open season.'}`)
+    } catch (failure) {
+      setError(errorText(failure))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const last = status?.last ?? null
+
+  return (
+    <Row
+      index="04"
+      title="Season analytics"
+      blurb="Pre-computed nightly at 01:00 for the day before. Force a range of days for everyone, or one player's whole season right now."
+    >
+      <div className="grid gap-6">
+        <Notice tone="error">{error}</Notice>
+        <Notice tone="ok">{done}</Notice>
+
+        <div className="border border-line bg-surface-100 px-4 py-4">
+          <p className="text-gold signal-lg">Every player</p>
+          <p className="mt-1.5 text-ink-dim body-sm">
+            Each day is rewritten whole. Empty = yesterday; only “from” = that single day. Up to 366 days, never past today.
+            On first deploy, run it from the open season&apos;s start to yesterday.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <Field id="sweep-from" label="From">
+              <input id="sweep-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={INPUT} />
+            </Field>
+            <Field id="sweep-to" label="To">
+              <input id="sweep-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className={INPUT} />
+            </Field>
+            <Button size="sm" onClick={sweep} disabled={busy !== null || running !== null}>
+              {busy === 'sweep' ? 'Starting…' : running ? 'Sweep running' : 'Run sweep'}
+            </Button>
+          </div>
+
+          {running ? (
+            <p className="mt-4 text-ink-muted mono-data" role="status">
+              Sweeping {running.current ?? '…'} · {sweepSummary(running)}
+            </p>
+          ) : null}
+          {!running && last ? (
+            <div className="mt-4">
+              <Notice tone={last.error ? 'error' : 'info'}>
+                Last run, finished {dateTime(last.finishedAt)}. {sweepSummary(last)}
+                {last.error ? ` Stopped on ${last.current ?? 'a day'}: ${last.error} Re-run from that day.` : ''}
+              </Notice>
+            </div>
+          ) : null}
+        </div>
+
+        <form onSubmit={syncPlayer} className="border border-line bg-surface-100 px-4 py-4">
+          <p className="text-gold signal-lg">One player, now</p>
+          <p className="mt-1.5 text-ink-dim body-sm">Recomputes the whole season, today included, and waits for the result.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <Field id="sweep-player" label="Player id">
+              <input
+                id="sweep-player"
+                value={playerId}
+                onChange={(e) => setPlayerId(e.target.value)}
+                required
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="257559452788457472"
+                className={MONO_INPUT}
+              />
+            </Field>
+            <Field id="sweep-season" label="Season" hint="Code or id. Empty = every open season.">
+              <input
+                id="sweep-season"
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                autoComplete="off"
+                placeholder="tcg-2"
+                className={INPUT}
+              />
+            </Field>
+            <Button type="submit" size="sm" disabled={busy !== null || !playerId.trim()}>
+              {busy === 'player' ? 'Recomputing…' : 'Recompute'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </Row>
+  )
+}
+
+/* ---------------------------------------------------------------- *
  * Panel
  * ---------------------------------------------------------------- */
 
@@ -193,37 +356,40 @@ export const OpsPanel = () => {
   }
 
   return (
-    <Row
-      index="03"
-      title="Ranked operations"
-      blurb="The nightly job, run by hand. Sync rewrites each ladder's snapshot; a rollover freezes a season's final results and opens the next."
-      action={
-        <div className="flex flex-wrap gap-3">
-          <Button size="sm" onClick={sync} disabled={busy !== null}>
-            {busy === 'sync' ? 'Syncing…' : 'Update ranked data'}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={refresh} disabled={busy !== null}>
-            {busy === 'refresh' ? 'Refreshing…' : 'Refresh leaderboard'}
-          </Button>
-        </div>
-      }
-    >
-      <div className="grid gap-6">
-        <Notice tone="error">{error}</Notice>
-        <Notice tone="ok">{done}</Notice>
+    <>
+      <Row
+        index="03"
+        title="Ranked operations"
+        blurb="The nightly job, run by hand. Sync rewrites each ladder's snapshot; a rollover freezes a season's final results and opens the next."
+        action={
+          <div className="flex flex-wrap gap-3">
+            <Button size="sm" onClick={sync} disabled={busy !== null}>
+              {busy === 'sync' ? 'Syncing…' : 'Update ranked data'}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={refresh} disabled={busy !== null}>
+              {busy === 'refresh' ? 'Refreshing…' : 'Refresh leaderboard'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-6">
+          <Notice tone="error">{error}</Notice>
+          <Notice tone="ok">{done}</Notice>
 
-        {seasons === null ? (
-          <Empty>Loading seasons…</Empty>
-        ) : seasons.length === 0 ? (
-          <Empty>No ladder has an open season.</Empty>
-        ) : (
-          <List>
-            {seasons.map((entry) => (
-              <SeasonRow key={entry.ladder} entry={entry} onChanged={load} />
-            ))}
-          </List>
-        )}
-      </div>
-    </Row>
+          {seasons === null ? (
+            <Empty>Loading seasons…</Empty>
+          ) : seasons.length === 0 ? (
+            <Empty>No ladder has an open season.</Empty>
+          ) : (
+            <List>
+              {seasons.map((entry) => (
+                <SeasonRow key={entry.ladder} entry={entry} onChanged={load} />
+              ))}
+            </List>
+          )}
+        </div>
+      </Row>
+      <AnalyticsPanel />
+    </>
   )
 }

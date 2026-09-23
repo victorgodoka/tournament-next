@@ -32,3 +32,21 @@ export function useIsOffScreen(): [RefObject<HTMLElement | null>, boolean] {
 
   return [elementRef, isOffScreen];
 }
+
+/** Debounced lookup: fires 250 ms after typing stops, from two characters on. `search` must be stable. */
+export function useSearch<T>(text: string, search: (text: string, signal: AbortSignal) => Promise<T[]>) {
+  const [results, setResults] = useState<T[]>([])
+  const query = text.trim()
+
+  useEffect(() => {
+    if (query.length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => search(query, controller.signal).then(setResults).catch(() => {}), 250)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query, search])
+
+  return query.length < 2 ? [] : results
+}

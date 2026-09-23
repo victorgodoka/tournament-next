@@ -32,6 +32,7 @@ import {
   Notice,
   Row,
   RowButton,
+  Toggle,
   dateTime,
   day,
   money,
@@ -182,22 +183,6 @@ const NumberField = ({
       className={MONO_INPUT}
     />
   </Field>
-)
-
-const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (next: boolean) => void }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    onClick={() => onChange(!checked)}
-    className={twMerge(
-      'flex min-h-11.5 w-full cursor-pointer items-center gap-3 border px-4 text-left signal-tab',
-      checked ? 'border-gold bg-ground-gold text-gold' : 'border-surface-400 text-ink-muted hover:border-ink-muted',
-    )}
-  >
-    <span aria-hidden className={twMerge('size-3.25 shrink-0 border', checked ? 'border-gold bg-gold' : 'border-ink-muted')} />
-    {label}
-  </button>
 )
 
 /* ---------------------------------------------------------------- *

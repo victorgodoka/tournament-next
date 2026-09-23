@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
-import { AnalyticsShell, defaultSegment, duelistLabel, personOf, segmentOptions } from '@app/profile/analytics/AnalyticsShell'
+import { AnalyticsShell, defaultSegment, duelistLabel, loadPastSeasons, personOf, segmentOptions } from '@app/profile/analytics/AnalyticsShell'
 import { ExplorationBuilder } from '@omega/analytics/explorer/builder'
 import { PrivateNotice } from '@omega/profile/private-notice'
 import { getExplorations, getVariables } from '@utils/explorations'
@@ -33,7 +33,7 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
   const profile = await loadProfile(id)
   if (!profile) notFound()
   // Public explorations are listed even on a private profile: publishing is the owner's call.
-  const [list, variables] = await Promise.all([getExplorations(id, cookie), getVariables()])
+  const [list, variables, past] = await Promise.all([getExplorations(id, cookie), getVariables(), loadPastSeasons()])
   if (list === null) notFound()
   const shown = list === 'forbidden' ? null : list
   const owner = !!shown?.editable
@@ -66,7 +66,7 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
           name={duelistLabel(profile)}
           list={shown}
           variables={variables}
-          options={profile.isPrivate ? [] : segmentOptions(profile)}
+          options={profile.isPrivate ? [] : segmentOptions(profile, past)}
           defaultSegment={profile.isPrivate ? 'current:tcg' : defaultSegment(profile)}
         />
       )}

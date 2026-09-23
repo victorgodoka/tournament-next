@@ -273,6 +273,81 @@ export const renameSeason = (code: string, next: { code?: string; label?: string
   request<PanelSeason['season']>(`/ranked/seasons/${encodeURIComponent(code)}`, json('PATCH', next))
 
 /* ---------------------------------------------------------------- *
+ * Season analytics sweep (section 8) — what the 01:00 cron does, forced
+ * ---------------------------------------------------------------- */
+
+export type AnalyticsSweep = {
+  from: string
+  to: string
+  /** Day being swept now. */
+  current: string | null
+  done: { day: string; matches: number; rows: number; ms: number }[]
+  startedAt: string
+  finishedAt: string | null
+  /** The run stops at the day that failed; re-run from there. */
+  error: string | null
+}
+
+/** `running` is `null` when idle; `last` is `null` after a restart. */
+export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null }
+
+/** Both optional: no body is yesterday, only `from` is that single day. `409 BUSY` while one runs. */
+export const startAnalyticsSweep = (range: { from?: string; to?: string }) =>
+  request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync', json('POST', range))
+
+export const getAnalyticsSweep = (signal?: AbortSignal) =>
+  request<AnalyticsSweepStatus>('/panel/analytics/sync', { signal })
+
+/** Recomputes the whole season for one player, today included, and waits. No `season` = every open season. */
+export const syncPlayerAnalytics = (playerId: string, season?: string) =>
+  request<{ playerId: string; seasons: { code: string; matches: number; days: number }[]; ms: number }>(
+    `/panel/analytics/players/${encodeURIComponent(playerId)}/sync`,
+    json('POST', season ? { season } : {}),
+  )
+
+/* ---------------------------------------------------------------- *
+ * Card categories (section 9) — engine, tech, hand trap
+ * ---------------------------------------------------------------- */
+
+export type CardGroupKind = 'engine' | 'tech'
+
+export type CardGroup = {
+  id: number
+  kind: CardGroupKind
+  name: string
+  description: string
+  /** Only ever `true` on a tech group. */
+  handTrap: boolean
+  /** Engine only: deck archetypes where this is NOT engine. */
+  exceptions: { code: number; name: string }[]
+  /** Canonical ids. `name`/`kind` are `null` once the card left the card database. */
+  cards: { id: number; name: string | null; kind: 'monster' | 'spell' | 'trap' | null }[]
+  updatedAt: string
+}
+
+/** `exceptions` and `cards` also accept the objects the GET returns, so a form can send back what it read. */
+export type CardGroupBody = {
+  kind?: CardGroupKind
+  name?: string
+  description?: string
+  handTrap?: boolean
+  exceptions?: number[]
+  /** Replaces the list. Alt-art passcodes are saved as the original; duplicates collapse. */
+  cards?: number[]
+}
+
+export const listCardGroups = (signal?: AbortSignal) =>
+  request<{ groups: CardGroup[] }>('/panel/card-groups', { signal }).then((page) => page.groups)
+
+export const createCardGroup = (body: CardGroupBody) => request<CardGroup>('/panel/card-groups', json('POST', body))
+
+/** Merged over the current group. Switching `kind` drops what doesn't belong to the new one. */
+export const updateCardGroup = (id: number, body: CardGroupBody) =>
+  request<CardGroup>(`/panel/card-groups/${id}`, json('PATCH', body))
+
+export const deleteCardGroup = (id: number) => request<void>(`/panel/card-groups/${id}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
  * Shop catalog (section 7) — what used to live in the spreadsheet
  * ---------------------------------------------------------------- */
 
