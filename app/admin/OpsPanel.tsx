@@ -227,7 +227,7 @@ const AnalyticsPanel = () => {
     <Row
       index="04"
       title="Season analytics"
-      blurb="Pre-computed nightly at 01:00 for the day before. Force a range of days for everyone, or one player's whole season right now."
+      blurb="The 01:00 sweep of the day before. Duelist pages read live now, but global analytics only moves when a day is swept: force a range here, or one player's whole season."
     >
       <div className="grid gap-6">
         <Notice tone="error">{error}</Notice>
@@ -236,8 +236,9 @@ const AnalyticsPanel = () => {
         <div className="border border-line bg-surface-100 px-4 py-4">
           <p className="text-gold signal-lg">Every player</p>
           <p className="mt-1.5 text-ink-dim body-sm">
-            Each day is rewritten whole. Empty = yesterday; only “from” = that single day. Up to 366 days, never past today.
-            On first deploy, run it from the open season&apos;s start to yesterday.
+            Each day is rewritten whole, global analytics included. Empty = yesterday; only “from” = that single day. Up to
+            366 days, never past today. After a card-group change, or on first deploy, run it from the open season&apos;s start
+            to yesterday.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <Field id="sweep-from" label="From">

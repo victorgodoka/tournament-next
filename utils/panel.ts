@@ -7,7 +7,8 @@
  * tournament that actually ran so a schedule can be linked to it, never edits it.
  */
 import { API_URL } from './auth'
-import type { RankedLadderId, RankedFormat, ShopEnum, ShopItem } from './types'
+import type { GlobalExploration } from './global-explorer'
+import type { RankedLadderId, RankedFormat, ShopEnum, ShopItem, WikiEditor } from './types'
 
 export class PanelApiError extends Error {
   status: number
@@ -306,6 +307,41 @@ export const syncPlayerAnalytics = (playerId: string, season?: string) =>
   )
 
 /* ---------------------------------------------------------------- *
+ * Global explorations (section 8.4) — staff-built, draft or public
+ * ---------------------------------------------------------------- */
+
+export type GlobalExplorationBody = Partial<Pick<GlobalExploration, 'name' | 'description' | 'position' | 'published' | 'config'>>
+
+/** Drafts and published, in `position` order. */
+export const listPanelExplorations = (signal?: AbortSignal) =>
+  request<{ explorations: GlobalExploration[] }>('/panel/analytics/explorations', { signal }).then((page) => page.explorations)
+
+/** Needs `name` and `config`. `400 INVALID_EXPLORATION` names the broken builder rule. */
+export const createPanelExploration = (body: GlobalExplorationBody) =>
+  request<GlobalExploration>('/panel/analytics/explorations', json('POST', body))
+
+/** Only the fields sent change. `published: true` keeps the first publish date; `false` is back to draft. */
+export const updatePanelExploration = (id: string, body: GlobalExplorationBody) =>
+  request<GlobalExploration>(`/panel/analytics/explorations/${encodeURIComponent(id)}`, json('PATCH', body))
+
+export const deletePanelExploration = (id: string) =>
+  request<void>(`/panel/analytics/explorations/${encodeURIComponent(id)}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
+ * Settings (section 10) — values staff tune without a deploy
+ * ---------------------------------------------------------------- */
+
+export type PanelSettings = {
+  /** A global-analytics cut with fewer deck-samples than this is hidden. `0` shows everything. */
+  'analytics.global.minSamples': number
+}
+
+export const getSettings = (signal?: AbortSignal) => request<PanelSettings>('/panel/settings', { signal })
+
+/** Keys not sent keep their value. Answers every setting after the write. */
+export const updateSettings = (body: Partial<PanelSettings>) => request<PanelSettings>('/panel/settings', json('PATCH', body))
+
+/* ---------------------------------------------------------------- *
  * Card categories (section 9) — engine, tech, hand trap
  * ---------------------------------------------------------------- */
 
@@ -346,6 +382,19 @@ export const updateCardGroup = (id: number, body: CardGroupBody) =>
   request<CardGroup>(`/panel/card-groups/${id}`, json('PATCH', body))
 
 export const deleteCardGroup = (id: number) => request<void>(`/panel/card-groups/${id}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
+ * Analysts (section 11.1) — `user.manage`, same shape as `/wiki/editors`
+ * ---------------------------------------------------------------- */
+
+/** Admins are listed too (they already have `analytics.write`); render them without controls. */
+export const listAnalysts = () => request<WikiEditor[]>('/panel/analysts')
+
+/** Exclusive role: an editor made analyst stops being editor. `404` = never signed in, `403` = admin. */
+export const promoteAnalyst = (userId: string) => request<WikiEditor>(`/panel/analysts/${encodeURIComponent(userId)}`, json('PUT'))
+
+/** Back to `USER`; their explorations stay. */
+export const demoteAnalyst = (userId: string) => request<void>(`/panel/analysts/${encodeURIComponent(userId)}`, json('DELETE'))
 
 /* ---------------------------------------------------------------- *
  * Shop catalog (section 7) — what used to live in the spreadsheet

@@ -27,7 +27,7 @@ export const getVariables = cache(async (): Promise<Variables> => {
 
 export type ExplorationList = {
   ownerId: string
-  /** The viewer owns them: every visibility, and they may write. */
+  /** The viewer owns them or has `analytics.write`: every visibility, and they may write. */
   editable: boolean
   limit: number
   /** In tab order. Anyone but the owner gets `public` ones only, even on a private profile. */
@@ -79,8 +79,12 @@ export const getSharedExploration = cache(async (token: string, cookie?: string 
 
 export const sharePath = (token: string) => `/analytics/e/${token}`
 
-/** `POST /analytics/explorations`: goes after the owner's last tab. `visibility` defaults to `private`. `409 LIMIT_REACHED` at the limit. */
-export const createExploration = (body: { name: string; visibility?: Visibility; config: ExplorationConfig }) =>
+/**
+ * `POST /analytics/explorations`: goes after the owner's last tab. `visibility` defaults to `private`.
+ * `ownerId` defaults to the session's user; another duelist needs `analytics.write` (`403` otherwise).
+ * The session's user is always the `author`. `409 LIMIT_REACHED` at the limit.
+ */
+export const createExploration = (body: { name: string; visibility?: Visibility; config: ExplorationConfig; ownerId?: string }) =>
   request<Exploration>('/analytics/explorations', json('POST', body))
 
 /** `PATCH /analytics/explorations/:id`: a `config` replaces the stored one whole. */
@@ -94,6 +98,7 @@ export const deleteExploration = (id: string) => request<void>(`/analytics/explo
 export const writeError = (error: unknown) => {
   if (!(error instanceof AnalyticsApiError)) return 'Couldn’t reach the server. Try again in a moment.'
   if (error.status === 401) return 'Your session ended. Sign in again to save.'
+  if (error.status === 403) return 'You can’t write explorations on this profile.'
   if (error.code === 'LIMIT_REACHED') return 'You already have the maximum number of explorations. Delete one first.'
   if (error.code === 'INVALID_EXPLORATION') return `The server refused this exploration: ${error.message}`
   return 'Couldn’t save. Try again in a moment.'

@@ -9,8 +9,8 @@ import { Skeleton } from '@omega/analytics/primitives'
 import { getPlayerSeason, type PlayerSeason } from '@utils/analytics'
 import { getSharedExploration, type SharedExploration } from '@utils/explorations'
 import {
-  UNIT, WIN_LOSS, blocker, buildSegment, catalogOf, dimNatural, fixFor, fmt, lineSeries, namesOf, run, summary,
-  type Catalog, type ExplorationConfig, type GroupSegment, type Names, type PivotResult, type Segment, type SegmentOption, type Variables,
+  SOURCE_NAME, WIN_LOSS, blocker, buildSegment, catalogOf, dimNatural, fixFor, fmt, lineSeries, namesOf, run, summary,
+  type Catalog, type ExplorationConfig, type GroupSegment, type LineData, type Names, type PivotResult, type Segment, type SegmentOption, type Variables,
 } from '@utils/explorer'
 
 type SeasonLoad = PlayerSeason | 'forbidden' | 'missing' | 'error'
@@ -91,7 +91,7 @@ export const useSegments = (playerId: string, options: SegmentOption[], ids: str
 }
 
 /** Why seasons couldn't load, or the skeleton while they do. */
-export const SeasonsGate = ({ pending, failure }: { pending: boolean; failure?: 'forbidden' | 'error' }) =>
+export const SeasonsGate = ({ pending, failure, empty = 'None of these seasons has a ranked record for this duelist.' }: { pending: boolean; failure?: 'forbidden' | 'error'; empty?: string }) =>
   failure === 'forbidden' ? (
     <EmptyBox title="Match history is hidden" className="mt-6">This duelist only shows their ranked games to friends or rivals.</EmptyBox>
   ) : failure === 'error' ? (
@@ -99,7 +99,7 @@ export const SeasonsGate = ({ pending, failure }: { pending: boolean; failure?: 
   ) : pending ? (
     <div className="mt-6"><Skeleton rows={8} label="Reading the ranked season…" /></div>
   ) : (
-    <EmptyBox title="No season to compare" className="mt-6">None of these seasons has a ranked record for this duelist.</EmptyBox>
+    <EmptyBox title="No season to compare" className="mt-6">{empty}</EmptyBox>
   )
 
 const cellText = (v: number | null) => (v === null ? 'text-ink-muted' : 'text-ink-dim')
@@ -116,7 +116,7 @@ const heat = (v: number | null, wl: boolean, max: number, n: number) => {
 type Edit = (fn: (t: ExplorationConfig) => void) => void
 type ViewProps = { cat: Catalog; res: PivotResult; cfg: ExplorationConfig }
 
-const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Edit; onOpenMatch: (id: string) => void }) => {
+const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Edit; onOpenMatch?: (id: string) => void }) => {
   const heatmap = cfg.technique === 'heatmap'
   const multi = res.segs.length > 1
   const metric = (i: number) => cat.metrics.get(res.values[i]!)!
@@ -142,7 +142,7 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
       })
 
   const label = (g: PivotResult['groups'][number]) =>
-    g.matchId ? (
+    g.matchId && onOpenMatch ? (
       <button type="button" onClick={() => onOpenMatch(g.matchId!)} className="min-h-11 min-w-0 text-left">
         <span className="block text-gold mono-data hover:text-cyan">{g.labels[0]} →</span>
         <span className="block truncate text-ink-muted mono-note">{g.sub}</span>
@@ -188,17 +188,17 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
             </tr>
           </thead>
           <tbody>
-            {res.source !== 'cards' && !res.colDim
+            {res.totals && !res.colDim
               ? res.segs.map((sg, si) => (
                 <tr key={`total-${sg.id}`} className="border-b border-line bg-ground-soft">
                   <th scope="row" className="px-4 py-2.5 text-left font-normal">
                     <span className="flex items-center gap-2">
                       {multi ? <span aria-hidden className="size-2 shrink-0" style={{ background: sg.color }} /> : null}
                       <span className="text-ink signal-sm">{multi ? sg.label : 'Totals'}</span>
-                      {multi ? null : <span className="text-ink-muted mono-note">{res.totals[si]!.count} {UNIT[res.source]}</span>}
+                      {multi ? null : <span className="text-ink-muted mono-note">{fmt(res.totals![si]!.count, 'count')} {res.unit}</span>}
                     </span>
                   </th>
-                  {res.totals[si]!.vals.map((v, i) => (
+                  {res.totals![si]!.vals.map((v, i) => (
                     <td key={i} className="px-3.5 py-2.5 text-right font-bold text-ink mono-data tabular-nums">{fmt(v, metric(i).format)}</td>
                   ))}
                 </tr>
@@ -216,7 +216,7 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
                         <span className="flex items-center gap-2">
                           <span aria-hidden className="size-2 shrink-0" style={{ background: res.segs[si]!.color }} />
                           <span className="text-ink-dim signal-sm">{res.segs[si]!.label}</span>
-                          {s.n ? null : <span className="text-ink-muted mono-note">No games</span>}
+                          {s.n ? null : <span className="text-ink-muted mono-note">No {res.unit}</span>}
                         </span>
                       </th>
                       {cells(s)}
@@ -250,7 +250,7 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
               <span className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-3.5 bg-win/50" />Above 50%</span>
             </>
           ) : null}
-          <span>Faded cells: fewer than 3 games</span>
+          <span>Faded cells: fewer than 3 {res.unit}</span>
         </div>
       ) : null}
     </>
@@ -294,9 +294,9 @@ const Bars = ({ cat, res, cfg }: ViewProps) => {
   )
 }
 
-const Line = ({ cat, res, cfg, segs }: ViewProps & { segs: Segment[] }) => {
+const Line = ({ cat, res, cfg, line }: ViewProps & { line: LineData }) => {
   const M = cat.metrics.get(res.values[0]!)!
-  const { maxDay, series } = lineSeries(cat, segs, res, cfg)
+  const { maxDay, series } = line
   const all = series.flatMap((s) => s.points.flatMap((p) => (p.value === null ? [] : [p.value])))
   const hi = M.format === 'rate' ? 1 : Math.max(1, ...all) * 1.15
   const y = (v: number) => (1 - v / hi) * 100
@@ -362,27 +362,36 @@ const Line = ({ cat, res, cfg, segs }: ViewProps & { segs: Segment[] }) => {
 
 type OutputProps = {
   cat: Catalog
-  segs: Segment[]
-  names: Names
   cfg: ExplorationConfig
+  /** The cut, from the duelist engine (`run`) or the global one (`runGlobal`). */
+  res: PivotResult
+  /** The line technique's series, over the same segments. */
+  line: (res: PivotResult) => LineData
   /** Owner controls: sort headers and the blocker's fix. Read-only when absent. */
   onEdit?: Edit
-  onOpenMatch: (matchId: string) => void
+  /** Match rows open their timeline. The global cut has none. */
+  onOpenMatch?: (matchId: string) => void
 }
 
+/** The duelist cut of these seasons, ready for `ExplorationOutput`. */
+export const duelistPivot = (cat: Catalog, segs: Segment[], names: Names, cfg: ExplorationConfig) => ({
+  res: run(cat, segs, cfg, names),
+  line: (res: PivotResult) => lineSeries(cat, segs, res, cfg),
+})
+
 /** Legend, then the chosen technique, or why it can't draw this configuration. */
-export const ExplorationOutput = ({ cat, segs, names, cfg, onEdit, onOpenMatch }: OutputProps) => {
-  const res = run(cat, segs, cfg, names)
+export const ExplorationOutput = ({ cat, cfg, res, line, onEdit, onOpenMatch }: OutputProps) => {
   const block = blocker(cfg, res)
   const fix = block && onEdit ? fixFor(cat, cfg) : null
-  const legend = cfg.technique === 'line' && !block ? lineSeries(cat, segs, res, cfg).series : res.segs.length > 1 ? res.segs : []
+  const series = cfg.technique === 'line' && !block ? line(res) : null
+  const legend = series ? series.series : res.segs.length > 1 ? res.segs : []
 
   return (
     <>
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-line py-2.5">
         <span className="flex-1 text-ink-muted signal-sm">
-          Source · {res.source === 'handTraps' ? 'hand traps' : res.source === 'rating' ? 'daily rating' : res.source}
-          {res.withoutDetail ? ` · ${res.withoutDetail} older games have no per-game detail and are left out` : ''}
+          Source · {SOURCE_NAME[res.source]}
+          {res.note ? ` · ${res.note}` : ''}
         </span>
         {legend.map((l) => (
           <span key={l.label} className="flex items-center gap-1.75 text-ink-dim signal-sm">
@@ -403,8 +412,8 @@ export const ExplorationOutput = ({ cat, segs, names, cfg, onEdit, onOpenMatch }
         </EmptyBox>
       ) : cfg.technique === 'bars' ? (
         <Bars cat={cat} res={res} cfg={cfg} />
-      ) : cfg.technique === 'line' ? (
-        <Line cat={cat} res={res} cfg={cfg} segs={segs} />
+      ) : series ? (
+        <Line cat={cat} res={res} cfg={cfg} line={series} />
       ) : (
         <Table cat={cat} res={res} cfg={cfg} onEdit={onEdit} onOpenMatch={onOpenMatch} />
       )}
@@ -443,7 +452,7 @@ export const ExplorationView = ({ shared, variables }: { shared: SharedExplorati
     <section aria-label={name} className="mt-6">
       <p className="text-ink-muted mono-note">{summary(cat, config, segLabelOf(segments), names)}</p>
       <Unavailable ids={config.segments} seasons={shared.seasons} />
-      <ExplorationOutput cat={cat} segs={segments} names={names} cfg={config} onOpenMatch={setMatch} />
+      <ExplorationOutput cat={cat} cfg={config} {...duelistPivot(cat, segments, names, config)} onOpenMatch={setMatch} />
       <MatchDrawer matchId={match} onClose={() => setMatch(null)} />
     </section>
   )

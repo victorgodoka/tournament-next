@@ -68,7 +68,7 @@ describe('explorer pivot', () => {
 
   it('takes the latest elo in the cut, and leaves unsynced days empty', () => {
     expect(seg.label).toBe('Current TCG · 09.2026')
-    expect(run(cat, [seg], cfg({ values: ['elo'] }), names).totals[0]!.vals[0]).toBe(120)
+    expect(run(cat, [seg], cfg({ values: ['elo'] }), names).totals![0]!.vals[0]).toBe(120)
     const line = cfg({ technique: 'line', rows: ['seasonDay'], values: ['elo'] })
     const { series } = lineSeries(cat, [seg], run(cat, [seg], line, names), line)
     expect(series[0]!.points.slice(0, 4).map((p) => p.value)).toEqual([100, 130, null, 120])

@@ -13,7 +13,10 @@ import { archetypeName, duelistName, type Duelist, type PlayerSeason } from './a
  * ---------------------------------------------------------------- */
 
 export type Technique = 'table' | 'heatmap' | 'bars' | 'line'
-export type Source = 'games' | 'cards' | 'handTraps' | 'rating'
+/** `days` and `groups` only exist in the global catalog (§7), `rating` only in the duelist's. */
+export type Source = 'games' | 'cards' | 'handTraps' | 'rating' | 'days' | 'groups'
+/** How a source reads in a sentence. */
+export const SOURCE_NAME: Record<Source, string> = { games: 'games', cards: 'cards', handTraps: 'hand traps', rating: 'daily rating', days: 'days', groups: 'engines & techs' }
 export type FilterValue = string | number | null
 
 export type Dimension = { id: string; label: string; values: string; description: string }
@@ -25,7 +28,8 @@ export type Variables = {
   version: number
   techniques: Technique[]
   limits: Limits
-  currentSegments: string[]
+  /** Duelist catalog only. */
+  currentSegments?: string[]
   dimensions: Dimension[]
   metrics: Metric[]
 }
@@ -50,10 +54,15 @@ export type Visibility = 'private' | 'link' | 'public'
 
 export type Exploration = {
   id: string
+  /** The profile it belongs to. */
   ownerId: string
+  /** Who created it: the owner, or an analyst writing on their profile. */
+  author: Duelist
+  /** The owner, only when `author` is someone else (an analyst). */
+  coAuthor: Duelist | null
   name: string
   visibility: Visibility
-  /** Builds the share URL (`/analytics/e/:token`). `null` on a `link` row the viewer doesn't own. */
+  /** Builds the share URL (`/analytics/e/:token`). `null` on a `link` row the viewer doesn't own (analysts always get it). */
   shareToken: string | null
   /** Tab order. */
   position: number
@@ -303,7 +312,7 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
 /** Metrics read from the season aggregates: they name their own groups and never count facts. */
 const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate'])
 /** Win/loss rates: 50% is the line that matters. */
-export const WIN_LOSS = new Set(['winRate', 'winRateWhenActivated'])
+export const WIN_LOSS = new Set(['winRate', 'winRateWhenActivated', 'dailyWinRate', 'winRateWithGroup'])
 /** Read from the per-game detail (§3.4): undercounts while `gamesWithoutDetail` > 0. */
 const NEEDS_DETAIL = (m: Metric) => /combo|deckCoverage|turn1|longestChain|cards\.|handTraps/.test(m.from)
 
@@ -344,15 +353,18 @@ export const sourceOf = (cat: Catalog, cfg: ExplorationConfig): Source => {
   const first = valueMetrics(cat, cfg)[0]
   if (first) return first.source
   const dims = usedDims(cfg)
-  return (['games', 'cards', 'handTraps', 'rating'] as const).find((s) => dims.every((d) => [...cat.metrics.values()].some((m) => m.source === s && m.splitBy.includes(d)))) ?? 'games'
+  return sourcesOf(cat).find((s) => dims.every((d) => [...cat.metrics.values()].some((m) => m.source === s && m.splitBy.includes(d)))) ?? 'games'
 }
+
+/** The catalog's sources, in the order its metrics list them. */
+export const sourcesOf = (cat: Catalog) => [...new Set([...cat.metrics.values()].map((m) => m.source))]
 
 /** Why a metric can't join this exploration, or `null` when it can. */
 export const metricReason = (cat: Catalog, id: string, cfg: ExplorationConfig) => {
   const M = cat.metrics.get(id)
   if (!M) return 'Unknown metric'
   const other = valueMetrics(cat, cfg).find((m) => m.source !== M.source)
-  if (other && !cfg.values.includes(id)) return `From ${M.source === 'handTraps' ? 'hand traps' : M.source}, not ${other.source === 'handTraps' ? 'hand traps' : other.source}`
+  if (other && !cfg.values.includes(id)) return `From ${SOURCE_NAME[M.source]}, not ${SOURCE_NAME[other.source]}`
   const blocked = usedDims(cfg).find((d) => !M.splitBy.includes(d))
   return blocked ? `Not split by ${cat.dimensions.get(blocked)?.label.toLowerCase() ?? blocked}` : null
 }
@@ -373,10 +385,10 @@ export const dimReason = (cat: Catalog, id: string, cfg: ExplorationConfig) => {
 
 const matches = (f: Fact, cut: Cut) => Object.entries(cut).every(([d, v]) => dimValue(d, f) === v)
 const gameCut = (cut: Cut) => Object.fromEntries(Object.entries(cut).filter(([d]) => GAME_DIMS.has(d)))
-const factsOf = (seg: Segment, source: Source) => ({ games: seg.games, cards: seg.cards, handTraps: seg.handTraps, rating: seg.rating })[source]
+const factsOf = (seg: Segment, source: Source): Fact[] => ({ games: seg.games, cards: seg.cards, handTraps: seg.handTraps, rating: seg.rating } as Partial<Record<Source, Fact[]>>)[source] ?? []
 /** What a row counts: games, or distinct games for card and hand-trap rows, or recorded days. */
 const sampleOf = (source: Source, rows: Fact[]) => (source === 'cards' || source === 'handTraps' ? distinctGames(rows) : rows.length)
-export const UNIT: Record<Source, string> = { games: 'games', cards: 'games', handTraps: 'activations', rating: 'days' }
+const UNIT: Partial<Record<Source, string>> = { games: 'games', cards: 'games', handTraps: 'activations', rating: 'days' }
 
 const measure = (cat: Catalog, id: string, seg: Segment, source: Source, cut: Cut, rows?: Fact[], extra?: (f: Fact) => boolean) => {
   const keep = (f: Fact) => matches(f, cut) && (!extra || extra(f))
@@ -388,9 +400,44 @@ const measure = (cat: Catalog, id: string, seg: Segment, source: Source, cut: Cu
 export type Cell = { value: number | null; n: number }
 export type GroupSegment = { vals: (number | null)[]; n: number; cells: Cell[] }
 export type Group = { key: string; labels: string[]; values: FilterValue[]; matchId: string | null; sub: string; seg: GroupSegment[] }
-export type PivotResult = ReturnType<typeof run>
 
-export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names: Names) => {
+/** What the output draws. Both engines (this file and utils/global-explorer.ts) produce it. */
+export type PivotResult = {
+  source: Source
+  values: string[]
+  rowDims: string[]
+  colDim: string | null
+  segs: { id: string; label: string; color: string }[]
+  groups: Group[]
+  totalGroups: number
+  colList: { v: FilterValue; sk: number | string; n: number; label: string }[]
+  hiddenCols: number
+  /** One per segment. `null` when a total means nothing for this source. */
+  totals: { count: number; vals: (number | null)[] }[] | null
+  /** What `count` and `n` count: games, deck-games, activations… */
+  unit: string
+  /** A caveat for the source bar, or `''`. */
+  note: string
+}
+
+export type LineData = { maxDay: number; series: { label: string; color: string; points: { day: number; value: number | null }[] }[] }
+
+/** The row's natural order when nothing is sorted and the first row has one, else by the sorted metric of the first segment. */
+export const sortGroups = <G extends { sk: (number | string)[]; seg: GroupSegment[] }>(order: G[], rowDims: string[], cfg: ExplorationConfig) => {
+  const natural = rowDims[0] ? dimNatural(rowDims[0]) : undefined
+  if (!cfg.sort && natural) {
+    const dir = natural === 'desc' ? -1 : 1
+    const k = (g: G) => g.sk[0] ?? ''
+    order.sort((a, b) => (k(a) < k(b) ? -dir : k(a) > k(b) ? dir : 0))
+  } else {
+    const i = cfg.sort?.value ?? 0
+    const dir = cfg.sort?.direction === 'asc' ? 1 : -1
+    const lead = (g: G) => g.seg[0]!
+    order.sort((a, b) => ((lead(a).vals[i] ?? -Infinity) - (lead(b).vals[i] ?? -Infinity)) * dir || lead(b).n - lead(a).n)
+  }
+}
+
+export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names: Names): PivotResult => {
   const values = cfg.values.filter((m) => cat.metrics.has(m))
   const source = sourceOf(cat, cfg)
   const rowDims = cfg.rows.filter((d) => d in DIM_IMPL)
@@ -460,17 +507,9 @@ export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names
     // A name from the aggregates with nothing behind it in any season is noise.
     .filter((g) => g.seg.some((s) => s.n || s.vals.some((v) => v)))
 
-  const natural = rowDims[0] ? dimNatural(rowDims[0]) : undefined
-  if (!cfg.sort && natural) {
-    const dir = natural === 'desc' ? -1 : 1
-    const k = (g: { sk: (number | string)[] }) => g.sk[0] ?? ''
-    order.sort((a, b) => (k(a) < k(b) ? -dir : k(a) > k(b) ? dir : 0))
-  } else {
-    const i = cfg.sort?.value ?? 0
-    const dir = cfg.sort?.direction === 'asc' ? 1 : -1
-    const lead = (g: { seg: GroupSegment[] }) => g.seg[0]!
-    order.sort((a, b) => ((lead(a).vals[i] ?? -Infinity) - (lead(b).vals[i] ?? -Infinity)) * dir || lead(b).n - lead(a).n)
-  }
+  sortGroups(order, rowDims, cfg)
+  /** Games whose per-game detail is missing, when a value needs it. */
+  const withoutDetail = values.some((m) => NEEDS_DETAIL(cat.metrics.get(m)!)) ? sum(segs, (s) => s.season.gamesWithoutDetail ?? 0) : 0
 
   return {
     source, values, rowDims, colDim,
@@ -479,17 +518,17 @@ export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names
     totalGroups: order.length,
     colList: colList.map((c) => ({ ...c, label: dimLabel(colDim!, c.v, names) })),
     hiddenCols: colAll.length - colList.length,
-    totals: segs.map((seg) => ({
+    totals: source === 'cards' ? null : segs.map((seg) => ({
       count: factsOf(seg, source).filter((f) => matches(f, filterCut)).length,
       vals: values.map((m) => measure(cat, m, seg, source, filterCut)),
     })),
-    /** Games whose per-game detail is missing, when a value needs it. */
-    withoutDetail: values.some((m) => NEEDS_DETAIL(cat.metrics.get(m)!)) ? sum(segs, (s) => s.season.gamesWithoutDetail ?? 0) : 0,
+    unit: UNIT[source] ?? source,
+    note: withoutDetail ? `${withoutDetail} older games have no per-game detail and are left out` : '',
   }
 }
 
 /** One series per season, or per column value when a single season is split by Columns. */
-export const lineSeries = (cat: Catalog, segs: Segment[], res: PivotResult, cfg: ExplorationConfig) => {
+export const lineSeries = (cat: Catalog, segs: Segment[], res: PivotResult, cfg: ExplorationConfig): LineData => {
   const metric = res.values[0]!
   const filterCut: Cut = Object.fromEntries(cfg.filters.map((f) => [f.dimension, f.value]))
   const colDim = res.colDim

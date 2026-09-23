@@ -356,7 +356,7 @@ const SeasonBody = async ({ playerId, season, cookie }: { playerId: string; seas
       {data.mostUsedCardsPerArchetype.length ? <SignatureCards num={num()} data={data} /> : null}
       <HandTraps num={num()} data={data} />
       {data.handTrapsPerMatchup.length ? <Matchups num={num()} data={data} /> : null}
-      <Games num={num()} data={data} />
+      {/* <Games num={num()} data={data} /> */}
     </>
   )
 }

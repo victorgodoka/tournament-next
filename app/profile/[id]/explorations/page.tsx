@@ -5,6 +5,7 @@ import { AnalyticsShell, duelistLabel, personOf } from '@app/profile/analytics/A
 import { ExplorationCard } from '@omega/analytics/explorer/exploration-card'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { PrivateNotice } from '@omega/profile/private-notice'
+import { duelistName } from '@utils/analytics'
 import { getExplorations, getVariables, sharePath } from '@utils/explorations'
 import { getProfile } from '@utils/profile'
 import { pageMetadata } from '@utils/metadata'
@@ -43,6 +44,7 @@ const ExplorationsRoute = async ({ params }: ExplorationsRouteProps) => {
               variables={variables}
               href={e.shareToken ? sharePath(e.shareToken) : `/profile/${id}/analytics`}
               showVisibility={list.editable}
+              owner={e.coAuthor ? { name: duelistName(e.author), avatar: e.author.avatar } : undefined}
             />
           ))}
         </ul>

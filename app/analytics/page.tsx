@@ -5,6 +5,7 @@ import { ExplorationCard } from '@omega/analytics/explorer/exploration-card'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { duelistName } from '@utils/analytics'
 import { getPublicExplorations, getVariables, sharePath } from '@utils/explorations'
+import { getGlobalVariables, globalPath, listGlobalExplorations } from '@utils/global-explorer'
 import { pageMetadata } from '@utils/metadata'
 
 type AnalyticsFeedProps = { searchParams: Promise<{ before?: string | string[] }> }
@@ -12,14 +13,20 @@ type AnalyticsFeedProps = { searchParams: Promise<{ before?: string | string[] }
 export const metadata = pageMetadata({
   title: 'Analytics',
   path: '/analytics',
-  description: 'Explorations duelists built from their ranked games and made public: matchups, card usage, hand traps and rating over the season.',
+  description: 'Server-wide ranked analytics — meta share, matchups, engines and hand traps — plus the explorations duelists built from their own games.',
 })
 
 /** Every public exploration, newest created first. Paged with `?before=`, one server page at a time. */
 const AnalyticsFeed = async ({ searchParams }: AnalyticsFeedProps) => {
   const { before } = await searchParams
   const cursor = typeof before === 'string' && /^\d+$/.test(before) ? before : undefined
-  const [page, variables] = await Promise.all([getPublicExplorations(cursor, (await headers()).get('cookie')), getVariables()])
+  const [page, variables, global, globalVariables] = await Promise.all([
+    getPublicExplorations(cursor, (await headers()).get('cookie')),
+    getVariables(),
+    // The server-wide section is a bonus on top of the feed: a failed read hides it, not the page.
+    cursor ? [] : listGlobalExplorations().catch(() => []),
+    getGlobalVariables().catch(() => null),
+  ])
 
   return (
     <AnalyticsShell
@@ -28,6 +35,21 @@ const AnalyticsFeed = async ({ searchParams }: AnalyticsFeedProps) => {
       title="Explorations"
       aside={<p className="max-w-[46ch] text-ink-dim body-sm">Pivots duelists built over their own ranked games and chose to publish. Build yours from your profile&apos;s Analytics page.</p>}
     >
+      {global.length && globalVariables ? (
+        <section aria-labelledby="server-wide" className="mt-8">
+          <h2 id="server-wide" className="text-ink display-4">Server-wide</h2>
+          <p className="mt-1.5 max-w-[62ch] text-ink-dim body-sm">
+            Every ranked duel, one sample per deck per game: meta share, matchups, engines, techs and hand traps. Built by staff,
+            updated once a day.
+          </p>
+          <ul className="mt-5 grid gap-px border border-line bg-line md:grid-cols-2 xl:grid-cols-3">
+            {global.map((e) => (
+              <ExplorationCard key={e.id} exploration={e} variables={globalVariables} href={globalPath(e.id)} />
+            ))}
+          </ul>
+          <h2 className="mt-10 text-ink display-4">From duelists</h2>
+        </section>
+      ) : null}
       {page.explorations.length ? (
         <ul className="mt-8 grid gap-px border border-line bg-line md:grid-cols-2 xl:grid-cols-3">
           {page.explorations.map((e) => (
@@ -36,7 +58,7 @@ const AnalyticsFeed = async ({ searchParams }: AnalyticsFeedProps) => {
               exploration={e}
               variables={variables}
               href={e.shareToken ? sharePath(e.shareToken) : `/profile/${e.ownerId}/analytics`}
-              owner={{ name: duelistName(e.owner), avatar: e.owner.avatar }}
+              owner={{ name: e.coAuthor ? `${duelistName(e.author)} with ${duelistName(e.coAuthor)}` : duelistName(e.author), avatar: e.author.avatar }}
             />
           ))}
         </ul>

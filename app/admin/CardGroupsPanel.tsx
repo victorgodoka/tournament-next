@@ -370,7 +370,7 @@ export const CardGroupsPanel = () => {
     <Row
       index="01"
       title="Card groups"
-      blurb="What each card is inside a deck: engine, tech, hand trap. A card can sit in any number of groups, of both kinds."
+      blurb="What each card is inside a deck: engine, tech, hand trap. A card can sit in any number of groups, of both kinds. Global analytics reads them at the nightly sweep: re-sweep the season (Ranked ops) to apply a change to past days."
       action={
         editing === null ? (
           <Button size="sm" onClick={() => setEditing('new')}>

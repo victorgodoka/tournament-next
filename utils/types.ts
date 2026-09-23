@@ -556,7 +556,7 @@ export type WikiUser = {
   avatarUrl: string | null
 }
 
-export type WikiRole = 'USER' | 'EDITOR' | 'ADMIN'
+export type WikiRole = 'USER' | 'EDITOR' | 'ANALYST' | 'ADMIN'
 
 /** Index row. No `body`: an article can be 100 KB of Markdown. */
 export type ArticleSummary = {

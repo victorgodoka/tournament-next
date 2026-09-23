@@ -7,7 +7,8 @@ const TECHNIQUE_LABEL: Record<string, string> = { table: 'Table', heatmap: 'Heat
 const VISIBILITY_LABEL: Record<Visibility, string> = { private: 'Private', link: 'Link only', public: 'Public' }
 
 type ExplorationCardProps = {
-  exploration: Exploration
+  /** A duelist's exploration, or a global one (no visibility, has a description). */
+  exploration: Pick<Exploration, 'name' | 'config' | 'updatedAt'> & { visibility?: Visibility; description?: string }
   variables: Variables
   href: string
   /** Shown on the public feed, where explorations come from many duelists. */
@@ -26,7 +27,7 @@ export const ExplorationCard = ({ exploration: e, variables, href, owner, showVi
       <Link href={href} className="group flex h-full flex-col gap-2 px-5 py-4.5 hover:bg-surface-100">
         <span className="flex items-center gap-3">
           <span className="min-w-0 flex-1 truncate text-ink display-5 group-hover:text-gold">{e.name}</span>
-          {showVisibility && e.visibility !== 'public' ? (
+          {showVisibility && e.visibility && e.visibility !== 'public' ? (
             <span className="shrink-0 border border-ink-muted px-2 py-1 text-ink-muted signal-chip">{VISIBILITY_LABEL[e.visibility]}</span>
           ) : null}
           <span className="shrink-0 border border-line px-2 py-1 text-ink-dim signal-chip">{TECHNIQUE_LABEL[config.technique] ?? config.technique}</span>
@@ -36,7 +37,9 @@ export const ExplorationCard = ({ exploration: e, variables, href, owner, showVi
           {config.rows.length ? ` by ${config.rows.map((d) => dim(d).toLowerCase()).join(', ')}` : ''}
           {config.columns ? ` × ${dim(config.columns).toLowerCase()}` : ''}
         </span>
-        {config.filters.length ? (
+        {e.description ? (
+          <span className="line-clamp-3 text-ink-muted body-sm">{e.description}</span>
+        ) : config.filters.length ? (
           <span className="text-ink-muted mono-note">{config.filters.map((f) => `${dim(f.dimension)} = ${f.value ?? 'Unknown'}`).join(' · ')}</span>
         ) : null}
         <span className="mt-auto flex items-center gap-2 pt-1 text-ink-muted signal-sm">
