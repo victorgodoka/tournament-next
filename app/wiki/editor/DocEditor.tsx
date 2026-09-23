@@ -17,6 +17,7 @@ import {
   emptyDoc,
   isAllowedSrc,
   renderDocHtml,
+  toAnchor,
   validateDoc,
   type WikiAsset,
   type WikiBlock,
@@ -96,7 +97,7 @@ type DocEditorProps = {
 
 /**
  * Block editor. The state is one `WikiDoc`; every control edits it, the preview renders it
- * through the published page's own component, and saving sends it as-is (docs/WIKI_BLOCKS.md).
+ * through the published page's own component, and saving sends it as-is (WIKI_API.md §5).
  */
 export const DocEditor = ({ article, converted = false }: DocEditorProps) => {
   const router = useRouter()
@@ -368,9 +369,11 @@ export const DocEditor = ({ article, converted = false }: DocEditorProps) => {
                     value={tagText}
                     onChange={(text) => {
                       setTagText(text)
-                      edit((d) => ({ ...d, tags: text.split(',').map((tag) => tag.trim()).filter(Boolean) }))
+                      edit((d) => ({ ...d, tags: [...new Set(text.split(',').map(toAnchor).filter(Boolean))] }))
                     }}
-                    help={`Comma separated, up to ${DOC_LIMITS.tags}: archetype, control`}
+                    // The doc already holds the normalised tags; leaving the field shows the reader what was kept.
+                    onBlur={() => setTagText(doc.tags.join(', '))}
+                    help={`Comma separated, up to ${DOC_LIMITS.tags}. Lowercased, spaces become hyphens: duel-terminal, hidden-arsenal`}
                   />
                   <AssetPicker
                     optional
@@ -416,10 +419,38 @@ export const DocEditor = ({ article, converted = false }: DocEditorProps) => {
                                   ...d,
                                   infobox: { ...infobox, facts: infobox.facts.map((f, j) => (j === i ? { ...f, ...patch } : f)) },
                                 }))
+                              // Several values live in the one `value`, a line each: the schema stays a string.
+                              const values = fact.value.split('\n')
+                              const setValues = (next: string[]) => setFact({ value: next.join('\n') })
                               return (
-                                <li key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-2">
+                                <li key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] items-start gap-2">
                                   <input aria-label={`Fact ${i + 1} label`} placeholder="Label" value={fact.label} onChange={(event) => setFact({ label: event.target.value })} className={FIELD} />
-                                  <input aria-label={`Fact ${i + 1} value`} placeholder="Value" value={fact.value} onChange={(event) => setFact({ value: event.target.value })} className={FIELD} />
+                                  <div className="flex min-w-0 flex-col gap-1.5">
+                                    {values.map((value, k) => (
+                                      <div key={k} className="flex gap-1.5">
+                                        <input
+                                          aria-label={`Fact ${i + 1} value ${k + 1}`}
+                                          placeholder="Value"
+                                          value={value}
+                                          onChange={(event) => setValues(values.map((v, m) => (m === k ? event.target.value.replace(/\n/g, ' ') : v)))}
+                                          className={twMerge(FIELD, 'min-w-0 flex-1')}
+                                        />
+                                        {values.length > 1 ? (
+                                          <button
+                                            type="button"
+                                            aria-label={`Remove value ${k + 1} of fact ${i + 1}`}
+                                            onClick={() => setValues(values.filter((_, m) => m !== k))}
+                                            className={MINI}
+                                          >
+                                            −
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                    <button type="button" onClick={() => setValues([...values, ''])} className={twMerge(MINI, 'self-start px-2.5')}>
+                                      + Value
+                                    </button>
+                                  </div>
                                   <button
                                     type="button"
                                     aria-label={`Remove fact ${i + 1}`}

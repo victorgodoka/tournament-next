@@ -1,7 +1,7 @@
 /**
  * Block document for wiki articles: the one shape the editor writes, the API stores and the page renders.
  * The same JSON always renders the same page — there is no layout state outside it.
- * The contract, limits and endpoints are written up for the backend in docs/WIKI_BLOCKS.md.
+ * The contract, limits and endpoints are in omega-server-v3 WIKI_API.md §5.
  */
 import { renderArticle } from '@utils/remark'
 
@@ -60,7 +60,7 @@ export type WikiDoc = {
   assets: Record<string, WikiAsset>
 }
 
-/** Limits the server enforces (docs/WIKI_BLOCKS.md §5). The editor checks them first for readable errors. */
+/** Limits the server enforces (WIKI_API.md §5.3). The editor checks them first for readable errors. */
 export const DOC_LIMITS = {
   title: 120,
   summary: 300,
@@ -143,7 +143,7 @@ export const parseYouTube = (input: string): { videoId: string; start?: number }
 /**
  * A legacy Markdown article as a block doc: `#`/`##` become H2 blocks, `###` H3, and everything
  * between stays Markdown in text blocks. The page reads the same; it is just editable in blocks now.
- * Headings inside code fences are left alone. The server may run the same conversion (WIKI_BLOCKS §10).
+ * Headings inside code fences are left alone.
  */
 export const docFromMarkdown = (title: string, body: string): WikiDoc => {
   const blocks: WikiBlock[] = []
@@ -241,7 +241,9 @@ export const validateDoc = (doc: WikiDoc): string[] => {
   if (doc.infobox) {
     if (doc.infobox.asset && !has(doc.infobox.asset)) problems.push('The infobox image is missing from the library.')
     if (doc.infobox.facts.length > DOC_LIMITS.facts) problems.push(`The infobox has more than ${DOC_LIMITS.facts} facts.`)
-    if (doc.infobox.facts.some((fact) => !fact.label.trim() || !fact.value.trim())) problems.push('Every infobox fact needs a label and a value.')
+    // A fact's values are its lines, so an empty line is an empty value.
+    if (doc.infobox.facts.some((fact) => !fact.label.trim() || fact.value.split('\n').some((value) => !value.trim())))
+      problems.push('Every infobox fact needs a label, and none of its values can be empty.')
   }
 
   const assets = Object.values(doc.assets)

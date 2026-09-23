@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
@@ -9,16 +10,71 @@ import { ArticleView } from '@omega/wiki/article-view'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { getArticle } from '@utils/articles'
-import { pageMetadata } from '@utils/metadata'
+import { SITE_NAME, SITE_URL } from '@utils/config'
+import { jsonLd, metaDescription, pageMetadata } from '@utils/metadata'
 import { renderArticle } from '@utils/remark'
 import type { Article } from '@utils/types'
-import { renderDocHtml } from '@utils/wiki-doc'
+import { imageSource, renderDocHtml } from '@utils/wiki-doc'
 import { ArticleActions } from './ArticleActions'
 
 type ArticleRouteProps = { params: Promise<{ slug: string }> }
 
-/** Forwards the visitor's session, which is what lets an editor open a draft at its public URL. */
-const loadArticle = async (slug: string) => getArticle(slug, (await headers()).get('cookie'))
+/**
+ * Forwards the visitor's session, which is what lets an editor open a draft at its public URL.
+ * `cache`: metadata and page share one request instead of two uncached fetches.
+ */
+const loadArticle = cache(async (slug: string) => getArticle(slug, (await headers()).get('cookie')))
+
+/** A block article writes its own summary; a Markdown one gets its opening text with the markup stripped. */
+const describe = (article: Article) =>
+  metaDescription(
+    article.doc?.summary ||
+      article.summary ||
+      article.body
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/^\s*(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+        .replace(/[*_`|~]/g, ''),
+  ) || undefined
+
+const coverUrl = (article: Article) => {
+  const cover = article.doc?.cover && article.doc.assets[article.doc.cover.asset]
+  return cover ? { url: imageSource(cover, 1200).src, alt: cover.alt } : undefined
+}
+
+/** Article + breadcrumb, so search and answer engines get the author, dates and place in the wiki. */
+const articleJsonLd = (article: Article) => {
+  const url = `${SITE_URL}/wiki/${article.slug}`
+  const image = coverUrl(article)
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Article',
+        '@id': `${url}#article`,
+        headline: article.title,
+        description: describe(article),
+        url,
+        mainEntityOfPage: url,
+        inLanguage: 'en',
+        datePublished: article.publishedAt,
+        dateModified: article.updatedAt,
+        author: { '@type': 'Person', name: userName(article.author) },
+        ...(article.updatedBy ? { editor: { '@type': 'Person', name: userName(article.updatedBy) } } : {}),
+        publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/logo.png` },
+        ...(image ? { image: new URL(image.url, SITE_URL).href } : {}),
+        ...(article.doc?.tags.length ? { keywords: article.doc.tags.join(', ') } : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Omega Wiki', item: `${SITE_URL}/wiki` },
+          { '@type': 'ListItem', position: 2, name: article.title, item: url },
+        ],
+      },
+    ],
+  }
+}
 
 export async function generateMetadata({ params }: ArticleRouteProps) {
   const { slug } = await params
@@ -26,14 +82,17 @@ export async function generateMetadata({ params }: ArticleRouteProps) {
 
   if (!article) return pageMetadata({ title: 'Article not found', path: `/wiki/${slug}`, noIndex: true })
 
+  const cover = coverUrl(article)
   return pageMetadata({
     title: article.title,
     path: `/wiki/${article.slug}`,
-    // A block article writes its own summary; a Markdown one gets its first paragraph-ish.
-    description:
-      article.doc?.summary ||
-      article.body.replace(/[#*_>`-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180) ||
-      undefined,
+    description: describe(article),
+    images: cover ? [cover] : undefined,
+    article: {
+      publishedTime: article.publishedAt ?? undefined,
+      modifiedTime: article.updatedAt,
+      authors: [userName(article.author)],
+    },
     // A draft is only visible to editors, so it must never be indexed.
     noIndex: !article.publishedAt,
   })
@@ -125,6 +184,7 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
     <>
       <Header />
       <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
+        {article.publishedAt ? <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(articleJsonLd(article))} /> : null}
         <WikiBar
           section="Articles"
           placeholder="Search cards by name or part of one"

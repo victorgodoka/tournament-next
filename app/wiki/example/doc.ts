@@ -7,7 +7,7 @@ const art = (id: number, alt: string, focal?: WikiAsset['focal']): WikiAsset => 
   width: 624,
   height: 624,
   alt,
-  credit: 'Artwork © Konami',
+  credit: '©1996 KAZUKI TAKAHASHI',
   focal,
 })
 

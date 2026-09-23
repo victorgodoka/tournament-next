@@ -24,3 +24,16 @@ export const searchArchetypes = async (text: string, signal?: AbortSignal): Prom
   const archetypes = await get<{ name: string }[]>(`/archetypes?q=${encodeURIComponent(text)}`, signal)
   return archetypes.map(({ name }) => name)
 }
+
+/** A card and every artwork it has: its own passcode first, then the alternates. */
+export type CardArts = { id: number; name: string; arts: number[] }
+
+/**
+ * By name, or by passcode when `text` is all digits. An alternate artwork's passcode resolves to the
+ * original card, which then lists every artwork anyway.
+ */
+export const searchCardArts = async (text: string, limit: number, signal?: AbortSignal): Promise<CardArts[]> => {
+  const query = /^\d+$/.test(text) ? `id=${text}` : `fname=${encodeURIComponent(text)}&limit=${limit}`
+  const { cards } = await get<{ cards: { id: number; name: string; alternateArts: number[] }[] }>(`/cards?${query}`, signal)
+  return cards.map(({ id, name, alternateArts }) => ({ id, name, arts: [id, ...alternateArts] }))
+}

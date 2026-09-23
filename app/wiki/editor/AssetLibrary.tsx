@@ -1,22 +1,101 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { uploadWikiAsset } from '@utils/articles'
+import { searchCardArts, type CardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
-import { imageSource, isAllowedSrc, type WikiAsset } from '@utils/wiki-doc'
+import { imageSource, type WikiAsset } from '@utils/wiki-doc'
 import { FIELD, HELP, failure } from '../ArticleForm'
 import { MINI } from './fields'
 
-/** Natural size of an image the browser can load. The server re-measures anything it stores. */
-const measure = (src: string) =>
-  new Promise<{ width: number; height: number }>((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
-    img.onerror = () => reject(new Error(`Couldn't load ${src}`))
-    img.src = src
-  })
+/** The only credits a Yu-Gi-Oh! artwork may carry: the original manga, or the later anime series. */
+const YUGIOH_CREDITS: readonly string[] = ['©1996 KAZUKI TAKAHASHI', '©2020 Studio Dice/SHUEISHA, TV TOKYO, KONAMI']
+
+/** The last answer the server gave, tagged with the query that asked for it. */
+type Answer = { query: string; cards: CardArts[]; failed: boolean }
+
+/**
+ * Card art by name or passcode. Each result lists every artwork of the card as
+ * `[art] Name (passcode)`, so an alternate art is one click, not a passcode lookup.
+ */
+const CardArtSearch = ({ added, onPick }: { added: Set<string>; onPick: (id: number, name: string) => void }) => {
+  const [query, setQuery] = useState('')
+  const [answer, setAnswer] = useState<Answer | null>(null)
+
+  const text = query.trim()
+  const ready = /^\d+$/.test(text) || text.length >= 2
+  const shown = answer?.query === text ? answer : null
+
+  // Debounced like the wiki bar; stale answers vanish because they're tagged with their query.
+  useEffect(() => {
+    if (!ready) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      searchCardArts(text, 8, controller.signal)
+        .then((cards) => setAnswer({ query: text, cards, failed: false }))
+        .catch((error: Error) => {
+          if (error.name !== 'AbortError') setAnswer({ query: text, cards: [], failed: true })
+        })
+    }, 300)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [text, ready])
+
+  const rows = shown?.cards.flatMap((card) => card.arts.map((art) => ({ art, name: card.name }))) ?? []
+
+  return (
+    <div>
+      <input
+        type="search"
+        aria-label="Search card art by name or passcode"
+        placeholder="Card art: name or passcode"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        className={FIELD}
+      />
+      {ready ? (
+        <div aria-live="polite" className="mt-1.5 max-h-72 overflow-y-auto border border-line bg-surface-100">
+          {!shown ? (
+            <p className="px-2.5 py-2 text-ink-muted body-sm">Searching…</p>
+          ) : shown.failed ? (
+            <p className="px-2.5 py-2 text-gold body-sm">Card search is unavailable right now.</p>
+          ) : !rows.length ? (
+            <p className="px-2.5 py-2 text-ink-muted body-sm">No cards match “{text}”.</p>
+          ) : (
+            <ul>
+              {rows.map(({ art, name }) => {
+                const taken = added.has(`card-${art}`)
+                return (
+                  <li key={art}>
+                    <button
+                      type="button"
+                      disabled={taken}
+                      onClick={() => {
+                        onPick(art, name)
+                        setQuery('')
+                      }}
+                      className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left hover:bg-ground-soft disabled:opacity-40"
+                    >
+                      <Image src={CARD_ART_URL(art)} alt="" width={40} height={40} unoptimized className="size-10 shrink-0 border border-line object-cover" />
+                      <span className="min-w-0 truncate text-ink body-sm">
+                        {name} <span className="text-ink-muted mono-note">({art})</span>
+                      </span>
+                      {taken ? <span className="ml-auto shrink-0 text-ink-muted mono-note">Added</span> : null}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 type AssetLibraryProps = {
   assets: WikiAsset[]
@@ -32,41 +111,20 @@ type AssetLibraryProps = {
  * once (alt, credit, focal point) changes everywhere it appears.
  */
 export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetLibraryProps) => {
-  const [passcode, setPasscode] = useState('')
-  const [path, setPath] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const addCard = () => {
-    const id = Number(passcode)
-    if (!id) return setError('Type a passcode.')
-    onAdd({ id: `card-${id}`, src: CARD_ART_URL(id), width: 624, height: 624, alt: `Card artwork ${id}`, credit: 'Artwork © Konami' })
-    setPasscode('')
-    setError(null)
-  }
-
-  const addPath = async () => {
-    const src = path.trim()
-    if (!isAllowedSrc(src)) return setError('Use a site path like /banners/… or a card-art URL. Other images: upload them.')
-    setBusy(true)
-    try {
-      const size = await measure(src)
-      onAdd({ id: `img-${crypto.randomUUID().slice(0, 8)}`, src, ...size, alt: '' })
-      setPath('')
-      setError(null)
-    } catch {
-      setError("That image didn't load.")
-    } finally {
-      setBusy(false)
-    }
-  }
+  const addCard = (id: number, name: string) =>
+    onAdd({ id: `card-${id}`, src: CARD_ART_URL(id), width: 624, height: 624, alt: `${name} artwork`, credit: YUGIOH_CREDITS[0] })
 
   const upload = async (file: File | undefined) => {
     if (!file) return
     setBusy(true)
     setError(null)
     try {
-      onAdd(await uploadWikiAsset(file, file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')))
+      // The select shows the first credit by default; store it so the page prints what the editor saw.
+      const asset = await uploadWikiAsset(file, file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '))
+      onAdd({ ...asset, credit: asset.credit || YUGIOH_CREDITS[0] })
     } catch (cause) {
       console.error(cause)
       setError(failure(cause))
@@ -82,7 +140,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
           {busy ? 'Working…' : 'Upload image'}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
+            accept="image/png,image/jpeg,image/webp"
             className="sr-only"
             onChange={(event) => {
               void upload(event.target.files?.[0])
@@ -91,31 +149,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
           />
         </label>
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            addCard()
-          }}
-          className="flex gap-2"
-        >
-          <input aria-label="Card passcode" inputMode="numeric" placeholder="Card passcode" value={passcode} onChange={(event) => setPasscode(event.target.value.replace(/\D/g, ''))} className={twMerge(FIELD, 'font-mono')} />
-          <button type="submit" className={twMerge(MINI, 'px-3')}>
-            Add
-          </button>
-        </form>
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            void addPath()
-          }}
-          className="flex gap-2"
-        >
-          <input aria-label="Image path" placeholder="/banners/…" value={path} onChange={(event) => setPath(event.target.value)} className={twMerge(FIELD, 'font-mono')} />
-          <button type="submit" disabled={busy} className={twMerge(MINI, 'px-3')}>
-            Add
-          </button>
-        </form>
+        <CardArtSearch added={new Set(assets.map((asset) => asset.id))} onPick={addCard} />
 
         <p aria-live="polite" className="text-gold body-sm empty:hidden">
           {error ?? ''}
@@ -158,13 +192,18 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
                   onChange={(event) => onChange({ ...asset, alt: event.target.value })}
                   className={twMerge(FIELD, 'mt-1.5 py-1.5', !asset.alt.trim() && 'border-gold')}
                 />
-                <input
+                <select
                   aria-label={`Credit for ${asset.id}`}
-                  placeholder="Credit"
-                  value={asset.credit ?? ''}
-                  onChange={(event) => onChange({ ...asset, credit: event.target.value || undefined })}
+                  value={asset.credit ?? YUGIOH_CREDITS[0]}
+                  onChange={(event) => onChange({ ...asset, credit: event.target.value })}
                   className={twMerge(FIELD, 'mt-1.5 py-1.5')}
-                />
+                >
+                  {/* An older article may carry another credit; keep it visible until someone picks. */}
+                  {asset.credit && !YUGIOH_CREDITS.includes(asset.credit) ? <option>{asset.credit}</option> : null}
+                  {YUGIOH_CREDITS.map((credit) => (
+                    <option key={credit}>{credit}</option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={() => onRemove(asset.id)}

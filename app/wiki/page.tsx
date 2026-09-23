@@ -41,6 +41,8 @@ const dateOr = (value?: string) => (value && /^\d{4}-\d{2}-\d{2}$/.test(value) ?
 const WikiPage = async ({ searchParams }: WikiRouteProps) => {
   const [params, cookie] = await Promise.all([searchParams, headers().then((list) => list.get('cookie'))])
 
+  // Authors only need the cookie, so they load alongside the session instead of after it.
+  const authorsLoad = listAuthors(cookie).catch(() => [])
   // The session decides whether drafts come back at all, so it is read before the index.
   const me = await getMeServer(cookie).catch(() => null)
   const isEditor = can(me, 'wiki.write')
@@ -63,7 +65,7 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
       console.error(error)
       return { articles: [], nextCursor: null }
     }),
-    listAuthors(cookie).catch(() => []),
+    authorsLoad,
   ])
 
   return (

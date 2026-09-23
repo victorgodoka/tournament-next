@@ -9,7 +9,9 @@ import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { getArticle, getRevision, getRevisions } from '@utils/articles'
 import { noIndexMetadata } from '@utils/metadata'
+import { WikiBlocks } from '@omega/wiki/blocks'
 import { renderArticle } from '@utils/remark'
+import { renderDocHtml } from '@utils/wiki-doc'
 import { RestoreButton } from './RestoreButton'
 
 type HistoryRouteProps = {
@@ -38,7 +40,9 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
 
   // A revision id that belongs to another article answers 404, so an unknown `rev` just shows nothing.
   const revision = rev ? await getRevision(slug, rev, cookie) : null
-  const html = revision ? await renderArticle(revision.body) : null
+  // A block revision's `body` is only the plain-text projection; `doc` is the page.
+  const html = revision && !revision.doc ? await renderArticle(revision.body) : null
+  const docHtml = revision?.doc ? await renderDocHtml(revision.doc) : null
 
   return (
     <>
@@ -100,7 +104,7 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
             </ol>
 
             <div className="min-w-0">
-              {revision && html ? (
+              {revision ? (
                 <>
                   <p className="text-ink-muted signal-sm">
                     Revision #{revision.id} · saved <LocalTime iso={revision.createdAt} options={ARTICLE_DATE_TIME} />
@@ -111,7 +115,11 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
                     <RestoreButton slug={article.slug} revisionId={revision.id} />
                   </div>
 
-                  <ArticleBody html={html} className="mt-6 border-t border-line pt-6" />
+                  {revision.doc && docHtml ? (
+                    <WikiBlocks doc={revision.doc} html={docHtml} className="mt-6 border-t border-line pt-6" />
+                  ) : (
+                    <ArticleBody html={html ?? ''} className="mt-6 border-t border-line pt-6" />
+                  )}
                 </>
               ) : (
                 <p className="text-ink-muted body">

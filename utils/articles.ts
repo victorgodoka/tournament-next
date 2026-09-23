@@ -136,7 +136,7 @@ export const updateArticle = (slug: string, patch: ArticlePatch | DocArticlePatc
   request<Article>(`/wiki/${encodeURIComponent(slug)}`, json('PATCH', patch))
 
 /**
- * One image into the wiki's storage (docs/WIKI_BLOCKS.md §4), the same way profile covers go:
+ * One image into the wiki's storage (WIKI_API.md §4.12–4.13), the same way profile covers go:
  * the API signs, the browser uploads straight to Cloudinary, and the API only accepts the result
  * after asking Cloudinary itself that it exists and passed moderation. The returned asset carries
  * Cloudinary's own width and height.

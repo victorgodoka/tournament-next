@@ -29,11 +29,26 @@ const customSanitizeSchema = {
   }
 };
 
+type MdNode = { type: string; value?: string; children?: MdNode[] }
+
+/** A single newline is a line break, not a soft wrap — people type in textareas, not Markdown. Code nodes aren't `text`, so they keep theirs. */
+const remarkBreaks = () => (tree: MdNode) => {
+  const walk = (node: MdNode) => {
+    if (!node.children) return
+    node.children = node.children.flatMap((child) => {
+      if (child.type !== 'text' || !child.value?.includes('\n')) return (walk(child), [child])
+      return child.value.split(/\r?\n/).flatMap((value, i) => [...(i ? [{ type: 'break' }] : []), { type: 'text', value }])
+    })
+  }
+  walk(tree)
+}
+
 /** One pipeline for every markdown surface: parse, class up, sanitize, stringify. */
 const toHtml = async (markdownText: string, classes: Record<string, string>) => {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
+    .use(remarkBreaks)
     .use(remarkRehype)
     .use(rehypeClassNames, classes)
     .use(rehypeSanitize, customSanitizeSchema)

@@ -15,6 +15,7 @@ export const TextField = ({
   label,
   value,
   onChange,
+  onBlur,
   rows,
   help,
   mono,
@@ -24,6 +25,7 @@ export const TextField = ({
   label: string
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   rows?: number
   help?: React.ReactNode
   mono?: boolean
@@ -36,6 +38,7 @@ export const TextField = ({
     value,
     maxLength,
     placeholder,
+    onBlur,
     className: twMerge(FIELD, 'mt-2', mono && 'font-mono', rows && 'resize-y'),
   }
   return (

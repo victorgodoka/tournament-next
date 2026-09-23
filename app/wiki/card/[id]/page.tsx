@@ -23,7 +23,9 @@ import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
 import { Chip } from '@ui/chip'
-import { pageMetadata } from '@utils/metadata'
+import { SITE_URL } from '@utils/config'
+import { CARD_ART_URL } from '@utils/const'
+import { jsonLd, metaDescription, pageMetadata } from '@utils/metadata'
 import {
   ATTRIBUTE_COLOR,
   getBanlists,
@@ -100,8 +102,10 @@ export async function generateMetadata({ params }: CardRouteProps) {
 
   return pageMetadata({
     title: card.name,
-    path: `/wiki/card/${card.id}`,
-    description: `${card.humanReadableCardType}. ${card.description}`.slice(0, 300),
+    // An alternate artwork is the same card: its page points search at the original print.
+    path: `/wiki/card/${card.alias || card.id}`,
+    description: metaDescription(`${card.humanReadableCardType}. ${card.description}`),
+    images: [{ url: CARD_ART_URL(card.id), alt: `${card.name} artwork` }],
   })
 }
 
@@ -122,6 +126,17 @@ const CardRoute = async ({ params }: CardRouteProps) => {
     <>
       <Header />
       <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={jsonLd({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Omega Wiki', item: `${SITE_URL}/wiki` },
+              { '@type': 'ListItem', position: 2, name: card.name, item: `${SITE_URL}/wiki/card/${card.alias || card.id}` },
+            ],
+          })}
+        />
         <WikiBar section="Cards" placeholder="Search cards by name or part of one" link={{ label: 'Articles', to: '/wiki' }} />
 
         <div className="grid flex-1 border-b border-line-strong lg:grid-cols-[minmax(0,1fr)_23.25rem]">

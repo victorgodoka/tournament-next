@@ -567,7 +567,7 @@ export type ArticleSummary = {
 export type Article = ArticleSummary & {
   /** Raw Markdown. Render it through a Markdown pipeline, never as HTML. On a block article: the server's plain-text projection of `doc`. */
   body: string
-  /** Block document (docs/WIKI_BLOCKS.md). `null`/absent on a legacy Markdown article. */
+  /** Block document (WIKI_API.md §5). `null`/absent on a legacy Markdown article. */
   doc?: WikiDoc | null
   /** `null` until someone other than the creation edits it; then whoever saved last. */
   updatedBy: WikiUser | null
@@ -588,7 +588,8 @@ export type Revision = {
   createdAt: string
 }
 
-export type RevisionDetail = Revision & { body: string }
+/** `doc: null` on a revision saved before the article had blocks: render `body` as Markdown then. */
+export type RevisionDetail = Revision & { body: string; doc: WikiDoc | null }
 
 /** `GET /wiki/editors`. Rows with `role: 'ADMIN'` are not editable. */
 export type WikiEditor = WikiUser & { role: WikiRole }

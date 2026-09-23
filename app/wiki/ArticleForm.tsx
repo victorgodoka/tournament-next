@@ -28,8 +28,13 @@ export const failure = (error: unknown) => {
   if (error.status === 409) return 'That address is already taken. Choose a different one.'
   if (error.status === 401) return 'Your session expired. Sign in again.'
   if (error.status === 403) return "Your account can't do that."
+  if (error.status === 422) return 'Moderation rejected that image (or has not approved it yet).'
+  if (error.status === 503) return "Image uploads aren't available on this server."
+  // Doc validation names the path, e.g. `doc.blocks[3].md must not contain raw HTML`.
   if (error.status === 400) {
-    return 'The server rejected this. Raw HTML is not allowed, and every link must be a full http(s) address.'
+    return error.message.startsWith('Wiki API failed')
+      ? 'The server rejected this. Raw HTML is not allowed, and every link must be a full http(s) address.'
+      : `The server rejected this: ${error.message}`
   }
   return "Couldn't save the article."
 }

@@ -95,7 +95,14 @@ export const FactRows = ({ facts }: { facts: { label: string; value: string }[] 
     {facts.map(({ label, value }) => (
       <div key={label} className="flex items-baseline justify-between gap-3.5 border-b border-line py-2 last:border-b-0">
         <span className="whitespace-nowrap text-ink-muted signal">{label}</span>
-        <span className="min-w-0 text-right text-ink body-strong">{value}</span>
+        {/* A fact with several values stores one per line; each gets its own row on the right. */}
+        <span className="min-w-0 text-right text-ink body-strong">
+          {value.split('\n').map((line, i) => (
+            <span key={i} className="block">
+              {line}
+            </span>
+          ))}
+        </span>
       </div>
     ))}
   </div>

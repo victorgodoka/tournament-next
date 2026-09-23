@@ -401,7 +401,7 @@ export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserPro
     )
 
   return (
-    <div className="mx-auto w-full max-w-page px-gutter">
+    <div className="mx-auto w-full max-w-page px-gutter mt-8">
       <section>
         <Eyebrow live meta="Live · refreshed every 30 min">
           Ranked ladder
