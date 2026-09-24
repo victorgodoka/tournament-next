@@ -10,7 +10,7 @@ import { cache } from 'react'
 import { API_URL } from '@utils/auth'
 import { AnalyticsApiError, type PlayerSeason } from '@utils/analytics'
 import {
-  SOURCE_NAME, fmt, segColor, segmentLabel, sortGroups,
+  SOURCE_NAME, fmt, pickColumns, segColor, segmentLabel, sortGroups,
   type Catalog, type ExplorationConfig, type FilterValue, type Group, type GroupSegment, type LineData, type PivotResult, type Source, type Variables,
 } from './explorer'
 
@@ -191,7 +191,8 @@ export const globalDimLabel = (d: string, v: FilterValue, names: GlobalNames) =>
  * ---------------------------------------------------------------- */
 
 type Cut = Record<string, FilterValue>
-type Ctx = { facts: Fact[]; cut: Cut; seg: GlobalSegment; extra?: (f: Fact) => boolean }
+/** `base`: the filters alone, the population a share divides by. */
+type Ctx = { facts: Fact[]; cut: Cut; base: Cut; seg: GlobalSegment; extra?: (f: Fact) => boolean }
 
 const ratio = (a: number, b: number) => (b ? a / b : null)
 const S = (facts: Fact[], k: string) => facts.reduce((n, f) => n + (f.n[k] ?? 0), 0)
@@ -219,7 +220,7 @@ const tallyRate = (facts: Fact[]) => ratio(S(facts, 'w'), S(facts, 'w') + S(fact
 const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   samples: ({ facts }) => S(facts, 'samples'),
   matches: ({ facts }) => S(facts.filter((f) => f.dims.gameNumber === 1), 'samples'),
-  metaShare: ({ facts, seg }) => ratio(S(facts, 'samples'), S(seg.facts.games ?? [], 'samples')),
+  metaShare: (ctx) => ratio(S(ctx.facts, 'samples'), gamesOf({ ...ctx, cut: ctx.base, extra: undefined })),
   wins: ({ facts }) => outcome(facts, 1),
   losses: ({ facts }) => outcome(facts, -1),
   draws: ({ facts }) => outcome(facts, 0),
@@ -233,8 +234,8 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   longestChain: ({ facts }) => ratio(S(facts, 'chain'), S(facts, 'samples')),
 
   dailySamples: ({ facts }) => S(facts, 'samples'),
-  dailyMetaShare: ({ facts, seg, cut, extra }) => {
-    const day = (seg.facts.days ?? []).filter((f) => (!('seasonDay' in cut) || f.dims.seasonDay === cut.seasonDay) && (!extra || extra(f)))
+  dailyMetaShare: ({ facts, seg, cut, base, extra }) => {
+    const day = (seg.facts.days ?? []).filter((f) => matches(f, base) && (!('seasonDay' in cut) || f.dims.seasonDay === cut.seasonDay) && (!extra || extra(f)))
     return ratio(S(facts, 'samples'), S(day, 'samples'))
   },
   dailyWinRate: ({ facts }) => tallyRate(facts),
@@ -278,7 +279,7 @@ export const globalCatalogOf = (vars: Variables): Catalog => ({
  * Pivot
  * ---------------------------------------------------------------- */
 
-const measure = (id: string, seg: GlobalSegment, facts: Fact[], cut: Cut, extra?: (f: Fact) => boolean) => COMPUTE[id]!({ facts, cut, seg, extra })
+const measure = (id: string, seg: GlobalSegment, facts: Fact[], cut: Cut, base: Cut, extra?: (f: Fact) => boolean) => COMPUTE[id]!({ facts, cut, base, seg, extra })
 
 export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationConfig, names: GlobalNames): PivotResult => {
   const values = cfg.values.filter((m) => cat.metrics.has(m))
@@ -311,8 +312,12 @@ export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationC
     }
   })
 
-  const colAll = [...colVals.values()].sort(colDim && ORDER[colDim] || colDim === 'gameNumber' ? (a, b) => (a.sk < b.sk ? -1 : a.sk > b.sk ? 1 : 0) : (a, b) => b.n - a.n)
-  const colList = colAll.slice(0, 8)
+  const colAll = [...colVals.values()].map((c) => ({ ...c, label: globalDimLabel(colDim!, c.v, names) }))
+  const colList = pickColumns(colAll, cfg, !!colDim && (!!ORDER[colDim] || colDim === 'gameNumber'), (c) => {
+    const cut = { ...filterCut, [colDim!]: c.v }
+    const s = segs[0]
+    return values[0] && s ? measure(values[0], s, (s.facts[source] ?? []).filter((f) => matches(f, cut)), cut, filterCut) : null
+  })
 
   const order = [...groups.values()].map((g) => {
     const cut: Cut = { ...filterCut, ...Object.fromEntries(rowDims.map((d, i) => [d, g.values[i]!])) }
@@ -322,13 +327,13 @@ export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationC
       const small = n < min
       return {
         n,
-        vals: values.map((m) => (small ? null : measure(m, s, rows, cut))),
+        vals: values.map((m) => (small ? null : measure(m, s, rows, cut, filterCut))),
         cells: colDim
           ? colList.map((c) => {
             const cellCut = { ...cut, [colDim]: c.v }
             const cellRows = g.cols[si]!.get(JSON.stringify(c.v)) ?? []
             const cn = sampleOf(source, cellRows, cellCut)
-            return { n: cn, value: values[0] && cn >= min && cn ? measure(values[0], s, cellRows, cellCut) : null }
+            return { n: cn, value: values[0] && cn >= min && cn ? measure(values[0], s, cellRows, cellCut, filterCut) : null }
           })
           : [],
       }
@@ -350,12 +355,12 @@ export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationC
     segs: segs.map((s, i) => ({ id: s.id, label: s.label, color: segColor(i) })),
     groups: order.slice(0, cfg.limit || 12) as Group[],
     totalGroups: order.length,
-    colList: colList.map((c) => ({ ...c, label: globalDimLabel(colDim!, c.v, names) })),
+    colList,
     hiddenCols: colAll.length - colList.length,
     totals: source === 'games' || source === 'days'
       ? segs.map((s) => {
         const rows = (s.facts[source] ?? []).filter((f) => matches(f, filterCut))
-        return { count: S(rows, 'samples'), vals: values.map((m) => measure(m, s, rows, filterCut)) }
+        return { count: S(rows, 'samples'), vals: values.map((m) => measure(m, s, rows, filterCut, filterCut)) }
       })
       : null,
     unit: source === 'handTraps' ? 'activations' : 'deck-games',
@@ -384,7 +389,7 @@ export const globalLineSeries = (segs: GlobalSegment[], res: PivotResult, cfg: E
         const day = i + 1
         const inDay = (f: Fact) => (cfg.runningTotal ? (f.dims.seasonDay as number) <= day : f.dims.seasonDay === day)
         const rows = (se.seg.facts.days ?? []).filter((f) => inDay(f) && matches(f, se.cut))
-        return { day, value: rows.length ? measure(metric, se.seg, rows, se.cut, inDay) : null }
+        return { day, value: rows.length ? measure(metric, se.seg, rows, se.cut, filterCut, inDay) : null }
       }),
     })),
   }
@@ -422,7 +427,7 @@ export const globalKpis = (seg: GlobalSegment, names: GlobalNames) => {
   const first = gameRate(games.filter((f) => f.n.first === 1))
   const { syncedDays } = seg.season
   return [
-    { label: 'Deck-games', value: fmt(all, 'count'), note: `${fmt(COMPUTE.matches!({ facts: games, cut: {}, seg }), 'count')} matches` },
+    { label: 'Deck-games', value: fmt(all, 'count'), note: `${fmt(COMPUTE.matches!({ facts: games, cut: {}, base: {}, seg }), 'count')} matches` },
     { label: 'Archetypes', value: fmt(byArch.size, 'count'), note: 'seen at least once' },
     { label: 'Top archetype', value: top ? globalDimLabel('archetype', top[0], names) : '—', note: top ? `${fmt(top[1] / all, 'rate')} of the meta` : '', tone: 'text-gold' },
     { label: 'Going first', value: fmt(first, 'rate'), note: 'win rate, mirrors out' },

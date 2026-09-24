@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { Button, Chip } from '@ui/index'
-import { ExplorerEditor } from '@omega/analytics/explorer/builder'
+import { ColumnControls, ExplorerEditor } from '@omega/analytics/explorer/builder'
 import { GlobalTiles, globalPivot, globalSummary, useGlobalSegments } from '@omega/analytics/explorer/global'
 import { ExplorationOutput, SeasonsGate } from '@omega/analytics/explorer/output'
 import { configProblem, sourceOf, type Catalog, type ExplorationConfig, type SegmentOption, type Variables } from '@utils/explorer'
@@ -135,6 +135,15 @@ const Explorations = () => {
     setActive(key)
   }
 
+  /** An unsaved draft right after the source, same config. */
+  const duplicate = (source: Tab) => {
+    const key = crypto.randomUUID()
+    const at = tabs.findIndex((t) => t.key === source.key) + 1
+    const copy: Tab = { ...structuredClone(source), key, id: null, name: `${source.name} (copy)`, published: false, dirty: true }
+    setTabs([...tabs.slice(0, at), copy, ...tabs.slice(at)])
+    setActive(key)
+  }
+
   /** Swaps with the neighbour, then one `PATCH { position }` per stored tab whose index moved. */
   const move = async (key: string, by: -1 | 1) => {
     const from = tabs.findIndex((t) => t.key === key)
@@ -191,6 +200,7 @@ const Explorations = () => {
           tab={tab}
           options={options}
           onChange={(t) => setTabs(tabs.map((x) => (x.key === t.key ? t : x)))}
+          onDuplicate={() => duplicate(tab)}
           onRemove={() => {
             const rest = tabs.filter((t) => t.key !== tab.key)
             setTabs(rest)
@@ -206,9 +216,9 @@ const Explorations = () => {
   )
 }
 
-type WorkspaceProps = { cat: Catalog; tab: Tab; options: SegmentOption[]; onChange: (t: Tab) => void; onRemove: () => void }
+type WorkspaceProps = { cat: Catalog; tab: Tab; options: SegmentOption[]; onChange: (t: Tab) => void; onDuplicate: () => void; onRemove: () => void }
 
-const Workspace = ({ cat, tab, options, onChange, onRemove }: WorkspaceProps) => {
+const Workspace = ({ cat, tab, options, onChange, onDuplicate, onRemove }: WorkspaceProps) => {
   const [flash, setFlash] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const cfg = tab.config
@@ -292,6 +302,7 @@ const Workspace = ({ cat, tab, options, onChange, onRemove }: WorkspaceProps) =>
                   </select>
                 </label>
               ) : null}
+              {!problem && cfg.technique !== 'line' ? <ColumnControls cat={cat} cfg={cfg} edit={edit} /> : null}
               {cfg.technique === 'line' ? (
                 <label className="flex h-9 cursor-pointer items-center gap-2 border border-line px-3 text-ink-dim signal-sm">
                   <input type="checkbox" checked={cfg.runningTotal} onChange={() => edit((t) => (t.runningTotal = !t.runningTotal))} className="size-4 accent-gold" />
@@ -301,6 +312,7 @@ const Workspace = ({ cat, tab, options, onChange, onRemove }: WorkspaceProps) =>
               {tab.id && tab.published && !tab.dirty ? (
                 <Link href={globalPath(tab.id)} className="flex min-h-11 items-center border border-line-strong px-4 text-ink signal-chip hover:bg-ink hover:text-ink-on">Open public page</Link>
               ) : null}
+              <RowButton onClick={onDuplicate} disabled={busy} className="min-h-11 px-4">Duplicate</RowButton>
               <RowButton tone="danger" onClick={remove} disabled={busy} className="min-h-11 px-4">Delete</RowButton>
               <Button size="sm" onClick={save} disabled={!canSave} title={problem?.title}>
                 {busy ? 'Saving…' : tab.id ? 'Save changes' : 'Save'}

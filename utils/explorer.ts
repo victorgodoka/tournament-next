@@ -47,6 +47,31 @@ export type ExplorationConfig = {
   sort: { value: number; direction: 'asc' | 'desc' } | null
   limit: number
   runningTotal: boolean
+  /** Columns shown when `columns` is set. Absent = 8. */
+  columnLimit?: number
+  /** Column order. Absent/`null` = the dimension's natural order, else most samples first. */
+  columnSort?: ColumnSort | null
+}
+
+export type ColumnSort = 'samples' | 'value' | 'label'
+export const COLUMN_SORTS: { id: ColumnSort; label: string }[] = [
+  { id: 'samples', label: 'Most samples' },
+  { id: 'value', label: 'Highest value' },
+  { id: 'label', label: 'A–Z' },
+]
+export const COLUMN_LIMIT = 8
+
+/** The columns in the config's order, capped at `columnLimit`. `valueOf` = the first metric over the whole column. */
+export const pickColumns = <C extends { sk: number | string; n: number; label: string }>(all: C[], cfg: ExplorationConfig, natural: boolean, valueOf: (c: C) => number | null) => {
+  const by = cfg.columnSort ?? (natural ? null : 'samples')
+  const val = by === 'value' ? new Map(all.map((c) => [c, valueOf(c) ?? -Infinity])) : null
+  const sorted = [...all].sort(
+    by === 'samples' ? (a, b) => b.n - a.n
+      : val ? (a, b) => val.get(b)! - val.get(a)!
+        : by === 'label' ? (a, b) => a.label.localeCompare(b.label)
+          : (a, b) => (a.sk < b.sk ? -1 : a.sk > b.sk ? 1 : 0),
+  )
+  return sorted.slice(0, cfg.columnLimit ?? COLUMN_LIMIT)
 }
 
 /** `private`: the owner only. `link`: anyone with the share URL. `public`: listed on the profile and the public feed. */
@@ -480,8 +505,9 @@ export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names
     }
   })
 
-  const colAll = [...colVals.values()].sort(colDim && dimNatural(colDim) ? (a, b) => (a.sk < b.sk ? -1 : a.sk > b.sk ? 1 : 0) : (a, b) => b.n - a.n)
-  const colList = colAll.slice(0, 8)
+  const colAll = [...colVals.values()].map((c) => ({ ...c, label: dimLabel(colDim!, c.v, names) }))
+  const colList = pickColumns(colAll, cfg, !!colDim && !!dimNatural(colDim), (c) =>
+    values[0] && segs[0] ? measure(cat, values[0], segs[0], source, { ...filterCut, [colDim!]: c.v }) : null)
 
   const order = [...groups.values()].map((g) => {
     const cut: Cut = { ...filterCut, ...Object.fromEntries(rowDims.map((d, i) => [d, g.values[i] ?? null])) }
@@ -516,7 +542,7 @@ export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names
     segs: segs.map((s, i) => ({ id: s.id, label: s.label, color: segColor(i) })),
     groups: order.slice(0, cfg.limit || 12) as Group[],
     totalGroups: order.length,
-    colList: colList.map((c) => ({ ...c, label: dimLabel(colDim!, c.v, names) })),
+    colList,
     hiddenCols: colAll.length - colList.length,
     totals: source === 'cards' ? null : segs.map((seg) => ({
       count: factsOf(seg, source).filter((f) => matches(f, filterCut)).length,

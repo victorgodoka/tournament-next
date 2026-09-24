@@ -90,7 +90,7 @@ export const AdminPanel = ({ banlists }: { banlists: Banlist[] }) => {
   const current = tabs.some((tab) => tab.id === active) ? active : (tabs[0]?.id ?? 'staff')
 
   return (
-    <div className="mx-auto w-full max-w-page px-gutter py-section">
+    <div className="w-full px-gutter py-section">
       <Eyebrow meta={user.profile.username ?? user.id}>Admin panel</Eyebrow>
       <h1 className="mt-5 text-ink display-1">Control room</h1>
       <p className="mt-4 max-w-[62ch] text-ink-dim lead">

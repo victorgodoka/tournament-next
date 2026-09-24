@@ -7,11 +7,38 @@ import { EmptyBox } from '@omega/profile/empty-box'
 import { StatTiles } from '@omega/analytics/primitives'
 import { createExploration, deleteExploration, sharePath, updateExploration, writeError, type ExplorationList } from '@utils/explorations'
 import {
-  accepts, capOf, catalogOf, configProblem, dimReason, drop, inUse, kpis, metricReason, quickAdd, removeFrom, segColor, sourceOf, sourcesOf, summary, valuesOf,
-  type Catalog, type Exploration, type ExplorationConfig, type FilterValue, type Payload, type SegmentOption, type Source, type Technique, type Variables,
+  COLUMN_LIMIT, COLUMN_SORTS, accepts, capOf, catalogOf, configProblem, dimReason, drop, inUse, kpis, metricReason, quickAdd, removeFrom, segColor, sourceOf, sourcesOf, summary, valuesOf,
+  type Catalog, type ColumnSort, type Exploration, type ExplorationConfig, type FilterValue, type Payload, type SegmentOption, type Source, type Technique, type Variables,
   type Visibility, type Zone,
 } from '@utils/explorer'
 import { ExplorationOutput, MatchDrawer, SeasonsGate, duelistPivot, segLabelOf, useSegments, useSharedSegments } from './output'
+
+const SELECT = 'h-9 border border-line bg-surface-200 px-2 text-ink mono-data'
+
+/** How many columns a cross-tab shows, and in what order. Nothing when Columns is empty. */
+export const ColumnControls = ({ cat, cfg, edit }: { cat: Catalog; cfg: ExplorationConfig; edit: (fn: (t: ExplorationConfig) => void) => void }) => {
+  if (!cfg.columns) return null
+  const limit = cfg.columnLimit ?? COLUMN_LIMIT
+  return (
+    <>
+      <label className="flex items-center gap-2 text-ink-muted signal-sm">
+        Columns
+        <select value={limit} onChange={(e) => { const v = Number(e.target.value); edit((t) => (t.columnLimit = v)) }} className={SELECT}>
+          {[...new Set([4, 6, 8, 12, 20, cat.limits.rowLimit, limit])].sort((a, b) => a - b).map((n) => (
+            <option key={n} value={n}>{n === cat.limits.rowLimit ? `All (${n})` : n}</option>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-ink-muted signal-sm">
+        Column order
+        <select value={cfg.columnSort ?? ''} onChange={(e) => { const v = (e.target.value || null) as ColumnSort | null; edit((t) => (t.columnSort = v)) }} className={SELECT}>
+          <option value="">Default</option>
+          {COLUMN_SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </select>
+      </label>
+    </>
+  )
+}
 
 /** A tab: a stored exploration (`id`), or a new one that only lives in this browser until saved. */
 type Tab = { key: string; id: string | null; name: string; visibility: Visibility; shareToken: string | null; config: ExplorationConfig; dirty: boolean }
@@ -367,6 +394,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
                   </select>
                 </label>
               ) : null}
+              {owner && !problem && cfg.technique !== 'line' ? <ColumnControls cat={cat} cfg={cfg} edit={edit} /> : null}
               {owner && cfg.technique === 'line' ? (
                 <label className="flex h-9 cursor-pointer items-center gap-2 border border-line px-3 text-ink-dim signal-sm">
                   <input type="checkbox" checked={cfg.runningTotal} onChange={() => edit((t) => (t.runningTotal = !t.runningTotal))} className="size-4 accent-gold" />

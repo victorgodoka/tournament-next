@@ -55,6 +55,22 @@ describe('global pivot', () => {
     })
   })
 
+  it('divides meta share by the filtered deck-games', () => {
+    // Going first: Branded 6 + 2 mirror, Yubel 4 = 12.
+    expect(byLabel({ rows: ['archetype'], values: ['metaShare'], filters: [{ dimension: 'turnOrder', value: 'first' }] })).toEqual({
+      Branded: [8 / 12],
+      Yubel: [4 / 12],
+    })
+  })
+
+  it('caps and orders columns', () => {
+    const res = (c: Partial<ExplorationConfig>) =>
+      runGlobal(cat, [seg], cfg({ technique: 'heatmap', rows: ['archetype'], columns: 'opponentArchetype', values: ['samples'], ...c }), names)
+    expect(res({}).colList.map((c) => c.label)).toEqual(['Branded', 'Yubel'])
+    expect(res({ columnSort: 'label', columnLimit: 1 }).colList.map((c) => c.label)).toEqual(['Branded'])
+    expect(res({ columnSort: 'label', columnLimit: 1 }).hiddenCols).toBe(1)
+  })
+
   it('divides inclusion by the archetype deck-games', () => {
     expect(byLabel({ rows: ['card'], values: ['inclusion'], filters: [{ dimension: 'archetype', value: 349 }] })).toEqual({ Ash: [7 / 14] })
   })
