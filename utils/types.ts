@@ -88,6 +88,8 @@ export type Ladder = { format: 'TCG' | 'Genesys'; accent: Accent } & (
 export type MatchSide = {
   id: string
   name: string | null
+  avatar: string | null
+  cosmetics: Cosmetics
   deck: string | null
   /** 0–3 distinct cards from the deck. */
   cards: CardArt[]

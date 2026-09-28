@@ -40,7 +40,7 @@ import {
   type UserShop,
 } from '@utils/panel'
 import { getProfile } from '@utils/profile'
-import type { ShopInventoryItem } from '@utils/types'
+import type { Cosmetics, ShopInventoryItem } from '@utils/types'
 import { glyphOf } from '../shop/catalog'
 
 const SNOWFLAKE = /^\d{15,20}$/
@@ -61,7 +61,7 @@ const loadCatalog = (signal: AbortSignal) =>
     currency: new Set(enums.filter((e) => e.kind === 'type' && e.currency).map((e) => e.value)),
   }))
 
-type Account = UserShop & { name: string | null; avatar: string | null; readAt: number; older: LedgerEntry[]; cursor: string | null }
+type Account = UserShop & { name: string | null; avatar: string | null; cosmetics?: Cosmetics; readAt: number; older: LedgerEntry[]; cursor: string | null }
 
 const loadAccount = (userId: string) => (signal: AbortSignal) =>
   Promise.all([getUserShop(userId, signal), getProfile(userId, undefined, 1).catch(() => null)]).then(
@@ -69,6 +69,7 @@ const loadAccount = (userId: string) => (signal: AbortSignal) =>
       ...shop,
       name: profile?.displayName ?? profile?.handle ?? null,
       avatar: profile?.avatar ?? null,
+      cosmetics: profile?.cosmetics,
       readAt: Date.now(),
       older: [],
       cursor: shop.ledger.nextCursor,
@@ -312,7 +313,7 @@ const RewardsPage = () => {
           {a ? (
             <>
               <div className="flex items-center gap-4">
-                <Avatar name={a.name ?? a.userId} src={a.avatar} className="size-14 text-2xl" />
+                <Avatar name={a.name ?? a.userId} src={a.avatar} cosmetics={a.cosmetics} className="size-14 text-2xl" />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate text-[17px] font-bold">{a.name ?? 'Unknown name'}</span>
                   <span className="text-ink-muted data">{a.userId}</span>

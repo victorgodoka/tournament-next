@@ -108,7 +108,7 @@ const BattlepassPlayerPage = () => {
           <div className="flex min-w-0 flex-col gap-6">
             <section className="cut notch flex flex-col gap-6 p-5 [--cut:var(--cut-lg)] [--fill:var(--color-steel)] min-[720px]:p-7">
               <div className="flex flex-wrap items-center gap-4">
-                <Avatar name={name ?? p.userId} src={profile?.avatar} size="lg" />
+                <Avatar name={name ?? p.userId} src={profile?.avatar} cosmetics={profile?.cosmetics} size="lg" />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="text-lg font-bold">{name ?? 'Unknown name'}</span>
                   <span className="text-ink-dim data">{p.userId}</span>

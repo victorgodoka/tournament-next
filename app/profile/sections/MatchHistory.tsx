@@ -56,7 +56,7 @@ const DuelRow = ({ match }: { match: Match }) => {
           {match.score.self} – {match.score.opponent}
         </span>
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={opponent} size="sm" />
+          <Avatar name={opponent} src={match.opponent.avatar} cosmetics={match.opponent.cosmetics} size="sm" />
           <div className="min-w-0">
             <Link href={`/profile/${match.opponent.id}`} className="block truncate font-bold text-ink no-underline hover:text-cyan">
               <span className="sr-only">versus </span>{opponent}

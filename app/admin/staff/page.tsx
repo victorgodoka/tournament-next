@@ -79,7 +79,7 @@ const People = ({
           const role = ROLE[p.role] ?? { label: p.role, tone: 'neutral' as ChipTone }
           return (
             <li key={p.id} className="flex min-h-14 items-center gap-3 border-t border-line py-2">
-              <Avatar name={p.username ?? p.id} src={p.avatarUrl} className="size-9 text-base" />
+              <Avatar name={p.username ?? p.id} src={p.avatarUrl} cosmetics={p.cosmetics} className="size-9 text-base" />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-bold">{p.username ?? 'Unknown name'}</span>
                 <span className="text-ink-muted data">{p.id}</span>
