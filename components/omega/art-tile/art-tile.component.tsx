@@ -20,11 +20,11 @@ type ArtTileProps = {
   imageClassName?: string
 }
 
-const WASH = { cyan: 'bg-cyan', gold: 'bg-gold', indigo: 'bg-indigo' }
+const WASH = { cyan: 'bg-cyan', gold: 'bg-cyan', indigo: 'bg-azure' }
 
 /** Duotone image: grayscale plate with an accent layer blended in `color` mode. Never full color. */
 export const ArtTile = ({ src, alt, wash = 'cyan', lead, label, framed, width, height, sizes, className, imageClassName }: ArtTileProps) => (
-  <div className={twMerge('relative overflow-hidden bg-surface-200', framed && 'border border-line-strong shadow-offset-void', className)}>
+  <div className={twMerge('relative overflow-hidden bg-surface-200', framed && 'border border-line-strong shadow-lift', className)}>
     <Image
       src={src}
       alt={alt}
@@ -36,6 +36,6 @@ export const ArtTile = ({ src, alt, wash = 'cyan', lead, label, framed, width, h
       className={twMerge('block size-full object-cover duotone', imageClassName)}
     />
     <span aria-hidden className={twMerge('duotone-wash', WASH[wash], lead && 'opacity-(--opacity-duotone-lead)')} />
-    {label ? <span className="absolute bottom-3 left-3.5 text-surface-000 signal">{label}</span> : null}
+    {label ? <span className="absolute bottom-3 left-3.5 text-space-000 signal">{label}</span> : null}
   </div>
 )

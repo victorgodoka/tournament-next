@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { PlayerSeason } from './analytics'
-import { accepts, blocker, buildSegment, catalogOf, dimReason, lineSeries, namesOf, run, type ExplorationConfig, type Metric, type Variables } from './explorer'
+import { accepts, blocker, buildSegment, catalogOf, dimReason, lineSeries, namesOf, periodDays, removeFrom, run, type ExplorationConfig, type Metric, type Variables } from './explorer'
+
+describe('periodDays', () => {
+  it('reads the exclusive end back as the last day included', () => {
+    expect(periodDays({ startsAt: '2026-07-01T00:00:00.000Z', endsAt: '2026-08-01T00:00:00.000Z' })).toEqual(['2026-07-01', '2026-07-31'])
+  })
+})
 
 const GAME = ['archetype', 'opponentArchetype', 'opponent', 'turnOrder', 'gameNumber', 'result', 'match', 'seasonDay']
 const metric = (id: string, source: Metric['source'], format: Metric['format'], splitBy: string[]): Metric => ({ id, label: id, source, format, splitBy, from: '', description: '' })
@@ -15,6 +21,8 @@ const variables: Variables = {
     metric('winRate', 'games', 'rate', GAME),
     metric('usage', 'cards', 'rate', ['card', ...GAME]),
     metric('deckInclusion', 'cards', 'rate', ['card', 'archetype']),
+    metric('winRateInDeck', 'cards', 'rate', ['card', 'archetype']),
+    metric('winRateWhenUsed', 'cards', 'rate', ['card', ...GAME]),
     metric('respondedRate', 'handTraps', 'rate', ['handTrap', 'activatedBy']),
     metric('elo', 'rating', 'last', ['seasonDay']),
   ],
@@ -34,8 +42,14 @@ const season = {
   games: [game(1, true, 'win', [1]), game(2, true, 'win', [1, 2]), game(3, false, 'loss', [2]), game(4, false, 'loss', [])],
   eloHistory: [{ day: '2026-09-01', seasonDay: 1, elo: 100 }, { day: '2026-09-02', seasonDay: 2, elo: 130 }, { day: '2026-09-04', seasonDay: 4, elo: 120 }],
   cardUsage: [
-    { cardId: 1, name: 'One', deckInclusion: { games: 4, rate: 1 }, usage: { games: 2, rate: 0.5 }, whenActivated: { games: 2, wins: 2, losses: 0, draws: 0, winRate: 1 }, byArchetype: [] },
-    { cardId: 3, name: 'Never used', deckInclusion: { games: 2, rate: 0.5 }, usage: { games: 0, rate: 0 }, whenActivated: { games: 0, wins: 0, losses: 0, draws: 0, winRate: null }, byArchetype: [] },
+    {
+      cardId: 1, name: 'One', deckInclusion: { games: 4, rate: 1 }, usage: { games: 2, rate: 0.5 },
+      whenInDeck: { games: 4, wins: 2, losses: 2, draws: 0, winRate: 0.5 }, whenUsed: { games: 2, wins: 2, losses: 0, draws: 0, winRate: 1 }, byArchetype: [],
+    },
+    {
+      cardId: 3, name: 'Never used', deckInclusion: { games: 2, rate: 0.5 }, usage: { games: 0, rate: 0 },
+      whenInDeck: { games: 2, wins: 0, losses: 2, draws: 0, winRate: 0 }, whenUsed: { games: 0, wins: 0, losses: 0, draws: 0, winRate: null }, byArchetype: [],
+    },
   ],
   responses: [{ cardId: 14558127, name: 'Ash', byPlayer: { activations: 4, responded: 1 }, byOpponent: { activations: 0, responded: 0 } }],
 } as unknown as PlayerSeason
@@ -59,6 +73,21 @@ describe('explorer pivot', () => {
   it('names deck-inclusion rows from the aggregate, even a card never used', () => {
     const res = run(cat, [seg], cfg({ rows: ['card'], values: ['deckInclusion'] }), names)
     expect(res.groups.map((g) => [g.labels[0], g.seg[0]!.vals[0]])).toContainEqual(['Never used', 0.5])
+  })
+
+  it('reads win rate in deck from the aggregate and when used from the games', () => {
+    const res = run(cat, [seg], cfg({ rows: ['card'], values: ['winRateInDeck'] }), names)
+    expect(Object.fromEntries(res.groups.map((g) => [g.labels[0], g.seg[0]!.vals[0]]))).toMatchObject({ One: 0.5 })
+    const used = run(cat, [seg], cfg({ rows: ['card'], values: ['winRateWhenUsed'] }), names)
+    expect(Object.fromEntries(used.groups.map((g) => [g.labels[0], g.seg[0]!.vals[0]]))).toEqual({ One: 1, '#2': 0.5 })
+  })
+
+  it('drops rows that miss a threshold, and forgets thresholds of a removed metric', () => {
+    const res = run(cat, [seg], cfg({ rows: ['card'], values: ['usage'], thresholds: [{ value: 0, op: 'gte', target: 0.5 }] }), names)
+    expect(res.groups.map((g) => g.labels[0])).toEqual(['One', '#2'])
+    const t = cfg({ values: ['games', 'winRate'], thresholds: [{ value: 0, op: 'gt', target: 1 }, { value: 1, op: 'gt', target: 0.5 }] })
+    removeFrom(t, 'values', 0)
+    expect(t.thresholds).toEqual([{ value: 0, op: 'gt', target: 0.5 }])
   })
 
   it('reads responses from the aggregate', () => {

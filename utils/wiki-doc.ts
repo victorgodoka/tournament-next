@@ -3,6 +3,7 @@
  * The same JSON always renders the same page — there is no layout state outside it.
  * The contract, limits and endpoints are in omega-server-v3 WIKI_API.md §5.
  */
+import type { ReactNode } from 'react'
 import { renderArticle } from '@utils/remark'
 
 /** Bump on any breaking change to a block; the reader migrates old docs up before rendering. */
@@ -39,10 +40,33 @@ export type WikiBlock =
   | { id: string; type: 'cards'; cards: WikiCardRef[]; caption?: string }
   | { id: string; type: 'callout'; tone: CalloutTone; title?: string; md: string }
   | { id: string; type: 'quote'; text: string; cite?: string }
-  /** YouTube only. `start` in seconds. Nothing loads from YouTube until the reader presses play. */
-  | { id: string; type: 'video'; videoId: string; title: string; start?: number; caption?: string }
+  /**
+   * YouTube only. `start` in seconds. Nothing loads from YouTube until the reader presses play.
+   * `uploadDate` (`YYYY-MM-DD`) is the day it went up on YouTube: without it there is no video rich result.
+   */
+  | { id: string; type: 'video'; videoId: string; title: string; start?: number; caption?: string; uploadDate?: string }
+  /** Questions in plain text, answers in Markdown. The server merges every FAQ block into one FAQPage. */
+  | { id: string; type: 'faq'; items: WikiFaqItem[] }
+
+export type WikiFaqItem = { q: string; md: string }
 
 export type WikiBlockType = WikiBlock['type']
+
+export type WikiSchema = 'Article' | 'HowTo' | 'DefinedTerm' | 'CollectionPage'
+
+/** Every key optional; `""` counts as absent. The server derives the published head from these (WIKI_API §5.6). */
+export type WikiSeo = {
+  title?: string
+  description?: string
+  /** Focus keyword. Stored, never published — but the doc is public, so it isn't secret. */
+  keyword?: string
+  keywords?: string[]
+  /** Asset id, at least 1200×630. */
+  image?: string
+  noindex?: boolean
+  canonical?: string
+  schema?: WikiSchema
+}
 
 export type WikiInfobox = { asset?: string; caption?: string; facts: { label: string; value: string }[] }
 
@@ -58,6 +82,11 @@ export type WikiDoc = {
   blocks: WikiBlock[]
   /** Every image the doc uses, by id. Stored with the doc, so a revision restores its images too. */
   assets: Record<string, WikiAsset>
+  seo?: WikiSeo
+  /** Slug of the hub article: the breadcrumb and the hub's list. Resolved into `links.hub` on read. */
+  hub?: string
+  /** Up to 6 slugs, shown as "Read next". */
+  related?: string[]
 }
 
 /** Limits the server enforces (WIKI_API.md §5.3). The editor checks them first for readable errors. */
@@ -75,19 +104,34 @@ export const DOC_LIMITS = {
   cards: 12,
   assets: 100,
   bytes: 256_000,
+  slug: 80,
+  seoTitle: 70,
+  seoDescription: 160,
+  keyword: 60,
+  keywords: 5,
+  canonical: 500,
+  related: 6,
+  faqItems: 20,
+  faqMd: 5_000,
+  /** The smallest share image the server accepts for `seo.image`. */
+  shareWidth: 1200,
+  shareHeight: 630,
 } as const
 
 /** Palette entries, in the order the editor lists them. */
 export const BLOCK_CATALOG: { type: WikiBlockType; label: string; hint: string }[] = [
-  { type: 'text', label: 'Text', hint: 'Paragraphs, lists, tables and links in Markdown' },
-  { type: 'heading', label: 'Heading', hint: 'Opens a section and lists it in Contents' },
-  { type: 'figure', label: 'Image', hint: 'One image: floated beside the text, centred or wide' },
-  { type: 'gallery', label: 'Gallery', hint: 'Grid, masonry or swipe strip, with a viewer' },
-  { type: 'cards', label: 'Cards', hint: 'Card artworks that link to their card pages' },
-  { type: 'callout', label: 'Callout', hint: 'A rule, a warning or a see-also box' },
-  { type: 'quote', label: 'Quote', hint: 'A pull quote with its source' },
-  { type: 'video', label: 'Video', hint: 'A YouTube video, loaded only on play' },
+  { type: 'text', label: 'Text', hint: 'Markdown' },
+  { type: 'heading', label: 'Heading', hint: 'H2 · H3' },
+  { type: 'figure', label: 'Image', hint: 'Float · wide' },
+  { type: 'gallery', label: 'Gallery', hint: '2–24 images' },
+  { type: 'cards', label: 'Cards', hint: 'Card links' },
+  { type: 'callout', label: 'Callout', hint: 'Rule · warning' },
+  { type: 'quote', label: 'Quote', hint: 'With source' },
+  { type: 'video', label: 'Video', hint: 'YouTube' },
+  { type: 'faq', label: 'FAQ', hint: 'Questions → FAQPage' },
 ]
+
+export const SCHEMAS: readonly WikiSchema[] = ['Article', 'HowTo', 'DefinedTerm', 'CollectionPage']
 
 export const emptyBlock = (type: WikiBlockType, id: string): WikiBlock => {
   switch (type) {
@@ -107,6 +151,8 @@ export const emptyBlock = (type: WikiBlockType, id: string): WikiBlock => {
       return { id, type, text: '' }
     case 'video':
       return { id, type, videoId: '', title: '' }
+    case 'faq':
+      return { id, type, items: [{ q: '', md: '' }] }
   }
 }
 
@@ -215,6 +261,43 @@ export const imageSource = (asset: WikiAsset, width: number) =>
 
 const ANCHOR = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const RAW_HTML = /<[a-zA-Z/!]/
+const CANONICAL = /^(\/(?!\/)\S*|https:\/\/\S+)$/
+/** The day YouTube went live; nothing can have been uploaded before it. */
+const FIRST_UPLOAD = '2005-04-23'
+
+/** A wiki address: lowercase words joined by single hyphens, at most 80 characters. */
+export const isSlug = (slug: string) => ANCHOR.test(slug) && slug.length <= DOC_LIMITS.slug
+
+/** `YYYY-MM-DD` that is a real date, from YouTube's first day to today (UTC, one day of slack). */
+export const isUploadDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return false
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+  return value >= FIRST_UPLOAD && value <= tomorrow
+}
+
+export const isShareSize = (asset: WikiAsset) => asset.width >= DOC_LIMITS.shareWidth && asset.height >= DOC_LIMITS.shareHeight
+
+/**
+ * The 1200:630 rectangle the server cuts for og:image, in the asset's own pixels: the largest one that
+ * fits, centred on `focal` (centre when absent) and pushed back inside near the edges (WIKI_API §5.6).
+ */
+export const shareCrop = (asset: WikiAsset) => {
+  const ratio = DOC_LIMITS.shareWidth / DOC_LIMITS.shareHeight
+  const w = Math.min(asset.width, asset.height * ratio)
+  const h = w / ratio
+  const fx = ((asset.focal?.x ?? 50) / 100) * asset.width
+  const fy = ((asset.focal?.y ?? 50) / 100) * asset.height
+  const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max)
+  return { x: clamp(fx - w / 2, asset.width - w), y: clamp(fy - h / 2, asset.height - h), w, h }
+}
+
+/** The image og:image falls back through: `seo.image`, then the cover, then the infobox image. */
+export const shareAsset = (doc: WikiDoc): WikiAsset | undefined => {
+  const id = doc.seo?.image || doc.cover?.asset || doc.infobox?.asset
+  return id ? doc.assets[id] : undefined
+}
 
 /**
  * Every problem, in reading order, as copy an editor can act on. Empty means publishable.
@@ -223,10 +306,15 @@ const RAW_HTML = /<[a-zA-Z/!]/
 export const validateDoc = (doc: WikiDoc): string[] => {
   const problems: string[] = []
   const has = (id: string | undefined) => !!id && !!doc.assets[id]
-  const md = (text: string, where: string) => {
+  const md = (text: string, where: string, max: number = DOC_LIMITS.md) => {
     if (!text.trim()) problems.push(`${where} is empty.`)
-    if (text.length > DOC_LIMITS.md) problems.push(`${where} is over ${DOC_LIMITS.md.toLocaleString('en-US')} characters.`)
+    if (text.length > max) problems.push(`${where} is over ${max.toLocaleString('en-US')} characters.`)
     if (RAW_HTML.test(text)) problems.push(`${where} contains raw HTML. Use Markdown.`)
+  }
+  const plain = (text: string | undefined, where: string, max: number) => {
+    if (!text) return
+    if (text.length > max) problems.push(`Keep the ${where} under ${max} characters.`)
+    if (RAW_HTML.test(text)) problems.push(`The ${where} contains raw HTML.`)
   }
 
   if (!doc.title.trim()) problems.push('Give the article a title.')
@@ -252,6 +340,33 @@ export const validateDoc = (doc: WikiDoc): string[] => {
     if (!asset.alt.trim()) problems.push(`Image "${asset.id}" needs alt text.`)
     if (!isAllowedSrc(asset.src)) problems.push(`Image "${asset.id}" comes from a host the wiki can't serve.`)
   }
+
+  const seo = doc.seo
+  if (seo) {
+    plain(seo.title, 'SEO title', DOC_LIMITS.seoTitle)
+    plain(seo.description, 'meta description', DOC_LIMITS.seoDescription)
+    plain(seo.keyword, 'focus keyword', DOC_LIMITS.keyword)
+    const keywords = seo.keywords ?? []
+    if (keywords.length > DOC_LIMITS.keywords) problems.push(`Use at most ${DOC_LIMITS.keywords} secondary keywords.`)
+    if (keywords.some((keyword) => !keyword.trim() || keyword.length > DOC_LIMITS.keyword))
+      problems.push(`Secondary keywords must be 1–${DOC_LIMITS.keyword} characters.`)
+    if (new Set(keywords.map((keyword) => keyword.toLowerCase())).size !== keywords.length)
+      problems.push('A secondary keyword appears twice.')
+    if (seo.image) {
+      const image = doc.assets[seo.image]
+      if (!image) problems.push('The share image is missing from the library.')
+      else if (!isShareSize(image))
+        problems.push(`The share image must be at least ${DOC_LIMITS.shareWidth}×${DOC_LIMITS.shareHeight} (it is ${image.width}×${image.height}).`)
+    }
+    if (seo.canonical && (seo.canonical.length > DOC_LIMITS.canonical || !CANONICAL.test(seo.canonical)))
+      problems.push('The canonical URL must be a /path or an https address, with no spaces.')
+    if (seo.schema && !SCHEMAS.includes(seo.schema)) problems.push('Pick a page type.')
+  }
+  if (doc.hub !== undefined && !isSlug(doc.hub)) problems.push('The hub must be an article address.')
+  const related = doc.related ?? []
+  if (related.length > DOC_LIMITS.related) problems.push(`Use at most ${DOC_LIMITS.related} related articles.`)
+  if (related.some((slug) => !isSlug(slug))) problems.push('Every related article must be an article address.')
+  if (new Set(related).size !== related.length) problems.push('A related article appears twice.')
 
   if (!doc.blocks.length) problems.push('The article has no blocks yet.')
   if (doc.blocks.length > DOC_LIMITS.blocks) problems.push(`Use at most ${DOC_LIMITS.blocks} blocks.`)
@@ -291,6 +406,17 @@ export const validateDoc = (doc: WikiDoc): string[] => {
         if (!block.title.trim()) problems.push(`${where} needs a title (screen readers announce it).`)
         if (block.start !== undefined && (!Number.isInteger(block.start) || block.start < 0))
           problems.push(`${where} has an invalid start time.`)
+        if (block.uploadDate !== undefined && !isUploadDate(block.uploadDate))
+          problems.push(`${where} has an upload date that isn't a real day between ${FIRST_UPLOAD} and today.`)
+        return
+      case 'faq':
+        if (!block.items.length || block.items.length > DOC_LIMITS.faqItems)
+          problems.push(`${where} needs 1–${DOC_LIMITS.faqItems} questions.`)
+        block.items.forEach((item, j) => {
+          if (!item.q.trim()) problems.push(`${where}, question ${j + 1} is empty.`)
+          plain(item.q, `${where}, question ${j + 1}`, DOC_LIMITS.short)
+          md(item.md, `${where}, answer ${j + 1}`, DOC_LIMITS.faqMd)
+        })
         return
       default:
         // A new block type fails to compile here until it is handled.
@@ -302,14 +428,24 @@ export const validateDoc = (doc: WikiDoc): string[] => {
   return problems
 }
 
+/** Rendered Markdown by block id (FAQ answers by `faqKey`): React nodes, never HTML strings. */
+export type DocHtml = Record<string, ReactNode>
+
+/** `html` key of one FAQ answer. */
+export const faqKey = (blockId: string, index: number) => `${blockId}:${index}`
+
 /**
- * Markdown blocks rendered to sanitized HTML, by block id. Runs on the server for the page and in the
+ * Markdown blocks rendered to sanitized HTML, by block id (FAQ answers by `faqKey`). Runs on the server for the page and in the
  * browser for the editor preview: the same pipeline, so the preview is the page.
  */
-export const renderDocHtml = async (doc: WikiDoc): Promise<Record<string, string>> => {
+export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
   const entries = await Promise.all(
     doc.blocks.flatMap((block) =>
-      block.type === 'text' || block.type === 'callout' ? [renderArticle(block.md).then((html) => [block.id, html] as const)] : [],
+      block.type === 'text' || block.type === 'callout'
+        ? [renderArticle(block.md).then((html) => [block.id, html] as const)]
+        : block.type === 'faq'
+          ? block.items.map((item, i) => renderArticle(item.md).then((html) => [faqKey(block.id, i), html] as const))
+          : [],
     ),
   )
   return Object.fromEntries(entries)

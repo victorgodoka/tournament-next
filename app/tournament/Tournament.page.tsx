@@ -1,131 +1,103 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { LocalTime } from '@omega/profile/local-time'
-import { CopyDeckButton } from '@omega/tournament/copy-deck'
-import { DATE_ONLY, TIME_ONLY, cardPoolYear, formatDuration, formatRecord } from '@omega/tournament/labels'
-import { PlayerAvatar, playerName } from '@omega/tournament/player'
+import { CopyButton } from '@omega/tournament/copy-deck'
+import { DAY_YEAR, TIME_ONLY, banlistLabel, cardPoolYear, formatDuration, formatNumber, formatTone } from '@omega/tournament/labels'
 import { Chip } from '@ui/chip/chip.component'
+import { Eyebrow } from '@ui/eyebrow/eyebrow'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
-import type { Standing, TournamentDetail } from '@utils/types'
+import { StatGrid } from '@ui/stat-grid'
+import type { TournamentDetail } from '@utils/types'
 import { Rounds } from './sections/Rounds'
 import { Standings } from './sections/Standings'
 import { Stats } from './sections/Stats'
 import { TournamentTabs } from './TournamentTabs'
 
-const Fact = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div>
-    <dt className="text-ink-muted signal">{label}</dt>
-    <dd className="mt-0.5 text-ink display-5">{children}</dd>
-  </div>
-)
-
-/** Rank 1, with the record and deck the standings computed for them. */
-const Winner = ({ champion }: { champion: Standing }) => {
-  const t = useTranslations('Tournaments')
-
-  return (
-    <div className="flex flex-wrap items-center gap-x-[clamp(20px,4vw,56px)] gap-y-4 border border-line-strong bg-surface-100 px-[clamp(16px,2vw,22px)] py-[clamp(16px,2vw,22px)]">
-      <PlayerAvatar player={champion.player} size={54} />
-
-      <div className="min-w-0">
-        <p className="text-gold signal">{t('detail.winnerLabel')}</p>
-        <Link href={`/profile/${champion.player.id}`} className="mt-1 block truncate text-ink display-5 hover:text-gold">
-          {playerName(champion.player, t('player.unknown'))}
-        </Link>
-        {champion.player.handle ? <p className="text-ink-muted mono-data">{champion.player.handle}</p> : null}
-      </div>
-
-      <dl className="flex flex-wrap gap-x-[clamp(20px,3vw,40px)] gap-y-3">
-        <Fact label={t('detail.record')}>{formatRecord(champion)}</Fact>
-        <Fact label={t('detail.pointsLabel')}>
-          <span className="text-gold">{champion.points}</span>
-        </Fact>
-        <Fact label={t('detail.deck')}>{champion.deck?.archetype ?? t('detail.unclassified')}</Fact>
-      </dl>
-    </div>
-  )
-}
-
 const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
   const t = useTranslations('Tournaments')
   const { tournament, standings, rounds, stats } = detail
-  const live = tournament.status === 'live'
-  const champion = standings.find((standing) => standing.rank === 1)
+  const { id, status, format, settings, startedAt, endedAt, players } = tournament
+  const { matches } = stats
+  const live = status === 'live'
   const year = cardPoolYear(tournament.cardPool)
+  const dropped = standings.filter((standing) => standing.dropped).length
 
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
-        <div className="mx-auto w-full max-w-page px-gutter">
-          <nav aria-label={t('detail.breadcrumb')} className="text-ink-muted signal">
-            <Link href="/tournaments" className="text-ink-muted hover:text-gold">
+      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
+        <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-gutter pt-8">
+          <nav aria-label={t('detail.breadcrumb')} className="flex items-center gap-2.5 text-ink-muted signal-sm">
+            <Link href="/tournaments" className="underline decoration-1 underline-offset-3 hover:decoration-2">
               {t('detail.breadcrumbRoot')}
-            </Link>{' '}
-            / #{tournament.id}
+            </Link>
+            <span aria-hidden>/</span>
+            <span aria-current="page">#{id}</span>
           </nav>
 
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-4.5">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Chip tone={live ? 'negative' : 'neutral'} dot={live}>
-                  {t(live ? 'status.live' : 'status.finished')}
-                </Chip>
-              </div>
-              {/* Format and the day it was played. The banlist carries its own date and belongs in a labelled field. */}
-              <h1 className="mt-3 text-ink display-2">
-                {t('detail.heading', { format: tournament.format })} ·{' '}
-                <LocalTime iso={tournament.startedAt} options={DATE_ONLY} />
+          <header className="flex flex-wrap items-end gap-6">
+            <div className="flex min-w-0 grow flex-col gap-3.5">
+              <Eyebrow
+                tone={live ? 'negative' : 'gold'}
+                live={live}
+                meta={
+                  <>
+                    <LocalTime iso={startedAt} options={DAY_YEAR} /> · <LocalTime iso={startedAt} options={TIME_ONLY} />
+                  </>
+                }
+              >
+                {t(`status.${status}`)}
+              </Eyebrow>
+              <h1 className="text-[clamp(36px,5vw,56px)] leading-none text-ink uppercase">
+                {banlistLabel(tournament)} <span className="text-ink-muted">#{id}</span>
               </h1>
+              <div className="flex flex-wrap gap-2">
+                <Chip tone={formatTone(format)}>{format}</Chip>
+                <Chip>{t(`mode.long.${settings.mode}`)}</Chip>
+                <Chip>{t('detail.chips.masterRule', { rule: settings.masterRule })}</Chip>
+                <Chip>{t('detail.chips.lp', { lp: formatNumber(settings.startingLp) })}</Chip>
+                <Chip>{t('detail.chips.timer', { seconds: settings.timer })}</Chip>
+                <Chip>{t('detail.chips.hand', { cards: settings.startingHand })}</Chip>
+                {year ? <Chip>{t('cardPool', { year })}</Chip> : null}
+              </div>
             </div>
+            <CopyButton label={t('detail.copyLink')} icon="deck" />
+          </header>
 
-            {champion?.deck ? <CopyDeckButton code={champion.deck.code} label={t('detail.copyWinningDeck')} /> : null}
-          </div>
-
-          <p className="mt-3.5 text-ink-dim mono-data">
-            <span className="text-ink-muted">{t('detail.banlist')}</span> {tournament.banlist} ·{' '}
-            {t('detail.players', { count: tournament.players })} ·{' '}
-            {t('detail.swissRounds', { count: tournament.rounds })} · {t('detail.noTopCut')} ·{' '}
-            <LocalTime iso={tournament.startedAt} options={TIME_ONLY} />
-            {tournament.endedAt ? (
-              <>
-                {' → '}
-                <LocalTime iso={tournament.endedAt} options={TIME_ONLY} /> (
-                {formatDuration(tournament.startedAt, tournament.endedAt)})
-              </>
-            ) : (
-              ` · ${t('detail.stillRunning')}`
-            )}
-            {year ? ` · ${t('cardPool', { year })}` : ''}
-          </p>
-
-          {/* One plain sentence with the answer a searcher came for: who won, with what. */}
-          {champion && !live ? (
-            <p className="mt-3.5 max-w-[62ch] text-ink-dim lead">
-              {t('detail.summary', {
-                winner: playerName(champion.player, t('player.unknown')),
-                deck: champion.deck?.archetype ?? t('detail.unclassified'),
-                record: formatRecord(champion),
-                points: champion.points,
-              })}
-            </p>
-          ) : null}
-
-          {champion && !live ? (
-            <section className="pt-section">
-              <Winner champion={champion} />
-            </section>
-          ) : null}
-
-          <section className="pt-section">
-            <TournamentTabs
-              live={live}
-              standings={<Standings standings={standings} />}
-              rounds={<Rounds rounds={rounds} standings={standings} />}
-              stats={<Stats stats={stats} players={tournament.players} />}
-            />
-          </section>
+          <TournamentTabs
+            live={live}
+            summary={
+              <StatGrid
+                items={[
+                  {
+                    label: t('detail.facts.players'),
+                    value: players,
+                    hint: dropped ? t('detail.facts.dropped', { count: dropped }) : t('detail.facts.noDrops'),
+                  },
+                  { label: t('detail.facts.rounds'), value: tournament.rounds, hint: t('detail.facts.noTopCut') },
+                  {
+                    label: t('detail.facts.matches'),
+                    value: `${matches.played} / ${matches.total}`,
+                    hint: matches.unplayed ? t('detail.facts.unplayed', { count: matches.unplayed }) : t('detail.facts.allPlayed'),
+                  },
+                  {
+                    label: t('detail.facts.duration'),
+                    value: endedAt ? formatDuration(startedAt, endedAt) : t('detail.facts.running'),
+                    hint: (
+                      <>
+                        <LocalTime iso={startedAt} options={TIME_ONLY} /> –{' '}
+                        {endedAt ? <LocalTime iso={endedAt} options={TIME_ONLY} /> : '…'}
+                      </>
+                    ),
+                  },
+                ]}
+              />
+            }
+            standings={<Standings tournament={tournament} standings={standings} rounds={rounds} />}
+            rounds={<Rounds rounds={rounds} standings={standings} live={live} />}
+            stats={<Stats stats={stats} players={players} />}
+          />
         </div>
       </main>
       <Footer />

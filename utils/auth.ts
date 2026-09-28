@@ -4,16 +4,14 @@
  * (`getMeServer`) only sees it when the API sets `COOKIE_DOMAIN` to the shared parent domain.
  */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
+import type { Cosmetics } from './types'
+
+export const API_URL =process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export type Permission =
   | 'wiki.write'
   | 'wiki.delete'
   | 'analytics.write'
-  | 'tournament.read'
-  | 'tournament.create'
-  | 'tournament.update'
-  | 'tournament.delete'
   | 'user.manage'
   | 'system.manage'
 
@@ -21,11 +19,13 @@ export type AuthUser = {
   /** Discord snowflake. Keep it a string, it exceeds 2^53. */
   id: string
   status: 'ACTIVE'
-  role: 'USER' | 'EDITOR' | 'ANALYST' | 'MODERATOR' | 'ADMIN'
+  role: 'USER' | 'EDITOR' | 'ANALYST' | 'ADMIN'
   /** Show/hide UI with this, never with `role`. The API still checks every call. */
   permissions: Permission[]
   profile: { username: string | null; avatarUrl: string | null }
   createdAt: string
+  /** `welcome` + `avatar` slots (BACKGROUND, WEBDECO). The welcome page's background comes from here. */
+  cosmetics: Cosmetics
 }
 
 /** Copy for `/login?error=<code>`. Unknown codes fall back to `auth_failed`. */
@@ -57,11 +57,11 @@ export const logout = async () => {
 
 /** Server-side fetch to get the current logged-in user's AuthUser object using the session cookie. */
 export const getMeServer = async (cookie: string | null, signal?: AbortSignal): Promise<AuthUser | null> => {
-  const res = await fetch(`${API_URL}/auth/me`, {
-    headers: cookie ? { cookie } : undefined,
-    cache: 'no-store',
-    signal,
-  })
+  const once = () => fetch(`${API_URL}/auth/me`, { headers: cookie ? { cookie } : undefined, cache: 'no-store', signal })
+  // One retry: a dropped keep-alive socket or a 5xx blip must not read as "signed out",
+  // which the gated wiki pages would turn into a 404.
+  let res = await once().catch(() => null)
+  if (!res || res.status >= 500) res = await once()
   if (res.status === 401) return null
   if (!res.ok) throw new Error(`GET /auth/me failed with ${res.status}`)
   return res.json()

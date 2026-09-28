@@ -51,7 +51,7 @@ const ExplorationsRoute = async ({ params }: ExplorationsRouteProps) => {
       ) : (
         <EmptyBox title="Nothing shared yet" className="mt-8">
           {list.editable ? (
-            <>Build one on <Link href={`/profile/${id}/analytics`} className="text-gold hover:text-cyan">your analytics page</Link> and make it public.</>
+            <>Build one on <Link href={`/profile/${id}/analytics`} className="text-cyan hover:text-cyan">your analytics page</Link> and make it public.</>
           ) : (
             `${duelistLabel(profile)} hasn't made an exploration public yet.`
           )}

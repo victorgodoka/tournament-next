@@ -23,10 +23,10 @@ export const ExplorationCard = ({ exploration: e, variables, href, owner, showVi
   const metric = (m: string) => variables.metrics.find((x) => x.id === m)?.label ?? m
   const { config } = e
   return (
-    <li className="bg-surface-000">
+    <li className="bg-space-000">
       <Link href={href} className="group flex h-full flex-col gap-2 px-5 py-4.5 hover:bg-surface-100">
         <span className="flex items-center gap-3">
-          <span className="min-w-0 flex-1 truncate text-ink display-5 group-hover:text-gold">{e.name}</span>
+          <span className="min-w-0 flex-1 truncate text-ink display-5 group-hover:text-cyan">{e.name}</span>
           {showVisibility && e.visibility && e.visibility !== 'public' ? (
             <span className="shrink-0 border border-ink-muted px-2 py-1 text-ink-muted signal-chip">{VISIBILITY_LABEL[e.visibility]}</span>
           ) : null}

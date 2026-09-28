@@ -8,6 +8,7 @@
  */
 import { cache } from 'react'
 import { API_URL } from '@utils/auth'
+import type { AnalyticsPeriod } from '@utils/explorer'
 import type { EloPoint } from '@utils/types'
 
 export class AnalyticsApiError extends Error {
@@ -151,7 +152,8 @@ export type ResponseSplit = {
 }
 
 export type PlayerSeason = {
-  season: { id: number; code: string; label: string; ladder: 'tcg' | 'genesys'; startsAt: string; endsAt: string | null }
+  /** `analyticsOnly` = a panel period, not a ranked season: no standing, no Elo. */
+  season: { id: number; code: string; label: string; ladder: 'tcg' | 'genesys'; startsAt: string; endsAt: string | null; analyticsOnly?: boolean }
   player: Duelist
   /** Over 1000 matches: only the newest 1000 were analyzed. */
   truncated?: boolean
@@ -179,8 +181,11 @@ export type PlayerSeason = {
   cardUsage: (CardUse & {
     deckInclusion: Share
     usage: Share
-    whenActivated: Record3
-    byArchetype: { archetype: string | null; games: number; deckInclusion: Share; usage: Share }[]
+    /** Every game with the card in the deck, used or not. All zeros on a season not swept since this field. */
+    whenInDeck: Record3
+    /** Games where it was used (summoned or activated). Activations only on a season not swept since. */
+    whenUsed: Record3
+    byArchetype: { archetype: string | null; games: number; deckInclusion: Share; usage: Share; whenInDeck: Record3; whenUsed: Record3 }[]
   })[]
   responses: (CardUse & { byPlayer: ResponseSplit; byOpponent: ResponseSplit })[]
   handTrapsPerMatchup: {
@@ -257,6 +262,10 @@ export const getPlayerSeason = cache(
     }
   },
 )
+
+/** The panel's periods, newest first. A failed read is none: the seasons still work. */
+export const listPeriods = () =>
+  request<{ periods: AnalyticsPeriod[] }>('/analytics/periods').then((body) => body.periods, () => [] as AnalyticsPeriod[])
 
 /* ---------------------------------------------------------------- *
  * Labels

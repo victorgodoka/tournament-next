@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@hooks/index";
 import { messenger, MessengerApiError, msSinceLastRequest, sortRoster } from "@utils/messenger";
 import type {
   BlockedDuelist,
@@ -136,6 +137,13 @@ export const useMessenger = () => {
           ? { ...current, roster: sortRoster(current.roster.map((entry) => entry.id === id ? { ...entry, presence, status, song } : entry)) }
           : current)
       })
+      source.addEventListener('cosmetics', (event) => {
+        const { id, cosmetics }: Pick<Identity, 'id' | 'cosmetics'> = JSON.parse(event.data)
+        setPanel((current) => current && current.roster.some((entry) => entry.id === id)
+          ? { ...current, roster: current.roster.map((entry) => entry.id === id ? { ...entry, cosmetics } : entry) }
+          : current)
+        patchChats((current) => current.map((chat) => chat.id === id ? { ...chat, cosmetics } : chat))
+      })
       source.addEventListener('request', (event) => {
         const from: Identity = JSON.parse(event.data)
         setPanel((current) => current && { ...current, incomingRequests: current.incomingRequests + 1 })
@@ -186,7 +194,16 @@ export const useMessenger = () => {
       document.removeEventListener('visibilitychange', onVisibility)
       detach()
     }
-  }, [fail, loadPanel])
+  }, [fail, loadPanel, patchChats])
+
+  // The stream never echoes the viewer's own equip; the auth refresh after it does, so refetch `me`.
+  const ownCosmetics = JSON.stringify(useAuth().user?.cosmetics ?? null)
+  const seenCosmetics = useRef(ownCosmetics)
+  useEffect(() => {
+    if (seenCosmetics.current === ownCosmetics) return
+    seenCosmetics.current = ownCosmetics
+    if (signedIn) loadPanel()
+  }, [ownCosmetics, signedIn, loadPanel])
 
   useEffect(() => {
     if (!signedIn) return
@@ -289,6 +306,11 @@ export const useMessenger = () => {
           outgoing: current.outgoing.map((request) => (request.id === id ? { ...request, kind } : request)),
         })
         return messenger.setKind(id, kind).catch(fail)
+      },
+
+      clearChat: (id: string) => {
+        patchChats((current) => current.filter((chat) => chat.id !== id))
+        return messenger.clearChat(id).catch(fail)
       },
 
       /** The first page of a conversation marks it read on the server. */

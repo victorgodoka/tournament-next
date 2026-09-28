@@ -17,7 +17,8 @@ export type Technique = 'table' | 'heatmap' | 'bars' | 'line'
 export type Source = 'games' | 'cards' | 'handTraps' | 'rating' | 'days' | 'groups'
 /** How a source reads in a sentence. */
 export const SOURCE_NAME: Record<Source, string> = { games: 'games', cards: 'cards', handTraps: 'hand traps', rating: 'daily rating', days: 'days', groups: 'engines & techs' }
-export type FilterValue = string | number | null
+/** `number[]`: a global archetype, one setcode or two for a mixed deck (§7). */
+export type FilterValue = string | number | number[] | null
 
 export type Dimension = { id: string; label: string; values: string; description: string }
 /** `last` = the value of the latest point in the cut, never summed or averaged. */
@@ -51,6 +52,26 @@ export type ExplorationConfig = {
   columnLimit?: number
   /** Column order. Absent/`null` = the dimension's natural order, else most samples first. */
   columnSort?: ColumnSort | null
+  /** Row filters on a metric, like SQL `HAVING`: all must hold. 0–3, one per `(value, op)`. Absent = none. */
+  thresholds?: Threshold[]
+}
+
+export type ThresholdOp = 'gt' | 'gte' | 'lt' | 'lte'
+/** `value` indexes `values`; `target` is in the metric's unit (a rate is 0..1). */
+export type Threshold = { value: number; op: ThresholdOp; target: number }
+export const THRESHOLD_OPS: { id: ThresholdOp; label: string }[] = [
+  { id: 'gt', label: '>' },
+  { id: 'gte', label: '≥' },
+  { id: 'lt', label: '<' },
+  { id: 'lte', label: '≤' },
+]
+const holds = (v: number | null, { op, target }: Threshold) =>
+  v !== null && (op === 'gt' ? v > target : op === 'gte' ? v >= target : op === 'lt' ? v < target : v <= target)
+
+/** Keeps the rows where some segment's aggregate passes every threshold. Runs before sort and limit. */
+export const applyThresholds = <G extends { seg: GroupSegment[] }>(order: G[], cfg: ExplorationConfig) => {
+  const ts = cfg.thresholds ?? []
+  return ts.length ? order.filter((g) => g.seg.some((s) => ts.every((t) => holds(s.vals[t.value] ?? null, t)))) : order
 }
 
 export type ColumnSort = 'samples' | 'value' | 'label'
@@ -113,7 +134,6 @@ type Fact = {
   archetype?: string | null
   cardId?: number
   uses?: number
-  activated?: boolean
   handTrap?: number
   by?: 'player' | 'opponent'
   /** A rating row (`eloHistory[]`): its `day` is the ready-made `seasonDay`. */
@@ -122,6 +142,23 @@ type Fact = {
 
 /** A season the Segments panel offers. `code` resolves `current:*`; `null` when that ladder has no open season. */
 export type SegmentOption = { id: string; label: string; sub: string; code: string | null }
+
+/** A staff period (`GET /analytics/periods`): any window, compared like a season. Ends exclusive, UTC days. */
+export type AnalyticsPeriod = PlayerSeason['season'] & { endsAt: string }
+
+/** First and last day of a period, inclusive, `YYYY-MM-DD`. */
+export const periodDays = (p: Pick<AnalyticsPeriod, 'startsAt' | 'endsAt'>) =>
+  [p.startsAt.slice(0, 10), new Date(Date.parse(p.endsAt) - 1).toISOString().slice(0, 10)] as const
+
+/** The primary segment's note. */
+export const seasonState = (s: PlayerSeason['season']) => (s.analyticsOnly ? 'Period' : s.endsAt ? 'Ended' : 'Open')
+
+export const periodOption = (p: AnalyticsPeriod): SegmentOption => ({
+  id: p.code,
+  label: `${p.ladder === 'tcg' ? 'TCG' : 'Genesys'} · ${p.label}`,
+  sub: `Period · ${periodDays(p).join(' → ')}`,
+  code: p.code,
+})
 
 /** One compared season, ready to cut. */
 export type Segment = {
@@ -160,7 +197,7 @@ export const buildSegment = (id: string, season: PlayerSeason): Segment => {
     games,
     rating,
     cards: games.flatMap((f) =>
-      (f.game!.cards?.used ?? []).map((u) => ({ ...f, cardId: u.cardId, uses: u.uses, activated: f.game!.cards!.activated.includes(u.cardId) })),
+      (f.game!.cards?.used ?? []).map((u) => ({ ...f, cardId: u.cardId, uses: u.uses })),
     ),
     handTraps: games.flatMap((f) => [
       ...(f.game!.handTraps?.player ?? []).map((handTrap) => ({ ...f, handTrap, by: 'player' as const })),
@@ -234,7 +271,8 @@ const DIM_IMPL: Record<string, DimImpl> = {
 const GAME_DIMS = new Set(['archetype', 'opponentArchetype', 'opponent', 'turnOrder', 'gameNumber', 'result', 'match', 'seasonDay'])
 
 const dimValue = (d: string, f: Fact) => DIM_IMPL[d]?.value(f)
-const dimKey = (d: string, f: Fact) => DIM_IMPL[d]?.key?.(f) ?? dimValue(d, f) ?? ''
+/** Duelist values are never lists: those are global archetypes. */
+const dimKey = (d: string, f: Fact) => DIM_IMPL[d]?.key?.(f) ?? (dimValue(d, f) as string | number | null | undefined) ?? ''
 export const dimNatural = (d: string) => DIM_IMPL[d]?.natural
 export const dimLabel = (d: string, v: FilterValue, names: Names) => DIM_IMPL[d]?.label(v, names) ?? String(v)
 
@@ -269,9 +307,8 @@ const onePerGame = (rows: Fact[]) => [...new Map(rows.map((f) => [`${f.game!.mat
 const inclusion = ({ cut, seg }: Ctx) => {
   if (!('card' in cut)) return null
   const card = seg.season.cardUsage.find((c) => c.cardId === cut.card)
-  if (!card) return { games: 0, rate: 0 }
-  if (!('archetype' in cut)) return card.deckInclusion
-  return card.byArchetype.find((a) => a.archetype === cut.archetype)?.deckInclusion ?? { games: 0, rate: 0 }
+  const row = card && ('archetype' in cut ? card.byArchetype.find((a) => a.archetype === cut.archetype) : card)
+  return row ? { ...row.deckInclusion, whenInDeck: row.whenInDeck } : { games: 0, rate: 0, whenInDeck: null }
 }
 
 /** `responses` summed over the hand traps and sides in the cut. */
@@ -306,10 +343,10 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   usage: ({ facts, games }) => ratio(distinctGames(facts), games.length),
   usageGames: ({ facts }) => distinctGames(facts),
   totalUses: ({ facts }) => sum(facts, (f) => f.uses ?? 0),
-  activatedGames: ({ facts }) => distinctGames(facts.filter((f) => f.activated)),
-  winRateWhenActivated: ({ facts }) => winRate(onePerGame(facts.filter((f) => f.activated))),
+  winRateWhenUsed: ({ facts }) => winRate(onePerGame(facts)),
   deckInclusion: (ctx) => inclusion(ctx)?.rate ?? null,
   inclusionGames: (ctx) => inclusion(ctx)?.games ?? null,
+  winRateInDeck: (ctx) => inclusion(ctx)?.whenInDeck?.winRate ?? null,
 
   activations: ({ facts }) => facts.length,
   gamesWithActivation: ({ facts }) => distinctGames(facts),
@@ -335,9 +372,9 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
 }
 
 /** Metrics read from the season aggregates: they name their own groups and never count facts. */
-const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate'])
+const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'winRateInDeck', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate'])
 /** Win/loss rates: 50% is the line that matters. */
-export const WIN_LOSS = new Set(['winRate', 'winRateWhenActivated', 'dailyWinRate', 'winRateWithGroup'])
+export const WIN_LOSS = new Set(['winRate', 'winRateWhenUsed', 'winRateInDeck', 'dailyWinRate', 'winRateWithGroup'])
 /** Read from the per-game detail (§3.4): undercounts while `gamesWithoutDetail` > 0. */
 const NEEDS_DETAIL = (m: Metric) => /combo|deckCoverage|turn1|longestChain|cards\.|handTraps/.test(m.from)
 
@@ -532,16 +569,17 @@ export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names
   })
     // A name from the aggregates with nothing behind it in any season is noise.
     .filter((g) => g.seg.some((s) => s.n || s.vals.some((v) => v)))
+  const kept = applyThresholds(order, cfg)
 
-  sortGroups(order, rowDims, cfg)
+  sortGroups(kept, rowDims, cfg)
   /** Games whose per-game detail is missing, when a value needs it. */
   const withoutDetail = values.some((m) => NEEDS_DETAIL(cat.metrics.get(m)!)) ? sum(segs, (s) => s.season.gamesWithoutDetail ?? 0) : 0
 
   return {
     source, values, rowDims, colDim,
     segs: segs.map((s, i) => ({ id: s.id, label: s.label, color: segColor(i) })),
-    groups: order.slice(0, cfg.limit || 12) as Group[],
-    totalGroups: order.length,
+    groups: kept.slice(0, cfg.limit || 12) as Group[],
+    totalGroups: kept.length,
     colList,
     hiddenCols: colAll.length - colList.length,
     totals: source === 'cards' ? null : segs.map((seg) => ({
@@ -640,6 +678,8 @@ export const accepts = (cat: Catalog, zone: Zone, p: Payload, cfg: ExplorationCo
 export const removeFrom = (t: ExplorationConfig, zone: Zone, i: number) => {
   if (zone === 'columns') t.columns = null
   else t[zone].splice(i, 1)
+  // Thresholds index `values`: drop the removed metric's, shift the ones after it.
+  if (zone === 'values' && t.thresholds) t.thresholds = t.thresholds.filter((h) => h.value !== i).map((h) => (h.value > i ? { ...h, value: h.value - 1 } : h))
   t.sort = null
 }
 
@@ -702,7 +742,7 @@ export const summary = (cat: Catalog, cfg: ExplorationConfig, segLabel: (id: str
     .filter(Boolean)
     .join(' · ')
 
-const SEG_COLORS = ['var(--color-gold)', 'var(--color-cyan)', 'var(--color-indigo-lift)', 'var(--color-ink-dim)']
+const SEG_COLORS = ['var(--color-cyan)', 'var(--color-cyan)', 'var(--color-azure-lift)', 'var(--color-ink-dim)']
 /** One colour per compared season, in the order they were added. */
 export const segColor = (i: number) => SEG_COLORS[i] ?? 'var(--color-ink-dim)'
 
@@ -726,7 +766,7 @@ export const kpis = (seg: Segment) => {
       label: 'Main archetype',
       value: top ? archetypeName(top.archetype) : '—',
       sub: seg.season.archetypeDistribution.length > 1 ? `${seg.season.archetypeDistribution.length} archetypes` : top ? 'every game' : '',
-      tone: 'text-gold',
+      tone: 'text-cyan',
     },
   ]
 }

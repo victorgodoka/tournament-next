@@ -3,13 +3,14 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
+import { useLazyText } from '@hooks/index'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { StatTiles } from '@omega/analytics/primitives'
 import { createExploration, deleteExploration, sharePath, updateExploration, writeError, type ExplorationList } from '@utils/explorations'
 import {
-  COLUMN_LIMIT, COLUMN_SORTS, accepts, capOf, catalogOf, configProblem, dimReason, drop, inUse, kpis, metricReason, quickAdd, removeFrom, segColor, sourceOf, sourcesOf, summary, valuesOf,
+  COLUMN_LIMIT, COLUMN_SORTS, THRESHOLD_OPS, accepts, capOf, catalogOf, configProblem, dimReason, drop, inUse, kpis, metricReason, quickAdd, removeFrom, seasonState, segColor, sourceOf, sourcesOf, summary, valuesOf,
   type Catalog, type ColumnSort, type Exploration, type ExplorationConfig, type FilterValue, type Payload, type SegmentOption, type Source, type Technique, type Variables,
-  type Visibility, type Zone,
+  type Threshold, type ThresholdOp, type Visibility, type Zone,
 } from '@utils/explorer'
 import { ExplorationOutput, MatchDrawer, SeasonsGate, duelistPivot, segLabelOf, useSegments, useSharedSegments } from './output'
 
@@ -40,6 +41,57 @@ export const ColumnControls = ({ cat, cfg, edit }: { cat: Catalog; cfg: Explorat
   )
 }
 
+/** Row filters on a metric (`HAVING`). A rate is typed in percent and stored 0..1. */
+export const ThresholdControls = ({ cat, cfg, edit }: { cat: Catalog; cfg: ExplorationConfig; edit: (fn: (t: ExplorationConfig) => void) => void }) => {
+  if (!cfg.values.length) return null
+  const list = cfg.thresholds ?? []
+  const rate = (i: number) => cat.metrics.get(cfg.values[i] ?? '')?.format === 'rate'
+  const set = (i: number, patch: Partial<Threshold>) => edit((t) => (t.thresholds![i] = { ...t.thresholds![i]!, ...patch }))
+  const taken = (value: number, op: ThresholdOp, skip: number) => list.some((h, j) => j !== skip && h.value === value && h.op === op)
+  return (
+    <>
+      {list.map((h, i) => (
+        <span key={i} className="flex items-center gap-1 text-ink-muted signal-sm">
+          Keep
+          <select value={h.value} onChange={(e) => set(i, { value: Number(e.target.value), target: 0 })} className={SELECT} aria-label="Metric">
+            {cfg.values.map((m, j) => <option key={m} value={j} disabled={taken(j, h.op, i)}>{cat.metrics.get(m)?.label ?? m}</option>)}
+          </select>
+          <select value={h.op} onChange={(e) => set(i, { op: e.target.value as ThresholdOp })} className={SELECT} aria-label="Comparison">
+            {THRESHOLD_OPS.map((o) => <option key={o.id} value={o.id} disabled={taken(h.value, o.id, i)}>{o.label}</option>)}
+          </select>
+          <input
+            type="number"
+            min={0}
+            max={rate(h.value) ? 100 : undefined}
+            step="any"
+            value={rate(h.value) ? +(h.target * 100).toFixed(4) : h.target}
+            onChange={(e) => {
+              const n = Math.max(0, Number(e.target.value) || 0)
+              set(i, { target: rate(h.value) ? Math.min(n, 100) / 100 : n })
+            }}
+            aria-label="Threshold"
+            className={twMerge(SELECT, 'w-20')}
+          />
+          {rate(h.value) ? '%' : null}
+          <button type="button" onClick={() => edit((t) => t.thresholds!.splice(i, 1))} aria-label="Remove threshold" className="h-9 px-2 text-ink-dim hover:text-ink">×</button>
+        </span>
+      ))}
+      {list.length < cat.limits.filters ? (
+        <button
+          type="button"
+          onClick={() => {
+            const op = THRESHOLD_OPS.find((o) => !taken(0, o.id, -1))?.id
+            if (op) edit((t) => (t.thresholds = [...(t.thresholds ?? []), { value: 0, op, target: 0 }]))
+          }}
+          className="h-9 border border-line px-3 text-ink-dim signal-sm hover:border-ink hover:text-ink"
+        >
+          + Threshold
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 /** A tab: a stored exploration (`id`), or a new one that only lives in this browser until saved. */
 type Tab = { key: string; id: string | null; name: string; visibility: Visibility; shareToken: string | null; config: ExplorationConfig; dirty: boolean }
 
@@ -47,7 +99,7 @@ const tabOf = (e: Exploration): Tab => ({ key: e.id, id: e.id, name: e.name, vis
 
 export const VISIBILITY: Record<Visibility, { label: string; hint: string; tone: string }> = {
   private: { label: 'Private', hint: 'Only you', tone: 'border-ink-muted text-ink-muted' },
-  link: { label: 'Link only', hint: 'Anyone with the link', tone: 'border-gold text-gold' },
+  link: { label: 'Link only', hint: 'Anyone with the link', tone: 'border-cyan text-cyan' },
   public: { label: 'Public', hint: 'On your profile and the public feed', tone: 'border-cyan text-cyan' },
 }
 
@@ -55,7 +107,7 @@ const TECHNIQUE_LABEL: Record<Technique, string> = { table: 'Table', heatmap: 'H
 const SOURCE_LABEL: Record<Source, string> = { games: 'Games', cards: 'Cards', handTraps: 'Hand traps', rating: 'Rating', days: 'Over time', groups: 'Engines & techs' }
 /** Panel groups: the catalog doesn't group dimensions, so the client does. */
 const DIM_GROUP: Record<string, string> = {
-  archetype: 'Deck', card: 'Deck', engine: 'Deck', tech: 'Deck', opponentArchetype: 'Opponent', opponent: 'Opponent', turnOrder: 'Game', gameNumber: 'Game',
+  archetype: 'Deck', archetypePart: 'Deck', card: 'Deck', engine: 'Deck', tech: 'Deck', opponentArchetype: 'Opponent', opponentArchetypePart: 'Opponent', opponent: 'Opponent', turnOrder: 'Game', gameNumber: 'Game',
   result: 'Game', match: 'Game', seasonDay: 'Time', handTrap: 'Hand traps', activatedBy: 'Hand traps',
 }
 const ZONE_LABEL: Record<Zone, string> = { segments: 'Segments', rows: 'Rows', columns: 'Columns', values: 'Values', filters: 'Filters' }
@@ -101,14 +153,14 @@ const VarRow = ({ label, sub, title, marker, off, zone, toggle, onAdd, onDragSta
       <span className={twMerge('block truncate body-sm', off ? 'text-ink-muted' : 'text-ink')}>{label}</span>
       {sub ? <span className="block text-ink-muted mono-note">{sub}</span> : null}
     </span>
-    {zone && !toggle ? <span className="text-gold signal-sm">In {ZONE_LABEL[zone]}</span> : off ? <span className="text-ink-muted signal-sm">N/A</span> : null}
+    {zone && !toggle ? <span className="text-cyan signal-sm">In {ZONE_LABEL[zone]}</span> : off ? <span className="text-ink-muted signal-sm">N/A</span> : null}
     <button
       type="button"
       onClick={onAdd}
       disabled={!toggle && (off || !!zone)}
       aria-label={`${toggle && zone ? 'Remove' : 'Add'} ${label}`}
       aria-pressed={toggle ? !!zone : undefined}
-      className={twMerge('size-8 shrink-0 border border-line font-mono text-sm font-bold disabled:text-ink-muted', toggle && zone ? 'border-line-strong text-ink' : 'text-gold')}
+      className={twMerge('size-8 shrink-0 border border-line font-mono text-sm font-bold disabled:text-ink-muted', toggle && zone ? 'border-line-strong text-ink' : 'text-cyan')}
     >
       {toggle && zone ? '−' : '+'}
     </button>
@@ -160,7 +212,7 @@ export const ExplorationBuilder = ({ playerId, name, list, variables, options, d
     return owner ? (
       <EmptyBox title="No explorations yet" className="mt-6">
         Build a pivot over your ranked games and save it to this page.
-        <button type="button" onClick={newTab} className="mx-auto mt-4 flex min-h-11 items-center border border-gold px-4 text-gold signal-chip">+ New exploration</button>
+        <button type="button" onClick={newTab} className="mx-auto mt-4 flex min-h-11 items-center border border-cyan px-4 text-cyan signal-chip">+ New exploration</button>
       </EmptyBox>
     ) : (
       <EmptyBox title="Nothing shared yet" className="mt-6">{name} hasn&apos;t made an exploration public yet.</EmptyBox>
@@ -219,6 +271,8 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
   const shared = useSharedSegments(owner ? null : tab.shareToken, cfg.segments)
   const { segments, names, pending, failure } = owner ? live : shared
   const segLabel = (id: string) => options.find((o) => o.id === id)?.label ?? segLabelOf(segments)(id)
+  // The cut runs over whole seasons: keep it off the keystroke path of the name.
+  const pivot = useMemo(() => duelistPivot(cat, segments, names, cfg), [cat, segments, names, cfg])
 
   const put = (config: ExplorationConfig | null) => {
     if (config) onChange({ ...tab, config, dirty: true })
@@ -299,7 +353,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
   )
 
   const status =!tab.id ? { label: 'Not saved yet', tone: 'border-ink-muted text-ink-muted' }
-    : tab.dirty ? { label: 'Unsaved changes', tone: 'border-gold text-gold' }
+    : tab.dirty ? { label: 'Unsaved changes', tone: 'border-cyan text-cyan' }
     : { label: `Saved · ${VISIBILITY[tab.visibility].label}`, tone: VISIBILITY[tab.visibility].tone }
   const canSave = owner && tab.dirty && !problem && !!tab.name.trim() && !busy
   const at = tabs.findIndex((t) => t.key === tab.key)
@@ -311,7 +365,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
         <StatTiles
           className="mt-5"
           items={[
-            { label: 'Primary segment', value: <span className="body-strong normal-case">{lead.label}</span>, note: [standing ? `${standing.elo} Elo · #${standing.rank}` : null, lead.season.season.endsAt ? 'Ended' : 'Open'].filter(Boolean).join(' · ') },
+            { label: 'Primary segment', value: <span className="body-strong normal-case">{lead.label}</span>, note: [standing ? `${standing.elo} Elo · #${standing.rank}` : null, seasonState(lead.season.season)].filter(Boolean).join(' · ') },
             ...kpis(lead).map((k) => ({ label: k.label, value: <span className="block truncate">{k.value}</span>, tone: k.tone, note: k.sub })),
           ]}
         />
@@ -331,14 +385,14 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
                 className={twMerge('flex min-h-12 shrink-0 items-center gap-2 border-r border-line px-5 signal-tab', on ? 'bg-surface-100 text-ink shadow-tab-active' : 'text-ink-muted hover:text-ink')}
               >
                 {t.name || 'Untitled'}
-                {owner && t.id && t.dirty ? <span title="Unsaved changes" className="size-1.75 bg-gold" /> : null}
+                {owner && t.id && t.dirty ? <span title="Unsaved changes" className="size-1.75 bg-cyan" /> : null}
                 {owner && t.visibility !== 'public' ? <span className="text-ink-muted signal-sm">{t.id ? VISIBILITY[t.visibility].label : 'New'}</span> : null}
               </button>
             )
           })}
         </div>
         {owner && tabs.length < limit ? (
-          <button type="button" onClick={onNew} className="shrink-0 border-r border-line px-4.5 text-gold signal-tab hover:bg-surface-300">+ New exploration</button>
+          <button type="button" onClick={onNew} className="shrink-0 border-r border-line px-4.5 text-cyan signal-tab hover:bg-surface-300">+ New exploration</button>
         ) : null}
         <span className="flex-1" />
         {owner && tabs.length > 1 ? (
@@ -359,7 +413,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
               type="button"
               aria-expanded={editing}
               onClick={() => setEditing(!editing)}
-              className="flex min-h-12 items-center justify-between border-b border-line px-4.5 text-gold signal-tab lg:hidden"
+              className="flex min-h-12 items-center justify-between border-b border-line px-4.5 text-cyan signal-tab lg:hidden"
             >
               {editing ? 'Close editor' : 'Edit exploration'} <span aria-hidden>{editing ? '▴' : '▾'}</span>
             </button>
@@ -395,9 +449,10 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
                 </label>
               ) : null}
               {owner && !problem && cfg.technique !== 'line' ? <ColumnControls cat={cat} cfg={cfg} edit={edit} /> : null}
+              {owner && !problem && cfg.technique !== 'line' ? <ThresholdControls cat={cat} cfg={cfg} edit={edit} /> : null}
               {owner && cfg.technique === 'line' ? (
                 <label className="flex h-9 cursor-pointer items-center gap-2 border border-line px-3 text-ink-dim signal-sm">
-                  <input type="checkbox" checked={cfg.runningTotal} onChange={() => edit((t) => (t.runningTotal = !t.runningTotal))} className="size-4 accent-gold" />
+                  <input type="checkbox" checked={cfg.runningTotal} onChange={() => edit((t) => (t.runningTotal = !t.runningTotal))} className="size-4 accent-cyan" />
                   Running total
                 </label>
               ) : null}
@@ -418,7 +473,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
               ) : null}
               {tab.shareToken && tab.visibility !== 'private' ? (
                 <>
-                  <Link href={sharePath(tab.shareToken)} className="flex min-h-11 items-center border border-line-strong px-4 text-ink signal-chip hover:bg-ink hover:text-ink-on">
+                  <Link href={sharePath(tab.shareToken)} className="flex min-h-11 items-center border border-line-strong px-4 text-ink signal-chip hover:bg-ink hover:text-space-000">
                     Open link
                   </Link>
                   <button type="button" onClick={copyLink} className="min-h-11 border border-line px-4 text-ink-dim signal-chip hover:border-ink hover:text-ink">
@@ -427,7 +482,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
                 </>
               ) : null}
               {owner ? (
-                <button type="button" onClick={remove} disabled={busy} className="min-h-11 border border-line px-4 text-ink-muted signal-chip hover:border-negative hover:text-negative disabled:opacity-60">
+                <button type="button" onClick={remove} disabled={busy} className="min-h-11 border border-line px-4 text-ink-muted signal-chip hover:border-loss hover:text-loss disabled:opacity-60">
                   Delete
                 </button>
               ) : null}
@@ -437,7 +492,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
                   onClick={save}
                   disabled={!canSave}
                   title={problem?.title}
-                  className="min-h-11 bg-gold px-5 text-gold-on uppercase shadow-offset-cyan signal-chip transition-transform enabled:hover:translate-1 enabled:hover:bg-cyan enabled:hover:shadow-offset-cyan-press disabled:opacity-50"
+                  className="min-h-11 bg-cyan px-5 text-cyan-on uppercase shadow-offset-azure signal-chip transition-transform enabled:hover:translate-1 enabled:hover:bg-cyan enabled:hover:shadow-offset-azure-press disabled:opacity-50"
                 >
                   {busy ? 'Saving…' : tab.id ? 'Save changes' : 'Save'}
                 </button>
@@ -446,8 +501,8 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
           </div>
 
           {flash ? (
-            <p role="status" className={twMerge('mt-3.5 flex items-center gap-2.5 border px-3.5 py-2.5 text-ink body-sm', flash.tone === 'ok' ? 'border-cyan bg-ground-cyan' : 'border-negative bg-ground-negative')}>
-              <span aria-hidden className={twMerge('size-2', flash.tone === 'ok' ? 'bg-cyan' : 'bg-negative')} />
+            <p role="status" className={twMerge('mt-3.5 flex items-center gap-2.5 border px-3.5 py-2.5 text-ink body-sm', flash.tone === 'ok' ? 'border-cyan bg-ground-cyan' : 'border-loss bg-ground-loss')}>
+              <span aria-hidden className={twMerge('size-2', flash.tone === 'ok' ? 'bg-cyan' : 'bg-loss')} />
               {flash.text}
             </p>
           ) : null}
@@ -455,7 +510,7 @@ const Workspace = ({ cat, playerId, owner, limit, tabs, tab, options, onSelect, 
           {failure || !segments.length ? (
             <SeasonsGate pending={pending} failure={failure} />
           ) : (
-            <ExplorationOutput cat={cat} cfg={cfg} {...duelistPivot(cat, segments, names, cfg)} onEdit={owner ? edit : undefined} onOpenMatch={setMatch} />
+            <ExplorationOutput cat={cat} cfg={cfg} {...pivot} onEdit={owner ? edit : undefined} onOpenMatch={setMatch} />
           )}
         </section>
       </div>
@@ -485,6 +540,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
   const [drag, setDrag] = useState<Payload | null>(null)
   const [over, setOver] = useState<Zone | null>(null)
   const [q, setQ] = useState('')
+  const nameField = useLazyText(name, onName)
   const edit = (fn: (t: ExplorationConfig) => void) => {
     const t = structuredClone(cfg)
     fn(t)
@@ -502,7 +558,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
   const add = (p: Payload) => {
     const t = quickAdd(cat, cfg, p, firstValue)
     if (t) put(t)
-    else if (p.kind === 'seg') onError('An exploration compares at least one season.')
+    else if (p.kind === 'seg') onError('An exploration compares at least one season or period.')
   }
 
   const used = inUse(cfg)
@@ -530,10 +586,10 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
 
   const dimLabelOf = (d: string) => cat.dimensions.get(d)?.label ?? d
   const zones: { id: Zone; marker: string; hint: string; chips: React.ReactNode[] }[] = [
-    { id: 'segments', marker: 'bg-gold', hint: 'Drop up to 4 seasons to compare.', chips: cfg.segments.map((s, i) => chip('segments', i, { kind: 'seg', id: s }, segLabel(s), segColor(i))) },
+    { id: 'segments', marker: 'bg-cyan', hint: 'Drop up to 4 seasons or periods to compare.', chips: cfg.segments.map((s, i) => chip('segments', i, { kind: 'seg', id: s }, segLabel(s), segColor(i))) },
     { id: 'rows', marker: 'bg-cyan', hint: 'Drop a dimension', chips: cfg.rows.map((d, i) => chip('rows', i, { kind: 'dim', id: d }, dimLabelOf(d), 'var(--color-cyan)')) },
     { id: 'columns', marker: 'bg-cyan', hint: 'Drop a dimension to cross-tab', chips: cfg.columns ? [chip('columns', 0, { kind: 'dim', id: cfg.columns }, dimLabelOf(cfg.columns), 'var(--color-cyan)')] : [] },
-    { id: 'values', marker: 'bg-gold', hint: 'Drop a metric', chips: cfg.values.map((m, i) => chip('values', i, { kind: 'metric', id: m }, cat.metrics.get(m)?.label ?? m, 'var(--color-gold)')) },
+    { id: 'values', marker: 'bg-cyan', hint: 'Drop a metric', chips: cfg.values.map((m, i) => chip('values', i, { kind: 'metric', id: m }, cat.metrics.get(m)?.label ?? m, 'var(--color-cyan)')) },
     {
       id: 'filters', marker: 'bg-ink-dim', hint: 'Drop a dimension to filter by it',
       chips: cfg.filters.map((f, i) => {
@@ -548,9 +604,9 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
                 const v = JSON.parse(e.target.value) as FilterValue
                 edit((t) => (t.filters[i]!.value = v))
               }}
-              className="mt-1 h-8 w-full border border-line bg-surface-000 px-2 text-ink body-sm"
+              className="mt-1 h-8 w-full border border-line bg-space-000 px-2 text-ink body-sm"
             >
-              {choices.some((c) => c.v === f.value) ? null : <option value={JSON.stringify(f.value)}>{String(f.value)}</option>}
+              {choices.some((c) => JSON.stringify(c.v) === JSON.stringify(f.value)) ? null : <option value={JSON.stringify(f.value)}>{String(f.value)}</option>}
               {choices.map((c) => <option key={JSON.stringify(c.v)} value={JSON.stringify(c.v)}>{c.label}</option>)}
             </select>
           </div>
@@ -565,12 +621,12 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
   return (
     <>
       <aside aria-label="Variables" className="border-line lg:sticky lg:top-16 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:border-r">
-        <div className="sticky top-0 z-2 border-b border-line bg-surface-000 px-4.5 pt-4.5 pb-3">
+        <div className="sticky top-0 z-2 border-b border-line bg-space-000 px-4.5 pt-4.5 pb-3">
           <p className="text-ink-dim signal">Variables</p>
           <label htmlFor="var-search" className="mt-3 block text-ink-muted signal-sm">Search</label>
           <input id="var-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Card, win rate, turn…" className="mt-1.5 h-10 w-full border border-line bg-surface-200 px-3 text-ink body-sm" />
         </div>
-        <Rule tone="text-gold" meta="Seasons">Segments</Rule>
+        <Rule tone="text-cyan" meta="Seasons · periods">Segments</Rule>
         <ul>
           {options.map((s) => {
             const at = cfg.segments.indexOf(s.id)
@@ -611,7 +667,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
             </div>
           ) : null
         })}
-        <Rule tone="text-gold" meta="Counted">Metrics</Rule>
+        <Rule tone="text-cyan" meta="Counted">Metrics</Rule>
         {sourcesOf(cat).map((s) => {
           const items = metrics.filter((m) => m.source === s && matching(m.label))
           return items.length ? (
@@ -622,7 +678,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
                   const reason = used[m.id] ? null : metricReason(cat, m.id, cfg)
                   const p: Payload = { kind: 'metric', id: m.id }
                   return (
-                    <VarRow key={m.id} label={m.label} title={reason ?? (m.description || m.label)} marker="var(--color-gold)" off={!!reason} zone={used[m.id]}
+                    <VarRow key={m.id} label={m.label} title={reason ?? (m.description || m.label)} marker="var(--color-cyan)" off={!!reason} zone={used[m.id]}
                       onAdd={() => add(p)} onDragStart={(e) => startDrag(e, p)} onDragEnd={endDrag} />
                   )
                 })}
@@ -641,11 +697,8 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
         <input
           id="exp-name"
           type="text"
-          value={name}
           maxLength={cat.limits.name}
-          onChange={(e) => {
-            onName(e.target.value)
-          }}
+          {...nameField}
           className="mt-1.5 h-10 w-full border border-line bg-surface-200 px-3 text-ink body-strong"
         />
         <p id="tech-label" className="mt-4.5 text-ink-muted signal-sm">Technique</p>
@@ -657,7 +710,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
               role="radio"
               aria-checked={v === cfg.technique}
               onClick={() => edit((t) => (t.technique = v))}
-              className={twMerge('h-10 signal-chip', v === cfg.technique ? 'bg-gold text-gold-on' : 'bg-surface-000 text-ink-dim hover:bg-surface-300')}
+              className={twMerge('h-10 signal-chip', v === cfg.technique ? 'bg-cyan text-cyan-on' : 'bg-space-000 text-ink-dim hover:bg-surface-300')}
             >
               {TECHNIQUE_LABEL[v] ?? v}
             </button>
@@ -682,7 +735,7 @@ export const ExplorerEditor = ({ cat, cfg, put, name, onName, options, segLabel,
               }}
               className={twMerge(
                 'mt-4 border',
-                over === z.id ? 'border-cyan bg-ground-cyan' : ok ? 'border-line-strong bg-surface-000' : 'border-line bg-surface-000',
+                over === z.id ? 'border-cyan bg-ground-cyan' : ok ? 'border-line-strong bg-space-000' : 'border-line bg-space-000',
                 drag && !ok && 'opacity-45',
               )}
             >

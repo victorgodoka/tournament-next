@@ -1,159 +1,215 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
-import { TIME_ONLY } from '@omega/tournament/labels'
-import { PlayerCell, playerName } from '@omega/tournament/player'
-import { Callout } from '@omega/wiki/wiki'
-import { Eyebrow } from '@ui/eyebrow/eyebrow'
-import type { MatchOutcome, Standing, TournamentMatch, TournamentPlayer, TournamentRound } from '@utils/types'
+import { TIME_ONLY, minutesBetween } from '@omega/tournament/labels'
+import { playerName } from '@omega/tournament/player'
+import { Avatar } from '@ui/avatar'
+import { Chip } from '@ui/chip/chip.component'
+import { ModeTabs } from '@ui/mode-tabs'
+import { Panel } from '@ui/panel'
+import { ResultPill, type Result } from '@ui/result'
+import type { Standing, TournamentMatch, TournamentPlayer, TournamentRound } from '@utils/types'
 
-/**
- * Edge colour per outcome. A decided match is a result, not a failure, so both sides read the same:
- * red would say the duelist in column two lost *more*. Which of them won is marked on their cell.
- */
-const EDGE = {
-  player1: 'border-l-win',
-  player2: 'border-l-win',
-  draw: 'border-l-draw',
-  unplayed: 'border-l-surface-400',
-} satisfies Record<MatchOutcome, string>
-
-/** Game pips follow the same rule: who took the game, not who "lost" it. */
-const PIP = { player1: 'bg-win', player2: 'bg-cyan', draw: 'bg-draw' }
-
+/** Winner, score and opponent on a phone; room, games and end time join from `lg`. */
 const COLS =
-  'grid grid-cols-1 gap-2.5 lg:grid-cols-[76px_minmax(0,1fr)_132px_minmax(0,1fr)_96px] lg:items-center lg:gap-4'
+  'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-4 lg:grid-cols-[64px_minmax(0,1fr)_96px_minmax(0,1fr)_132px_120px] lg:px-5'
 
+const META = 'signal-sm text-ink-muted'
+
+type Side = 'player1' | 'player2'
 type Roster = Map<string, TournamentPlayer>
 type T = ReturnType<typeof useTranslations<'Tournaments'>>
 
-/** Spoken, never drawn: the visual marks belong to the winner's own cell. */
-const resultText = (match: TournamentMatch, roster: Roster, t: T) => {
-  if (match.outcome === 'draw') return t('rounds.drawn')
-  if (match.outcome === 'unplayed') return t('rounds.unplayed')
-  const winner = roster.get(match.outcome === 'player1' ? match.player1 : match.player2)
-  return t('rounds.won', { name: playerName(winner, t('player.unknown')) })
+const other = (side: Side): Side => (side === 'player1' ? 'player2' : 'player1')
+
+const Duelist = ({ player, t, align, strong, notes }: {
+  player: TournamentPlayer | undefined
+  t: T
+  align: 'start' | 'end'
+  strong?: boolean
+  notes: React.ReactNode
+}) => {
+  const name = playerName(player, t('player.unknown'))
+  const end = align === 'end'
+  return (
+    <span className={twMerge('flex min-w-0 items-center gap-2.5', end && 'flex-row-reverse text-right')}>
+      <Avatar name={name} src={player?.avatar} cosmetics={player?.cosmetics} size="sm" />
+      <span className={twMerge('flex min-w-0 flex-col gap-0.5', end && 'items-end')}>
+        {player ? (
+          <Link
+            href={`/profile/${player.id}`}
+            className={twMerge('max-w-full truncate text-[15px] hover:text-cyan', strong ? 'font-bold text-ink' : 'text-ink-dim')}
+          >
+            {name}
+          </Link>
+        ) : (
+          <span className="truncate text-[15px] text-ink-muted">{name}</span>
+        )}
+        <span className="flex gap-2">{notes}</span>
+      </span>
+    </span>
+  )
 }
 
-/**
- * The winner's side carries a filled bar; the loser's an empty slot of the same width, so the two
- * cells stay aligned and the mark reads as presence, not as a colour.
- */
-const WinBar = ({ won }: { won: boolean }) => (
-  <span aria-hidden className={twMerge('h-4.5 w-1 shrink-0', won ? 'bg-win' : 'bg-transparent')} />
+const First = ({ t }: { t: T }) => (
+  <span title={t('rounds.firstTitle')} className="text-cyan signal-sm">
+    {t('rounds.first')}
+  </span>
 )
 
-/** Draw and unplayed have no winner to point at, so the centre says which of the two it is. */
-const NoWinner = ({ outcome }: { outcome: MatchOutcome }) =>
-  outcome === 'draw' ? (
-    <span aria-hidden className="flex shrink-0 flex-col gap-1">
-      <span className="h-0.5 w-3 bg-draw" />
-      <span className="h-0.5 w-3 bg-draw" />
-    </span>
-  ) : (
-    <span aria-hidden className="h-0.5 w-3 shrink-0 bg-surface-400" />
-  )
-
-const MatchRow = ({ match, roster }: { match: TournamentMatch; roster: Roster }) => {
+/** A decided or drawn match, read from the winner's side (player1 on a draw). */
+const MatchRow = ({ match, round, roster }: { match: TournamentMatch; round: TournamentRound; roster: Roster }) => {
   const t = useTranslations('Tournaments')
-  const decided = match.outcome === 'player1' || match.outcome === 'player2'
-  const { player1: one, player2: two } = match.score
+  const draw = match.outcome === 'draw'
+  const lead: Side = match.outcome === 'player2' ? 'player2' : 'player1'
+  const trail = other(lead)
+  const [a, b] = [match.score[lead], match.score[trail]]
+  const pills: Result[] = match.games.map((game) => (game.winner === 'draw' ? 'D' : game.winner === lead ? 'W' : 'L'))
 
   return (
-    <li
-      className={twMerge(
-        'border-b border-l-3 border-line px-3.5 py-3 last:border-b-0',
-        EDGE[match.outcome],
-        decided ? 'bg-ground-subtle' : '',
-        COLS,
-      )}
-    >
-      <span className="text-ink-muted signal">{t('rounds.room', { room: match.room })}</span>
+    <li className={twMerge(COLS, 'bg-surface-100 py-3.5')}>
+      <span className="hidden font-mono text-xs leading-none text-ink-muted lg:block">{t('rounds.room', { room: match.room })}</span>
 
-      <span className="flex min-w-0 items-center gap-2.5">
-        <WinBar won={match.outcome === 'player1'} />
-        <PlayerCell
-          player={roster.get(match.player1)}
-          note={match.first === 'player1' ? t('rounds.onThePlay') : undefined}
-          className={match.outcome === 'player1' ? '' : 'opacity-(--opacity-duotone-lead)'}
-        />
+      <Duelist
+        player={roster.get(match[lead])}
+        t={t}
+        align="start"
+        strong={!draw}
+        notes={
+          <>
+            <span className={twMerge('signal-sm', draw ? 'text-draw' : 'text-win')}>{t(draw ? 'rounds.draw' : 'rounds.winner')}</span>
+            {match.first === lead ? <First t={t} /> : null}
+          </>
+        }
+      />
+
+      <span className="text-center font-display text-[28px] leading-none">
+        {a} – {b}
       </span>
 
-      <span className="flex items-center gap-2.5">
-        {decided ? null : <NoWinner outcome={match.outcome} />}
+      <Duelist
+        player={roster.get(match[trail])}
+        t={t}
+        align="end"
+        notes={
+          <>
+            {match.first === trail ? <First t={t} /> : null}
+            {/* The outcome is official even when the games don't add up to it (concession, disconnect). */}
+            {!draw && a <= b ? <span className={META}>{t('rounds.scoreNote', { score: `${a}–${b}` })}</span> : null}
+          </>
+        }
+      />
 
-        {/* The score can disagree with the outcome, so the winning side's digit is lifted, not summed. */}
-        <span className="mono-data tabular-nums">
-          {decided || match.outcome === 'draw' ? (
-            <>
-              <span className={match.outcome === 'player1' ? 'text-win' : 'text-ink-muted'}>{one}</span>
-              <span className="text-ink-muted">–</span>
-              <span className={match.outcome === 'player2' ? 'text-win' : 'text-ink-muted'}>{two}</span>
-            </>
-          ) : (
-            <span className="text-ink-muted">—</span>
-          )}
-        </span>
-
-        <span aria-hidden className="flex gap-1">
-          {match.games.map((game, index) => (
-            <span key={index} className={twMerge('size-2.25', PIP[game.winner])} />
-          ))}
-        </span>
-
-        <span className="sr-only">{resultText(match, roster, t)}</span>
+      <span aria-label={t('rounds.pillsLabel')} className="hidden justify-center gap-1 lg:flex">
+        {pills.map((result, index) => (
+          <ResultPill key={index} result={result} />
+        ))}
       </span>
 
-      <span className="flex min-w-0 items-center gap-2.5">
-        <WinBar won={match.outcome === 'player2'} />
-        <PlayerCell
-          player={roster.get(match.player2)}
-          note={match.first === 'player2' ? t('rounds.onThePlay') : undefined}
-          className={match.outcome === 'player2' ? '' : 'opacity-(--opacity-duotone-lead)'}
-        />
-      </span>
-
-      <span className="text-ink-muted mono-data">
-        {match.endedAt ? <LocalTime iso={match.endedAt} options={TIME_ONLY} /> : '—'}
+      <span className="hidden flex-col items-end gap-0.5 lg:flex">
+        {match.endedAt ? (
+          <>
+            <span className="text-sm text-ink-dim">
+              <LocalTime iso={match.endedAt} options={TIME_ONLY} />
+            </span>
+            <span className={META}>{t('rounds.minutes', { count: minutesBetween(round.startedAt, match.endedAt) })}</span>
+          </>
+        ) : (
+          <span className={META}>—</span>
+        )}
       </span>
     </li>
   )
 }
 
-/** Round-by-round pairings. Byes are listed with the round they belong to, not as a match. */
-export const Rounds = ({ rounds, standings }: { rounds: TournamentRound[]; standings: Standing[] }) => {
+type RoundsProps = { rounds: TournamentRound[]; standings: Standing[]; live: boolean }
+
+/** One round at a time: its played matches as a table, its bye, then any match that has no result. */
+export const Rounds = ({ rounds, standings, live }: RoundsProps) => {
   const t = useTranslations('Tournaments')
+  const [selected, setSelected] = useState(() => String(live ? (rounds.at(-1)?.number ?? 1) : (rounds[0]?.number ?? 1)))
+
+  const round = rounds.find((r) => String(r.number) === selected) ?? rounds[0]
+  if (!round) return <p className="text-sm text-ink-muted">{t('rounds.empty')}</p>
+
   // Only `standings` carries full players; rounds reference them by id.
   const roster: Roster = new Map(standings.map(({ player }) => [player.id, player]))
-
-  if (!rounds.length) {
-    return <p className="text-ink-muted body-sm">{t('rounds.empty')}</p>
-  }
+  const played = round.matches.filter((match) => match.outcome !== 'unplayed')
+  const pending = round.matches.filter((match) => match.outcome === 'unplayed')
+  const threeGames = played.filter((match) => match.games.length >= 3).length
+  const bye = round.bye ? roster.get(round.bye) : undefined
 
   return (
     <>
-      {rounds.map((round) => (
-        <section key={round.number} className="mb-6.5">
-          <Eyebrow tone="neutral" meta={<LocalTime iso={round.startedAt} options={TIME_ONLY} />}>
-            {t('rounds.round', { number: round.number })}
-          </Eyebrow>
+      <div className="flex flex-wrap items-center gap-5">
+        <ModeTabs
+          label={t('rounds.tabsLabel')}
+          value={selected}
+          items={rounds.map((r) => ({ id: String(r.number), label: t('rounds.round', { number: r.number }) }))}
+          onChange={setSelected}
+          className="max-w-full overflow-x-auto"
+        />
+        <span className="text-sm text-ink-dim">
+          {t('rounds.paired')} <LocalTime iso={round.startedAt} options={TIME_ONLY} /> ·{' '}
+          {t('rounds.summary', { matches: round.matches.length, three: threeGames })}
+          {round.bye ? ` · ${t('rounds.byeSummary', { name: playerName(bye, t('player.unknown')) })}` : ''}
+        </span>
+      </div>
 
-          <ul className="mt-3 border border-line">
-            {round.matches.map((match) => (
-              <MatchRow key={`${round.number}-${match.room}`} match={match} roster={roster} />
+      {played.length || round.bye ? (
+        <div className="flex flex-col gap-px border border-line bg-line">
+          <div aria-hidden className={twMerge(COLS, 'hidden bg-surface-200 py-2.5 lg:grid', META)}>
+            <span>{t('rounds.columns.room')}</span>
+            <span>{t('rounds.columns.winner')}</span>
+            <span className="text-center">{t('rounds.columns.games')}</span>
+            <span className="text-right">{t('rounds.columns.opponent')}</span>
+            <span className="text-center">{t('rounds.columns.gameByGame')}</span>
+            <span className="text-right">{t('rounds.columns.ended')}</span>
+          </div>
+          <ol aria-label={t('rounds.round', { number: round.number })} className="flex flex-col gap-px">
+            {played.map((match) => (
+              <MatchRow key={`${round.number}-${match.room}`} match={match} round={round} roster={roster} />
             ))}
             {round.bye ? (
-              <li className="bg-ground-subtle px-3.5 py-3 text-ink-muted signal">
-                {t('rounds.bye', { name: playerName(roster.get(round.bye), t('player.unknown')) })}
+              <li className={twMerge(COLS, 'bg-surface-100 py-3.5')}>
+                <span className="hidden font-mono text-xs leading-none text-ink-muted lg:block">—</span>
+                <Duelist
+                  player={bye}
+                  t={t}
+                  align="start"
+                  strong
+                  notes={<span className="text-gold signal-sm">{t('rounds.bye')}</span>}
+                />
               </li>
             ) : null}
-          </ul>
-        </section>
-      ))}
+          </ol>
+        </div>
+      ) : null}
 
-      <div className="max-w-[72ch]">
-        <Callout>{t('rounds.note')}</Callout>
-      </div>
+      <p className={META}>{t('rounds.note')}</p>
+
+      {pending.length ? (
+        <Panel tone="sunken" label={t(live ? 'rounds.inProgress' : 'rounds.unplayed')} className="flex flex-col gap-3">
+          {pending.map((match) => (
+            <div key={match.room} className="flex flex-wrap items-center gap-3">
+              <Chip tone={live ? 'live' : 'neutral'}>{t(live ? 'rounds.inProgress' : 'rounds.unplayed')}</Chip>
+              <span className="font-bold">
+                {t('rounds.pendingLine', {
+                  round: round.number,
+                  room: match.room,
+                  a: playerName(roster.get(match.player1), t('player.unknown')),
+                  b: playerName(roster.get(match.player2), t('player.unknown')),
+                })}
+              </span>
+            </div>
+          ))}
+          <span className="text-sm text-ink-dim">{t(live ? 'rounds.inProgressText' : 'rounds.unplayedText')}</span>
+        </Panel>
+      ) : null}
     </>
   )
 }

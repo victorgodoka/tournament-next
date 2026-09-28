@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
+import { AvatarFrame } from '@ui/avatar'
 import type { TournamentPlayer } from '@utils/types'
 
 /**
@@ -13,30 +14,20 @@ export const playerName = (player: TournamentPlayer | undefined, fallback = 'Unk
 
 type AvatarProps = { player: TournamentPlayer | undefined; size?: number; className?: string }
 
-/** Square portrait, or the initial on a plate when Discord has no picture. Decorative: the name carries it. */
+/** Square portrait, or the initial on a plate when Discord has no picture, under the equipped frame. Decorative: the name carries it. */
 export const PlayerAvatar = ({ player, size = 28, className }: AvatarProps) => {
   const box = { width: size, height: size }
 
-  if (player?.avatar) {
-    return (
-      <Image
-        src={player.avatar}
-        alt=""
-        width={size}
-        height={size}
-        style={box}
-        className={twMerge('shrink-0 border border-line object-cover', className)}
-      />
-    )
-  }
-
   return (
-    <span
-      aria-hidden
-      style={box}
-      className={twMerge('inline-flex shrink-0 items-center justify-center border border-line bg-surface-200 text-ink-dim signal-chip', className)}
-    >
-      {player?.name?.trim() ? player.name.trim().slice(0, 1) : '?'}
+    <span aria-hidden style={box} className={twMerge('relative inline-flex shrink-0', className)}>
+      {player?.avatar ? (
+        <Image src={player.avatar} alt="" width={size} height={size} style={box} className="border border-line-mid object-cover" />
+      ) : (
+        <span className="inline-flex size-full items-center justify-center border border-line-mid bg-azure font-display text-xs leading-none text-ink uppercase">
+          {player?.name?.trim() ? player.name.trim().slice(0, 1) : '?'}
+        </span>
+      )}
+      <AvatarFrame cosmetics={player?.cosmetics} />
     </span>
   )
 }
@@ -59,7 +50,7 @@ export const PlayerCell = ({ player, note, size, className }: PlayerCellProps) =
       {player ? (
         <Link
           href={`/profile/${player.id}`}
-          className={twMerge('block truncate body-strong hover:text-gold', player.name?.trim() ? 'text-ink' : 'text-ink-muted')}
+          className={twMerge('block truncate body-strong hover:text-cyan', player.name?.trim() ? 'text-ink' : 'text-ink-muted')}
         >
           {playerName(player, t('unknown'))}
         </Link>

@@ -11,8 +11,8 @@ type TabBarProps<T extends string> = {
   label: string
   /** Links each tab to its panel; spread {@link tabPanelProps} with the same prefix on the panel. */
   idPrefix?: string
-  /** Underlines the active tab in cyan instead of gold. */
-  tone?: 'gold' | 'cyan'
+  /** Tabs sized to their labels, 24px apart, instead of sharing the width equally. */
+  fit?: boolean
   className?: string
 }
 
@@ -29,10 +29,10 @@ export const tabPanelProps = (prefix: string, id: string) => ({
 const STEP: Partial<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 }
 
 /**
- * Equal-width mono tabs over a hairline. The active one takes a ground, an ink shift and a 2px underline.
+ * Equal-width mono tabs over a hairline. The active one shifts to ink over a 2px cyan underline.
  * Arrow keys, Home and End move between tabs and select as they go (roving tab index).
  */
-export const TabBar = <T extends string>({ tabs, active, onSelect, label, idPrefix, tone = 'gold', className }: TabBarProps<T>) => {
+export const TabBar = <T extends string>({ tabs, active, onSelect, label, idPrefix, fit, className }: TabBarProps<T>) => {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((tab) => tab.id === active)
     const step = STEP[e.key]
@@ -49,7 +49,7 @@ export const TabBar = <T extends string>({ tabs, active, onSelect, label, idPref
   }
 
   return (
-    <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={twMerge('w-full flex shrink-0 border-b border-line', className)}>
+    <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={twMerge('w-full flex shrink-0 border-b border-line', fit && 'gap-6 overflow-x-auto', className)}>
       {tabs.map(({ id, label: tabLabel }) => {
         const isActive = id === active
         return (
@@ -63,10 +63,9 @@ export const TabBar = <T extends string>({ tabs, active, onSelect, label, idPref
             tabIndex={isActive ? 0 : -1}
             onClick={() => onSelect(id)}
             className={twMerge(
-              'min-h-11 min-w-0 flex-1 cursor-pointer px-2.5 signal-tab',
-              isActive
-                ? twMerge('bg-ground-soft text-ink', tone === 'cyan' ? 'shadow-tab-active-cyan' : 'shadow-tab-active')
-                : 'text-ink-muted hover:text-ink-dim',
+              'min-h-11 min-w-0 flex-1 cursor-pointer px-2.5 whitespace-nowrap signal-strong',
+              fit && 'flex-none px-0',
+              isActive ? 'text-ink shadow-tab-active' : 'text-ink-muted hover:text-ink',
             )}
           >
             {tabLabel}

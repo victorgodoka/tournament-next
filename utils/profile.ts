@@ -59,7 +59,7 @@ export const getMatches = (
 ) => {
   const params = new URLSearchParams({ limit: String(limit) })
   if (cursor) params.set('cursor', cursor)
-  if (format) params.set('format', format)
+  if (format) params.set('ladder', format)
   return request<MatchPage>(`/profiles/${encodeURIComponent(id)}/matches?${params}`, { signal })
 }
 

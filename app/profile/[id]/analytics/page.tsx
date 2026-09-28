@@ -5,6 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import { AnalyticsShell, defaultSegment, duelistLabel, loadPastSeasons, personOf, segmentOptions } from '@app/profile/analytics/AnalyticsShell'
 import { ExplorationBuilder } from '@omega/analytics/explorer/builder'
 import { PrivateNotice } from '@omega/profile/private-notice'
+import { listPeriods } from '@utils/analytics'
 import { getExplorations, getVariables } from '@utils/explorations'
 import { getProfile } from '@utils/profile'
 import { pageMetadata } from '@utils/metadata'
@@ -33,7 +34,7 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
   const profile = await loadProfile(id)
   if (!profile) notFound()
   // Public explorations are listed even on a private profile: publishing is the owner's call.
-  const [list, variables, past] = await Promise.all([getExplorations(id, cookie), getVariables(), loadPastSeasons()])
+  const [list, variables, past, periods] = await Promise.all([getExplorations(id, cookie), getVariables(), loadPastSeasons(), listPeriods()])
   if (list === null) notFound()
   const shown = list === 'forbidden' ? null : list
   const owner = !!shown?.editable
@@ -46,13 +47,13 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
       meta="Live · updates within 5 minutes"
       aside={
         shown ? (
-          <div className={twMerge('w-full max-w-[330px] border px-3.5 py-3', owner ? 'border-gold bg-ground-gold' : 'border-line bg-surface-100')}>
-            <p className={twMerge('signal-sm', owner ? 'text-gold' : 'text-ink-muted')}>{owner ? 'Your page · you build here' : 'Read only'}</p>
+          <div className={twMerge('w-full max-w-[330px] border px-3.5 py-3', owner ? 'border-cyan bg-ground-cyan' : 'border-line bg-surface-100')}>
+            <p className={twMerge('signal-sm', owner ? 'text-cyan' : 'text-ink-muted')}>{owner ? 'Your page · you build here' : 'Read only'}</p>
             <p className="mt-1.5 text-ink-dim caption">
               {owner
                 ? 'Each exploration is private, shared by link, or public on this page and the public feed. Unsaved changes stay with you.'
                 : `Explorations ${duelistLabel(profile)} made public. Only the owner can change them.`}{' '}
-              <Link href={`/profile/${id}/explorations`} className="text-gold hover:text-cyan">All explorations →</Link>
+              <Link href={`/profile/${id}/explorations`} className="text-cyan hover:text-cyan">All explorations →</Link>
             </p>
           </div>
         ) : null
@@ -66,7 +67,7 @@ const AnalyticsRoute = async ({ params }: AnalyticsRouteProps) => {
           name={duelistLabel(profile)}
           list={shown}
           variables={variables}
-          options={profile.isPrivate ? [] : segmentOptions(profile, past)}
+          options={profile.isPrivate ? [] : segmentOptions(profile, past, periods)}
           defaultSegment={profile.isPrivate ? 'current:tcg' : defaultSegment(profile)}
         />
       )}

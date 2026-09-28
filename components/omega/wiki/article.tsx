@@ -55,7 +55,7 @@ export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
   <li className="flex">
     <Link
       href={`/wiki/${article.slug}`}
-      className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-surface-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
+      className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-space-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
     >
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0 text-ink body-strong">{article.title}</span>
@@ -74,9 +74,9 @@ export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
 )
 
 /**
- * Article body. The Markdown was parsed, classed and sanitized on the server
- * (`renderArticle`), which is what makes this HTML safe to hand to the DOM.
+ * Article body: React nodes from `renderArticle`, which parsed, classed and sanitized the Markdown.
+ * No HTML string reaches the DOM.
  */
-export const ArticleBody = ({ html, className }: { html: string; className?: string }) => (
-  <div className={twMerge('max-w-[72ch]', className)} dangerouslySetInnerHTML={{ __html: html }} />
+export const ArticleBody = ({ html, className }: { html: React.ReactNode; className?: string }) => (
+  <div className={twMerge('max-w-[72ch]', className)}>{html}</div>
 )

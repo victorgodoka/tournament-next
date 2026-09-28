@@ -62,7 +62,7 @@ export const ArticleList = ({ first, query, empty }: ArticleListProps) => {
         ) : null}
         <p className="text-ink-muted signal-sm">{articles.length} shown</p>
         {status === 'error' ? (
-          <p role="alert" className="text-negative body-sm">
+          <p role="alert" className="text-loss body-sm">
             Couldn&apos;t load more articles. Try again.
           </p>
         ) : null}

@@ -9,7 +9,7 @@ interface ErrorProps {
 }
 
 const GoNext = ({ title, text, to }: { title: string, text: string, to: string }) => (
-  <Link href={to} className="flex flex-col gap-3 border-b border-line px-8 py-6 text-ink hover:bg-negative hover:text-negative-on sm:odd:border-r xl:flex-row xl:items-baseline xl:justify-between">
+  <Link href={to} className="flex flex-col gap-3 border-b border-line px-8 py-6 text-ink hover:bg-loss hover:text-space-000 sm:odd:border-r xl:flex-row xl:items-baseline xl:justify-between">
     <span className="display-6">{title}</span>
     <span className="signal">{text}</span>
   </Link>
@@ -23,12 +23,12 @@ export const Error = ({ errorCode }: ErrorProps) => {
       <div className="flex w-full max-w-5xl flex-col px-5.5 py-13 lg:order-1 lg:px-11">
         <Eyebrow tone="negative" meta={eyebrow[1]}>{eyebrow[0]}</Eyebrow>
         <div className="flex-1 pt-6 md:max-w-3xl">
-          <p className="inline-block bg-negative px-2 font-display text-[clamp(96px,14vw,240px)] leading-[.9] text-negative-on">{code ?? "????"}</p>
+          <p className="inline-block bg-loss px-2 font-display text-[clamp(96px,14vw,240px)] leading-[.9] text-space-000">{code ?? "????"}</p>
           <h1 className="py-8 text-ink display-1 xl:py-12">{title}</h1>
           <p className="max-w-[62ch] text-ink-dim lead">{text}</p>
         </div>
         <div className="mt-8 flex flex-wrap gap-4 border-t border-line py-8 md:max-w-3xl">
-          <Button size="lg" shadow href="/">Go back</Button>
+          <Button size="lg" href="/">Go back</Button>
           <Button size="lg" variant="secondary" href={DOWNLOAD_URL}>Download now</Button>
         </div>
         <p className="text-ink-muted signal-lg">Where to go next?</p>

@@ -12,6 +12,7 @@ import {
 import { FONTS_VARIABLES } from '@utils/fonts'
 import './styles.css'
 import { AuthProvider, ModalProvider } from '../contexts'
+import { MessengerDock, MessengerProvider } from '@omega/messenger'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#171717',
+  themeColor: '#080a14',
 }
 
 export default async function RootLayout({
@@ -68,7 +69,10 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           <AuthProvider>
             <ModalProvider>
-              {children}
+              <MessengerProvider>
+                {children}
+                <MessengerDock />
+              </MessengerProvider>
             </ModalProvider>
           </AuthProvider>
         </NextIntlClientProvider>

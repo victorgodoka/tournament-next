@@ -133,6 +133,8 @@ export type ProfileIdentity = {
   hasPass: boolean
   /** The viewer's standing with this duelist. `none` when signed out or viewing your own. */
   relation: RelationStatus
+  /** Visible profile: `profile` + `avatar` slots. Private: `avatar` only. */
+  cosmetics: Cosmetics
 }
 
 /** Owner-editable settings, as `PATCH /profiles/me` returns them. */
@@ -202,6 +204,8 @@ export type Identity = {
   /** No `@`. */
   username: string | null
   avatar: string | null
+  /** Frame and bubble. Replaced live by the `cosmetics` SSE event. */
+  cosmetics: Cosmetics
 }
 
 export type Song = {
@@ -257,18 +261,46 @@ export type ChatPage = {
 
 export type PresenceEvent = Pick<RosterEntry, 'id' | 'presence' | 'status' | 'song'>
 
+/** `GET /welcome` (WELCOME_API.md §2). Ranked duels only; windows end on the full hour. */
 export interface WelcomeData {
   players: WelcomePlayers
   games: WelcomeGames
+  /** `null` for a few minutes after a server restart: hide the block. */
+  meta: (Record<WelcomeLadder, WelcomeMeta> & { updatedAt: string }) | null
   tournaments: {
     /** Newest first. Usually 0 or 1. */
     live: WelcomeTournament[]
-    /** Last 3 finished, newest first. */
-    recent: { tcg: WelcomeTournament[]; other: WelcomeTournament[] }
+    /** Last 6 finished, every format, newest first. */
+    recent: WelcomeTournament[]
+    /** Next 6 on the staff schedule, soonest first. */
+    upcoming: WelcomeUpcoming[]
   }
 }
 
-/** A tournament on the home page (WELCOME_API.md §2.2). */
+export type WelcomeLadder = 'tcg' | 'genesys'
+
+/** One ladder's last 24 h (WELCOME_API.md §2.2). Shares are fractions of decklists, 2 per duel. */
+export type WelcomeMeta = {
+  duels: number
+  /** Top 3 archetypes by decks. */
+  decks: { archetype: number[]; name: string | null; metaShare: number; duels: number; winRate: number | null }[]
+  /** Top 5 cards by `inDecks`. */
+  cards: { id: number; name: string; inDecks: number; inMain: number; inSide: number; used: number }[]
+}
+
+/** A scheduled tournament. `id` is the schedule's, not a tournament id: there is no page to link. */
+export type WelcomeUpcoming = {
+  id: number
+  format: string | null
+  banlist: string | null
+  startsAt: string
+  mode: TournamentSettings['mode']
+  structure: 'swiss' | 'single_elimination'
+  requiresPass: boolean
+  rewardTp: boolean
+}
+
+/** A tournament on the home page (WELCOME_API.md §2.3). */
 export type WelcomeTournament = {
   id: number
   name: string
@@ -291,19 +323,9 @@ export interface WelcomePlayers {
 }
 
 export interface WelcomeGames {
-  last24h: WelcomeLast24h
-  previous24h: WelcomePrevious24h
+  last24h: Record<WelcomeLadder, number>
+  previous24h: Record<WelcomeLadder, number>
   updatedAt: string
-}
-
-export interface WelcomeLast24h {
-  tcg: number
-  genesys: number
-}
-
-export interface WelcomePrevious24h {
-  tcg: number
-  genesys: number
 }
 
 /**
@@ -319,6 +341,7 @@ export type TournamentPlayer = {
   name: string | null
   handle: string | null
   avatar: string | null
+  cosmetics: Cosmetics
 }
 
 export type TournamentSettings = {
@@ -369,9 +392,9 @@ export type DeckCard = {
 }
 
 export type TournamentDeck = {
-  /** Always `null` for now — nothing fills the categorization cache. Fall back to `archetype`. */
+  /** Engine cards excluded, a mix reads `"A / B"`. Show this when present; `null` for no named archetype. */
   name: string | null
-  /** A heuristic, not a deck name: a hybrid is named after its bigger half. */
+  /** A stat grouping, not a deck name: the most-copied archetype, engine included. Can differ from `name`. */
   archetype: string | null
   /** Top 3 by copies in main + extra. `art` is the passcode of that archetype's most-copied card **in this deck**. */
   archetypes: { name: string; cards: number; art: number }[]
@@ -554,6 +577,7 @@ export type WikiUser = {
   id: string
   username: string | null
   avatarUrl: string | null
+  cosmetics: Cosmetics
 }
 
 export type WikiRole = 'USER' | 'EDITOR' | 'ANALYST' | 'ADMIN'
@@ -579,6 +603,25 @@ export type Article = ArticleSummary & {
   doc?: WikiDoc | null
   /** `null` until someone other than the creation edits it; then whoever saved last. */
   updatedBy: WikiUser | null
+  /** `doc.hub` / `doc.related` resolved, published only. Render links from here, never from the doc. */
+  links?: ArticleLinks
+  /** The page head, derived by the server. Never recompute it from the doc. */
+  seo?: ArticleSeo
+}
+
+export type ArticleLink = { slug: string; title: string; summary: string }
+
+export type ArticleLinks = { hub: ArticleLink | null; related: ArticleLink[]; children: ArticleLink[] }
+
+export type ArticleSeo = {
+  title: string
+  description: string
+  canonical: string
+  robots: string
+  keywords: string[]
+  /** Already transformed to 1200×630 when it is a large enough upload: never transform it again. */
+  image: { src: string; width: number; height: number; alt: string } | null
+  jsonLd: Record<string, unknown>
 }
 
 export type ArticleIndex = {
@@ -621,7 +664,13 @@ export type DocArticleDraft = {
 }
 
 /** `PATCH /wiki/{slug}` for a block article. `doc` is replaced whole, never merged. */
-export type DocArticlePatch = Partial<{ doc: WikiDoc; slug: string; published: boolean }>
+export type DocArticlePatch = Partial<{
+  doc: WikiDoc
+  slug: string
+  /** Only with `slug` (alone it is a 400). Default `true`: the old address answers 301. */
+  redirect: boolean
+  published: boolean
+}>
 
 /** `PATCH /wiki/{slug}`. At least one key; an absent key leaves the column alone. */
 export type ArticlePatch = Partial<{
@@ -661,6 +710,7 @@ export type LeaderboardEntry = {
   name: string | null
   handle: string | null
   avatar: string | null
+  cosmetics: Cosmetics
   elo: number
   tier: Tier
   wins: number
@@ -719,6 +769,12 @@ export type ShopEnum = {
   value: string
   name: string
   description: string
+  /** Items of this type go in a slot, and the slot is the type. */
+  equippable: boolean
+  /** Where the equipped item shows: `avatar`, `profile`, `messenger`, `welcome`. */
+  surfaces: string[]
+  /** Getting it adds Duel Points instead of an item. */
+  currency: boolean
 }
 
 export type ShopItem = {
@@ -740,6 +796,13 @@ export type ShopItem = {
   /** `YYYY-MM-DD`, inclusive, or `null` when the item is always available. */
   startsAt: string | null
   endsAt: string | null
+  description: string
+  assetId: string | null
+  /** Cloudinary image, `null` if none. */
+  assetUrl: string | null
+  /** Free-form, type-specific settings from the panel. */
+  data: Record<string, unknown>
+  active: boolean
 }
 
 /** Only what is purchasable right now: category `SHOP`, inside its window if limited. */
@@ -751,12 +814,40 @@ export type ShopCatalog = {
 
 export type ShopInventoryItem = ShopItem & {
   acquiredAt: string
+  source: 'purchase' | 'battlepass' | 'reward'
 }
 
-/** `GET /shop/me`. A duelist who never earned or spent anything is `{ balance: 0, items: [] }`. */
+export type ShopEquippedItem = ShopItem & { slot: string; equippedAt: string }
+
+/** An equipped item as the other APIs embed it (SHOP_API.md §5). */
+export type Cosmetic = { itemId: string; name: string; assetUrl: string | null; ext: string | null; data: Record<string, unknown> }
+
+/** Slot (the item type, e.g. `WEBDECO`) → item. `{}` when nothing is equipped. */
+export type Cosmetics = Record<string, Cosmetic>
+
+/** `GET /shop/me`. A duelist who never earned or spent anything is `{ balance: 0, items: [], equipped: {} }`. */
 export type ShopWallet = {
   balance: number
+  /** Newest acquisition first. */
   items: ShopInventoryItem[]
+  /** Slot (= the item's type) → item. */
+  equipped: Record<string, ShopEquippedItem>
+}
+
+export type ShopLedgerEntry = {
+  id: string
+  amount: number
+  reason: 'purchase' | 'refund' | 'grant' | 'reward' | 'battlepass'
+  itemId: string | null
+  itemName: string | null
+  note: string | null
+  createdAt: string
+}
+
+/** `GET /shop/me/history`. Stop on `nextCursor: null` or `entries: []`. */
+export type ShopHistory = {
+  entries: ShopLedgerEntry[]
+  nextCursor: string | null
 }
 
 /** `POST /shop/items/{id}/purchase`. Use this `balance`; don't re-fetch the wallet. */

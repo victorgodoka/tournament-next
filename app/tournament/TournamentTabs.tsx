@@ -13,6 +13,8 @@ const TABS = ['standings', 'rounds', 'stats'] as const
 const POLL_MS = 30_000
 
 type TournamentTabsProps = {
+  /** Figures shown above the tab bar, on the standings tab only. */
+  summary: React.ReactNode
   /** Server-rendered panels: only the tab state and the live poll run on the client. */
   standings: React.ReactNode
   rounds: React.ReactNode
@@ -20,7 +22,7 @@ type TournamentTabsProps = {
   live: boolean
 }
 
-export const TournamentTabs = ({ standings, rounds, stats, live }: TournamentTabsProps) => {
+export const TournamentTabs = ({ summary, standings, rounds, stats, live }: TournamentTabsProps) => {
   const t = useTranslations('Tournaments.detail.tabs')
   const [tab, setTab] = useState<Tab>('standings')
   const router = useRouter()
@@ -42,15 +44,16 @@ export const TournamentTabs = ({ standings, rounds, stats, live }: TournamentTab
 
   return (
     <>
+      {tab === 'standings' ? summary : null}
       <TabBar
         tabs={TABS.map((id) => ({ id, label: t(id) }))}
         active={tab}
         onSelect={setTab}
         label={t('label')}
         idPrefix="tournament"
-        className="max-w-115"
+        fit
       />
-      <div {...tabPanelProps('tournament', tab)} className="pt-[clamp(18px,2.4vw,26px)]">
+      <div {...tabPanelProps('tournament', tab)} className="flex flex-col gap-8">
         {panels[tab]}
       </div>
     </>

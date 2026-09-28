@@ -14,7 +14,7 @@ type ArticleActionsProps = {
   published: boolean
 }
 
-const DANGER = 'min-h-10.5 w-full border border-loss text-loss hover:bg-loss hover:text-surface-000 signal-chip cursor-pointer'
+const DANGER = 'min-h-10.5 w-full border border-loss text-loss hover:bg-loss hover:text-space-000 signal-chip cursor-pointer'
 
 /**
  * Editor controls on an article. They are rendered from the viewer's `permissions`, which the
@@ -101,7 +101,7 @@ export const ArticleActions = ({ slug, authorId, published }: ArticleActionsProp
         )
       ) : null}
 
-      <p aria-live="polite" className="text-gold signal-sm">
+      <p aria-live="polite" className="text-cyan signal-sm">
         {error ?? (confirming ? 'This also deletes every revision.' : '')}
       </p>
     </div>

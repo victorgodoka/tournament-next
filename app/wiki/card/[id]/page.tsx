@@ -55,7 +55,7 @@ const typeLine = (card: WikiCard) =>
 const statTiles = (card: WikiCard) => {
   if (card.kind !== 'monster') {
     return [
-      { label: 'Card type', value: titleCase(card.kind), className: 'text-gold' },
+      { label: 'Card type', value: titleCase(card.kind), className: 'text-cyan' },
       { label: 'Property', value: card.spellTrapType ? titleCase(card.spellTrapType) : 'Normal', className: 'text-ink' },
     ]
   }
@@ -66,7 +66,7 @@ const statTiles = (card: WikiCard) => {
       value: card.attribute ? titleCase(card.attribute) : '-',
       className: (card.attribute && ATTRIBUTE_COLOR[card.attribute]) ?? 'text-ink',
     },
-    { label: levelLabel(card), value: statLabel(card.level), className: 'text-gold' },
+    { label: levelLabel(card), value: statLabel(card.level), className: 'text-cyan' },
     { label: 'ATK', value: statLabel(card.atk), className: 'text-ink' },
     // A Link monster has no DEF and must never show one; its arrows are the stat that replaces it.
     card.monsterTypes.includes('link')
@@ -125,7 +125,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-16">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={jsonLd({
@@ -183,7 +183,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               <WikiSection index="02" title="Other languages">
                 <div className="mt-4 grid gap-px bg-line sm:grid-cols-2">
                   {translations.map(({ label, value }) => (
-                    <div key={label} className="bg-surface-000 px-4.5 py-4">
+                    <div key={label} className="bg-space-000 px-4.5 py-4">
                       <p className="text-ink-muted signal-sm">{label}</p>
                       <p className="mt-2 text-ink body font-bold">{value?.name}</p>
                       <p className="mt-2 whitespace-pre-line text-ink-dim caption">{value?.desc}</p>
@@ -230,7 +230,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                 <div className="mt-4 flex flex-col gap-3">
                   {card.erratas.map((errata) => (
                     <div key={errata.id} className="border border-line p-4.5">
-                      <p className="text-gold signal">
+                      <p className="text-cyan signal">
                         {errata.date ? releaseDate(errata.date) : 'Date unknown'} · passcode {errata.id}
                       </p>
                       <p className="mt-2.5 text-ink-dim body-sm">{errata.description}</p>
@@ -296,7 +296,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               priority
               className="aspect-square border-b border-line"
             >
-              <span className="absolute bottom-0 left-0 bg-surface-000 px-2.5 py-1.5 text-ink-muted signal">
+              <span className="absolute bottom-0 left-0 bg-space-000 px-2.5 py-1.5 text-ink-muted signal">
                 Artwork 1 of {card.alternateArts.length + 1}
               </span>
             </CardArt>

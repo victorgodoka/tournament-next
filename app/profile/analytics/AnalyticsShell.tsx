@@ -2,21 +2,21 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { AvatarFrame } from '@ui/avatar'
 import { Eyebrow } from '@ui/eyebrow'
-import { FriendsPanel } from '@omega/friends-panel'
 import { duelistName, type Duelist } from '@utils/analytics'
-import type { SegmentOption } from '@utils/explorer'
+import { periodOption, type AnalyticsPeriod, type SegmentOption } from '@utils/explorer'
 import { getPastSeasons } from '@utils/ranked'
-import type { PastSeasons, Profile } from '@utils/types'
+import type { Cosmetics, PastSeasons, Profile } from '@utils/types'
 
 export const duelistLabel = (profile: Profile) => profile.displayName ?? profile.handle ?? 'Unknown duelist'
 
 /**
  * What the Segments panel offers: each ladder's `current:*` (follows the open season), then every
- * ended season of both ladders. The open one is only offered as `current:*`, never twice.
- * The first is what a new exploration compares.
+ * ended season of both ladders, then the panel's periods. The open one is only offered as
+ * `current:*`, never twice. The first is what a new exploration compares.
  */
-export const segmentOptions = (profile: Extract<Profile, { isPrivate: false }>, past: PastSeasons[]): SegmentOption[] => [
+export const segmentOptions = (profile: Extract<Profile, { isPrivate: false }>, past: PastSeasons[], periods: AnalyticsPeriod[]): SegmentOption[] => [
   ...profile.currentSeasons.map(({ format, code, label }) => ({
     id: `current:${format.toLowerCase()}`,
     label: `Current ${format}`,
@@ -24,6 +24,7 @@ export const segmentOptions = (profile: Extract<Profile, { isPrivate: false }>, 
     code,
   })),
   ...past.flatMap(({ format, seasons }) => seasons.map(({ code, label }) => ({ id: code, label: `${format} · ${label}`, sub: 'Ended', code }))),
+  ...periods.map(periodOption),
 ]
 
 /** Ended seasons of both ladders. A failed read leaves only `current:*`, not a broken page. */
@@ -37,9 +38,9 @@ export const defaultSegment = (profile: Extract<Profile, { isPrivate: false }>) 
   `current:${(profile.ladders.find((l) => l.played)?.format ?? 'TCG').toLowerCase()}`
 
 /** Who the page is about: a profile, or the `owner` of a shared exploration. */
-export type Person = { id: string; name: string; handle: string | null; avatar: string | null }
+export type Person = { id: string; name: string; handle: string | null; avatar: string | null; cosmetics?: Cosmetics }
 
-export const personOf = (profile: Profile): Person => ({ id: profile.id, name: duelistLabel(profile), handle: profile.handle, avatar: profile.avatar })
+export const personOf = (profile: Profile): Person => ({ id: profile.id, name: duelistLabel(profile), handle: profile.handle, avatar: profile.avatar, cosmetics: profile.cosmetics })
 export const personOfDuelist = (d: Duelist): Person => ({ id: d.id, name: duelistName(d), handle: d.username, avatar: d.avatar })
 
 type AnalyticsShellProps = {
@@ -63,15 +64,16 @@ export const AnalyticsShell = ({ person, eyebrow, meta, back, title, aside, chil
       <div className="mx-auto w-full max-w-[1440px] px-gutter">
         <section className="pt-section">
           {back ? (
-            <Link href={back.href} className="inline-flex min-h-11 items-center text-ink-muted signal hover:text-gold">
+            <Link href={back.href} className="inline-flex min-h-11 items-center text-ink-muted signal hover:text-cyan">
               ← {back.label}
             </Link>
           ) : null}
           <Eyebrow tone="cyan" meta={meta} className="mt-3">{eyebrow}</Eyebrow>
           <div className="mt-5 flex flex-wrap items-end gap-[clamp(14px,2vw,22px)]">
             {person?.avatar ? (
-              <div className="relative size-[clamp(56px,7vw,80px)] shrink-0 border-3 border-surface-000 bg-surface-100 shadow-offset-void-sm">
+              <div className="relative size-[clamp(56px,7vw,80px)] shrink-0 border-3 border-space-000 bg-surface-100 shadow-lift">
                 <Image src={person.avatar} alt="" fill sizes="80px" className="object-cover" />
+                <AvatarFrame cosmetics={person.cosmetics} />
               </div>
             ) : null}
             <div className="min-w-0 flex-1">
@@ -79,7 +81,7 @@ export const AnalyticsShell = ({ person, eyebrow, meta, back, title, aside, chil
               {person ? (
                 <p className="mt-1.5 text-ink-dim mono-data">
                   {title ? (
-                    <Link href={`/profile/${person.id}`} className="hover:text-gold">{person.name}</Link>
+                    <Link href={`/profile/${person.id}`} className="hover:text-cyan">{person.name}</Link>
                   ) : (
                     person.handle ? `@${person.handle}` : null
                   )}
@@ -93,6 +95,5 @@ export const AnalyticsShell = ({ person, eyebrow, meta, back, title, aside, chil
       </div>
     </main>
     <Footer />
-    <FriendsPanel />
   </>
 )

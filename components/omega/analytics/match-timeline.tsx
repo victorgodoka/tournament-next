@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { KIND_LABEL, PHASE_LABEL, duelistName, type MatchTimeline, type Side, type TimelineEvent, type TimelineGame } from '@utils/analytics'
-import { SIDE } from './primitives'
+import { cardHref } from './primitives'
+import { useSideTones } from './side-tones'
 
 type Players = MatchTimeline['players']
 
@@ -29,7 +31,7 @@ const actorOf = (event: TimelineEvent): Side => event.owner ?? event.controller
 
 const EventCard = ({ event, players, respondsTo }: { event: TimelineEvent; players: Players; respondsTo?: TimelineEvent }) => {
   const actor = actorOf(event)
-  const tone = SIDE[actor]
+  const tone = useSideTones()[actor]
   const link = event.chain?.link ?? 0
   const crossed = event.ownership === 'deck' && event.owner !== null && event.owner !== event.controller
 
@@ -44,11 +46,13 @@ const EventCard = ({ event, players, respondsTo }: { event: TimelineEvent; playe
       style={{ '--indent': `${Math.min(Math.max(link - 1, 0), 4) * 14}px` } as React.CSSProperties}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <CardArt art={{ id: event.card.id, name: event.card.name }} alt="" sizes="36px" className="size-9 shrink-0 border border-line" />
+        <Link href={cardHref(event.card.id)} tabIndex={-1} aria-hidden className="shrink-0">
+          <CardArt art={{ id: event.card.id, name: event.card.name }} alt="" sizes="36px" className="size-9 border border-line" />
+        </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-ink body-strong" title={event.card.name ?? undefined}>
+          <Link href={cardHref(event.card.id)} className="block truncate text-ink no-underline body-strong hover:text-cyan" title={event.card.name ?? undefined}>
             {event.card.name ?? <span className="text-ink-muted mono-data">#{event.card.id}</span>}
-          </p>
+          </Link>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink-muted signal-sm">
             <span className="lg:sr-only">
               <span className={tone.text}>{duelistName(players[actor])}</span> ·{' '}
@@ -66,7 +70,10 @@ const EventCard = ({ event, players, respondsTo }: { event: TimelineEvent; playe
           ) : null}
           {respondsTo ? (
             <p className="mt-0.5 truncate text-ink-muted mono-note">
-              ↳ chained to {respondsTo.card.name ?? `#${respondsTo.card.id}`}
+              ↳ chained to{' '}
+              <Link href={cardHref(respondsTo.card.id)} className="text-ink-dim hover:text-cyan">
+                {respondsTo.card.name ?? `#${respondsTo.card.id}`}
+              </Link>
             </p>
           ) : null}
         </div>
@@ -89,6 +96,7 @@ const EventCard = ({ event, players, respondsTo }: { event: TimelineEvent; playe
  * Only order is shown — resolution and outcomes are not in the log.
  */
 export const MatchTimelineView = ({ game, players }: { game: TimelineGame; players: Players }) => {
+  const SIDE = useSideTones()
   if (!game.events.length) {
     return <p className="border border-dashed border-line px-4 py-8 text-center text-ink-muted body-sm">Nothing was logged for this game.</p>
   }

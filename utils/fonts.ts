@@ -1,4 +1,4 @@
-import { Anton, Figtree, Space_Mono } from "next/font/google";
+import { Anton, Figtree, Michroma, Space_Mono } from "next/font/google";
 
 export const anton = Anton({
   subsets: ["latin"],
@@ -7,10 +7,10 @@ export const anton = Anton({
   display: "swap",
 });
 
-/** 400 prose, 700 body-strong and roster names. */
+/** 400 prose, 500 captions, 700 body-strong and names. */
 export const figtree = Figtree({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "700"],
   variable: "--font-figtree",
   display: "swap",
 });
@@ -23,8 +23,17 @@ export const spaceMono = Space_Mono({
   display: "swap",
 });
 
+/** Only the "Omega Hub" wordmark beside the mark in the nav. */
+export const michroma = Michroma({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-michroma",
+  display: "swap",
+});
+
 export const FONTS_VARIABLES = [
   anton.variable,
   figtree.variable,
   spaceMono.variable,
+  michroma.variable,
 ].join(" ");

@@ -20,13 +20,13 @@ describe('getMatches', () => {
     expect(url().pathname).toBe('/profiles/187263901827563520/matches')
     expect(url().searchParams.get('limit')).toBe(String(MATCH_PAGE_SIZE))
     expect(url().searchParams.has('cursor')).toBe(false)
-    expect(url().searchParams.has('format')).toBe(false)
+    expect(url().searchParams.has('ladder')).toBe(false)
   })
 
   it('passes the cursor and the ladder filter through unchanged', async () => {
     const url = capture()
     await getMatches('187263901827563520', { cursor: 'WyIzMjAxNTEwIixudWxsXQ', format: 'genesys' })
     expect(url().searchParams.get('cursor')).toBe('WyIzMjAxNTEwIixudWxsXQ')
-    expect(url().searchParams.get('format')).toBe('genesys')
+    expect(url().searchParams.get('ladder')).toBe('genesys')
   })
 })

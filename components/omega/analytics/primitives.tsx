@@ -1,15 +1,20 @@
+import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import type { Side } from '@utils/analytics'
 
+type Tone = { text: string; bg: string; border: string; ground: string; stripe: string }
+
+const CYAN: Tone = { text: 'text-cyan', bg: 'bg-cyan', border: 'border-cyan', ground: 'bg-ground-cyan', stripe: 'shadow-[inset_2px_0_0_var(--color-cyan)]' }
+const GOLD: Tone = { text: 'text-gold', bg: 'bg-gold', border: 'border-gold', ground: 'bg-ground-gold', stripe: 'shadow-[inset_2px_0_0_var(--color-gold)]' }
+
 /**
- * One colour per side for the whole duel view: gold is `player1` (the winner, unless a draw),
- * cyan is `player2`. Every mark also carries the duelist's name, so colour is never the only cue.
+ * One colour per side for the whole duel view: cyan is `player1`, gold is `player2`.
+ * Every mark also carries the duelist's name, so colour is never the only cue.
  */
-export const SIDE = {
-  player1: { text: 'text-gold', bg: 'bg-gold', border: 'border-gold', ground: 'bg-ground-gold', stripe: 'shadow-[inset_2px_0_0_var(--color-gold)]' },
-  player2: { text: 'text-cyan', bg: 'bg-cyan', border: 'border-cyan', ground: 'bg-ground-cyan', stripe: 'shadow-[inset_2px_0_0_var(--color-cyan)]' },
-} as const satisfies Record<Side, Record<string, string>>
+export const SIDE: Record<Side, Tone> = { player1: CYAN, player2: GOLD }
+
+export const cardHref = (id: number) => `/wiki/card/${id}`
 
 export const other = (side: Side): Side => (side === 'player1' ? 'player2' : 'player1')
 
@@ -23,7 +28,7 @@ export const StatTiles = ({
 }) => (
   <dl className={twMerge('grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-3 lg:grid-cols-(--cols)', className)} style={{ '--cols': `repeat(${Math.min(items.length, 6)}, minmax(0, 1fr))` } as React.CSSProperties}>
     {items.map(({ label, value, tone, note }) => (
-      <div key={label} className="min-w-0 bg-surface-000 px-4 py-3.5">
+      <div key={label} className="min-w-0 bg-space-000 px-4 py-3.5">
         <dt className="truncate text-ink-muted signal-sm">{label}</dt>
         <dd className={twMerge('mt-1.75 text-ink display-5 tabular-nums', tone)}>{value}</dd>
         {note ? <dd className="mt-1 truncate text-ink-muted mono-note">{note}</dd> : null}
@@ -40,7 +45,7 @@ export const Meter = ({
   label,
   rate,
   value,
-  tone = 'bg-gold',
+  tone = 'bg-cyan',
   className,
 }: {
   label: React.ReactNode
@@ -84,9 +89,9 @@ export const CardLine = ({
       className={twMerge('shrink-0 border border-line', size === 'sm' ? 'size-8' : 'size-10')}
     />
     <div className="min-w-0">
-      <p className="truncate text-ink body-strong" title={name ?? undefined}>
+      <Link href={cardHref(id)} className="block truncate text-ink no-underline body-strong hover:text-cyan" title={name ?? undefined}>
         {name ?? <span className="text-ink-muted mono-data">#{id}</span>}
-      </p>
+      </Link>
       {children ? <div className="mt-0.5 text-ink-muted mono-data">{children}</div> : null}
     </div>
   </div>

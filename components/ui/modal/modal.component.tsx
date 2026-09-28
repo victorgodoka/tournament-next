@@ -1,13 +1,14 @@
 "use client";
 import { useEffect } from "react"
 import { twMerge } from "tailwind-merge"
+import { buttonClasses } from "@ui/button"
 
 type ModalProps = React.HTMLAttributes<HTMLDivElement> & {
   isOpen: boolean
   onClose: () => void
 }
 
-/** Overlay at z-overlay over the page-color scrim. Closes on Escape, on the scrim, or on Close. */
+/** Overlay at z-modal over the scrim. Closes on Escape, on the scrim, or on Close. */
 export const Modal = ({ isOpen, onClose, className, children, ...props }: ModalProps) => {
   useEffect(() => {
     if (!isOpen) return
@@ -28,13 +29,13 @@ export const Modal = ({ isOpen, onClose, className, children, ...props }: ModalP
       role="dialog"
       aria-modal
       onClick={(event) => event.target === event.currentTarget && onClose()}
-      className={twMerge("fixed inset-0 z-(--z-overlay) flex items-center justify-center overflow-hidden bg-scrim p-4", className)}
+      className={twMerge("fixed inset-0 z-(--z-modal) flex items-center justify-center overflow-hidden bg-scrim p-4", className)}
       {...props}
     >
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-3 right-3 flex min-h-8 cursor-pointer items-center gap-2 border border-surface-400 bg-surface-000 px-2.75 text-ink signal hover:bg-ink hover:text-ink-on"
+        className={twMerge(buttonClasses({ variant: 'secondary', size: 'mono' }), "absolute top-3 right-3")}
       >
         Close <span aria-hidden className="text-sm leading-none font-bold">×</span>
       </button>

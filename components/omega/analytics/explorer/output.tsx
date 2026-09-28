@@ -109,7 +109,7 @@ const heat = (v: number | null, wl: boolean, max: number, n: number) => {
   if (v === null) return undefined
   let a = wl ? Math.min(0.62, Math.abs(v - 0.5) * 1.5 + 0.05) : max ? 0.06 + (v / max) * 0.5 : 0
   if (n < 3) a *= 0.35
-  const color = wl ? (v >= 0.5 ? 'var(--color-win)' : 'var(--color-loss)') : 'var(--color-gold)'
+  const color = wl ? (v >= 0.5 ? 'var(--color-win)' : 'var(--color-loss)') : 'var(--color-cyan)'
   return `color-mix(in srgb, ${color} ${(a * 100).toFixed(1)}%, transparent)`
 }
 
@@ -130,7 +130,7 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
   const cells = (s: GroupSegment) =>
     res.colDim
       ? s.cells.map((c, i) => (
-        <td key={i} className="border-l border-surface-000 px-3.5 py-2 text-right" style={{ background: heatmap ? heat(c.value, wl0, max, c.n) : undefined }}>
+        <td key={i} className="border-l border-space-000 px-3.5 py-2 text-right" style={{ background: heatmap ? heat(c.value, wl0, max, c.n) : undefined }}>
           <span className={twMerge('block mono-data tabular-nums', heatmap && c.n >= 3 ? 'text-ink' : cellText(c.value))}>{fmt(c.value, M0.format)}</span>
           {heatmap && c.n ? <span className="block text-ink-muted mono-note">n {c.n}</span> : null}
         </td>
@@ -144,7 +144,7 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
   const label = (g: PivotResult['groups'][number]) =>
     g.matchId && onOpenMatch ? (
       <button type="button" onClick={() => onOpenMatch(g.matchId!)} className="min-h-11 min-w-0 text-left">
-        <span className="block text-gold mono-data hover:text-cyan">{g.labels[0]} →</span>
+        <span className="block text-cyan mono-data hover:text-cyan">{g.labels[0]} →</span>
         <span className="block truncate text-ink-muted mono-note">{g.sub}</span>
       </button>
     ) : (
@@ -348,7 +348,7 @@ const Line = ({ cat, res, cfg, line }: ViewProps & { line: LineData }) => {
         {series.map((s) => {
           const last = s.points.findLast((p) => p.value !== null)
           return (
-            <div key={s.label} className="bg-surface-000 px-4 py-3">
+            <div key={s.label} className="bg-space-000 px-4 py-3">
               <dt className="flex items-center gap-2 text-ink-muted signal-sm"><span aria-hidden className="size-2.25" style={{ background: s.color }} />{s.label}</dt>
               <dd className="mt-2 text-ink display-5 tabular-nums">{fmt(last?.value, M.format)}</dd>
               <dd className="mt-0.5 text-ink-muted mono-note">{cfg.runningTotal ? 'Season to date' : 'Last day played'}</dd>
@@ -405,7 +405,7 @@ export const ExplorationOutput = ({ cat, cfg, res, line, onEdit, onOpenMatch }: 
         <EmptyBox title={block.title} className="mt-6">
           {block.body}
           {fix ? (
-            <button type="button" onClick={() => onEdit!(fix.apply)} className="mx-auto mt-4 flex min-h-11 items-center border border-gold px-4 text-gold signal-chip hover:bg-ground-gold">
+            <button type="button" onClick={() => onEdit!(fix.apply)} className="mx-auto mt-4 flex min-h-11 items-center border border-cyan px-4 text-cyan signal-chip hover:bg-ground-cyan">
               {fix.label}
             </button>
           ) : null}
@@ -424,7 +424,7 @@ export const ExplorationOutput = ({ cat, cfg, res, line, onEdit, onOpenMatch }: 
 /** A match's timeline and statistics, over the page. */
 export const MatchDrawer = ({ matchId, onClose }: { matchId: string | null; onClose: () => void }) => (
   <Modal isOpen={!!matchId} onClose={onClose} aria-label={`Match #${matchId}`} className="items-stretch justify-end p-0">
-    <div className="h-full w-full max-w-[640px] overflow-y-auto border-l border-line-strong bg-surface-000 px-5 pt-14 pb-8">
+    <div className="h-full w-full max-w-[640px] overflow-y-auto border-l border-line-strong bg-space-000 px-5 pt-14 pb-8">
       <h2 className="text-ink display-4">Match #{matchId}</h2>
       {matchId ? <MatchAnalytics matchId={matchId} /> : null}
     </div>
@@ -437,7 +437,7 @@ export const segLabelOf = (segments: Segment[]) => (id: string) => segments.find
 /** Seasons named in the config that the shared response no longer has. */
 const Unavailable = ({ ids, seasons }: { ids: string[]; seasons: Record<string, PlayerSeason | null> }) => {
   const gone = ids.filter((id) => !seasons[id])
-  return gone.length ? <p className="mt-2 text-amber mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null
+  return gone.length ? <p className="mt-2 text-gold mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null
 }
 
 /** One saved exploration, read-only, drawn from the shared response the server already fetched. */

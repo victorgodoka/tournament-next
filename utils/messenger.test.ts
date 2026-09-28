@@ -3,7 +3,7 @@ import { contactName, mergeMessages, sortRoster } from './messenger'
 import type { RosterEntry } from './types'
 
 const entry = (id: string, presence: RosterEntry['presence'], displayName: string, nickname: string | null = null): RosterEntry => ({
-  id, presence, displayName, nickname, username: id, avatar: null, kind: 'friend', note: null, status: null, song: null,
+  id, presence, displayName, nickname, username: id, avatar: null, cosmetics: {}, kind: 'friend', note: null, status: null, song: null,
 })
 
 const message = (id: string) => ({ id, mine: false, body: id, createdAt: '2026-09-15T19:02:11.000Z' })

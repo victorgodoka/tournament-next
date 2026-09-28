@@ -17,6 +17,7 @@ import {
 import { GameStatsView } from './game-stats'
 import { MatchTimelineView } from './match-timeline'
 import { SIDE, Skeleton } from './primitives'
+import { SideTones, useSideTones } from './side-tones'
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
@@ -56,8 +57,8 @@ const useLoad = <T,>(active: boolean, load: (signal: AbortSignal) => Promise<T>)
 
 const DURATION = (seconds: number) => `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`
 
-const resultMark = (winner: SideWinner) =>
-  winner === null ? { label: 'Not played', className: 'bg-surface-400' } : winner === 'draw' ? { label: 'Draw', className: 'bg-draw' } : { label: `Won by`, className: SIDE[winner].bg }
+const resultMark = (winner: SideWinner, tones: typeof SIDE) =>
+  winner === null ? { label: 'Not played', className: 'bg-surface-400' } : winner === 'draw' ? { label: 'Draw', className: 'bg-draw' } : { label: `Won by`, className: tones[winner].bg }
 
 type Header = { match: MatchTimeline['match']; players: Record<Side, { displayName: string | null; username: string | null; archetype: string | null; name: string | null }> }
 
@@ -72,6 +73,7 @@ const toHeader = (data: MatchTimeline | MatchStats): Header => ({
 /** The two duelists facing each other over the score. Curated deck name first, detected archetype after. */
 const MatchHeader = ({ header }: { header: Header }) => {
   const { match, players } = header
+  const SIDE = useSideTones()
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
       {(['player1', 'player2'] as const).map((side, index) => (
@@ -101,15 +103,21 @@ const GamePicker = ({
   active,
   onSelect,
   players,
+  opponent,
 }: {
   games: { gameNumber: number; winner: SideWinner }[]
   active: number
   onSelect: (index: number) => void
   players?: Header['players']
-}) => (
+  /** The profile owner's opponent: games they won are the owner's losses. */
+  opponent?: Side
+}) => {
+  const tones = useSideTones()
+  return (
   <div role="group" aria-label="Game" className="flex flex-wrap gap-2">
     {games.map((game, index) => {
-      const mark = resultMark(game.winner)
+      const lost = opponent !== undefined && game.winner === opponent
+      const mark = lost ? { label: 'Lost to', className: 'bg-loss' } : resultMark(game.winner, tones)
       const winner = game.winner === 'player1' || game.winner === 'player2' ? duelistName(players?.[game.winner]) : null
       const on = index === active
       return (
@@ -121,6 +129,7 @@ const GamePicker = ({
           className={twMerge(
             'inline-flex min-h-11 cursor-pointer items-center gap-2 border px-3 signal-chip',
             on ? 'border-ink bg-ground-soft text-ink' : 'border-line text-ink-muted hover:border-ink-muted hover:text-ink-dim',
+            lost && (on ? 'border-loss bg-ground-loss text-loss' : 'border-loss/50 text-loss hover:border-loss hover:text-loss'),
           )}
         >
           <span aria-hidden className={twMerge('size-2', mark.className)} />
@@ -133,7 +142,8 @@ const GamePicker = ({
       )
     })}
   </div>
-)
+  )
+}
 
 const Failed = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
   <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border border-line bg-surface-100 px-4 py-3.5">
@@ -147,9 +157,10 @@ const Failed = ({ message, onRetry }: { message: string; onRetry: () => void }) 
 /**
  * The play log of one ranked duel: a turn-by-turn timeline and the per-game numbers, as two tabs.
  * Each tab fetches on first view only. Tournament and casual duels have no log — mount this for
- * ranked matches only.
+ * ranked matches only. With `opponentId` (seen from a profile), the opponent is always gold and
+ * the owner's lost games are red.
  */
-export const MatchAnalytics = ({ matchId }: { matchId: string }) => {
+export const MatchAnalytics = ({ matchId, opponentId }: { matchId: string; opponentId?: string }) => {
   const idPrefix = useId()
   const [tab, setTab] = useState<Tab>('timeline')
   const [gameIndex, setGameIndex] = useState(0)
@@ -160,14 +171,17 @@ export const MatchAnalytics = ({ matchId }: { matchId: string }) => {
   const header = loaded?.status === 'ready' ? toHeader(loaded.data) : null
   const games = loaded?.status === 'ready' ? loaded.data.games : []
   const current = Math.min(gameIndex, Math.max(games.length - 1, 0))
+  const opponent = loaded?.status === 'ready' && opponentId ? (['player1', 'player2'] as const).find((side) => loaded.data.players[side].id === opponentId) : undefined
+  const tones = opponent === 'player1' ? { player1: SIDE.player2, player2: SIDE.player1 } : SIDE
 
   return (
+    <SideTones value={tones}>
     <div className="grid gap-4">
       {header ? <MatchHeader header={header} /> : null}
 
-      <TabBar label="Duel detail" idPrefix={idPrefix} tabs={TABS} active={tab} onSelect={setTab} tone="cyan" />
+      <TabBar label="Duel detail" idPrefix={idPrefix} tabs={TABS} active={tab} onSelect={setTab} />
 
-      {games.length > 1 ? <GamePicker games={games} active={current} onSelect={setGameIndex} players={header?.players} /> : null}
+      {games.length > 1 ? <GamePicker games={games} active={current} onSelect={setGameIndex} players={header?.players} opponent={opponent} /> : null}
 
       <div {...tabPanelProps(idPrefix, tab)} className="min-w-0">
         {tab === 'timeline' ? (
@@ -196,5 +210,6 @@ export const MatchAnalytics = ({ matchId }: { matchId: string }) => {
         )}
       </div>
     </div>
+    </SideTones>
   )
 }

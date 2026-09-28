@@ -1,0 +1,36 @@
+/* A duelist's equipped MSGBUBBLE. Values come in as variables from `bubbleVars` (utils/bubble.ts). */
+.bubble {
+  position: relative;
+  max-width: 72%;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--b-text);
+  background: var(--b-bg);
+  border: 2px solid var(--b-border);
+  border-radius: var(--b-radius);
+  margin-top: var(--s-room-top);
+  margin-bottom: var(--s-room-bottom);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble.is-mine { align-self: flex-end; }
+.bubble .oh-bubble-meta { color: inherit; opacity: 0.7; }
+.bubble.is-mine .oh-bubble-meta { text-align: right; }
+
+.bubble-sticker {
+  position: absolute;
+  left: var(--s-x);
+  top: var(--s-y);
+  width: var(--s-size);
+  height: var(--s-size);
+  translate: -50% -50%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+}
+.bubble-sticker.is-bob { animation: bubble-bob 1.6s ease-in-out infinite; }
+.bubble-sticker.is-wiggle { animation: bubble-wiggle 2.4s ease-in-out infinite; }
+@keyframes bubble-bob { 50% { transform: translateY(-3px); } }
+@keyframes bubble-wiggle { 0%, 60%, 100% { rotate: 0deg; } 70% { rotate: -8deg; } 80% { rotate: 8deg; } 90% { rotate: -4deg; } }
+@media (prefers-reduced-motion: reduce) { .bubble-sticker { animation: none; } }

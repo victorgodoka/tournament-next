@@ -5,6 +5,6 @@ import { SITE_URL } from '@utils/config'
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: '*', allow: '/', disallow: ['/wiki/new', '/wiki/panel', '/wiki/example'] },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/wiki/sitemap.xml`],
   }
 }

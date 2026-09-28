@@ -3,14 +3,16 @@
  *
  * The sample is one deck in one game, and the season answer is tuple tables of sums, not per-game
  * rows: a cut adds the rows it keeps, then divides. Mirror matches (same archetype both sides) stay
- * in counts and meta share but never in a win rate. Archetypes are setcodes, named from `names`.
+ * in counts and meta share but never in a win rate. Archetypes are setcode lists (`[349]`, or
+ * `[240, 349]` for a mixed deck), named from `names` and compared by value. The `…Part` dimensions
+ * take one setcode, and a mixed deck counts under each of its own.
  * Cuts below `minSamples` are hidden here: the server can't, the cut is made on the client.
  */
 import { cache } from 'react'
 import { API_URL } from '@utils/auth'
 import { AnalyticsApiError, type PlayerSeason } from '@utils/analytics'
 import {
-  SOURCE_NAME, fmt, pickColumns, segColor, segmentLabel, sortGroups,
+  SOURCE_NAME, applyThresholds, fmt, pickColumns, segColor, segmentLabel, sortGroups,
   type Catalog, type ExplorationConfig, type FilterValue, type Group, type GroupSegment, type LineData, type PivotResult, type Source, type Variables,
 } from './explorer'
 
@@ -19,21 +21,23 @@ import {
  * ---------------------------------------------------------------- */
 
 type N = number
+/** Setcodes, ascending: one for a pure deck, two for a mixed one. `null` = unknown. */
+type A = N[] | null
 export type GlobalSeason = {
   season: PlayerSeason['season']
   /** Days in the sweep's timezone. `first`/`last` are `null` before the first sweep. */
   syncedDays: { count: number; first: string | null; last: string | null }
   minSamples: number
   /** [arch, opp, wentFirst, gameNumber, outcome, samples, turns, ownTurns, ownActions, turn1SpecialSummons, longestChain] */
-  games: [N | null, N | null, 0 | 1, N, 1 | -1 | 0 | null, N, N, N, N, N, N][]
+  games: [A, A, 0 | 1, N, 1 | -1 | 0 | null, N, N, N, N, N, N][]
   /** [seasonDay, arch, samples, wins, losses, draws] — mirrors already out of W/L/D. */
-  days: [N, N | null, N, N, N, N][]
-  /** [cardId, arch, samples, copies, used, activatedSamples, wins, losses, draws] */
-  cards: [N, N | null, N, N, N, N, N, N, N][]
+  days: [N, A, N, N, N, N][]
+  /** [cardId, arch, samples, copies, used, usedWins, usedLosses, usedDraws, wins, losses, draws] — mirrors already out of W/L/D. */
+  cards: [N, A, N, N, N, N, N, N, N, N, N][]
   /** [groupId, arch, samples, wins, losses, draws] */
-  groups: [N, N | null, N, N, N, N][]
+  groups: [N, A, N, N, N, N][]
   /** [cardId, activatorArch, otherArch, activations, responded, calledByTheGrave, crossoutDesignator] */
-  handTraps: [N, N | null, N | null, N, N, N, N][]
+  handTraps: [N, A, A, N, N, N, N][]
   names: {
     archetypes: Record<string, string>
     cards: Record<string, string>
@@ -71,6 +75,19 @@ export const getGlobalVariables = cache(async () => (await get<Variables>('/anal
 /** `GET /analytics/global/seasons/:code`: several MB, cached 5 minutes by the API. `null` for an unknown season. */
 export const getGlobalSeason = (code: string) => get<GlobalSeason>(`/analytics/global/seasons/${encodeURIComponent(code)}`)
 
+export type TopDeck = {
+  archetype: number[]
+  /** `A / B` for a mixed deck; `null` when a setcode has no name. */
+  name: string | null
+  metaShare: number
+  /** The 3 cards used in the most deck-games of the archetype. */
+  topCards: { id: number; name: string | null }[]
+}
+
+/** `GET /analytics/global/top-decks`: best archetypes of the format's open season. `null` with no open season. */
+export const getTopDecks = async (format: 'tcg' | 'genesys', decks = 10) =>
+  (await get<{ decks: TopDeck[] }>(`/analytics/global/top-decks?ladder=${format}&decks=${decks}`, { next: { revalidate: 300 } }))?.decks ?? null
+
 /** `GET /analytics/global/explorations`: published ones only, in the order staff chose. */
 export const listGlobalExplorations = cache(async () =>
   (await get<{ explorations: GlobalExploration[] }>('/analytics/global/explorations', { next: { revalidate: 60 } }))?.explorations ?? [],
@@ -106,6 +123,8 @@ export type GlobalSegment = {
 }
 
 const RESULT: Record<string, string> = { '1': 'win', '-1': 'loss', '0': 'draw', null: 'none' }
+/** Archetypes compare by value: `[240, 349]` is `"240+349"`. */
+const archKey = (a: A) => a?.join('+') ?? null
 
 export const buildGlobalSegment = (id: string, season: GlobalSeason): GlobalSegment => {
   const kind = (g: number) => season.names.groups[g]?.kind
@@ -121,7 +140,7 @@ export const buildGlobalSegment = (id: string, season: GlobalSeason): GlobalSegm
     facts: {
       games: season.games.map((r) => ({
         row: r,
-        mirror: r[0] !== null && r[0] === r[1],
+        mirror: r[0] !== null && archKey(r[0]) === archKey(r[1]),
         dims: { archetype: r[0], opponentArchetype: r[1], turnOrder: r[2] ? 'first' : 'second', gameNumber: r[3], result: RESULT[String(r[4])]! },
         n: { samples: r[5], turns: r[6], ownTurns: r[7], ownActions: r[8], t1: r[9], chain: r[10], outcome: r[4] ?? NaN, first: r[2] },
       })),
@@ -129,7 +148,7 @@ export const buildGlobalSegment = (id: string, season: GlobalSeason): GlobalSegm
       cards: season.cards.map((r) => ({
         row: r, mirror: false,
         dims: { card: r[0], archetype: r[1] },
-        n: { samples: r[2], copies: r[3], used: r[4], activated: r[5], w: r[6], l: r[7], d: r[8] },
+        n: { samples: r[2], copies: r[3], used: r[4], uw: r[5], ul: r[6], ud: r[7], w: r[8], l: r[9], d: r[10] },
       })),
       // A group staff deleted has no kind: it can't answer Engine or Tech, only the archetype.
       groups: season.groups.map((r) => ({
@@ -170,15 +189,25 @@ const LABEL: Record<string, Record<string, string>> = {
   result: { win: 'Win', loss: 'Loss', draw: 'Draw', none: 'No result' },
   activatedBy: { deck: 'By the deck', opponent: 'Against the deck' },
 }
-const KNOWN_DIMS = new Set(['archetype', 'opponentArchetype', 'turnOrder', 'gameNumber', 'result', 'seasonDay', 'card', 'engine', 'tech', 'handTrap', 'activatedBy'])
+/** A `…Part` dimension reads one setcode of its whole-archetype dimension. */
+const PART: Record<string, string> = { archetypePart: 'archetype', opponentArchetypePart: 'opponentArchetype' }
+const KNOWN_DIMS = new Set(['archetype', 'opponentArchetype', ...Object.keys(PART), 'turnOrder', 'gameNumber', 'result', 'seasonDay', 'card', 'engine', 'tech', 'handTrap', 'activatedBy'])
 /** Dimensions of `games` rows: they narrow the deck-games a rate divides by. */
-const GAME_DIMS = ['archetype', 'opponentArchetype', 'turnOrder', 'gameNumber', 'result']
+const GAME_DIMS = ['archetype', 'opponentArchetype', ...Object.keys(PART), 'turnOrder', 'gameNumber', 'result']
 
-const dimValue = (d: string, f: Fact) => (d in f.dims ? f.dims[d] : undefined)
+/** Every value a fact takes on `d`: one, or each setcode for a `…Part` dimension. `[]` = doesn't apply. */
+const dimValues = (d: string, f: Fact): FilterValue[] => {
+  const base = PART[d]
+  if (base) return base in f.dims ? ((f.dims[base] as A) ?? [null]) : []
+  return d in f.dims ? [f.dims[d]!] : []
+}
+const same = (a: FilterValue, b: FilterValue) => a === b || (Array.isArray(a) && Array.isArray(b) && a.join('+') === b.join('+'))
 const dimKey = (d: string, v: FilterValue) => ORDER[d]?.[String(v)] ?? (typeof v === 'number' ? v : String(v))
 
 export const globalDimLabel = (d: string, v: FilterValue, names: GlobalNames) => {
-  if (d === 'archetype' || d === 'opponentArchetype') return v === null ? 'Unknown' : names.archetypes[String(v)] ?? `#${v}`
+  // Mixed deck = [a, b] (or "a,b" once stringified); names are per setcode.
+  if (d === 'archetype' || d === 'opponentArchetype' || d in PART)
+    return v === null ? 'Unknown' : String(v).split(/[,+]/).map((c) => names.archetypes[c] ?? `#${c}`).join(' / ')
   if (d === 'card' || d === 'handTrap') return names.cards[String(v)] ?? `#${v}`
   if (d === 'engine' || d === 'tech') return names.groups[String(v)]?.name ?? 'Deleted group'
   if (d === 'gameNumber') return `Game ${v}`
@@ -196,7 +225,10 @@ type Ctx = { facts: Fact[]; cut: Cut; base: Cut; seg: GlobalSegment; extra?: (f:
 
 const ratio = (a: number, b: number) => (b ? a / b : null)
 const S = (facts: Fact[], k: string) => facts.reduce((n, f) => n + (f.n[k] ?? 0), 0)
-const matches = (f: Fact, cut: Cut) => Object.entries(cut).every(([d, v]) => dimValue(d, f) === v)
+const matches = (f: Fact, cut: Cut) => Object.entries(cut).every(([d, v]) => dimValues(d, f).some((x) => same(x, v)))
+/** Every combination of values a fact takes on `dims`: more than one only through a `…Part` dimension. */
+const combos = (dims: string[], f: Fact) =>
+  dims.reduce<FilterValue[][]>((acc, d) => acc.flatMap((c) => dimValues(d, f).map((v) => [...c, v])), [[]])
 /** Deck-games of the cut's game dimensions: the denominator of inclusion and per-game rates. */
 const gamesOf = ({ seg, cut, extra }: Ctx) => {
   const gc = Object.fromEntries(Object.entries(cut).filter(([d]) => GAME_DIMS.includes(d)))
@@ -244,8 +276,9 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   inclusionSamples: ({ facts }) => S(facts, 'samples'),
   averageCopies: ({ facts }) => ratio(S(facts, 'copies'), S(facts, 'samples')),
   usage: ({ facts }) => ratio(S(facts, 'used'), S(facts, 'samples')),
-  activatedSamples: ({ facts }) => S(facts, 'activated'),
-  winRateWhenActivated: ({ facts }) => tallyRate(facts),
+  usedSamples: ({ facts }) => S(facts, 'used'),
+  winRateInDeck: ({ facts }) => tallyRate(facts),
+  winRateWhenUsed: ({ facts }) => ratio(S(facts, 'uw'), S(facts, 'uw') + S(facts, 'ul') + S(facts, 'ud')),
 
   groupSamples: ({ facts }) => S(facts, 'samples'),
   groupInclusion: (ctx) => ratio(S(ctx.facts, 'samples'), gamesOf(ctx)),
@@ -260,9 +293,6 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   crossoutDesignator: (ctx) => S(traps(ctx), 'crossout'),
   crossoutDesignatorRate: (ctx) => ratio(S(traps(ctx), 'crossout'), S(traps(ctx), 'responded')),
 }
-
-/** Win/loss rates: 50% is the line that matters. */
-export const GLOBAL_WIN_LOSS = new Set(['winRate', 'dailyWinRate', 'winRateWhenActivated', 'winRateWithGroup'])
 
 /** What a cut's sample is: deck-games, or activations for hand traps. Compared to `minSamples`. */
 const sampleOf = (source: Source, facts: Fact[], cut: Cut) =>
@@ -294,20 +324,18 @@ export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationC
   const colVals = new Map<string, { v: FilterValue; sk: number | string; n: number }>()
   segs.forEach((seg, si) => {
     for (const f of (seg.facts[source] ?? []).filter((f) => matches(f, filterCut))) {
-      const vals = rowDims.map((d) => dimValue(d, f))
-      if (vals.some((v) => v === undefined)) continue
-      const key = JSON.stringify(vals)
-      const g = groups.get(key) ?? { key, values: vals as FilterValue[], rows: segs.map((): Fact[] => []), cols: segs.map(() => new Map()) }
-      groups.set(key, g)
-      g.rows[si]!.push(f)
-      if (colDim) {
-        const cv = dimValue(colDim, f)
-        if (cv === undefined) continue
-        const ck = JSON.stringify(cv)
-        const c = colVals.get(ck) ?? { v: cv, sk: dimKey(colDim, cv), n: 0 }
-        c.n += f.n.samples ?? f.n.activations ?? 0
-        colVals.set(ck, c)
-        g.cols[si]!.set(ck, [...(g.cols[si]!.get(ck) ?? []), f])
+      for (const vals of combos(rowDims, f)) {
+        const key = JSON.stringify(vals)
+        const g = groups.get(key) ?? { key, values: vals, rows: segs.map((): Fact[] => []), cols: segs.map(() => new Map()) }
+        groups.set(key, g)
+        g.rows[si]!.push(f)
+        for (const cv of colDim ? dimValues(colDim, f) : []) {
+          const ck = JSON.stringify(cv)
+          const c = colVals.get(ck) ?? { v: cv, sk: dimKey(colDim!, cv), n: 0 }
+          c.n += f.n.samples ?? f.n.activations ?? 0
+          colVals.set(ck, c)
+          g.cols[si]!.set(ck, [...(g.cols[si]!.get(ck) ?? []), f])
+        }
       }
     }
   })
@@ -348,13 +376,14 @@ export const runGlobal = (cat: Catalog, segs: GlobalSegment[], cfg: ExplorationC
     if (!shown) hidden++
     return shown
   })
-  sortGroups(order, rowDims, cfg)
+  const kept = applyThresholds(order, cfg)
+  sortGroups(kept, rowDims, cfg)
 
   return {
     source, values, rowDims, colDim,
     segs: segs.map((s, i) => ({ id: s.id, label: s.label, color: segColor(i) })),
-    groups: order.slice(0, cfg.limit || 12) as Group[],
-    totalGroups: order.length,
+    groups: kept.slice(0, cfg.limit || 12) as Group[],
+    totalGroups: kept.length,
     colList,
     hiddenCols: colAll.length - colList.length,
     totals: source === 'games' || source === 'days'
@@ -400,11 +429,11 @@ export const globalValuesOf = (segs: GlobalSegment[], dim: string, source: Sourc
   const seen = new Map<string, { v: FilterValue; k: number | string; n: number }>()
   for (const seg of segs) {
     for (const f of seg.facts[source] ?? []) {
-      const v = dimValue(dim, f)
-      if (v === undefined) continue
-      const e = seen.get(JSON.stringify(v)) ?? { v, k: dimKey(dim, v), n: 0 }
-      e.n += f.n.samples ?? f.n.activations ?? 0
-      seen.set(JSON.stringify(v), e)
+      for (const v of dimValues(dim, f)) {
+        const e = seen.get(JSON.stringify(v)) ?? { v, k: dimKey(dim, v), n: 0 }
+        e.n += f.n.samples ?? f.n.activations ?? 0
+        seen.set(JSON.stringify(v), e)
+      }
     }
   }
   // Natural dimensions keep their order; archetypes, cards and groups come most played first.
@@ -420,16 +449,19 @@ export const globalValuesOf = (segs: GlobalSegment[], dim: string, source: Sourc
 
 export const globalKpis = (seg: GlobalSegment, names: GlobalNames) => {
   const games = seg.facts.games ?? []
-  const byArch = new Map<N | null, number>()
-  for (const f of games) byArch.set(f.dims.archetype as N | null, (byArch.get(f.dims.archetype as N | null) ?? 0) + f.n.samples!)
-  const [top] = [...byArch].filter(([a]) => a !== null).sort((a, b) => b[1] - a[1])
+  const byArch = new Map<string | null, [A, number]>()
+  for (const f of games) {
+    const a = f.dims.archetype as A
+    byArch.set(archKey(a), [a, (byArch.get(archKey(a))?.[1] ?? 0) + f.n.samples!])
+  }
+  const [top] = [...byArch.values()].filter(([a]) => a !== null).sort((a, b) => b[1] - a[1])
   const all = S(games, 'samples')
   const first = gameRate(games.filter((f) => f.n.first === 1))
   const { syncedDays } = seg.season
   return [
     { label: 'Deck-games', value: fmt(all, 'count'), note: `${fmt(COMPUTE.matches!({ facts: games, cut: {}, base: {}, seg }), 'count')} matches` },
     { label: 'Archetypes', value: fmt(byArch.size, 'count'), note: 'seen at least once' },
-    { label: 'Top archetype', value: top ? globalDimLabel('archetype', top[0], names) : '—', note: top ? `${fmt(top[1] / all, 'rate')} of the meta` : '', tone: 'text-gold' },
+    { label: 'Top archetype', value: top ? globalDimLabel('archetype', top[0], names) : '—', note: top ? `${fmt(top[1] / all, 'rate')} of the meta` : '', tone: 'text-cyan' },
     { label: 'Going first', value: fmt(first, 'rate'), note: 'win rate, mirrors out' },
     { label: 'Data', value: fmt(syncedDays.count, 'count'), note: syncedDays.last ? `days, through ${syncedDays.last}` : 'no day swept yet' },
   ]

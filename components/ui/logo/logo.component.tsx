@@ -13,9 +13,9 @@ interface FullLogoProps extends LogoProps {
 }
 
 const fillColors = {
-  cyan: ['#00edff', '#6770ff'],
+  cyan: ['#00fdff', '#4a6fd8'],
   gold: ['', ''],
-  bw: ['#f1f0ec', '#151515'],
+  bw: ['#eef1f8', '#080a14'],
 }
 
 const LogoDefault = ({ width = "200", height = "200", variant = "cyan", dual }: LogoProps) => (

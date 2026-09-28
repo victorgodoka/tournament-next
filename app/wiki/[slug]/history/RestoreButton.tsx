@@ -39,7 +39,7 @@ export const RestoreButton = ({ slug, revisionId }: { slug: string; revisionId: 
       >
         {status === 'saving' ? 'Restoring…' : 'Restore this version'}
       </button>
-      <p aria-live="polite" className="text-gold body-sm">
+      <p aria-live="polite" className="text-cyan body-sm">
         {status === 'error' ? "Couldn't restore that version." : ''}
       </p>
     </div>

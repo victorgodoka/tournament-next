@@ -1,9 +1,6 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { notFound } from 'next/navigation'
-import { twMerge } from 'tailwind-merge'
-import { WIKI_PAD, WikiBar } from '@omega/wiki'
-import { StatusChip } from '@omega/wiki/article'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { can, getArticle } from '@utils/articles'
@@ -24,48 +21,35 @@ const EditArticlePage = async ({ params }: EditRouteProps) => {
   const { slug } = await params
   const cookie = (await headers()).get('cookie')
 
-  const [me, article] = await Promise.all([getMeServer(cookie).catch(() => null), getArticle(slug, cookie)])
+  // No catch on the session: an unreachable API is an error page, not a fake 404.
+  const [me, article] = await Promise.all([getMeServer(cookie), getArticle(slug, cookie)])
   if (!article || !can(me, 'wiki.write')) notFound()
+  // A former address: edit under the current one, or History and the next save would target the old slug.
+  if (article.slug !== slug) permanentRedirect(`/wiki/${article.slug}/edit`)
 
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
-        <WikiBar
-          section="Articles"
-          placeholder="Search cards by name or part of one"
-          link={{ label: 'All articles', to: '/wiki' }}
-        />
-
-        <div className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
-          <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-            <Link href="/wiki" className="text-ink-muted hover:text-gold">
-              Omega Wiki
-            </Link>{' '}
-            /{' '}
-            <Link href={`/wiki/${article.slug}`} className="text-ink-muted hover:text-gold">
-              {article.slug}
-            </Link>{' '}
-            / edit
-          </nav>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
-            <StatusChip publishedAt={article.publishedAt} />
-            <Link href={`/wiki/${article.slug}/history`} className="text-gold signal-sm hover:text-cyan">
-              History
-            </Link>
-          </div>
-
-          <h1 className="mt-3.5 text-ink display-2">{article.title}</h1>
-          <p className="mt-3 max-w-[62ch] text-ink-dim body">
-            Every save writes a revision, so nothing is lost and a bad edit can be restored from the history.
-          </p>
-
-          <div className="mt-7">
-            {/* Block articles open in the block editor; Markdown ones keep the text form, with a way to convert. */}
-            {article.doc ? <DocEditor article={{ ...article, doc: article.doc }} /> : <LegacyEditor article={article} />}
-          </div>
-        </div>
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-16">
+        {article.doc ? (
+          // Every save changes `updatedAt`: the editor starts over from what the server now holds.
+          <DocEditor key={article.updatedAt} article={{ ...article, doc: article.doc }} />
+        ) : (
+          // Markdown articles keep the text form, with a way into the block editor.
+          <LegacyEditor article={article}>
+            <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
+              <Link href="/wiki" className="text-ink-muted hover:text-cyan">
+                Omega Wiki
+              </Link>{' '}
+              /{' '}
+              <Link href={`/wiki/${article.slug}`} className="text-ink-muted hover:text-cyan">
+                {article.slug}
+              </Link>{' '}
+              / edit
+            </nav>
+            <h1 className="mt-3.5 mb-7 text-ink display-2">{article.title}</h1>
+          </LegacyEditor>
+        )}
       </main>
       <Footer />
     </>

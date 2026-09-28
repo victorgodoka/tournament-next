@@ -24,14 +24,18 @@ export const LanguageSwitcher = () => {
     <div className="flex gap-2">
       <Button
         disabled={isPending}
-        variant={locale === 'en' ? 'primary' : 'ghost'}
+        size="mono"
+        aria-pressed={locale === 'en'}
+        variant={locale === 'en' ? 'secondary' : 'ghost'}
         onClick={() => handleSwitch('en')}
       >
         EN
       </Button>
       <Button
         disabled={isPending}
-        variant={locale === 'pt' ? 'primary' : 'ghost'}
+        size="mono"
+        aria-pressed={locale === 'pt'}
+        variant={locale === 'pt' ? 'secondary' : 'ghost'}
         onClick={() => handleSwitch('pt')}
       >
         PT

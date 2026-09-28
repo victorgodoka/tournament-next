@@ -28,9 +28,9 @@ const KIND = {
     verb: 'Rival',
     linked: 'On rivals list',
     requested: 'Rival request sent',
-    button: 'border-indigo bg-indigo text-indigo-on',
-    dot: 'bg-indigo-lift',
-    hover: 'hover:bg-indigo hover:text-indigo-on',
+    button: 'border-azure bg-azure text-ink',
+    dot: 'bg-azure-lift',
+    hover: 'hover:bg-azure hover:text-ink',
   },
 } satisfies Record<Relation, Record<string, string>>
 
@@ -50,9 +50,9 @@ const buttonLabel = (status: RelationStatus) => {
 
 const buttonSkin = (status: RelationStatus) => {
   switch (status.state) {
-    case 'none': return "border-gold bg-gold text-gold-on hover:border-cyan hover:bg-cyan hover:text-cyan-on"
+    case 'none': return "border-cyan bg-cyan text-cyan-on hover:border-cyan hover:bg-cyan hover:text-cyan-on"
     case 'outgoing': return "border-line text-ink-muted"
-    case 'incoming': return "border-gold bg-gold text-gold-on"
+    case 'incoming': return "border-cyan bg-cyan text-cyan-on"
     case 'linked': return KIND[status.kind].button
   }
 }
@@ -114,7 +114,7 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
           await messenger.unblock(id)
           setIsBlocked(false)
         })}
-        className="inline-flex min-h-11 cursor-pointer items-center border border-gold px-4.5 text-gold signal-tab hover:bg-gold hover:text-gold-on disabled:cursor-wait disabled:opacity-(--opacity-dim)"
+        className="inline-flex min-h-11 cursor-pointer items-center border border-cyan px-4.5 text-cyan signal-tab hover:bg-cyan hover:text-cyan-on disabled:cursor-wait disabled:opacity-(--opacity-dim)"
       >
         Unblock
       </button>
@@ -142,13 +142,13 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
       </button>
 
       {isOpen ? (
-        <div id={panelId} className="absolute top-[calc(100%+8px)] right-0 z-(--z-dropdown) w-66 border border-line-strong bg-surface-000 shadow-offset-void-sm">
+        <div id={panelId} className="absolute top-[calc(100%+8px)] right-0 z-(--z-dropdown) w-66 border border-line-strong bg-space-000 shadow-lift">
           {isConfirmingBlock ? (
             <>
               <p className="border-b border-line bg-ground-soft px-3.5 py-3 leading-normal text-ink-dim signal">
                 Block {handle}? You can unblock them later from this profile.
               </p>
-              <button type="button" onClick={block} className={twMerge(OPTION, "hover:bg-gold hover:text-gold-on")}>
+              <button type="button" onClick={block} className={twMerge(OPTION, "hover:bg-cyan hover:text-cyan-on")}>
                 Block {handle}
               </button>
               <button type="button" onClick={() => setIsConfirmingBlock(false)} className={twMerge(MINOR, "border-b-0")}>
@@ -191,7 +191,7 @@ export const AddToList = ({ id, handle, status: initialStatus = { state: 'none' 
               ) : null}
 
               {status.state !== 'outgoing' ? (
-                <button type="button" onClick={() => setIsConfirmingBlock(true)} className={twMerge(MINOR, "hover:text-gold")}>
+                <button type="button" onClick={() => setIsConfirmingBlock(true)} className={twMerge(MINOR, "hover:text-cyan")}>
                   Block
                 </button>
               ) : null}

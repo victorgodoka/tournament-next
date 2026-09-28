@@ -13,12 +13,28 @@ export const formatRate = (rate: number | null) => (rate === null ? '—' : `${(
 export const formatRecord = ({ wins, loses, draws }: { wins: number; loses: number; draws: number }) =>
   `${wins}–${loses}–${draws}`
 
-/** `2 h 27 min`. Both ends are needed, so a live tournament says "in progress" instead. */
+/** Whole minutes between two ISO dates, never negative. */
+export const minutesBetween = (from: string, to: string) =>
+  Math.max(0, Math.round((Date.parse(to) - Date.parse(from)) / 60_000))
+
+/** `2h 27m`, or `48m` under an hour. */
 export const formatDuration = (startedAt: string, endedAt: string) => {
-  const minutes = Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 60_000))
+  const minutes = minutesBetween(startedAt, endedAt)
   const hours = Math.floor(minutes / 60)
-  return hours ? `${hours} h ${minutes % 60} min` : `${minutes} min`
+  return hours ? `${hours}h ${String(minutes % 60).padStart(2, '0')}m` : `${minutes}m`
 }
+
+/** Chip tone per format. Edison and Rush Duel have no ladder color, so they borrow the DS's spare tones. */
+export const formatTone = (format: string) =>
+  ({ TCG: 'tcg', Genesys: 'genesys', Edison: 'ocg', 'Rush Duel': 'cyan' } as const)[format] ?? 'neutral'
+
+/** The game's banlist name, except an `OCG` banlist is the Genesys queue and must never read as OCG. */
+export const banlistLabel = ({ banlist, format }: { banlist: string; format: string }) =>
+  format === 'Genesys' ? banlist.replace(/^OCG\s*/, 'Genesys · ') : banlist
+
+/** `Thu 18 Sep`: the day half of a "day · time" pair. */
+export const DAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }
+export const DAY_YEAR: Intl.DateTimeFormatOptions = { ...DAY, year: 'numeric' }
 
 export const DATE_TIME: Intl.DateTimeFormatOptions = {
   day: '2-digit',

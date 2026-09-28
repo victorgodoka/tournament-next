@@ -62,7 +62,7 @@ const CardArtSearch = ({ added, onPick }: { added: Set<string>; onPick: (id: num
           {!shown ? (
             <p className="px-2.5 py-2 text-ink-muted body-sm">Searching…</p>
           ) : shown.failed ? (
-            <p className="px-2.5 py-2 text-gold body-sm">Card search is unavailable right now.</p>
+            <p className="px-2.5 py-2 text-cyan body-sm">Card search is unavailable right now.</p>
           ) : !rows.length ? (
             <p className="px-2.5 py-2 text-ink-muted body-sm">No cards match “{text}”.</p>
           ) : (
@@ -151,7 +151,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
 
         <CardArtSearch added={new Set(assets.map((asset) => asset.id))} onPick={addCard} />
 
-        <p aria-live="polite" className="text-gold body-sm empty:hidden">
+        <p aria-live="polite" className="text-cyan body-sm empty:hidden">
           {error ?? ''}
         </p>
       </div>
@@ -190,7 +190,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
                   placeholder="Alt text (required)"
                   value={asset.alt}
                   onChange={(event) => onChange({ ...asset, alt: event.target.value })}
-                  className={twMerge(FIELD, 'mt-1.5 py-1.5', !asset.alt.trim() && 'border-gold')}
+                  className={twMerge(FIELD, 'mt-1.5 py-1.5', !asset.alt.trim() && 'border-cyan')}
                 />
                 <select
                   aria-label={`Credit for ${asset.id}`}

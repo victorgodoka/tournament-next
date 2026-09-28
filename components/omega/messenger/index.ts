@@ -1,3 +1,2 @@
-export { Avatar } from './avatar'
-export { ChatThread } from './chat-thread'
+export { MessengerDock, MessengerMailbox, MessengerPage, MessengerProvider } from './messenger-ui'
 export { useMessenger, type Messenger } from './use-messenger'

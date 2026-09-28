@@ -21,7 +21,7 @@ export const SocialStrip = ({ socials, className }: { socials: ProfileSocial[]; 
           target="_blank"
           rel="noopener noreferrer"
           title={handle ?? hostOf(href)}
-          className="inline-flex min-h-11 items-center border border-line-strong px-3 text-ink-dim signal-sm hover:border-gold hover:text-gold"
+          className="inline-flex min-h-11 items-center border border-line-strong px-3 text-ink-dim signal-sm hover:border-cyan hover:text-cyan"
         >
           {network === 'website' ? hostOf(href) : SOCIAL[network].label}
         </a>

@@ -13,7 +13,7 @@ const LIST: Record<GalleryLayout, string> = {
 
 const focal = (asset: WikiAsset) => (asset.focal ? `${asset.focal.x}% ${asset.focal.y}%` : undefined)
 
-const NAV = 'inline-flex min-h-10.5 min-w-10.5 items-center justify-center border border-line bg-surface-100 text-ink signal-sm hover:border-gold hover:text-gold'
+const NAV = 'inline-flex min-h-10.5 min-w-10.5 items-center justify-center border border-line bg-surface-100 text-ink signal-sm hover:border-cyan hover:text-cyan'
 
 /** Thumbnails that open a modal viewer. Native `<dialog>` owns focus trapping, Escape and the backdrop. */
 export const Lightbox = ({ assets, layout }: { assets: WikiAsset[]; layout: GalleryLayout }) => {
@@ -31,7 +31,7 @@ export const Lightbox = ({ assets, layout }: { assets: WikiAsset[]; layout: Gall
     <>
       <ul className={LIST[layout]}>
         {assets.map((asset, i) => (
-          <li key={asset.id} className="bg-surface-000">
+          <li key={asset.id} className="bg-space-000">
             <button
               type="button"
               onClick={() => open(i)}
@@ -76,7 +76,7 @@ export const Lightbox = ({ assets, layout }: { assets: WikiAsset[]; layout: Gall
               className="h-auto max-h-[78dvh] w-auto max-w-[min(1200px,92vw)] border border-line object-contain"
             />
             <figcaption className="flex w-full max-w-[min(1200px,92vw)] items-center gap-3">
-              <span className="text-gold mono-data">
+              <span className="text-cyan mono-data">
                 {index + 1}/{assets.length}
               </span>
               <span className="min-w-0 flex-1 truncate text-ink-dim body-sm">

@@ -2,7 +2,9 @@ import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
 import { TIER_FLOORS } from "@utils/ranked";
 import type { Ladder, LadderRecord, LadderSeason, LadderStats, Tier } from "@utils/types";
-import { MICRO_LABEL, RESULT } from "./accent";
+import { MICRO_LABEL } from "./accent";
+import { FormGuide, type Result } from "@ui/result";
+import { StatGrid } from "@ui/stat-grid";
 import { formatNumber } from "./labels";
 import { EmptyBox } from "./empty-box";
 import { TierBadge } from "@omega/ranked";
@@ -30,7 +32,7 @@ const TierLadder = ({ current, elo, season }: { current?: Tier; elo?: number; se
           className={twMerge(
             "group relative aspect-square border border-line bg-surface-100 outline-offset-2 hover:opacity-100 focus-visible:opacity-100",
             !isCurrent && "opacity-35",
-            isCurrent && "border-2 border-gold",
+            isCurrent && "border-2 border-cyan",
           )}
         >
           <TierBadge tier={tier} season={season} alt={tier} sizes="(min-width: 1120px) 130px, 12vw" className="size-full border-0 bg-transparent" />
@@ -40,7 +42,7 @@ const TierLadder = ({ current, elo, season }: { current?: Tier; elo?: number; se
               i === 0 ? "left-0" : i === TIER_FLOORS.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2",
             )}
           >
-            <span className="text-gold">{tier}</span> · {tierNote(floor, elo)}
+            <span className="text-cyan">{tier}</span> · {tierNote(floor, elo)}
           </span>
         </li>
       )
@@ -48,33 +50,27 @@ const TierLadder = ({ current, elo, season }: { current?: Tier; elo?: number; se
   </ul>
 )
 
-const StatGrid = ({ stats }: { stats: LadderRecord & { elo: number } }) => {
+const LadderStatGrid = ({ stats }: { stats: LadderRecord & { elo: number } }) => {
   const played = stats.wins + stats.loses + stats.draws
-  const items = [
-    { label: 'Elo', value: formatNumber(stats.elo), tone: 'text-gold' },
-    { label: 'Win rate', value: played ? `${Math.round((stats.wins / played) * 100)}%` : '—', tone: 'text-cyan' },
-    { label: 'Matches', value: formatNumber(played) },
-    { label: 'Wins', value: formatNumber(stats.wins) },
-    { label: 'Losses', value: formatNumber(stats.loses) },
-    { label: 'Draws', value: formatNumber(stats.draws) },
-  ]
-
   return (
-    <dl className="grid grid-cols-3 gap-px bg-line">
-      {items.map(({ label, value, tone }) => (
-        <div key={label} className="min-w-0 bg-surface-000 px-4 py-3.5">
-          <dt className="text-ink-muted signal-sm">{label}</dt>
-          <dd className={twMerge("mt-1.75 text-ink display-5", tone)}>{value}</dd>
-        </div>
-      ))}
-    </dl>
+    <StatGrid
+      columns={3}
+      items={[
+        { label: 'Elo', value: formatNumber(stats.elo), tone: 'cyan' },
+        { label: 'Win rate', value: played ? `${Math.round((stats.wins / played) * 100)}%` : '—' },
+        { label: 'Matches', value: formatNumber(played) },
+        { label: 'Wins', value: formatNumber(stats.wins) },
+        { label: 'Losses', value: formatNumber(stats.loses) },
+        { label: 'Draws', value: formatNumber(stats.draws) },
+      ]}
+    />
   )
 }
 
-/** One square per recent duel, oldest first. */
+/** The latest duels as a FormGuide, oldest first. */
 const FormStreak = ({ recent }: { recent: string }) => {
-  const results = [...recent.slice(-FORM_LENGTH)]
-  const count = (r: string) => results.filter((x) => x === r).length
+  const results = [...recent.slice(-FORM_LENGTH)].filter((r): r is Result => r === 'W' || r === 'L' || r === 'D')
+  const count = (r: Result) => results.filter((x) => x === r).length
 
   return (
     <div className="mt-5">
@@ -82,20 +78,9 @@ const FormStreak = ({ recent }: { recent: string }) => {
         <p className={MICRO_LABEL}>Last {results.length} duels</p>
         <p className="text-ink-dim mono-data">{count('W')}W · {count('L')}L · {count('D')}D</p>
       </div>
-      <ul className="mt-2 flex gap-[clamp(6px,1vw,10px)]">
-        {results.map((r, i) => {
-          const result = RESULT[r === 'W' ? 'win' : r === 'L' ? 'loss' : 'draw']
-          return (
-            <li
-              key={i}
-              title={result.label}
-              className={twMerge("inline-flex size-[clamp(32px,3.6vw,44px)] items-center justify-center text-surface-000 signal-count", result.fill)}
-            >
-              {r}
-            </li>
-          )
-        })}
-      </ul>
+      <div className="mt-2">
+        <FormGuide results={results} />
+      </div>
     </div>
   )
 }
@@ -159,14 +144,14 @@ export const LadderCard = ({ ladder, season, recent }: LadderCardProps) => {
             <div className="min-w-0">
               <p className={MICRO_LABEL}>Tier</p>
               <p className="mt-0.5 text-ink display-5">{ladder.tier}</p>
-              <p className="mt-0.5 text-gold mono-data">{formatNumber(ladder.elo)} Elo</p>
+              <p className="mt-0.5 text-cyan mono-data">{formatNumber(ladder.elo)} Elo</p>
             </div>
           </div>
           {form ? <FormStreak recent={form} /> : null}
         </div>
 
         <div className="min-w-0 flex-[1_1_300px]">
-          <StatGrid stats={openSeason(ladder) ?? { elo: ladder.elo, ...ladder.allTime }} />
+          <LadderStatGrid stats={openSeason(ladder) ?? { elo: ladder.elo, ...ladder.allTime }} />
           <TopDeck stats={ladder} />
         </div>
       </div>

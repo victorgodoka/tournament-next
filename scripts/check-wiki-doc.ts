@@ -3,6 +3,8 @@
  * The backend's validator should agree with every assertion here (docs/WIKI_BLOCKS.md §5).
  */
 import assert from 'node:assert'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { renderArticle } from '../utils/remark'
 import { EXAMPLE_DOC } from '../app/wiki/example/doc'
 import { docFromMarkdown, emptyDoc, parseYouTube, renderDocHtml, toAnchor, validateDoc } from '../utils/wiki-doc'
 
@@ -25,6 +27,34 @@ const foreign = validateDoc({
 })
 assert(foreign.some((problem) => problem.includes("can't serve")), 'foreign hosts are refused')
 assert(foreign.some((problem) => problem.includes('alt text')), 'alt text is required')
+
+// Every optional field the server learned with the SEO editor (REVISAO_WIKI §2.1): valid together.
+const full = {
+  ...EXAMPLE_DOC,
+  assets: { ...EXAMPLE_DOC.assets, share: { id: 'share', src: '/share.jpg', width: 1200, height: 630, alt: 'Share image' } },
+  seo: {
+    title: 'Sky Striker deck guide',
+    description: 'Core combo, ratios and staples.',
+    keyword: 'sky striker',
+    keywords: ['sky striker deck', 'raye deck'],
+    image: 'share',
+    noindex: false,
+    canonical: '/wiki/sky-striker',
+    schema: 'HowTo' as const,
+  },
+  hub: 'archetypes',
+  related: ['link-monsters', 'banlist-tcg'],
+  blocks: [
+    ...EXAMPLE_DOC.blocks,
+    { id: 'faq1', type: 'faq' as const, items: [{ q: 'How many Engage?', md: 'Three, **always**.' }] },
+    { id: 'vid1', type: 'video' as const, videoId: 'fzwWvs-6FEs', title: 'Deck profile', uploadDate: '2024-05-01' },
+  ],
+}
+assert.deepStrictEqual(validateDoc(full), [], 'a doc with every new field is valid')
+assert(
+  validateDoc({ ...full, seo: { ...full.seo, canonical: '//evil.example' } }).some((p) => p.includes('canonical')),
+  'protocol-relative canonicals are refused',
+)
 
 assert.strictEqual(toAnchor('Sky Striker: História!'), 'sky-striker-historia')
 
@@ -50,7 +80,12 @@ assert.deepStrictEqual(
 )
 assert.deepStrictEqual(validateDoc(converted), [], 'a converted article is valid as-is')
 
-renderDocHtml(EXAMPLE_DOC).then((html) => {
-  assert(html.b1?.includes('<strong'), 'text blocks render their Markdown')
+renderDocHtml(EXAMPLE_DOC).then(async (html) => {
+  assert(renderToStaticMarkup(html.b1).includes('<strong'), 'text blocks render their Markdown')
+  // Markdown becomes React nodes: raw HTML in the source never reaches the DOM as markup.
+  const nodes = await renderArticle('Hi <script>alert(1)</script> [x](javascript:alert(1))\n\n- [x] done')
+  const markup = renderToStaticMarkup(nodes)
+  assert(!markup.includes('<script') && !markup.includes('javascript:'), 'raw HTML and script links are dropped')
+  assert(markup.includes('type="checkbox"'), 'task lists survive the conversion')
   console.log('wiki-doc: ok')
 })

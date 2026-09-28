@@ -76,6 +76,8 @@ export const messenger = {
   messages: (id: string, cursor?: string | null) =>
     call<ChatPage>('GET', `/chats/${user(id)}${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
   send: (id: string, body: string) => call<ChatMessage>('POST', `/chats/${user(id)}`, { body }),
+  /** Hides the conversation for the viewer only, until a new message arrives. */
+  clearChat: (id: string) => call('DELETE', `/chats/${user(id)}`),
 }
 
 export const STATUS_MAX = 70

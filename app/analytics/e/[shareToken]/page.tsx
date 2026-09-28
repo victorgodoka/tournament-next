@@ -41,9 +41,9 @@ const SharedRoute = async ({ params }: SharedRouteProps) => {
       eyebrow={VISIBILITY_EYEBROW[exploration.visibility]}
       meta="Live · updates within 5 minutes"
       title={exploration.name}
-      back={{ href: '/analytics', label: 'Public analytics' }}
+      back={{ href: '/statistics', label: 'Statistics' }}
       aside={
-        <Link href={`/profile/${owner.id}/analytics`} className="flex min-h-11 items-center border border-line-strong px-4 text-ink signal-chip hover:bg-ink hover:text-ink-on">
+        <Link href={`/profile/${owner.id}/analytics`} className="flex min-h-11 items-center border border-line-strong px-4 text-ink signal-chip hover:bg-ink hover:text-space-000">
           {duelistName(owner)}&apos;s analytics
         </Link>
       }

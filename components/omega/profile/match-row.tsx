@@ -7,7 +7,7 @@ import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
 import { MatchAnalytics } from "@omega/analytics/match-analytics";
 import type { Match, MatchSide } from "@utils/types";
-import { RESULT } from "./accent";
+import { ResultPill } from "@ui/result";
 import { LocalTime } from "./local-time";
 
 /** Desktop column tracks, shared by the head and every row so they line up. The last one is the toggle. */
@@ -19,7 +19,7 @@ const CELL = "col-start-2 lg:col-auto lg:row-auto"
 
 /** Column labels over the ledger. Hidden on phones, where each row stacks. */
 export const MatchLedgerHead = () => (
-  <div aria-hidden className={twMerge("hidden border-b border-line bg-ground-soft px-4 py-2.5 text-ink-muted signal-sm lg:grid", COLS)}>
+  <div aria-hidden className={twMerge("hidden border-b border-line-mid bg-surface-200 px-4 py-2.5 text-ink-muted signal-sm lg:grid", COLS)}>
     <span>Res</span>
     <span>Duelist</span>
     <span>Deck</span>
@@ -38,7 +38,7 @@ const DeckCell = ({ side, muted, className }: { side: MatchSide; muted?: boolean
       <ul aria-hidden className="flex shrink-0">
         {side.cards.map((art) => (
           <li key={art.id} className="-ml-2.5 first:ml-0">
-            <CardArt art={art} alt="" sizes="36px" className="size-9 border-2 border-surface-000" />
+            <CardArt art={art} alt="" sizes="36px" className="size-9 border border-line-mid" />
           </li>
         ))}
       </ul>
@@ -47,27 +47,15 @@ const DeckCell = ({ side, muted, className }: { side: MatchSide; muted?: boolean
   </div>
 )
 
-/**
- * One square per game: green for the games this duelist took, red for the opponent's.
- * The order they were played in isn't recorded, so the squares are a count, not a sequence.
- */
-const ScoreCell = ({ score }: { score: Match['score'] }) => {
-  if (!score.self && !score.opponent) return <span className="text-ink-muted mono-data">—</span>
-
-  return (
-    <span className="flex items-center gap-1">
-      <span className="sr-only">
-        {score.self}–{score.opponent}
-      </span>
-      {Array.from({ length: score.self }, (_, index) => (
-        <span key={`w${index}`} aria-hidden className="size-2.5 bg-win" />
-      ))}
-      {Array.from({ length: score.opponent }, (_, index) => (
-        <span key={`l${index}`} aria-hidden className="size-2.5 bg-loss" />
-      ))}
+/** Games won each side, in Anton with a spaced en dash: "2 – 1". */
+const ScoreCell = ({ score }: { score: Match['score'] }) =>
+  !score.self && !score.opponent ? (
+    <span className="text-ink-muted mono-data">—</span>
+  ) : (
+    <span className="whitespace-nowrap text-ink stat">
+      {score.self} – {score.opponent}
     </span>
   )
-}
 
 /** "TCG ranked · Ranked ladder" says ranked twice: keep the event only when it adds something. */
 const queueLabel = ({ format, event }: Match) => {
@@ -81,7 +69,7 @@ const queueLabel = ({ format, event }: Match) => {
  * panel mounts on first open and stays mounted, so closing and reopening doesn't refetch.
  */
 export const MatchRow = ({ match }: { match: Match }) => {
-  const result = RESULT[match.win === null ? 'draw' : match.win ? 'win' : 'loss']
+  const result = match.win === null ? 'D' : match.win ? 'W' : 'L'
   const panelId = useId()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -99,14 +87,13 @@ export const MatchRow = ({ match }: { match: Match }) => {
           if (!(event.target as HTMLElement).closest('a, button')) toggle()
         }}
         className={twMerge(
-          "grid cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3.5 transition-colors hover:bg-ground-subtle",
-          open && "bg-ground-soft hover:bg-ground-soft",
+          "grid cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3.5 transition-colors hover:bg-surface-300",
+          open && "bg-surface-200 hover:bg-surface-200",
           COLS,
         )}
       >
-        <span className={twMerge("row-span-7 inline-flex size-10 items-center justify-center self-start text-surface-000 signal-tab lg:row-span-1 lg:self-center", result.fill)}>
-          <span aria-hidden>{result.label[0]}</span>
-          <span className="sr-only">{result.label}</span>
+        <span className="row-span-7 self-start lg:row-span-1 lg:self-center">
+          <ResultPill result={result} />
         </span>
   
         <div className={twMerge("min-w-0", CELL)}>
@@ -122,7 +109,7 @@ export const MatchRow = ({ match }: { match: Match }) => {
   
         <div className={twMerge("min-w-0", CELL)}>
           <span className="sr-only">versus </span>
-          <Link href={`/profile/${match.opponent.id}`} className="block truncate text-ink body-strong hover:text-gold">
+          <Link href={`/profile/${match.opponent.id}`} className="block truncate text-ink body-strong hover:text-cyan">
             {match.opponent.name || 'Unknown duelist'}
           </Link>
         </div>
@@ -139,9 +126,9 @@ export const MatchRow = ({ match }: { match: Match }) => {
           aria-controls={panelId}
           onClick={toggle}
           className={twMerge(
-            "inline-flex min-h-11 cursor-pointer items-center gap-2 justify-self-start text-ink-dim signal-sm hover:text-gold lg:size-8 lg:min-h-0 lg:justify-center lg:justify-self-end lg:border lg:border-line lg:hover:border-gold",
+            "inline-flex min-h-11 cursor-pointer items-center gap-2 justify-self-start text-ink-dim signal-sm hover:text-cyan lg:size-8 lg:min-h-0 lg:justify-center lg:justify-self-end lg:border lg:border-line lg:hover:border-cyan",
             CELL,
-            open && "text-gold lg:border-gold",
+            open && "text-cyan lg:border-cyan",
           )}
         >
           <span className="lg:sr-only">{open ? 'Hide' : 'Timeline & stats'}</span>

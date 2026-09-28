@@ -29,7 +29,7 @@ const GlobalRoute = async ({ params }: GlobalRouteProps) => {
       eyebrow="Server-wide analytics"
       meta="Every ranked duel · updated daily"
       title={found.exploration.name}
-      back={{ href: '/analytics', label: 'Public analytics' }}
+      back={{ href: '/analytics', label: 'Server-wide analytics' }}
     >
       <GlobalExplorationView exploration={found.exploration} seasons={found.seasons} variables={variables} />
     </AnalyticsShell>

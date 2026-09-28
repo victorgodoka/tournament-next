@@ -102,9 +102,11 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     ],
   },
   { item: "Leaderboard", to: "/leaderboard" },
-  { item: "Analytics", to: "/analytics" },
+  { item: "Analytics", to: "/analytics", loggedIn: true },
   { item: "Wiki", to: "/wiki" },
-  { item: "Statistics", to: "/statistics" },
+  { item: "Statistics", to: "/statistics", loggedIn: true },
+  { item: "Shop", to: "/shop", loggedIn: true },
+  { item: "Battlepass", to: "/battlepass", loggedIn: true },
   {
     item: "Tools",
     children: [
@@ -159,6 +161,8 @@ export const FOOTER_LINKS = [
 ]
 
 export const FOOTER_DISCLAIMER = "Duelists Unite. A fan project, unaffiliated with Konami."
+export const FOOTER_MEDIA_NOTE =
+  "Album covers, artwork and songs belong to their artists and labels. We show them under fair use and claim no rights to them. Shop items cost points earned by playing, never real money."
 
 /** Launcher download page, the target of every download call to action. */
 export const DOWNLOAD_URL = "https://omega.duelistsunite.org/"

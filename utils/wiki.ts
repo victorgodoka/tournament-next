@@ -145,11 +145,11 @@ export const tcgDebut = (card: WikiCard) =>
 
 /** Attribute colours, matching the card frames rather than the site palette. */
 export const ATTRIBUTE_COLOR: Record<string, string> = {
-  dark: 'text-indigo-lift',
-  light: 'text-gold',
-  fire: 'text-gold',
+  dark: 'text-azure-lift',
+  light: 'text-cyan',
+  fire: 'text-cyan',
   water: 'text-cyan',
   earth: 'text-ink-dim',
   wind: 'text-cyan',
-  divine: 'text-gold',
+  divine: 'text-cyan',
 }

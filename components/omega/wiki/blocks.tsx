@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CARD_ART_URL } from '@utils/const'
-import { imageSource, type CalloutTone, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
+import { faqKey, imageSource, type CalloutTone, type DocHtml, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { Lightbox } from './lightbox'
 import { Video } from './video'
 
@@ -15,25 +15,23 @@ const ALIGN: Record<FigureAlign, string> = {
 }
 
 const CALLOUT: Record<CalloutTone, { box: string; dot: string; title: string }> = {
-  gold: { box: 'border-gold bg-ground-gold', dot: 'bg-gold', title: 'text-gold' },
+  gold: { box: 'border-cyan bg-ground-cyan', dot: 'bg-cyan', title: 'text-cyan' },
   cyan: { box: 'border-cyan bg-ground-cyan', dot: 'bg-cyan', title: 'text-cyan' },
-  negative: { box: 'border-negative bg-ground-negative', dot: 'bg-negative', title: 'text-negative' },
+  negative: { box: 'border-loss bg-ground-loss', dot: 'bg-loss', title: 'text-loss' },
 }
 
 const Caption = ({ children, credit }: { children?: React.ReactNode; credit?: string }) =>
   children || credit ? (
-    <figcaption className="mt-2 border-l-2 border-gold pl-2.5 text-ink-muted caption">
+    <figcaption className="mt-2 border-l-2 border-cyan pl-2.5 text-ink-muted caption">
       {children}
       {credit ? <span className="block text-ink-muted micro">{credit}</span> : null}
     </figcaption>
   ) : null
 
-/** HTML from `renderDocHtml`: parsed, classed and sanitized before it gets here. */
-const Markdown = ({ html, className }: { html?: string; className?: string }) => (
-  <div className={className} dangerouslySetInnerHTML={{ __html: html ?? '' }} />
-)
+/** Nodes from `renderDocHtml`: parsed, classed and sanitized before they get here. */
+const Markdown = ({ html, className }: { html?: React.ReactNode; className?: string }) => <div className={className}>{html}</div>
 
-type BlockProps = { block: WikiBlock; assets: Record<string, WikiAsset>; html: Record<string, string> }
+type BlockProps = { block: WikiBlock; assets: Record<string, WikiAsset>; html: DocHtml }
 
 const Block = ({ block, assets, html }: BlockProps) => {
   switch (block.type) {
@@ -50,7 +48,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
             block.level === 2 ? 'clear-both mt-10 mb-3.5 border-t border-line pt-6 display-4' : 'mt-7 mb-2.5 display-5',
           )}
         >
-          <a href={`#${block.anchor}`} className="text-ink hover:text-gold">
+          <a href={`#${block.anchor}`} className="text-ink hover:text-cyan">
             {block.text}
           </a>
         </Tag>
@@ -88,7 +86,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
         <figure className="clear-both my-7">
           <ul className="grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4">
             {block.cards.map((card) => (
-              <li key={card.id} className="bg-surface-000">
+              <li key={card.id} className="bg-space-000">
                 <Link href={`/wiki/card/${card.id}`} className="group block">
                   <span className="relative block aspect-square overflow-hidden">
                     <Image
@@ -100,7 +98,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
                     />
                   </span>
                   <span className="block px-3 py-2.5">
-                    <span className="block truncate text-ink body-strong group-hover:text-gold">{card.name}</span>
+                    <span className="block truncate text-ink body-strong group-hover:text-cyan">{card.name}</span>
                     {card.note ? <span className="block truncate text-ink-muted signal-sm">{card.note}</span> : null}
                   </span>
                 </Link>
@@ -126,7 +124,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
 
     case 'quote':
       return (
-        <figure className="clear-both my-8 border-l-2 border-gold pl-5">
+        <figure className="clear-both my-8 border-l-2 border-cyan pl-5">
           <blockquote className="text-ink display-5 normal-case">“{block.text}”</blockquote>
           {block.cite ? <figcaption className="mt-2.5 text-ink-muted signal-sm">— {block.cite}</figcaption> : null}
         </figure>
@@ -140,6 +138,23 @@ const Block = ({ block, assets, html }: BlockProps) => {
         </figure>
       )
 
+    case 'faq':
+      return (
+        <section aria-label="Frequently asked questions" className="clear-both my-8 border-t border-line">
+          {block.items.map((item, i) => (
+            <details key={i} className="group border-b border-line">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-4 text-ink body-strong hover:text-cyan [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <span aria-hidden className="text-cyan transition-transform group-open:rotate-45 motion-reduce:transition-none">
+                  +
+                </span>
+              </summary>
+              <Markdown html={html[faqKey(block.id, i)]} className="pb-4 text-ink-dim" />
+            </details>
+          ))}
+        </section>
+      )
+
     default:
       // A new block type fails to compile here until it is handled.
       return block satisfies never
@@ -150,7 +165,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
  * The article flow. `flow-root` keeps floated figures inside it. `html` comes from `renderDocHtml(doc)`.
  * Synchronous and client-safe, so the editor preview renders through this exact component.
  */
-export const WikiBlocks = ({ doc, html, className }: { doc: WikiDoc; html: Record<string, string>; className?: string }) => (
+export const WikiBlocks = ({ doc, html, className }: { doc: WikiDoc; html: DocHtml; className?: string }) => (
   <div className={twMerge('flow-root', className)}>
     {doc.blocks.map((block) => (
       <Block key={block.id} block={block} assets={doc.assets} html={html} />

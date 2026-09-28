@@ -1,16 +1,17 @@
 'use client'
 
 import Image from 'next/image'
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { API_URL } from '@utils/auth'
 import { CARD_ART_URL } from '@utils/const'
-import { DOC_LIMITS, imageSource, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
+import { DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
+import { FieldHead, Frame, Help, INPUT, type Tone } from './ui'
 
-export const MINI = 'inline-flex min-h-8 min-w-8 items-center justify-center border border-line bg-surface-100 px-2 text-ink-dim signal-sm hover:border-gold hover:text-gold disabled:pointer-events-none disabled:opacity-40'
+export const MINI = 'inline-flex min-h-8 min-w-8 items-center justify-center border border-line bg-surface-100 px-2 text-ink-dim signal-sm hover:border-cyan hover:text-cyan disabled:pointer-events-none disabled:opacity-40'
 
-/** Labelled input or textarea. `rows` makes it a textarea. */
+/** Labelled input or textarea in a chamfered frame. `rows` makes it a textarea. */
 export const TextField = ({
   label,
   value,
@@ -21,8 +22,13 @@ export const TextField = ({
   mono,
   maxLength,
   placeholder,
+  meta,
+  metaTone,
+  tone,
+  type,
+  className,
 }: {
-  label: string
+  label: React.ReactNode
   value: string
   onChange: (value: string) => void
   onBlur?: () => void
@@ -31,6 +37,12 @@ export const TextField = ({
   mono?: boolean
   maxLength?: number
   placeholder?: string
+  meta?: React.ReactNode
+  metaTone?: 'muted' | 'warn' | 'pass' | 'fix'
+  tone?: Tone
+  type?: 'text' | 'date' | 'search'
+  /** Extra classes for the input itself (type size). */
+  className?: string
 }) => {
   const id = useId()
   const shared = {
@@ -39,19 +51,19 @@ export const TextField = ({
     maxLength,
     placeholder,
     onBlur,
-    className: twMerge(FIELD, 'mt-2', mono && 'font-mono', rows && 'resize-y'),
+    className: twMerge(INPUT, 'body-sm', mono && 'data', rows && 'resize-y', className),
   }
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className={LABEL}>
-        {label}
-      </label>
-      {rows ? (
-        <textarea {...shared} rows={rows} onChange={(event) => onChange(event.target.value)} />
-      ) : (
-        <input {...shared} onChange={(event) => onChange(event.target.value)} />
-      )}
-      {help ? <p className={HELP}>{help}</p> : null}
+      <FieldHead htmlFor={id} label={label} meta={meta} metaTone={metaTone} />
+      <Frame tone={tone}>
+        {rows ? (
+          <textarea {...shared} rows={rows} onChange={(event) => onChange(event.target.value)} />
+        ) : (
+          <input {...shared} type={type} onChange={(event) => onChange(event.target.value)} />
+        )}
+      </Frame>
+      {help ? <Help>{help}</Help> : null}
     </div>
   )
 }
@@ -76,7 +88,7 @@ export const Segmented = <T extends string | number>({
         {options.map((option) => (
           <label
             key={String(option.value)}
-            className="cursor-pointer bg-surface-100 px-3 py-2 text-ink-muted signal-sm hover:text-ink has-checked:bg-gold has-checked:text-gold-on has-focus-visible:outline-2 has-focus-visible:outline-cyan"
+            className="cursor-pointer bg-surface-200 px-3 py-2.25 text-ink-dim signal-sm hover:text-ink has-checked:bg-ground-cyan has-checked:text-ink has-checked:outline has-checked:-outline-offset-1 has-checked:outline-cyan has-focus-visible:outline-2 has-focus-visible:outline-cyan"
           >
             <input
               type="radio"
@@ -141,7 +153,7 @@ export const AssetPicker = ({
                 type="button"
                 aria-pressed={!selected.length}
                 onClick={() => onChange([])}
-                className="flex aspect-square w-full items-center justify-center border border-line text-ink-muted signal-sm hover:border-gold aria-pressed:border-gold aria-pressed:text-gold"
+                className="flex aspect-square w-full items-center justify-center border border-line text-ink-muted signal-sm hover:border-cyan aria-pressed:border-cyan aria-pressed:text-cyan"
               >
                 None
               </button>
@@ -156,11 +168,11 @@ export const AssetPicker = ({
                   aria-pressed={order >= 0}
                   aria-label={asset.alt || asset.id}
                   onClick={() => toggle(asset.id)}
-                  className="relative block w-full border border-line opacity-60 hover:opacity-100 aria-pressed:border-gold aria-pressed:opacity-100 aria-pressed:outline-2 aria-pressed:outline-gold"
+                  className="relative block w-full border border-line opacity-60 hover:opacity-100 aria-pressed:border-cyan aria-pressed:opacity-100 aria-pressed:outline-2 aria-pressed:outline-cyan"
                 >
                   <Thumb asset={asset} />
                   {multiple && order >= 0 ? (
-                    <span className="absolute top-1 left-1 bg-gold px-1.5 text-gold-on mono-note">{order + 1}</span>
+                    <span className="absolute top-1 left-1 bg-cyan px-1.5 text-cyan-on mono-note">{order + 1}</span>
                   ) : null}
                 </button>
               </li>
@@ -241,25 +253,106 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
   )
 }
 
-const MD_HELP = 'Markdown: **bold**, *italic*, [link](https://…), lists, | tables |. No raw HTML.'
+const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path.'
+
+/** Wrap the selection (or a placeholder) in Markdown, then put the caret back inside it. */
+type Edit = (text: string, start: number, end: number) => { text: string; start: number; end: number }
+
+const wrap =
+  (before: string, after: string, fallback: string): Edit =>
+  (text, start, end) => {
+    const inner = text.slice(start, end) || fallback
+    return { text: text.slice(0, start) + before + inner + after + text.slice(end), start: start + before.length, end: start + before.length + inner.length }
+  }
+
+const insert =
+  (snippet: string): Edit =>
+  (text, start, end) => {
+    const lead = start > 0 && text[start - 1] !== '\n' ? '\n\n' : ''
+    return { text: text.slice(0, start) + lead + snippet + text.slice(end), start: start + lead.length, end: start + lead.length + snippet.length }
+  }
+
+const listLines: Edit = (text, start, end) => {
+  const from = text.lastIndexOf('\n', start - 1) + 1
+  const lines = text.slice(from, end).split('\n').map((line) => (line.startsWith('- ') ? line : `- ${line}`)).join('\n')
+  return { text: text.slice(0, from) + lines + text.slice(end), start: from, end: from + lines.length }
+}
+
+const TOOLS: { label: string; aria?: string; className?: string; edit: Edit }[] = [
+  { label: 'B', aria: 'Bold', className: 'w-8 px-0 font-bold', edit: wrap('**', '**', 'bold') },
+  { label: 'I', aria: 'Italic', className: 'w-8 px-0 italic', edit: wrap('*', '*', 'italic') },
+  { label: 'Link', edit: wrap('[', '](https://)', 'text') },
+  { label: 'Wiki link', edit: wrap('[', '](/wiki/)', 'article') },
+  { label: 'Card', edit: wrap('[', '](/wiki/card/)', 'card name') },
+  { label: 'List', edit: listLines },
+  { label: 'Table', edit: insert('| Column | Column |\n| --- | --- |\n| Cell | Cell |\n') },
+]
+
+/** Markdown textarea with the formatting bar. Every button edits the text through `onChange`. */
+export const MarkdownField = ({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (md: string) => void; rows?: number }) => {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const apply = (edit: Edit) => {
+    const area = ref.current
+    if (!area) return
+    const next = edit(value, area.selectionStart, area.selectionEnd)
+    onChange(next.text)
+    requestAnimationFrame(() => {
+      area.focus()
+      area.setSelectionRange(next.start, next.end)
+    })
+  }
+
+  return (
+    <div className="min-w-0">
+      <div role="toolbar" aria-label={`${label} formatting`} className="mb-2 flex flex-wrap gap-0.5">
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.label}
+            type="button"
+            aria-label={tool.aria}
+            onClick={() => apply(tool.edit)}
+            className={twMerge(
+              'h-7.5 cursor-pointer border border-line bg-surface-200 px-2.5 text-ink-dim signal-sm hover:border-cyan hover:text-cyan',
+              tool.className,
+            )}
+          >
+            {tool.label}
+          </button>
+        ))}
+      </div>
+      <Frame>
+        <textarea
+          ref={ref}
+          aria-label={label}
+          rows={rows}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={twMerge(INPUT, 'resize-y text-ink-dim data')}
+        />
+      </Frame>
+      <Help>{MD_HELP}</Help>
+    </div>
+  )
+}
 
 type BlockFieldsProps = {
   block: WikiBlock
   assets: WikiAsset[]
   onChange: (block: WikiBlock) => void
+  /** The heading is live under this anchor: links point at it, so its text no longer moves it. */
+  keepAnchor?: boolean
 }
 
 /** The inputs for one block. Every change hands back a whole new block. */
-export const BlockFields = ({ block, assets, onChange }: BlockFieldsProps) => {
+export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFieldsProps) => {
   switch (block.type) {
     case 'text':
-      return (
-        <TextField label="Text" rows={8} mono value={block.md} onChange={(md) => onChange({ ...block, md })} help={MD_HELP} />
-      )
+      return <MarkdownField label="Text" rows={8} value={block.md} onChange={(md) => onChange({ ...block, md })} />
 
     case 'heading': {
-      // The anchor follows the text until someone edits it by hand.
-      const auto = block.anchor === toAnchor(block.text)
+      // The anchor follows the text until someone edits it by hand, or once it is live.
+      const auto = !keepAnchor && block.anchor === toAnchor(block.text)
       return (
         <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,220px)]">
           <Segmented
@@ -281,7 +374,11 @@ export const BlockFields = ({ block, assets, onChange }: BlockFieldsProps) => {
             mono
             value={block.anchor}
             onChange={(anchor) => onChange({ ...block, anchor })}
-            help={`#${block.anchor || '…'}`}
+            help={
+              keepAnchor && block.anchor !== toAnchor(block.text)
+                ? `Anchor kept: links to #${block.anchor} still land here.`
+                : `#${block.anchor || '…'}`
+            }
           />
         </div>
       )
@@ -354,7 +451,7 @@ export const BlockFields = ({ block, assets, onChange }: BlockFieldsProps) => {
             />
             <TextField label="Title" value={block.title ?? ''} maxLength={DOC_LIMITS.short} onChange={(title) => onChange({ ...block, title: title || undefined })} />
           </div>
-          <TextField label="Text" rows={4} mono value={block.md} onChange={(md) => onChange({ ...block, md })} help={MD_HELP} />
+          <MarkdownField label="Text" rows={4} value={block.md} onChange={(md) => onChange({ ...block, md })} />
         </div>
       )
 
@@ -368,6 +465,9 @@ export const BlockFields = ({ block, assets, onChange }: BlockFieldsProps) => {
 
     case 'video':
       return <VideoFields block={block} onChange={onChange} />
+
+    case 'faq':
+      return <FaqFields block={block} onChange={onChange} />
 
     default:
       // A new block type fails to compile here until it is handled.
@@ -418,7 +518,71 @@ const VideoFields = ({ block, onChange }: { block: VideoBlock; onChange: (block:
         }
       />
       <TextField label="Title" value={block.title} maxLength={DOC_LIMITS.short} onChange={(title) => onChange({ ...block, title })} help="Read out by screen readers and shown on the thumbnail." />
-      <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
+      <div className="grid gap-4 sm:grid-cols-[200px_minmax(0,1fr)]">
+        <TextField
+          label="Upload date · optional"
+          type="date"
+          value={block.uploadDate ?? ''}
+          tone={block.uploadDate && !isUploadDate(block.uploadDate) ? 'danger' : undefined}
+          onChange={(uploadDate) => onChange({ ...block, uploadDate: uploadDate || undefined })}
+          help="The date under the title on YouTube. Without it, no video rich result."
+        />
+        <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
+      </div>
+    </div>
+  )
+}
+
+type FaqBlock = Extract<WikiBlock, { type: 'faq' }>
+
+/** Questions in plain text, answers in Markdown. The server turns every FAQ block into one FAQPage. */
+const FaqFields = ({ block, onChange }: { block: FaqBlock; onChange: (block: WikiBlock) => void }) => {
+  const set = (i: number, patch: Partial<FaqBlock['items'][number]>) =>
+    onChange({ ...block, items: block.items.map((item, j) => (j === i ? { ...item, ...patch } : item)) })
+
+  return (
+    <div className="flex flex-col gap-3">
+      {block.items.map((item, i) => (
+        <div key={i} className="grid grid-cols-[28px_minmax(0,1fr)_auto] gap-3 border border-line bg-surface-200 p-3">
+          <span className="text-gold stat">Q{i + 1}</span>
+          <div className="flex min-w-0 flex-col gap-2">
+            <input
+              aria-label={`Question ${i + 1}`}
+              placeholder="Question"
+              value={item.q}
+              maxLength={DOC_LIMITS.short}
+              onChange={(event) => set(i, { q: event.target.value.replace(/\n/g, ' ') })}
+              className="w-full border border-line-mid bg-surface-100 px-2.5 py-2 text-ink body-strong placeholder:text-ink-muted focus-visible:border-cyan focus-visible:outline-none"
+            />
+            <textarea
+              aria-label={`Answer ${i + 1}`}
+              placeholder="Answer, in Markdown"
+              rows={2}
+              value={item.md}
+              maxLength={DOC_LIMITS.faqMd}
+              onChange={(event) => set(i, { md: event.target.value })}
+              className="w-full resize-y border border-line-mid bg-surface-100 px-2.5 py-2 text-ink-dim body-sm placeholder:text-ink-muted focus-visible:border-cyan focus-visible:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            aria-label={`Remove question ${i + 1}`}
+            disabled={block.items.length === 1}
+            onClick={() => onChange({ ...block, items: block.items.filter((_, j) => j !== i) })}
+            className={MINI}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        disabled={block.items.length >= DOC_LIMITS.faqItems}
+        onClick={() => onChange({ ...block, items: [...block.items, { q: '', md: '' }] })}
+        className="cut self-start px-3 py-2 text-ink signal-strong [--cut:var(--cut-xs)] hover:[--fill:var(--color-surface-300)] disabled:opacity-40"
+      >
+        + Question
+      </button>
     </div>
   )
 }
@@ -439,7 +603,9 @@ export const blockSummary = (block: WikiBlock) => {
     case 'cards':
       return block.cards.map((card) => card.name).filter(Boolean).join(', ')
     case 'video':
-      return block.title || block.videoId
+      return `${block.title || block.videoId}${block.start ? ` · starts ${Math.floor(block.start / 60)}:${String(block.start % 60).padStart(2, '0')}` : ''}`
+    case 'faq':
+      return `${block.items.length} question${block.items.length === 1 ? '' : 's'} · ${block.items[0]?.q ?? ''}`
     default:
       // A new block type fails to compile here until it is handled.
       return block satisfies never

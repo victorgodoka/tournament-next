@@ -35,8 +35,8 @@ export const Prose = ({ children, className }: { children: React.ReactNode; clas
 
 /** Gold caution callout, for the rules that are easy to read the wrong way round. */
 export const Callout = ({ children }: { children: React.ReactNode }) => (
-  <div className="mt-4.5 flex gap-3 border border-gold bg-ground-gold px-4.5 py-4">
-    <span aria-hidden className="mt-1.25 size-2.25 shrink-0 bg-gold" />
+  <div className="mt-4.5 flex gap-3 border border-cyan bg-ground-cyan px-4.5 py-4">
+    <span aria-hidden className="mt-1.25 size-2.25 shrink-0 bg-cyan" />
     <p className="text-ink-dim body-sm">{children}</p>
   </div>
 )
@@ -47,7 +47,7 @@ export const TileGrid = ({ children, className }: { children: React.ReactNode; c
 )
 
 export const Tile = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="bg-surface-000 px-4.5 py-3.5">
+  <div className="bg-space-000 px-4.5 py-3.5">
     <p className="text-ink-muted signal-sm">{label}</p>
     {children}
   </div>
@@ -113,7 +113,7 @@ export const SourceBlock = ({ endpoints, synced }: { endpoints: string[]; synced
   <AsideBlock label="Source" className="bg-ground-subtle">
     <div className="mt-2.5 flex flex-col gap-1.75">
       {endpoints.map((endpoint) => (
-        <code key={endpoint} className="block border border-line bg-surface-200 px-2.25 py-1.75 text-gold mono-note">
+        <code key={endpoint} className="block border border-line bg-surface-200 px-2.25 py-1.75 text-cyan mono-note">
           {endpoint}
         </code>
       ))}
@@ -122,6 +122,6 @@ export const SourceBlock = ({ endpoints, synced }: { endpoints: string[]; synced
   </AsideBlock>
 )
 
-export const LINK = 'text-gold hover:text-cyan'
+export const LINK = 'text-cyan hover:text-cyan'
 
 export const GHOST_ACTION = twMerge(buttonClasses({ variant: 'secondary', size: 'mono' }), 'min-h-10.5 w-full')

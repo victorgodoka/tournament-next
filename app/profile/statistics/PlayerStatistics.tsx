@@ -4,9 +4,9 @@ import Link from "next/link";
 import { twMerge } from "tailwind-merge";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
+import { AvatarFrame } from "@ui/avatar";
 import { Eyebrow } from "@ui/eyebrow";
 import { SectionHead } from "@ui/section-head";
-import { FriendsPanel } from "@omega/friends-panel";
 import { CardArt } from "@omega/card-art";
 import { EmptyBox } from "@omega/profile/empty-box";
 import { PrivateNotice } from "@omega/profile/private-notice";
@@ -58,7 +58,7 @@ const Overview = ({ num, data }: { num: string; data: PlayerSeason }) => (
       Counted per game, not per match: a 2–1 adds three games. {formatNumber(data.matchCount)} matches, {formatNumber(data.gameCount)} games.
     </p>
     {data.truncated ? (
-      <p className="mt-3 border border-amber bg-ground-amber px-4 py-3 text-amber body-sm">
+      <p className="mt-3 border border-gold bg-ground-gold px-4 py-3 text-gold body-sm">
         Over 1000 matches this season: only the newest 1000 were analyzed.
       </p>
     ) : null}
@@ -97,7 +97,7 @@ const Decks = ({ num, data }: { num: string; data: PlayerSeason }) => (
         const turns = data.firstVsSecond.find((row) => row.archetype === deck.archetype)
         const combo = data.comboLength.find((row) => row.archetype === deck.archetype)
         return (
-          <li key={deck.archetype ?? 'unknown'} className="flex flex-col border border-line bg-surface-000 p-[clamp(14px,1.8vw,20px)]">
+          <li key={deck.archetype ?? 'unknown'} className="flex flex-col border border-line bg-space-000 p-[clamp(14px,1.8vw,20px)]">
             <div className="flex items-baseline justify-between gap-3">
               <p className="min-w-0 truncate text-ink display-5">{archetypeName(deck.archetype)}</p>
               <p className="shrink-0 text-cyan display-6 tabular-nums">{pct(deck.winRate)}</p>
@@ -126,14 +126,16 @@ const Decks = ({ num, data }: { num: string; data: PlayerSeason }) => (
 )
 
 const CardUsageRow = ({ card }: { card: PlayerSeason['cardUsage'][number] }) => (
-  <li className="grid gap-x-6 gap-y-3 bg-surface-000 px-4 py-3.5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center">
+  <li className="grid gap-x-6 gap-y-3 bg-space-000 px-4 py-3.5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center">
     <CardLine id={card.cardId} name={card.name} />
     <Meter label="In deck" rate={card.deckInclusion.rate} tone="bg-ink-dim" value={`${pct(card.deckInclusion.rate)} · ${card.deckInclusion.games}`} />
     <Meter label="Used" rate={card.usage.rate} value={`${pct(card.usage.rate)} · ${card.usage.games}`} />
     <p className="text-ink-muted signal-sm md:text-right">
-      Win rate when activated
+      Win rate in deck / when used
       <span className="block text-ink mono-data">
-        {card.whenActivated.games ? `${pct(card.whenActivated.winRate)} · ${card.whenActivated.games} games` : '—'}
+        {card.whenInDeck.games ? `${pct(card.whenInDeck.winRate)} · ${card.whenInDeck.games}` : '—'}
+        {' / '}
+        {card.whenUsed.games ? `${pct(card.whenUsed.winRate)} · ${card.whenUsed.games}` : '—'}
       </span>
     </p>
   </li>
@@ -171,7 +173,7 @@ const SignatureCards = ({ num, data }: { num: string; data: PlayerSeason }) => (
             {deck.cards.map((card, index) => (
               <li key={card.cardId} className="min-w-0">
                 <CardArt art={{ id: card.cardId, name: card.name }} sizes="(min-width: 640px) 200px, 30vw" className="aspect-square border border-line">
-                  <span className="absolute top-0 left-0 bg-surface-000 px-1.5 py-0.5 text-gold signal-count tabular-nums">{index + 1}</span>
+                  <span className="absolute top-0 left-0 bg-space-000 px-1.5 py-0.5 text-cyan signal-count tabular-nums">{index + 1}</span>
                 </CardArt>
                 <p className="mt-1.5 truncate text-ink body-sm" title={card.name ?? undefined}>{card.name ?? `#${card.cardId}`}</p>
                 <p className="text-ink-muted mono-note">
@@ -205,7 +207,7 @@ const HandTraps = ({ num, data }: { num: string; data: PlayerSeason }) => {
       {seen.length ? (
         <ul className="mt-4 grid gap-px border border-line bg-line">
           {seen.map((trap) => (
-            <li key={trap.cardId} className="grid gap-x-6 gap-y-3 bg-surface-000 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+            <li key={trap.cardId} className="grid gap-x-6 gap-y-3 bg-space-000 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center">
               <CardLine id={trap.cardId} name={trap.name} />
               <div className="min-w-0">
                 <Meter label="Yours answered" rate={trap.byPlayer.respondedRate} />
@@ -228,7 +230,7 @@ const HandTraps = ({ num, data }: { num: string; data: PlayerSeason }) => {
 }
 
 const MatchupBlock = ({ matchup }: { matchup: PlayerSeason['handTrapsPerMatchup'][number] }) => (
-  <li className="bg-surface-000 px-4 py-3.5">
+  <li className="bg-space-000 px-4 py-3.5">
     <p className="flex flex-wrap items-baseline gap-x-2 text-ink body-strong">
       {archetypeName(matchup.archetype)} <span className="text-ink-muted signal-sm">vs</span> {archetypeName(matchup.opponentArchetype)}
       <span className="ml-auto text-ink-muted mono-data">{formatNumber(matchup.games)} games</span>
@@ -238,7 +240,7 @@ const MatchupBlock = ({ matchup }: { matchup: PlayerSeason['handTrapsPerMatchup'
         <li key={trap.cardId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <CardLine id={trap.cardId} name={trap.name} size="sm" />
           <p className="text-right mono-data tabular-nums">
-            <span className="text-gold" title="Your activations per game">{trap.player.perGame === null ? '—' : trap.player.perGame.toFixed(2)}</span>
+            <span className="text-cyan" title="Your activations per game">{trap.player.perGame === null ? '—' : trap.player.perGame.toFixed(2)}</span>
             <span className="text-ink-muted"> / </span>
             <span className="text-cyan" title="Opponent activations per game">{trap.opponent.perGame === null ? '—' : trap.opponent.perGame.toFixed(2)}</span>
           </p>
@@ -253,7 +255,7 @@ const Matchups = ({ num, data }: { num: string; data: PlayerSeason }) =>
     <section className="pt-section">
       <SectionHead num={num}>Hand traps by matchup</SectionHead>
       <p className="mt-2 text-ink-muted body-sm">
-        Activations per game — <span className="text-gold">yours</span> / <span className="text-cyan">your opponent&apos;s</span>. Most played matchup first.
+        Activations per game — <span className="text-cyan">yours</span> / <span className="text-cyan">your opponent&apos;s</span>. Most played matchup first.
       </p>
       <ul className="mt-4 grid gap-px border border-line bg-line md:grid-cols-2">
         {data.handTrapsPerMatchup.slice(0, 6).map((matchup) => (
@@ -274,8 +276,8 @@ const GameRow = ({ game, data }: { game: PlayerSeason['games'][number]; data: Pl
   const result = game.result ? RESULT[game.result] : null
   const opponent = game.opponentId ? data.opponents[game.opponentId] : undefined
   return (
-    <li className="grid grid-cols-[36px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 bg-surface-000 px-4 py-3 md:grid-cols-[36px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-      <span className={twMerge('row-span-4 inline-flex size-9 items-center justify-center self-start text-surface-000 signal-tab md:row-span-1 md:self-center', result?.fill ?? 'bg-surface-400')}>
+    <li className="grid grid-cols-[36px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 bg-space-000 px-4 py-3 md:grid-cols-[36px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+      <span className={twMerge('row-span-4 inline-flex size-9 items-center justify-center self-start text-space-000 signal-tab md:row-span-1 md:self-center', result?.fill ?? 'bg-surface-400')}>
         <span aria-hidden>{result ? result.label[0] : '–'}</span>
         <span className="sr-only">{result?.label ?? 'Not finished'}</span>
       </span>
@@ -284,7 +286,7 @@ const GameRow = ({ game, data }: { game: PlayerSeason['games'][number]; data: Pl
       </p>
       <p className="min-w-0 truncate body-sm">
         {game.opponentId ? (
-          <Link href={`/profile/${game.opponentId}`} className="text-ink-dim hover:text-gold">
+          <Link href={`/profile/${game.opponentId}`} className="text-ink-dim hover:text-cyan">
             {duelistName(opponent)}
           </Link>
         ) : (
@@ -379,11 +381,11 @@ const SeasonPicker = ({ profileId, choices, season }: { profileId: string; choic
                 scroll={false}
                 className={twMerge(
                   'inline-flex min-h-11 items-center gap-2 border px-3 signal-chip',
-                  on ? 'border-gold bg-ground-gold text-gold' : 'border-line text-ink-dim hover:border-gold hover:text-gold',
+                  on ? 'border-cyan bg-ground-cyan text-cyan' : 'border-line text-ink-dim hover:border-cyan hover:text-cyan',
                 )}
               >
                 {choice.label}
-                {choice.open ? <span className="size-1.5 bg-positive" aria-label="open season" /> : null}
+                {choice.open ? <span className="size-1.5 bg-win" aria-label="open season" /> : null}
               </Link>
             )
           })}
@@ -410,7 +412,7 @@ export const PlayerStatistics = ({ profile, choices, season, cookie }: PlayerSta
       <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
         <div className="mx-auto w-full max-w-page px-gutter">
           <section className="pt-section">
-            <Link href={`/profile/${profile.id}`} className="inline-flex min-h-11 items-center text-ink-muted signal hover:text-gold">
+            <Link href={`/profile/${profile.id}`} className="inline-flex min-h-11 items-center text-ink-muted signal hover:text-cyan">
               ← Back to profile
             </Link>
             <Eyebrow tone="cyan" meta={current ? `${current.format} · ${current.label}` : season} className="mt-3">
@@ -418,8 +420,9 @@ export const PlayerStatistics = ({ profile, choices, season, cookie }: PlayerSta
             </Eyebrow>
             <div className="mt-5 flex items-center gap-[clamp(14px,2vw,22px)]">
               {profile.avatar ? (
-                <div className="relative size-[clamp(56px,7vw,80px)] shrink-0 border-3 border-surface-000 bg-surface-100 shadow-offset-void-sm">
+                <div className="relative size-[clamp(56px,7vw,80px)] shrink-0 border-3 border-space-000 bg-surface-100 shadow-lift">
                   <Image src={profile.avatar} alt="" fill sizes="80px" className="object-cover" />
+                  <AvatarFrame cosmetics={profile.cosmetics} />
                 </div>
               ) : null}
               <h1 className="min-w-0 text-ink display-1">{name}</h1>
@@ -442,7 +445,6 @@ export const PlayerStatistics = ({ profile, choices, season, cookie }: PlayerSta
         </div>
       </main>
       <Footer />
-      <FriendsPanel />
     </>
   )
 }

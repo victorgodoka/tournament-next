@@ -1,34 +1,37 @@
 'use client'
 
-import Image from "next/image";
 import Link from "next/link";
 import { RefObject, useState } from "react";
 import { Icon } from "@iconify/react";
 import { twMerge } from "tailwind-merge";
 import { CELL, Navbar, PANEL, PANEL_ITEM, PANEL_RULE } from "@ui/navbar";
+import { LanguageSwitcher } from "@ui/navbar/language-switcher.component";
+import { Avatar } from "@ui/avatar";
 import { useAuth } from "@hooks/index";
 import { signIn, type AuthUser } from "@utils/auth";
 import { can } from "@utils/articles";
-import { DOWNLOAD_URL, NavbarItem } from "@utils/const";
+import { DOWNLOAD_URL, NAVBAR_ITEMS, NavbarItem } from "@utils/const";
 import Button from "@ui/button";
+import { MessengerMailbox } from "@omega/messenger";
 
 type HeaderProps = {
   /** Optional sentinel ref, used by pages that swap in a fixed bar once the header scrolls away. */
   elementRef?: RefObject<HTMLElement | null>
   className?: string
   items?: NavbarItem[]
+  /** A page's own cell before the account, at every width (the shop's balance). */
+  extra?: React.ReactNode
 }
 
-/** The one filled cell in the bar, so the install path stays the loudest thing in the header. */
+/** The one primary action in the bar, so the install path stays the loudest thing in the header. */
 const DownloadCta = () => (
   <Button
     href={DOWNLOAD_URL}
     variant="primary"
-    size="lg"
-    className="font-display"
+    size="sm"
   >
     Download
-    <span className="hidden min-[1081px]:inline">Free</span>
+    <span className="hidden lg:inline">Free</span>
   </Button>
 )
 
@@ -37,12 +40,8 @@ const SignIn = ({ isLoading }: { isLoading: boolean }) => (
     onClick={signIn}
     aria-hidden={isLoading}
     variant="discord"
-    size="lg"
-    className={twMerge(
-      CELL,
-      "cursor-pointer border-l border-line font-display",
-      isLoading && "invisible",
-    )}
+    size="sm"
+    className={twMerge(isLoading && "invisible")}
   >
     <Icon icon="bi:discord" aria-hidden className="text-base" />
     <span>Login</span>
@@ -65,24 +64,15 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
-        className={twMerge(CELL, "cursor-pointer gap-2.5 border-l border-line px-3.75", isOpen ? "bg-gold text-gold-on" : "text-ink hover:bg-surface-300")}
+        className={twMerge(CELL, "cursor-pointer gap-2.5 px-3.75", isOpen ? "bg-surface-400 text-ink" : "text-ink hover:bg-surface-300")}
       >
-        {user.profile.avatarUrl ? (
-          <Image
-            src={user.profile.avatarUrl}
-            alt=""
-            width={60}
-            height={60}
-            className="size-7.5 shrink-0 rounded-round object-cover duotone"
-          />
-        ) : (
-          <span aria-hidden className="size-7.5 shrink-0 rounded-round bg-surface-400" />
-        )}
+        <Avatar name={name} src={user.profile.avatarUrl} cosmetics={user.cosmetics} size="sm" />
+
 
         <span className="hidden text-left sm:block">
           <span className="block caption font-bold tracking-normal normal-case">{name}</span>
           <span className="mt-0.5 flex items-center gap-1.5">
-            <span aria-hidden className="block size-2 bg-cyan" />
+            <span aria-hidden className="block size-2 rounded-round bg-cyan" />
             <span className="signal-sm">Online</span>
           </span>
         </span>
@@ -99,11 +89,12 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
           <Link href="/messenger" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Messenger</Link>
           <p className={PANEL_RULE}>Account</p>
           <Link href="/profile/edit" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Edit profile</Link>
+          <Link href="/inventory" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Inventory</Link>
           {/* The panel refuses anyone without it anyway; this only keeps the door out of sight. */}
           {can(user, 'system.manage') || can(user, 'user.manage') ? (
             <Link href="/admin" role="menuitem" onClick={() => setIsOpen(false)} className={twMerge(PANEL_ITEM, "text-gold")}>Admin panel</Link>
           ) : null}
-          <button type="button" role="menuitem" onClick={signOut} className={twMerge(PANEL_ITEM, "w-full cursor-pointer hover:bg-cyan hover:text-cyan-on")}>
+          <button type="button" role="menuitem" onClick={signOut} className={twMerge(PANEL_ITEM, "w-full cursor-pointer text-crimson-lift hover:text-crimson-lift")}>
             Log out
           </button>
         </div>
@@ -112,19 +103,34 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
   )
 }
 
-export const Header = ({ elementRef, className, items }: HeaderProps) => {
+export const Header = ({ elementRef, className, items, extra }: HeaderProps) => {
   const { user, signOut } = useAuth()
+  const account = user ? <Account user={user} signOut={signOut} /> : <SignIn isLoading={user === undefined} />
 
   return (
     <header
       ref={elementRef}
-      className={twMerge("absolute top-0 z-(--z-sticky) flex w-full flex-nowrap items-stretch border-b border-line-strong bg-surface-000 xl:fixed", className)}
+      className={twMerge("absolute top-0 z-(--z-sticky) flex h-15 w-full flex-nowrap items-stretch gap-8 border-b border-line bg-surface-100/92 px-6 max-lg:gap-3 max-lg:px-4 xl:fixed", className)}
     >
-      <Navbar items={items} />
-      <div className="flex shrink-0 items-stretch">
-        {user ? <Account user={user} signOut={signOut} /> : <SignIn isLoading={user === undefined} />}
-        <DownloadCta />
-      </div>
+      <Navbar
+        items={(items ?? NAVBAR_ITEMS).filter((entry) => user || !entry.loggedIn)}
+        end={<>
+          <LanguageSwitcher />
+          {extra}
+          {account}
+        </>}
+        keep={user ? <>
+          {extra}
+          {/* Phones get no dock; the mailbox stands in for it. */}
+          <MessengerMailbox className={twMerge(CELL, "px-3 text-ink hover:bg-surface-300 sm:hidden")} />
+          {account}
+        </> : null}
+        drawerExtra={<>
+          <LanguageSwitcher />
+          {user ? null : account}
+        </>}
+        cta={<DownloadCta />}
+      />
     </header>
   )
 }

@@ -2,7 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { Chip } from '@ui/chip'
-import { imageSource, outline, type WikiDoc } from '@utils/wiki-doc'
+import type { ArticleLink, ArticleLinks } from '@utils/types'
+import { imageSource, outline, type DocHtml, type WikiDoc } from '@utils/wiki-doc'
 import { WikiBlocks } from './blocks'
 import { AsideBlock, FactRows, LINK, WIKI_ASIDE, WIKI_PAD } from './wiki'
 
@@ -11,16 +12,38 @@ type ArticleViewProps = {
   /** The article's address; lives outside the doc. */
   slug: string
   /** From `renderDocHtml(doc)`. */
-  html: Record<string, string>
+  html: DocHtml
+  /**
+   * Hub, related and children as the server resolved them (published only, through redirects).
+   * Never read from `doc.hub` / `doc.related`: those may name drafts, deleted or renamed articles.
+   */
+  links?: ArticleLinks
   /** Extra side-column blocks after Contents: status, history, editing. */
   children?: React.ReactNode
 }
+
+/** "Read next" and the hub's own list: title and summary per article. */
+const LinkList = ({ label, articles }: { label: string; articles: ArticleLink[] }) => (
+  <section aria-label={label} className="clear-both mt-12 border-t border-line pt-6">
+    <h2 className="text-ink-muted signal-strong">{label}</h2>
+    <ul className="mt-4 grid gap-px border border-line bg-line sm:grid-cols-2">
+      {articles.map((article) => (
+        <li key={article.slug} className="bg-space-000">
+          <Link href={`/wiki/${article.slug}`} className="group block h-full px-4 py-3.5">
+            <span className="block text-ink body-strong group-hover:text-cyan">{article.title}</span>
+            {article.summary ? <span className="mt-1 line-clamp-2 block text-ink-muted body-sm">{article.summary}</span> : null}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </section>
+)
 
 /**
  * A block article, cover to infobox. Every pixel comes from `doc` (and `html`, its rendered Markdown), so
  * the editor preview and the published page are the same component fed the same JSON.
  */
-export const ArticleView = ({ doc, slug, html, children }: ArticleViewProps) => {
+export const ArticleView = ({ doc, slug, html, links, children }: ArticleViewProps) => {
   const cover = doc.cover && doc.assets[doc.cover.asset]
   const infobox = doc.infobox
   const infoAsset = infobox?.asset ? doc.assets[infobox.asset] : undefined
@@ -44,7 +67,7 @@ export const ArticleView = ({ doc, slug, html, children }: ArticleViewProps) => 
         ) : null}
         <div
           aria-hidden
-          className="absolute inset-0 -z-10 bg-linear-to-t from-surface-000 via-veil-base/60 to-veil-top"
+          className="absolute inset-0 -z-10 bg-linear-to-t from-space-000 via-veil-base/60 to-veil-top"
         />
 
         <div
@@ -54,10 +77,19 @@ export const ArticleView = ({ doc, slug, html, children }: ArticleViewProps) => 
           )}
         >
           <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-            <Link href="/wiki" className="text-ink-muted hover:text-gold">
+            <Link href="/wiki" className="text-ink-muted hover:text-cyan">
               Omega Wiki
             </Link>{' '}
-            / {slug || '…'}
+            /{' '}
+            {links?.hub ? (
+              <>
+                <Link href={`/wiki/${links.hub.slug}`} className="text-ink-muted hover:text-cyan">
+                  {links.hub.title}
+                </Link>{' '}
+                /{' '}
+              </>
+            ) : null}
+            {slug || '…'}
           </nav>
           <h1 className="mt-3 text-ink display-1">{doc.title || 'Untitled'}</h1>
           {doc.summary ? <p className="mt-3.5 max-w-[62ch] text-ink-dim lead">{doc.summary}</p> : null}
@@ -74,6 +106,8 @@ export const ArticleView = ({ doc, slug, html, children }: ArticleViewProps) => 
       <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 border-line lg:grid-cols-[minmax(0,1fr)_340px] 2xl:border-x">
         <article className={twMerge('order-2 py-[clamp(24px,3vw,40px)] lg:order-1', WIKI_PAD)}>
           <WikiBlocks doc={doc} html={html} />
+          {links?.children.length ? <LinkList label="In this hub" articles={links.children} /> : null}
+          {links?.related.length ? <LinkList label="Read next" articles={links.related} /> : null}
         </article>
 
         <aside className={twMerge('order-1 border-b border-line lg:order-2 lg:border-b-0 lg:border-l', WIKI_ASIDE)}>

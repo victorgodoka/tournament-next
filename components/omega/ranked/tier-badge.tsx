@@ -12,9 +12,9 @@ type TierBadgeProps = {
   season?: string
 }
 
-/** Plated badge. Sizing is the caller's: this only fills the box it is given. */
+/** Season tier artwork on a surface-200 plate. Sizing is the caller's. For the DS text badge, use @ui/tier-badge. */
 export const TierBadge = ({ tier, sizes = '64px', alt = '', className, season }: TierBadgeProps) => (
-  <span className={twMerge('relative block shrink-0 border border-line bg-surface-100', className)}>
+  <span className={twMerge('relative block shrink-0 border border-line-mid bg-surface-200', className)}>
     <Image src={`/badges/${season ? `${season.toLowerCase()}/` : ''}${tier.toLowerCase()}.png`} alt={alt} fill sizes={sizes} className="object-contain p-[8%]" />
   </span>
 )

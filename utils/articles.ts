@@ -103,6 +103,24 @@ export const getArticle = async (slug: string, cookie?: string | null): Promise<
   }
 }
 
+/**
+ * Whether an address is free (WIKI_API §4.2): `404` free, `200` taken, `301` a former address of another
+ * article — taking it over is allowed but moves the old links here. The 301 is read without following it:
+ * a browser reports a manual redirect as an opaque response.
+ */
+export const checkSlug = async (slug: string, signal?: AbortSignal): Promise<'free' | 'taken' | 'moved'> => {
+  const res = await fetch(`${API_URL}/wiki/${encodeURIComponent(slug)}`, {
+    credentials: 'include',
+    cache: 'no-store',
+    redirect: 'manual',
+    signal,
+  })
+  if (res.type === 'opaqueredirect' || res.status === 301) return 'moved'
+  if (res.status === 404) return 'free'
+  if (res.ok) return 'taken'
+  throw new WikiApiError(res.status)
+}
+
 /** Newest first, at most 50, no pagination. Deleting an article deletes its history with it. */
 export const getRevisions = async (slug: string, cookie?: string | null): Promise<Revision[]> => {
   const { revisions } = await request<{ revisions: Revision[] }>(
@@ -160,7 +178,8 @@ export const uploadWikiAsset = async (file: File, alt: string) => {
 export const deleteArticle = (slug: string) => request<void>(`/wiki/${encodeURIComponent(slug)}`, json('DELETE'))
 
 /** Admins are listed alongside editors, so the panel doesn't pretend they can't write. */
-export const listEditors = (cookie?: string | null) => request<WikiEditor[]>('/wiki/editors', withCookie(cookie))
+export const listEditors = async (cookie?: string | null) =>
+  (await request<{ editors: WikiEditor[] }>('/wiki/editors', withCookie(cookie))).editors
 
 /** `404` means the duelist has never signed in: promotion never creates a row. */
 export const promoteEditor = (userId: string) =>

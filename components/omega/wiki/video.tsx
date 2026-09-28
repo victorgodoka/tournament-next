@@ -36,7 +36,7 @@ export const Video = ({ videoId, title, start }: VideoProps) => {
           <span className="absolute inset-x-0 bottom-0 flex items-center gap-3.5 bg-linear-to-t from-veil-base to-transparent px-4 pt-10 pb-4 text-left">
             <span
               aria-hidden
-              className="flex size-12 shrink-0 items-center justify-center bg-gold text-gold-on shadow-offset-void-sm transition-transform group-hover:scale-105 motion-reduce:transition-none"
+              className="flex size-12 shrink-0 items-center justify-center bg-cyan text-cyan-on shadow-lift transition-transform group-hover:scale-105 motion-reduce:transition-none"
             >
               ▶
             </span>

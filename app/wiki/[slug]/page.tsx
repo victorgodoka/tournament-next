@@ -1,7 +1,8 @@
 import { cache } from 'react'
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
 import { AsideBlock, WIKI_ASIDE, WIKI_PAD, WikiBar } from '@omega/wiki'
@@ -10,11 +11,11 @@ import { ArticleView } from '@omega/wiki/article-view'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { getArticle } from '@utils/articles'
-import { SITE_NAME, SITE_URL } from '@utils/config'
-import { jsonLd, metaDescription, pageMetadata } from '@utils/metadata'
+import { SITE_NAME } from '@utils/config'
+import { jsonLd, pageMetadata } from '@utils/metadata'
 import { renderArticle } from '@utils/remark'
-import type { Article } from '@utils/types'
-import { imageSource, renderDocHtml } from '@utils/wiki-doc'
+import type { Article, ArticleSeo } from '@utils/types'
+import { renderDocHtml } from '@utils/wiki-doc'
 import { ArticleActions } from './ArticleActions'
 
 type ArticleRouteProps = { params: Promise<{ slug: string }> }
@@ -25,77 +26,48 @@ type ArticleRouteProps = { params: Promise<{ slug: string }> }
  */
 const loadArticle = cache(async (slug: string) => getArticle(slug, (await headers()).get('cookie')))
 
-/** A block article writes its own summary; a Markdown one gets its opening text with the markup stripped. */
-const describe = (article: Article) =>
-  metaDescription(
-    article.doc?.summary ||
-      article.summary ||
-      article.body
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/^\s*(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
-        .replace(/[*_`|~]/g, ''),
-  ) || undefined
-
-const coverUrl = (article: Article) => {
-  const cover = article.doc?.cover && article.doc.assets[article.doc.cover.asset]
-  return cover ? { url: imageSource(cover, 1200).src, alt: cover.alt } : undefined
-}
-
-/** Article + breadcrumb, so search and answer engines get the author, dates and place in the wiki. */
-const articleJsonLd = (article: Article) => {
-  const url = `${SITE_URL}/wiki/${article.slug}`
-  const image = coverUrl(article)
+/**
+ * The head comes whole from `article.seo`, which the server derives from the saved doc: recomputing it
+ * here would let the page, the sitemap and the JSON-LD disagree (REVISAO_WIKI §2.4). Keywords are left
+ * out on purpose: Google ignores `<meta name="keywords">`, and they are in the JSON-LD already.
+ */
+const seoMetadata = (article: Article, seo: ArticleSeo): Metadata => {
+  const image = seo.image
+  // `seo.image.src` is already cut to 1200×630 when the upload is big enough: never transform it again.
+  const large = !!image && image.width >= 1200 && image.height >= 630
   return {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Article',
-        '@id': `${url}#article`,
-        headline: article.title,
-        description: describe(article),
-        url,
-        mainEntityOfPage: url,
-        inLanguage: 'en',
-        datePublished: article.publishedAt,
-        dateModified: article.updatedAt,
-        author: { '@type': 'Person', name: userName(article.author) },
-        ...(article.updatedBy ? { editor: { '@type': 'Person', name: userName(article.updatedBy) } } : {}),
-        publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/logo.png` },
-        ...(image ? { image: new URL(image.url, SITE_URL).href } : {}),
-        ...(article.doc?.tags.length ? { keywords: article.doc.tags.join(', ') } : {}),
-      },
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Omega Wiki', item: `${SITE_URL}/wiki` },
-          { '@type': 'ListItem', position: 2, name: article.title, item: url },
-        ],
-      },
-    ],
-  }
-}
-
-export async function generateMetadata({ params }: ArticleRouteProps) {
-  const { slug } = await params
-  const article = await loadArticle(slug)
-
-  if (!article) return pageMetadata({ title: 'Article not found', path: `/wiki/${slug}`, noIndex: true })
-
-  const cover = coverUrl(article)
-  return pageMetadata({
-    title: article.title,
-    path: `/wiki/${article.slug}`,
-    description: describe(article),
-    images: cover ? [cover] : undefined,
-    article: {
+    title: seo.title,
+    description: seo.description,
+    alternates: { canonical: seo.canonical },
+    robots: { index: !seo.robots.includes('noindex'), follow: !seo.robots.includes('nofollow') },
+    openGraph: {
+      type: 'article',
+      title: seo.title,
+      description: seo.description,
+      url: seo.canonical,
+      siteName: SITE_NAME,
+      images: image ? [{ url: image.src, width: image.width, height: image.height, alt: image.alt }] : [],
       publishedTime: article.publishedAt ?? undefined,
       modifiedTime: article.updatedAt,
       authors: [userName(article.author)],
     },
-    // A draft is only visible to editors, so it must never be indexed.
-    noIndex: !article.publishedAt,
-  })
+    twitter: {
+      card: large ? 'summary_large_image' : 'summary',
+      title: seo.title,
+      description: seo.description,
+      images: image ? [image.src] : [],
+    },
+  }
+}
+
+export async function generateMetadata({ params }: ArticleRouteProps): Promise<Metadata> {
+  const { slug } = await params
+  const article = await loadArticle(slug)
+
+  if (!article) return pageMetadata({ title: 'Article not found', path: `/wiki/${slug}`, noIndex: true })
+  if (article.seo) return seoMetadata(article, article.seo)
+  // A server without the SEO fields: the bare minimum, and never index a draft.
+  return pageMetadata({ title: article.title, path: `/wiki/${article.slug}`, noIndex: !article.publishedAt })
 }
 
 /** Status, dates, history and the editing controls: shared by both article kinds. */
@@ -121,7 +93,7 @@ const ArticleMeta = ({ article }: { article: Article }) => (
 
     <AsideBlock label="Revisions">
       <p className="mt-2">
-        <Link href={`/wiki/${article.slug}/history`} className="text-gold hover:text-cyan">
+        <Link href={`/wiki/${article.slug}/history`} className="text-cyan hover:text-cyan">
           Read the history
         </Link>
       </p>
@@ -143,7 +115,7 @@ const MarkdownArticle = async ({ article }: { article: Article }) => {
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
       <article className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
         <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-          <Link href="/wiki" className="text-ink-muted hover:text-gold">
+          <Link href="/wiki" className="text-ink-muted hover:text-cyan">
             Omega Wiki
           </Link>{' '}
           / {article.slug}
@@ -179,12 +151,16 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
   const { slug } = await params
   const article = await loadArticle(slug)
   if (!article) notFound()
+  // The API answers a former address with 301 and `fetch` follows it: never serve the article at the old
+  // URL (two indexed URLs split the ranking). Build the target from the body, not the relative Location.
+  if (article.slug !== slug) permanentRedirect(`/wiki/${article.slug}`)
 
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
-        {article.publishedAt ? <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(articleJsonLd(article))} /> : null}
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-16">
+        {/* `jsonLd` escapes `<`: the server doesn't, and a `</script>` in an FAQ answer would close the tag. */}
+        {article.publishedAt && article.seo ? <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(article.seo.jsonLd)} /> : null}
         <WikiBar
           section="Articles"
           placeholder="Search cards by name or part of one"
@@ -193,7 +169,7 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
 
         {/* The doc is the whole page: same JSON, same component as the editor preview. */}
         {article.doc ? (
-          <ArticleView doc={article.doc} slug={article.slug} html={await renderDocHtml(article.doc)}>
+          <ArticleView doc={article.doc} slug={article.slug} html={await renderDocHtml(article.doc)} links={article.links}>
             {/* The Markdown page has a byline for this; the block page shows it here. */}
             <AsideBlock label="Updated">
               <p className="mt-2 text-ink-dim body-sm">

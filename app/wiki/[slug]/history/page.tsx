@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
 import { WIKI_PAD, WikiBar } from '@omega/wiki'
@@ -37,6 +37,8 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
 
   const [article, revisions] = await Promise.all([getArticle(slug, cookie), getRevisions(slug, cookie).catch(() => [])])
   if (!article) notFound()
+  // Revisions only answer on the current address.
+  if (article.slug !== slug) permanentRedirect(`/wiki/${article.slug}/history${rev ? `?rev=${encodeURIComponent(rev)}` : ''}`)
 
   // A revision id that belongs to another article answers 404, so an unknown `rev` just shows nothing.
   const revision = rev ? await getRevision(slug, rev, cookie) : null
@@ -47,7 +49,7 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000 pt-16">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-16">
         <WikiBar
           section="Articles"
           placeholder="Search cards by name or part of one"
@@ -56,11 +58,11 @@ const HistoryPage = async ({ params, searchParams }: HistoryRouteProps) => {
 
         <div className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
           <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-            <Link href="/wiki" className="text-ink-muted hover:text-gold">
+            <Link href="/wiki" className="text-ink-muted hover:text-cyan">
               Omega Wiki
             </Link>{' '}
             /{' '}
-            <Link href={`/wiki/${article.slug}`} className="text-ink-muted hover:text-gold">
+            <Link href={`/wiki/${article.slug}`} className="text-ink-muted hover:text-cyan">
               {article.slug}
             </Link>{' '}
             / history

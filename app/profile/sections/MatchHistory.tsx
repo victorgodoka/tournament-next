@@ -1,22 +1,19 @@
 'use client'
 
 import { useId, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MatchLedgerHead, MatchRow } from "@omega/profile/match-row";
-import { formatNumber } from "@omega/profile/labels";
-import { EmptyBox } from "@omega/profile/empty-box";
-import { SectionHead } from "@ui/section-head";
+import { twMerge } from "tailwind-merge";
+import { Avatar } from "@ui/avatar";
+import { Button } from "@ui/button";
+import { Icon } from "@ui/icon";
+import { ResultPill } from "@ui/result";
 import { TabBar, tabPanelProps } from "@ui/tab-bar";
-import { buttonClasses } from "@ui/button";
+import { CardArt } from "@omega/card-art";
+import { MatchAnalytics } from "@omega/analytics/match-analytics";
+import { LocalTime } from "@omega/profile/local-time";
 import { getMatches, ProfileApiError } from "@utils/profile";
-import type { MatchPage } from "@utils/types";
-
-type MatchHistoryProps = MatchPage & {
-  num: string
-  profileId: string
-  /** Total duels the profile reports, used for the caption. */
-  duelsPlayed: number
-}
+import type { Match, MatchPage } from "@utils/types";
 
 /** `all` is the embedded page; the other two are one ranked ladder each. History is ranked only. */
 const TABS = [
@@ -27,7 +24,71 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]['id']
 
-export const MatchHistory = ({ num, profileId, duelsPlayed, ...firstPage }: MatchHistoryProps) => {
+const WORD = { W: 'Win', L: 'Loss', D: 'Draw' }
+const WHEN: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
+
+/**
+ * One duel. `win: null` is a draw or unfinished duel, never a loss. Clicking the row (anywhere but
+ * a link) opens the duel's timeline and statistics under it; mounted on first open, then kept.
+ */
+const DuelRow = ({ match }: { match: Match }) => {
+  const result = match.win === null ? 'D' : match.win ? 'W' : 'L'
+  const opponent = match.opponent.name || 'Unknown duelist'
+  const panelId = useId()
+  const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const toggle = () => {
+    setMounted(true)
+    setOpen((current) => !current)
+  }
+
+  return (
+    <div role="listitem" className="bg-surface-100">
+      <div
+        onClick={(e) => !(e.target as HTMLElement).closest('a, button') && toggle()}
+        className={twMerge(
+          "grid cursor-pointer grid-cols-[22px_56px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-sm text-ink-dim transition-colors hover:bg-surface-300 md:grid-cols-[22px_88px_minmax(0,1fr)_132px_124px] md:gap-5",
+          open && "bg-surface-200",
+        )}
+      >
+        <ResultPill result={result} />
+        <span className="text-center font-display text-2xl leading-none whitespace-nowrap text-ink tabular-nums">
+          {match.score.self} – {match.score.opponent}
+        </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={opponent} size="sm" />
+          <div className="min-w-0">
+            <Link href={`/profile/${match.opponent.id}`} className="block truncate font-bold text-ink no-underline hover:text-cyan">
+              <span className="sr-only">versus </span>{opponent}
+            </Link>
+            <span className="block text-xs leading-4 text-ink-muted">{WORD[result]} · {match.format}</span>
+          </div>
+        </div>
+        <div className="flex gap-1 max-md:hidden" aria-label={match.self.cards.length ? `Deck: ${match.self.cards.map((c) => c.name ?? 'Unknown card').join(', ')}` : undefined}>
+          {match.self.cards.map((card) => (
+            <Link key={card.id} href={`/wiki/card/${card.id}`} title={card.name ?? undefined}>
+              <CardArt art={card} alt={card.name ?? ''} sizes="32px" className="h-11.5 w-8 rounded-xs border border-line-mid bg-surface-200 hover:border-cyan" />
+            </Link>
+          ))}
+        </div>
+        <span className="flex items-center justify-end gap-2 font-mono text-[10px] leading-3 tracking-[0.14em] whitespace-nowrap text-ink-muted uppercase">
+          {match.when ? <LocalTime iso={match.when} options={WHEN} /> : '—'}
+          <Icon name="down" className={twMerge("motion-safe:transition-transform", open ? "rotate-180 text-ink" : "")} />
+          <button type="button" aria-expanded={open} aria-controls={panelId} onClick={toggle} className="sr-only focus:not-sr-only focus:ml-2">
+            {open ? 'Hide duel' : 'Timeline & stats'}
+          </button>
+        </span>
+      </div>
+      {mounted ? (
+        <div id={panelId} role="region" aria-label={`Duel against ${opponent}`} hidden={!open} className="border-t border-line px-4 py-5 lg:px-8 lg:py-7">
+          <MatchAnalytics matchId={match.id} opponentId={match.opponent.id} />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+export const MatchHistory = ({ profileId, ...firstPage }: MatchPage & { profileId: string }) => {
   const router = useRouter()
   const idPrefix = useId()
   const [tab, setTab] = useState<Tab>('all')
@@ -70,58 +131,31 @@ export const MatchHistory = ({ num, profileId, duelsPlayed, ...firstPage }: Matc
   const isLoading = status === 'loading'
 
   return (
-    <section id="history" className="pt-section">
-      <SectionHead num={num}>Match history</SectionHead>
-      <p className="mt-2 text-ink-muted signal-sm">
-        {formatNumber(matches.length)} {tab === 'all' ? `of ${formatNumber(duelsPlayed)} ` : ''}duels
-      </p>
-
-      <TabBar
-        label="Ladder"
-        idPrefix={idPrefix}
-        tabs={TABS}
-        active={tab}
-        onSelect={selectTab}
-        className="mt-4 max-w-130"
-      />
+    <>
+      <TabBar label="Ladder" idPrefix={idPrefix} tabs={TABS} active={tab} onSelect={selectTab} />
 
       <div {...tabPanelProps(idPrefix, tab)}>
-        {matches.length === 0 ? (
-          isLoading ? (
-            <p className="mt-3.5 text-ink-muted signal-sm">Loading duels…</p>
-          ) : (
-            <EmptyBox title="No duels recorded" className="mt-3.5">
-              Duels appear here the moment the first one ends, with both decks shown card by card.
-            </EmptyBox>
-          )
-        ) : (
-          <div className="mt-3.5 border border-line">
-            <MatchLedgerHead />
-            <ul>
-              {matches.map((match) => (
-                <MatchRow key={match.id} match={match} />
-              ))}
-            </ul>
+        {matches.length ? (
+          <div role="list" aria-label="Recent ranked duels" className="flex flex-col gap-px border border-line bg-line">
+            {matches.map((match) => <DuelRow key={match.id} match={match} />)}
           </div>
+        ) : (
+          <p className="border border-line bg-surface-100 px-4 py-8 text-center text-sm text-ink-muted">
+            {isLoading ? 'Loading duels…' : 'No ranked duels recorded yet.'}
+          </p>
         )}
       </div>
 
       {/* `nextCursor === null` is the only stop condition the API gives. */}
       {nextCursor ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => load(tab, nextCursor)}
-            disabled={isLoading}
-            className={buttonClasses({ variant: 'ghost', size: 'sm' })}
-          >
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <Button variant="secondary" onClick={() => load(tab, nextCursor)} disabled={isLoading}>
+            <Icon name="down" />
             {isLoading ? 'Loading…' : 'Load older duels'}
-          </button>
-          {status === 'error' ? (
-            <p role="alert" className="text-negative body-sm">Couldn&apos;t load older duels. Try again.</p>
-          ) : null}
+          </Button>
+          {status === 'error' ? <p role="alert" className="text-sm text-loss">Couldn&apos;t load older duels. Try again.</p> : null}
         </div>
       ) : null}
-    </section>
+    </>
   )
 }

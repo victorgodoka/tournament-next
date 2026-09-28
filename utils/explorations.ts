@@ -50,10 +50,10 @@ export const getExplorations = cache(async (playerId: string, cookie?: string | 
 
 export type PublicExploration = Exploration & { owner: Duelist }
 
-/** `GET /analytics/explorations`: every `public` exploration, newest created first, 24 a page. Pass `nextCursor` as `before`. */
-export const getPublicExplorations = async (before?: string, cookie?: string | null) =>
+/** `GET /analytics/explorations`: every `public` exploration, newest created first, 24 a page. Pass `nextCursor` back as `cursor`. */
+export const getPublicExplorations = async (cursor?: string, cookie?: string | null) =>
   request<{ explorations: PublicExploration[]; nextCursor: string | null }>(
-    `/analytics/explorations${before ? `?before=${encodeURIComponent(before)}` : ''}`,
+    `/analytics/explorations${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
     cookie ? { headers: { cookie } } : undefined,
   )
 

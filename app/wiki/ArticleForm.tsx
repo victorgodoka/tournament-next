@@ -178,7 +178,7 @@ export const ArticleForm = ({ article }: ArticleFormProps) => {
         </Link>
       </div>
 
-      <p aria-live="polite" role={error ? 'alert' : undefined} className="mt-3.5 text-gold body-sm">
+      <p aria-live="polite" role={error ? 'alert' : undefined} className="mt-3.5 text-cyan body-sm">
         {error ?? ''}
       </p>
     </form>

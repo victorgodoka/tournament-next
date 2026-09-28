@@ -6,6 +6,7 @@ import rehypeClassNames from 'rehype-class-names';
 import rehypeStringify from 'rehype-stringify';
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { createElement, Fragment, type ReactNode } from 'react';
 
 const customSanitizeSchema = {
   ...defaultSchema,
@@ -100,22 +101,69 @@ const ARTICLE_CLASSES = {
   'strong': 'font-bold text-ink',
   'em': 'italic',
   'del': 'text-ink-muted line-through',
-  'a': 'text-gold underline underline-offset-2 hover:text-cyan',
+  'a': 'text-cyan underline underline-offset-2 hover:text-cyan',
   'ul': 'mb-4 flow-root last:mb-0 list-none p-0',
-  'ol': 'mb-4 flow-root last:mb-0 list-decimal pl-5 text-ink-dim marker:font-mono marker:text-gold',
+  'ol': 'mb-4 flow-root last:mb-0 list-decimal pl-5 text-ink-dim marker:font-mono marker:text-cyan',
   'li': 'relative text-ink-dim body [&+li]:mt-1.5',
-  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-gold before:content-['']",
+  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-cyan before:content-['']",
   'hr': 'my-7 h-px w-full border-none bg-line',
-  'blockquote': 'my-4 border-l-2 border-gold bg-ground-gold py-2 pl-4 text-ink-dim italic',
+  'blockquote': 'my-4 border-l-2 border-cyan bg-ground-cyan py-2 pl-4 text-ink-dim italic',
   'table': 'my-5 w-full border border-line',
   'thead': 'border-b border-line bg-ground-soft text-ink-muted',
   'th': 'px-3.5 py-2.5 text-left signal-sm',
   'tbody': 'divide-y divide-line',
   'td': 'px-3.5 py-3 text-ink-dim body-sm',
-  'code': 'border border-line bg-surface-200 px-1.5 py-px text-gold mono-note',
+  'code': 'border border-line bg-surface-200 px-1.5 py-px text-cyan mono-note',
   'pre': 'my-4 overflow-x-auto border border-line bg-surface-200 p-4',
   'pre code': 'border-none bg-transparent p-0 text-ink-dim',
   'img': 'my-4 max-w-full border border-line',
 }
 
-export const renderArticle = (markdownText: string) => toHtml(markdownText, ARTICLE_CLASSES)
+type HastNode = {
+  type: string
+  tagName?: string
+  value?: string
+  properties?: Record<string, unknown>
+  children?: HastNode[]
+}
+
+const VOID = new Set(['br', 'hr', 'img', 'input'])
+
+/** hast names `ariaHidden` / `dataFootnoteRef`; React wants `aria-hidden` / `data-footnote-ref`. */
+const propName = (name: string) => (/^(aria|data)[A-Z]/.test(name) ? name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`) : name)
+
+/**
+ * Sanitized hast → React elements. Only what `rehype-sanitize` let through reaches here, and it becomes
+ * elements and text nodes, never an HTML string: nothing can be re-parsed into markup (REVISAO_WIKI §3).
+ */
+const toReact = (node: HastNode, key?: number): ReactNode => {
+  if (node.type === 'text') return node.value
+  const children = node.children?.map(toReact) ?? []
+  if (node.type === 'root') return createElement(Fragment, { key }, ...children)
+  if (node.type !== 'element' || !node.tagName) return null
+
+  const props: Record<string, unknown> = { key }
+  for (const [name, value] of Object.entries(node.properties ?? {})) {
+    if (value === null || value === undefined || value === false) continue
+    props[propName(name)] = Array.isArray(value) ? value.join(' ') : value
+  }
+  // GFM task-list boxes arrive `checked` + `disabled`; React needs to know they are read-only.
+  if (node.tagName === 'input') props.readOnly = true
+  return VOID.has(node.tagName) ? createElement(node.tagName, props) : createElement(node.tagName, props, ...children)
+}
+
+/** The same pipeline as `toHtml`, stopped at the sanitized tree and turned into React nodes. */
+const toNodes = async (markdownText: string, classes: Record<string, string>): Promise<ReactNode> => {
+  const processor = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkBreaks)
+    .use(remarkRehype)
+    .use(rehypeClassNames, classes)
+    .use(rehypeSanitize, customSanitizeSchema)
+  const tree = await processor.run(processor.parse(markdownText))
+  return toReact(tree as HastNode)
+}
+
+/** Wiki Markdown (text, callout, FAQ answers, legacy bodies) as React nodes. */
+export const renderArticle = (markdownText: string) => toNodes(markdownText, ARTICLE_CLASSES)

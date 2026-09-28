@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { StatTiles } from '@omega/analytics/primitives'
-import type { Catalog, ExplorationConfig, Variables } from '@utils/explorer'
+import { seasonState, type Catalog, type ExplorationConfig, type Variables } from '@utils/explorer'
 import {
   buildGlobalSegment, getGlobalSeason, globalCatalogOf, globalDimLabel, globalKpis, globalLineSeries, globalNamesOf, runGlobal,
   type GlobalExploration, type GlobalNames, type GlobalSeason, type GlobalSegment,
@@ -78,7 +78,7 @@ export const GlobalTiles = ({ seg, names }: { seg: GlobalSegment; names: GlobalN
   <StatTiles
     className="mt-5"
     items={[
-      { label: 'Primary segment', value: <span className="body-strong normal-case">{seg.label}</span>, note: seg.season.season.endsAt ? 'Ended' : 'Open' },
+      { label: 'Primary segment', value: <span className="body-strong normal-case">{seg.label}</span>, note: seasonState(seg.season.season) },
       ...globalKpis(seg, names).map((k) => ({ label: k.label, value: <span className="block truncate">{k.value}</span>, tone: k.tone, note: k.note })),
     ]}
   />
@@ -103,7 +103,7 @@ export const GlobalExplorationView = ({ exploration, seasons, variables }: ViewP
     <section aria-label={exploration.name} className="mt-6">
       {exploration.description ? <p className="max-w-[72ch] text-ink-dim body">{exploration.description}</p> : null}
       {lead ? <GlobalTiles seg={lead} names={names} /> : null}
-      {gone.length ? <p className="mt-3 text-amber mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null}
+      {gone.length ? <p className="mt-3 text-gold mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null}
       {failure || !segments.length ? (
         <SeasonsGate pending={pending} failure={failure} empty="None of these seasons has server-wide data yet." />
       ) : (

@@ -6,7 +6,7 @@ import { twMerge } from "tailwind-merge";
 /** Collapsed height, roughly eight lines of the bio's 17px/1.55 rhythm. */
 const FOLD_PX = 216
 
-const TOGGLE = "relative inline-flex cursor-pointer items-center gap-1.5 text-gold signal-chip hover:text-cyan"
+const TOGGLE = "relative inline-flex cursor-pointer items-center gap-1.5 text-cyan signal-chip hover:text-cyan"
 
 type ProfileBioProps = {
   /** Bio HTML, already rendered from markdown. */
@@ -53,7 +53,7 @@ export const ProfileBio = ({ markdown, className }: ProfileBioProps) => {
             aria-controls={bodyId}
             className="absolute inset-x-0 bottom-0 flex h-30 cursor-pointer items-end justify-start"
           >
-            <span aria-hidden className="absolute inset-0 bg-linear-to-t from-surface-000 from-25% via-veil-base to-transparent" />
+            <span aria-hidden className="absolute inset-0 bg-linear-to-t from-space-000 from-25% via-veil-base to-transparent" />
             <span className={TOGGLE}>
               Show more
               <span aria-hidden>▾</span>

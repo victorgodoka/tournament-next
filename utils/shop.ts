@@ -4,7 +4,7 @@
  * the browser with `credentials: 'include'` (the browser adds the `Origin` the API checks).
  */
 import { API_URL } from '@utils/auth'
-import type { ShopCatalog, ShopPurchase, ShopWallet } from '@utils/types'
+import type { ShopCatalog, ShopHistory, ShopItem, ShopPurchase, ShopWallet } from '@utils/types'
 
 export class ShopApiError extends Error {
   status: number
@@ -18,7 +18,7 @@ export class ShopApiError extends Error {
   }
 }
 
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+export const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(`${API_URL}${path}`, { credentials: 'include', cache: 'no-store', ...init })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -51,13 +51,34 @@ export const getWallet = (signal?: AbortSignal) => request<ShopWallet>('/shop/me
 export const purchaseItem = (id: string) =>
   request<ShopPurchase>(`/shop/items/${encodeURIComponent(id)}/purchase`, { method: 'POST' })
 
+/** Newest first, 50 per page. Stop on `nextCursor: null` or `entries: []`. */
+export const getHistory = (cursor?: string | null, signal?: AbortSignal) =>
+  request<ShopHistory>(`/shop/me/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, { signal })
+
+/** The slot is the item's type. Replaces whatever was there. */
+export const equipItem = (slot: string, itemId: string) =>
+  request<{ slot: string; item: ShopItem }>(`/shop/me/equipped/${encodeURIComponent(slot)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId }),
+  })
+
+/** `204`, also when the slot was already empty. */
+export const unequipSlot = async (slot: string) => {
+  const res = await fetch(`${API_URL}/shop/me/equipped/${encodeURIComponent(slot)}`, { method: 'DELETE', credentials: 'include' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new ShopApiError(res.status, body.error, body.message)
+  }
+}
+
 /** Copy for the errors a duelist can actually hit. Everything else is a generic failure. */
 export const PURCHASE_ERRORS: Record<string, string> = {
   INSUFFICIENT_FUNDS: 'Not enough Duel Points for this one.',
   ALREADY_OWNED: 'You already own this item.',
   NOT_FOUND: 'This item is no longer on sale. Reload the shop.',
   UNAUTHENTICATED: 'Your session expired. Sign in again to buy.',
-  UNAUTHORIZED: "This account can't buy right now.",
+  FORBIDDEN: "This account can't buy right now.",
 }
 
 export const purchaseErrorMessage = (error: unknown) => {

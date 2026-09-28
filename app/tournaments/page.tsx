@@ -1,10 +1,11 @@
 import { getTranslations } from 'next-intl/server'
+import { formatDuration } from '@omega/tournament/labels'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
-import { listTournaments } from '@utils/tournaments'
-import type { TournamentPage } from '@utils/types'
-import { TournamentBrowser } from './TournamentBrowser'
+import { getTournament, listTournaments } from '@utils/tournaments'
+import type { TournamentPage, TournamentSummary } from '@utils/types'
+import { TournamentBrowser, type LiveSnapshot } from './TournamentBrowser'
 
 export async function generateMetadata() {
   const t = await getTranslations('Tournaments.meta')
@@ -20,6 +21,25 @@ const safe = (page: Promise<TournamentPage>) =>
     return EMPTY
   })
 
+/** The live banner's round progress and leader need the tournament page, not just its summary. */
+const snapshot = async (tournament: TournamentSummary | undefined): Promise<LiveSnapshot | null> => {
+  if (!tournament) return null
+  const detail = await getTournament(String(tournament.id)).catch((error) => {
+    console.error(error)
+    return null
+  })
+  const round = detail?.rounds.at(-1)
+  const leader = detail?.standings[0]
+  return {
+    tournament,
+    round: round?.number ?? 0,
+    done: round?.matches.filter((match) => match.outcome !== 'unplayed').length ?? 0,
+    total: round?.matches.length ?? 0,
+    leader: leader ? { name: leader.player.name, points: leader.points } : null,
+    elapsed: formatDuration(tournament.startedAt, new Date().toISOString()),
+  }
+}
+
 const TournamentsPage = async () => {
   // Independent reads: awaiting them in sequence would cost a round trip for nothing.
   const [live, first] = await Promise.all([safe(listTournaments({ status: 'live' })), safe(listTournaments({ limit: 20 }))])
@@ -27,8 +47,8 @@ const TournamentsPage = async () => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
-        <TournamentBrowser live={live.tournaments[0] ?? null} first={first} />
+      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
+        <TournamentBrowser live={await snapshot(live.tournaments[0])} first={first} />
       </main>
       <Footer />
     </>

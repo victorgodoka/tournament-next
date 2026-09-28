@@ -1,594 +1,471 @@
 'use client'
 
-import { useRef, useState } from 'react'
+/**
+ * The public ranked leaderboard, ported from the Omega Hub design bundle
+ * (https://claude.ai/artifact/Bi3WkghqHpeZpvNdDwiFh1, RankedLeaderboard / LeaderboardPodium /
+ * Leaderboard / LadderSwitch) and wired to GET /ranked/leaderboard. Class names and markup follow
+ * the bundle one to one; the styles live in ./leaderboard.css.
+ */
+
+import { Fragment, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
 import { useAuth } from '@hooks/index'
-import { EmptyBox } from '@omega/profile/empty-box'
+import { Avatar, Button, cx, Eyebrow, Icon } from '@omega/messenger/messenger-ui'
 import { LocalTime } from '@omega/profile/local-time'
-import { TierBadge } from '@omega/ranked/tier-badge'
-import { PlayerAvatar, playerName } from '@omega/tournament/player'
-import { DATE_ONLY, DATE_TIME, formatNumber, formatRecord } from '@omega/tournament/labels'
-import { Callout } from '@omega/wiki/wiki'
-import { buttonClasses } from '@ui/button'
-import { Chip } from '@ui/chip/chip.component'
-import { Eyebrow } from '@ui/eyebrow/eyebrow'
-import { TabBar, tabPanelProps } from '@ui/tab-bar/tab-bar.component'
 import { can } from '@utils/articles'
-import { signIn } from '@utils/auth'
-import { LADDERS, TIER_FLOORS, getLeaderboard, getSeasonStandings, refreshLeaderboard } from '@utils/ranked'
-import type { LeaderboardEntry, LeaderboardPage, PastSeason, RankedLadderId, RankedSeason } from '@utils/types'
+import { LEADERBOARD_PAGE_SIZE, RankedApiError, getLeaderboard, refreshLeaderboard } from '@utils/ranked'
+import type { Cosmetics, LeaderboardEntry, LeaderboardPage, RankedLadderId, RankedSeason, Tier } from '@utils/types'
+import './leaderboard.css'
 
-const TABS = LADDERS.map(({ id, format }) => ({ id, label: format }))
+const LADDERS: Record<RankedLadderId, { format: string; tone: string }> = {
+  tcg: { format: 'TCG', tone: 'tcg' },
+  genesys: { format: 'Genesys', tone: 'genesys' },
+}
+const IDS = Object.keys(LADDERS) as RankedLadderId[]
 
-/** Select value for the open season. Every other value is a closed season's `code`. */
-const LIVE = ''
+const fmtElo = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+const fmtCount = (n: number) => n.toLocaleString('en-US')
+const winRate = (w: number, l: number, d: number) => {
+  const g = w + l + d
+  return g ? (Math.round((w / g) * 1000) / 10).toFixed(1) + '%' : '—'
+}
+const shortId = (id: string) => (id.length > 10 ? id.slice(0, 4) + '…' + id.slice(-4) : id)
+const pad2 = (n: number) => (n < 10 ? '0' : '') + n
+const hm = (iso: string) => {
+  const d = new Date(iso)
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+}
+const HM: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+const profileHref = (id: string) => `/profile/${id}`
 
-type Board = {
-  entries: LeaderboardEntry[]
-  nextCursor: string | null
-  /** Live only: when the game server was read. `null` on a past season, or when the read failed. */
-  syncedAt: string | null
-  /** Live only: the open season the list is titled with. */
-  season: RankedSeason | null
-  status: 'idle' | 'loading' | 'error'
-  /** A page arrived from a newer read, so the walk restarted from the top. */
-  resynced: boolean
+type Row = {
+  rank: number
+  id: string
+  name: string
+  unnamed: boolean
+  handle: string | null
+  avatar: string | null
+  cosmetics: Cosmetics
+  tier: Tier
+  elo: string
+  w: number
+  l: number
+  d: number
+  rate: string
+  me: boolean
 }
 
-const BLANK: Board = { entries: [], nextCursor: null, syncedAt: null, season: null, status: 'idle', resynced: false }
+/** API entry → display row */
+const entryRow = (e: LeaderboardEntry, meId?: string): Row => ({
+  rank: e.rank,
+  id: e.id,
+  name: e.name ?? 'Unlinked duelist',
+  unnamed: !e.name,
+  handle: e.handle || (e.name ? null : 'ID ' + shortId(e.id)),
+  avatar: e.avatar,
+  cosmetics: e.cosmetics,
+  tier: e.tier,
+  elo: fmtElo(e.elo),
+  w: e.wins,
+  l: e.loses,
+  d: e.draws,
+  rate: winRate(e.wins, e.loses, e.draws),
+  me: meId != null && e.id === meId,
+})
+const recordOf = (r: Row) => `${r.w}–${r.l}–${r.d}`
 
-const fromLive = ({ entries, nextCursor, syncedAt, season }: LeaderboardPage) => ({ entries, nextCursor, syncedAt, season })
-
-/** One board per ladder and season, so switching either keeps what the other had loaded. */
-const keyOf = (ladder: RankedLadderId, code: string) => `${ladder}:${code}`
-
-const played = ({ wins, loses, draws }: LeaderboardEntry) => wins + loses + draws
-
-const winRate = (entry: LeaderboardEntry) => {
-  const total = played(entry)
-  return total ? `${Math.round((entry.wins / total) * 100)}%` : '—'
+/* ---------- TierBadge / RailHead ---------- */
+const TierBadge = ({ tier }: { tier: Tier }) => {
+  const key = tier.toLowerCase()
+  return (
+    <span className="oh-cut oh-tier" style={{ '--edge': `var(--tier-${key})` } as CSSProperties}>
+      <span className="oh-tier-gem" aria-hidden="true" style={{ background: `var(--tier-${key})` }} />
+      {tier}
+    </span>
+  )
 }
 
-const profileHref = (entry: LeaderboardEntry) => `/profile/${entry.id}`
-
-/** What a screen reader hears for a row: the column names the layout otherwise only shows once. */
-const describe = (entry: LeaderboardEntry) =>
-  `Rank ${entry.rank}, ${playerName(entry)}, ${entry.tier}, ${formatNumber(entry.elo)} Elo, ` +
-  `${entry.wins} wins, ${entry.loses} losses, ${entry.draws} draws, ${winRate(entry)} win rate`
-
-const Handle = ({ entry, className }: { entry: LeaderboardEntry; className?: string }) =>
-  entry.handle ? <span className={twMerge('block truncate text-ink-muted mono-data', className)}>{entry.handle}</span> : null
-
-/* ---------------------------------------------------------------- *
- * Top five
- * ---------------------------------------------------------------- */
-
-/** Rank 1 takes a band of its own: the only row that gets the gold plate and the display Elo. */
-const Champion = ({ entry, season }: { entry: LeaderboardEntry; season?: string }) => (
-  <Link
-    href={profileHref(entry)}
-    aria-label={describe(entry)}
-    className="group flex flex-wrap items-center gap-[clamp(16px,3vw,32px)] border border-gold bg-ground-gold px-[clamp(16px,2.4vw,28px)] py-[clamp(18px,2.4vw,28px)]"
-  >
-    <span className="flex items-center gap-[clamp(12px,2vw,20px)]">
-      <span className="text-gold display-2 tabular-nums">01</span>
-      <TierBadge season={season} tier={entry.tier} sizes="120px" className="size-[clamp(72px,9vw,112px)] border-line-strong" />
-    </span>
-
-    <span className="min-w-0 flex-[1_1_240px]">
-      <span className="flex items-center gap-3">
-        <PlayerAvatar player={entry} size={36} />
-        <span className="min-w-0">
-          <span className="block truncate text-ink display-4 group-hover:text-gold">{playerName(entry)}</span>
-          <Handle entry={entry} />
-        </span>
-      </span>
-      <span className="mt-3 flex flex-wrap items-center gap-2.5">
-        <Chip tone="gold" solid>
-          {entry.tier}
-        </Chip>
-        <span className="text-ink-dim mono-data">
-          {formatRecord(entry)} · {winRate(entry)} win rate
-        </span>
-      </span>
-    </span>
-
-    <span className="shrink-0">
-      <span className="block text-ink-muted signal">Elo</span>
-      <span className="block text-gold display-1 tabular-nums">{formatNumber(entry.elo)}</span>
-    </span>
-  </Link>
-)
-
-/** Ranks 2 to 5: the same card four times, so nothing in the group outranks the others by layout. */
-const RunnerUp = ({ entry, season }: { entry: LeaderboardEntry; season?: string }) => (
-  <Link
-    href={profileHref(entry)}
-    aria-label={describe(entry)}
-    className="group flex items-center gap-3.5 border border-line bg-surface-000 p-[clamp(12px,1.6vw,18px)] hover:border-gold"
-  >
-    <span className="text-ink-muted display-5 tabular-nums">{String(entry.rank).padStart(2, '0')}</span>
-    <TierBadge season={season} tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-ink body-strong group-hover:text-gold">{playerName(entry)}</span>
-      <Handle entry={entry} />
-      <span className="mt-1.5 block text-gold mono-data">{formatNumber(entry.elo)} Elo</span>
-      <span className="block text-ink-muted signal-sm">{formatRecord(entry)}</span>
-    </span>
-  </Link>
-)
-
-/* ---------------------------------------------------------------- *
- * The ledger
- * ---------------------------------------------------------------- */
-
-const COLS = 'lg:grid-cols-[64px_minmax(0,1fr)_132px_110px_132px_84px] lg:items-center lg:gap-5'
-
-const LedgerHead = () => (
-  <div aria-hidden className={twMerge('hidden border-b border-line pb-2.5 text-ink-muted signal lg:grid', COLS)}>
-    <span>Rank</span>
-    <span>Duelist</span>
-    <span>Tier</span>
-    <span>Elo</span>
-    <span>W / L / D</span>
-    <span>Win rate</span>
+const RailHead = ({ num, label, stamp }: { num: string; label: string; stamp: string | null }) => (
+  <div className="oh-rail" role="heading" aria-level={2}>
+    <span className="oh-rail-num">{num}</span>
+    <span className="oh-rail-label">{label}</span>
+    <span className="oh-rail-rule" aria-hidden="true" />
+    {stamp ? <span className="oh-rail-stamp">{stamp}</span> : null}
   </div>
 )
 
-/** Below `lg` the four stat columns fold into one line under the name, so a row stays two lines tall. */
-const Row = ({ entry, mine, season }: { entry: LeaderboardEntry; mine: boolean; season?: string }) => (
-  <li>
-    <Link
-      href={profileHref(entry)}
-      aria-label={describe(entry)}
-      aria-current={mine || undefined}
-      className={twMerge(
-        'group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 border-b border-line py-3.5 hover:bg-ground-soft',
-        COLS,
-        mine && 'border-cyan bg-ground-cyan',
-      )}
-    >
-      <span className={twMerge('mono-data tabular-nums', mine ? 'text-cyan' : 'text-ink-muted')}>
-        {String(entry.rank).padStart(2, '0')}
+const Who = ({ r, size, className }: { r: Row; size: 'sm' | 'lg'; className: string }) => (
+  <>
+    {r.unnamed ? (
+      <span className={`oh-avatar oh-avatar-${size} oh-lb-anon`} aria-hidden="true">
+        <Icon name="user" size={size === 'sm' ? 16 : 28} />
       </span>
-
-      <span className="flex min-w-0 items-center gap-2.5">
-        <PlayerAvatar player={entry} size={28} />
-        <span className="min-w-0">
-          <span
-            className={twMerge(
-              'block truncate body-strong group-hover:text-gold',
-              entry.name?.trim() ? 'text-ink' : 'text-ink-muted',
-            )}
-          >
-            {playerName(entry)}
-          </span>
-          <span className="block truncate text-ink-dim mono-data lg:hidden">
-            {entry.tier} · <span className="text-gold">{formatNumber(entry.elo)} Elo</span> · {formatRecord(entry)} ·{' '}
-            {winRate(entry)}
-          </span>
+    ) : (
+      <Avatar name={r.name} src={r.avatar} cosmetics={r.cosmetics} size={size} />
+    )}
+    <span className={size === 'sm' ? 'oh-lb-id' : 'oh-podium-id'}>
+      <Link className={cx(className, r.unnamed && 'is-anon')} href={profileHref(r.id)}>
+        {r.name}
+      </Link>
+      {r.handle ? <span className="oh-lb-handle">{r.handle}</span> : null}
+      {size === 'sm' ? (
+        <span className="oh-lb-mini">
+          <TierBadge tier={r.tier} />
+          <span>{recordOf(r) + ' · ' + r.rate}</span>
         </span>
-      </span>
-
-      <span className="hidden items-center gap-2 lg:flex">
-        <TierBadge season={season} tier={entry.tier} sizes="32px" className="size-7 border-0 bg-transparent" />
-        <span className="truncate text-ink-dim signal">{entry.tier}</span>
-      </span>
-
-      <span className="hidden text-gold mono-data tabular-nums lg:block">{formatNumber(entry.elo)}</span>
-      <span className="hidden text-ink-dim mono-data tabular-nums lg:block">{formatRecord(entry)}</span>
-      <span className="hidden text-ink-muted mono-data tabular-nums lg:block">{winRate(entry)}</span>
-    </Link>
-  </li>
+      ) : null}
+    </span>
+  </>
 )
 
-/* ---------------------------------------------------------------- *
- * Where the viewer stands
- * ---------------------------------------------------------------- */
+/* ---------- Leaderboard: rank 4 and below ---------- */
+const COLS = ['#', 'Duelist', 'Tier', 'Elo', 'W–L–D', 'Win rate']
 
-/** Every state of the strip shares this floor, so it does not push the ledger down when auth resolves. */
-const STRIP = 'flex min-h-[76px] flex-wrap items-center gap-3.5 border px-4.5 py-4'
-
-type YouProps = {
-  entry: LeaderboardEntry | null
-  signedIn: boolean | undefined
-  loaded: number
-  format: string
-  /** Present while there is another page to reach. */
-  onLoadMore?: () => void
-  loading: boolean
-  season?: string
-}
-
-/**
- * The API has no "my position" read, so this highlights the viewer's row when the pages loaded
- * reach it and offers the next page when they do not.
- */
-const YourStanding = ({ entry, signedIn, loaded, format, onLoadMore, loading, season }: YouProps) => {
-  if (signedIn === undefined) return <div aria-hidden className={twMerge(STRIP, 'border-line bg-surface-100')} />
-
-  if (!signedIn) {
-    return (
-      <div className={twMerge(STRIP, 'justify-between border-line bg-surface-100')}>
-        <p className="text-ink-dim body-sm">Sign in to see where you sit on the {format} ladder.</p>
-        <button type="button" onClick={signIn} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-          Sign in with Discord
-        </button>
-      </div>
-    )
-  }
-
-  if (!entry) {
-    return (
-      <div className={twMerge(STRIP, 'justify-between border-line bg-surface-100')}>
-        <p className="max-w-[62ch] text-ink-dim body-sm">
-          You&apos;re not in the top {formatNumber(loaded)} loaded so far.
-        </p>
-        <span className="flex flex-wrap gap-2.5">
-          {onLoadMore ? (
-            <button
-              type="button"
-              onClick={onLoadMore}
-              disabled={loading}
-              className={buttonClasses({ variant: 'ghost', size: 'sm' })}
-            >
-              {loading ? 'Loading…' : 'Load more'}
-            </button>
-          ) : null}
-          <Link href="/profile" className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-            Open your profile
-          </Link>
+const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; label: string }) => (
+  <div className="oh-lb has-rate" role="table" aria-label={label}>
+    <div className="oh-lb-row oh-lb-head" role="row">
+      {COLS.map((c, i) => (
+        <span
+          key={c}
+          role="columnheader"
+          className={cx(i === 2 && 'oh-lb-c-tier', i >= 4 && 'oh-lb-c-extra')}
+          style={{ textAlign: i === 0 ? 'center' : i >= 3 ? 'right' : 'left' }}
+        >
+          {c}
+        </span>
+      ))}
+    </div>
+    {rows.map((r) => (
+      <div key={r.id} className={cx('oh-lb-row', r.me && 'is-me')} role="row">
+        <span className={cx('oh-lb-rank', r.rank <= 3 && `p${r.rank}`)} role="cell">
+          {r.rank}
+        </span>
+        <span className="oh-lb-who" role="cell">
+          <Who r={r} size="sm" className="oh-lb-name" />
+        </span>
+        <span role="cell" className="oh-lb-c-tier">
+          <TierBadge tier={r.tier} />
+        </span>
+        <span className="oh-lb-elo" role="cell">
+          {r.elo}
+        </span>
+        <span className="oh-lb-num oh-lb-c-extra" role="cell">
+          <span className="oh-lb-rec">
+            <b className="oh-up">{r.w}</b>–<b className="oh-down">{r.l}</b>–<b className="oh-flat">{r.d}</b>
+          </span>
+        </span>
+        <span className="oh-lb-num oh-lb-c-extra" role="cell">
+          {r.rate}
         </span>
       </div>
-    )
-  }
+    ))}
+    {loading
+      ? [0, 1, 2, 3, 4].map((i) => (
+          <div key={'s' + i} className="oh-lb-row oh-lb-skel" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+        ))
+      : null}
+  </div>
+)
 
+/* ---------- LeaderboardPodium: ranks 1–3 ---------- */
+const PLACE = ['First', 'Second', 'Third']
+
+const LeaderboardPodium = ({ rows, label }: { rows: Row[]; label: string }) =>
+  rows.length ? (
+    <ol className={cx('oh-podium', `is-${rows.length}`)} aria-label={label}>
+      {rows.map((r) => (
+        <li key={r.id} className={cx('oh-cut oh-notch oh-podium-card', `p${r.rank}`, r.me && 'is-me')}>
+          <div className="oh-podium-top">
+            <span className="oh-podium-rank" aria-label={PLACE[r.rank - 1] + ' place'}>
+              {r.rank}
+            </span>
+            <TierBadge tier={r.tier} />
+          </div>
+          <div className="oh-podium-who">
+            <Who r={r} size="lg" className="oh-podium-name" />
+          </div>
+          <dl className="oh-podium-stats">
+            <div className="is-elo">
+              <dt>Elo</dt>
+              <dd>{r.elo}</dd>
+            </div>
+            <div>
+              <dt>W–L–D</dt>
+              <dd>{recordOf(r)}</dd>
+            </div>
+            <div>
+              <dt>Win rate</dt>
+              <dd>{r.rate}</dd>
+            </div>
+          </dl>
+        </li>
+      ))}
+    </ol>
+  ) : null
+
+/* ---------- LadderSwitch: one tab per ladder ---------- */
+const LadderSwitch = ({
+  value,
+  onChange,
+  controls,
+}: {
+  value: RankedLadderId
+  onChange: (id: RankedLadderId) => void
+  controls: string
+}) => {
+  const key = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const n = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!n) return
+    e.preventDefault()
+    const next = (i + n + IDS.length) % IDS.length
+    onChange(IDS[next] ?? value)
+    e.currentTarget.parentElement?.querySelectorAll('button')[next]?.focus()
+  }
   return (
-    <div className={twMerge(STRIP, 'gap-[clamp(14px,2.4vw,28px)] border-cyan bg-ground-cyan')}>
-      <span>
-        <span className="block text-ink-muted signal">Your rank</span>
-        <span className="block text-cyan display-3 tabular-nums">#{formatNumber(entry.rank)}</span>
-      </span>
-      <TierBadge season={season} tier={entry.tier} sizes="64px" className="size-[clamp(44px,5vw,60px)]" />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-ink body-strong">{playerName(entry)}</span>
-        <span className="block text-ink-dim mono-data">
-          {entry.tier} · {formatNumber(entry.elo)} Elo · {formatRecord(entry)} · {winRate(entry)} win rate
-        </span>
-      </span>
-      <Link href="/profile" className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
-        Open your profile
-      </Link>
+    <div className="oh-ladders" role="tablist" aria-label="Ranked ladder">
+      {IDS.map((id, i) => {
+        const sel = id === value
+        const L = LADDERS[id]
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`ladder-tab-${id}`}
+            aria-selected={sel}
+            aria-controls={controls}
+            tabIndex={sel ? 0 : -1}
+            className={cx('oh-cut oh-ladder', `is-${L.tone}`)}
+            onClick={() => onChange(id)}
+            onKeyDown={(e) => key(e, i)}
+          >
+            <span className="oh-ladder-sq" aria-hidden="true" />
+            <span className="oh-ladder-name">{L.format}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
 
-/* ---------------------------------------------------------------- *
- * Tier legend
- * ---------------------------------------------------------------- */
-
-/** Points are Elo: each tier is a band of it, and this is where each band starts. */
-const TierLegend = ({ season }: { season?: string }) => (
-  <ul className="grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4 xl:grid-cols-8">
-    {TIER_FLOORS.map(([tier, floor]) => (
-      <li key={tier} className="flex items-center gap-2.5 bg-surface-000 px-3.5 py-3">
-        <TierBadge season={season} tier={tier} sizes="40px" className="size-9 border-0 bg-transparent" />
-        <span className="min-w-0">
-          <span className="block truncate text-ink signal">{tier}</span>
-          <span className="block text-ink-muted mono-data">{floor === null ? 'under 50' : `${formatNumber(floor)}+`}</span>
-        </span>
-      </li>
-    ))}
-  </ul>
-)
-
-/* ---------------------------------------------------------------- *
- * Page
- * ---------------------------------------------------------------- */
-
-type LeaderboardBrowserProps = {
-  tcg: LeaderboardPage
-  genesys: LeaderboardPage
-  /** Closed seasons per ladder, newest first. */
-  past: Record<RankedLadderId, PastSeason[]>
+/* ---------- RankedLeaderboard: the whole public list ---------- */
+type Board = {
+  status: 'idle' | 'loading' | 'ready' | 'more' | 'error'
+  season: RankedSeason | null
+  syncedAt: string | null
+  entries: LeaderboardEntry[]
+  nextCursor: string | null
 }
+type Notice = { tone: 'cyan' | 'live'; title: string; body: string }
 
-export const LeaderboardBrowser = ({ tcg, genesys, past }: LeaderboardBrowserProps) => {
+/** A fallback page (API unreachable at render) has no `syncedAt`: show it as the error it is. */
+const fromPage = (pg: LeaderboardPage): Board => ({
+  status: pg.syncedAt ? 'ready' : 'error',
+  season: pg.season,
+  syncedAt: pg.syncedAt,
+  entries: pg.entries,
+  nextCursor: pg.nextCursor,
+})
+
+const IDLE: Board = { status: 'idle', season: null, syncedAt: null, entries: [], nextCursor: null }
+
+export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId, LeaderboardPage> }) => {
   const { user } = useAuth()
-  const [active, setActive] = useState<RankedLadderId>('tcg')
-  const [picked, setPicked] = useState<Record<RankedLadderId, string>>({ tcg: LIVE, genesys: LIVE })
-  const [boards, setBoards] = useState<Record<string, Board>>({
-    [keyOf('tcg', LIVE)]: { ...BLANK, ...fromLive(tcg) },
-    [keyOf('genesys', LIVE)]: { ...BLANK, ...fromLive(genesys) },
-  })
-  const [refresh, setRefresh] = useState<'idle' | 'loading' | 'error'>('idle')
+  const meId = user?.id
+  const limit = LEADERBOARD_PAGE_SIZE
+  const [ladder, setLadder] = useState<RankedLadderId>('tcg')
+  const [boards, setBoards] = useState<Partial<Record<RankedLadderId, Board>>>(() => ({
+    tcg: fromPage(initial.tcg),
+    genesys: fromPage(initial.genesys),
+  }))
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const st = boards[ladder] ?? IDLE
 
-  // One token per board: switching tabs or seasons mid-load must not discard another board's answer.
-  const run = useRef<Record<string, number>>({})
+  const setL = (id: RankedLadderId, v: Partial<Board>) =>
+    setBoards((o) => ({ ...o, [id]: { ...(o[id] ?? IDLE), ...v } }))
 
-  const code = picked[active]
-  const isLive = code === LIVE
-  const key = keyOf(active, code)
-  const current = boards[key] ?? BLANK
-  const season = past[active].find((entry) => entry.code === code)
-  const { entries, nextCursor, syncedAt } = current
-  const seasonCode = (isLive ? current.season : season)?.code
-  const champion = entries[0]
-  const runnersUp = entries.slice(1, 5)
-  const rest = entries.slice(5)
-  const mine = user ? (entries.find((entry) => entry.id === user.id) ?? null) : null
-  const signedIn = user === undefined ? undefined : Boolean(user)
-  const admin = can(user, 'system.manage')
-  const format = LADDERS.find((ladder) => ladder.id === active)?.format ?? 'TCG'
-  const loading = current.status === 'loading'
-
-  const patch = (id: string, next: Partial<Board>) =>
-    setBoards((state) => ({ ...state, [id]: { ...(state[id] ?? BLANK), ...next } }))
-
-  const fetchPage = async (ladder: RankedLadderId, seasonCode: string, cursor?: string, reload?: boolean) => {
-    if (seasonCode === LIVE) return fromLive(await getLeaderboard(ladder, { cursor, reload }))
-    const page = await getSeasonStandings(seasonCode, { cursor })
-    return { entries: page.entries, nextCursor: page.nextCursor, syncedAt: null, season: null }
-  }
-
-  /** No cursor loads the top of the board; a cursor appends the next page. */
-  const load = async (ladder: RankedLadderId, seasonCode: string, cursor?: string, reload?: boolean) => {
-    const id = keyOf(ladder, seasonCode)
-    const token = (run.current[id] ?? 0) + 1
-    run.current[id] = token
-    patch(id, { status: 'loading' })
-    try {
-      const page = await fetchPage(ladder, seasonCode, cursor, reload)
-      if (run.current[id] !== token) return
-      if (!cursor) return patch(id, { ...page, status: 'idle', resynced: false })
-
-      /* `rank` is recomputed by every live read, so a walk that straddles one can skip or repeat a
-         duelist. A different `syncedAt` means exactly that: restart from the top. Past seasons are
-         frozen and never straddle anything. */
-      if (seasonCode === LIVE && page.syncedAt !== boards[id]?.syncedAt) {
-        const top = await fetchPage(ladder, seasonCode)
-        if (run.current[id] !== token) return
-        return patch(id, { ...top, status: 'idle', resynced: true })
-      }
-
-      setBoards((state) => {
-        const board = state[id] ?? BLANK
-        return { ...state, [id]: { ...board, ...page, entries: [...board.entries, ...page.entries], status: 'idle' } }
-      })
-    } catch (error) {
-      if (run.current[id] !== token) return
-      console.error(error)
-      patch(id, { status: 'error' })
-    }
-  }
-
-  const loadMore = () => (entries.length ? nextCursor && load(active, code, nextCursor) : load(active, code))
-
-  const choose = (next: string) => {
-    setPicked((state) => ({ ...state, [active]: next }))
-    if (!boards[keyOf(active, next)]) load(active, next)
-  }
-
-  /** Re-reads both ladders on the server, then both live boards past the browser cache. */
-  const refreshNow = async () => {
-    setRefresh('loading')
-    try {
-      await refreshLeaderboard()
-      await Promise.all(LADDERS.map(({ id }) => load(id, LIVE, undefined, true)))
-      setRefresh('idle')
-    } catch (error) {
-      console.error(error)
-      setRefresh('error')
-    }
-  }
-
-  const title = isLive ? (current.season?.label ?? 'No open season') : (season?.label ?? 'Past season')
-
-  const empty =
-    isLive && !syncedAt ? (
-      <EmptyBox title="The ladder is unreachable" note="Try again" className="mt-4.5">
-        We couldn&apos;t read the {format} ladder right now. Elo, tier and records keep working on every profile.
-      </EmptyBox>
-    ) : isLive ? (
-      <EmptyBox title={`No ${format} games this season yet`} note="Nothing to rank" className="mt-4.5">
-        The list fills in as soon as someone plays a ranked {format} duel this season.
-      </EmptyBox>
-    ) : (
-      <EmptyBox title="No final results" note="Nothing to rank" className="mt-4.5">
-        Nobody finished this season on the {format} ladder.
-      </EmptyBox>
+  const loadTop = (id: RankedLadderId, reload?: boolean) => {
+    setL(id, { status: 'loading', entries: [], nextCursor: null })
+    return getLeaderboard(id, { limit, reload }).then(
+      (pg) => setL(id, { status: 'ready', season: pg.season, syncedAt: pg.syncedAt, entries: pg.entries, nextCursor: pg.nextCursor }),
+      () => setL(id, { status: 'error' }),
     )
+  }
+
+  const choose = (id: RankedLadderId) => {
+    setLadder(id)
+    if (!boards[id]) loadTop(id)
+  }
+
+  const more = () => {
+    const id = ladder
+    const cur = st
+    if (!cur.nextCursor) return
+    setL(id, { status: 'more' })
+    getLeaderboard(id, { cursor: cur.nextCursor, limit }).then(
+      (pg) => {
+        /* `rank` is recomputed by every read, so a walk that crosses one can skip or repeat a duelist. */
+        if (pg.syncedAt !== cur.syncedAt) {
+          setNotice({
+            tone: 'cyan',
+            title: 'The ladder was re-read',
+            body: `The list refreshed at ${hm(pg.syncedAt ?? new Date().toISOString())} while you were paging, so ranks may have moved. You're back at the top of the new read.`,
+          })
+          return loadTop(id)
+        }
+        setL(id, { status: 'ready', entries: cur.entries.concat(pg.entries), nextCursor: pg.nextCursor })
+      },
+      () => {
+        setL(id, { status: 'ready' })
+        setNotice({ tone: 'live', title: "Couldn't load more", body: "The next page didn't arrive. Try again in a moment." })
+      },
+    )
+  }
+
+  const refresh = () => {
+    setRefreshing(true)
+    refreshLeaderboard().then(
+      (r) => {
+        setRefreshing(false)
+        setNotice({
+          tone: 'cyan',
+          title: 'Leaderboard re-read at ' + hm(r.readAt),
+          body: `TCG ${fmtCount(r.tcg)} duelists · Genesys ${fmtCount(r.genesys)} duelists. The 30-minute cache now starts from this read.`,
+        })
+        setBoards({})
+        loadTop(ladder, true)
+      },
+      (e) => {
+        setRefreshing(false)
+        const denied = e instanceof RankedApiError && e.status === 403
+        setNotice({
+          tone: 'live',
+          title: denied ? 'Only admins can refresh the leaderboard' : 'Refresh failed',
+          body: denied ? "Your session doesn't have system.manage." : "The game server didn't answer. The list you see is still the last read.",
+        })
+      },
+    )
+  }
+
+  const L = LADDERS[ladder]
+  const season = st.season
+  const entries = st.entries
+  const seasonName = season ? season.label || `Season ${season.ordinal}` : null
+  const rows = entries.map((e) => entryRow(e, meId))
+  const loading = st.status === 'loading' || st.status === 'idle'
+  const panelId = 'ladder-panel'
 
   return (
-    <div className="mx-auto w-full max-w-page px-gutter mt-8">
-      <section>
-        <Eyebrow live meta="Live · refreshed every 30 min">
-          Ranked ladder
-        </Eyebrow>
-        <h1 className="mt-4 text-ink display-2">Leaderboard</h1>
-        <p className="mt-3.5 max-w-[62ch] text-ink-dim lead">
-          Two ladders, kept apart: TCG and Genesys each have their own season, their own rank 1 and their own Elo. The
-          record counts only the games played this season. Points are Elo — reach the Elo a tier starts at and you are
-          in that tier.
-        </p>
-      </section>
-
-      <section className="pt-section">
-        <TabBar
-          tabs={TABS}
-          active={active}
-          onSelect={setActive}
-          label="Choose a ranked ladder"
-          idPrefix="leaderboard"
-          className="max-w-90"
-        />
-      </section>
-
-      <section {...tabPanelProps('leaderboard', active)} className="pt-[clamp(20px,2.4vw,28px)]">
-        <div className="flex flex-wrap items-end justify-between gap-3.5">
-          <div>
-            <h2 className="text-ink display-5">
-              <span className="sr-only">{format} </span>
-              {title}
-            </h2>
-            <p className="mt-1 text-ink-muted signal-sm">
-              {!isLive && season ? (
-                <>
-                  Final results · <LocalTime iso={season.startsAt} options={DATE_ONLY} /> –{' '}
-                  <LocalTime iso={season.endsAt} options={DATE_ONLY} />
-                </>
-              ) : syncedAt ? (
-                <>
-                  Live · as of <LocalTime iso={syncedAt} options={DATE_TIME} />
-                </>
-              ) : (
-                'Live ladder unavailable'
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            {past[active].length ? (
-              <label className="flex items-center gap-2.5 text-ink-muted signal">
-                Season
-                <select
-                  value={code}
-                  onChange={(e) => choose(e.target.value)}
-                  className="border border-surface-400 bg-surface-200 px-2.5 py-2 text-ink signal hover:border-ink-muted"
-                >
-                  <option value={LIVE}>{boards[keyOf(active, LIVE)]?.season?.label ?? 'Current season'} · live</option>
-                  {past[active].map((entry) => (
-                    <option key={entry.code} value={entry.code}>
-                      {entry.label} · final
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            {admin && isLive ? (
-              <button
-                type="button"
-                onClick={refreshNow}
-                disabled={refresh === 'loading'}
-                className={buttonClasses({ variant: 'ghost', size: 'sm' })}
-              >
-                {refresh === 'loading' ? 'Refreshing…' : 'Refresh leaderboard'}
-              </button>
-            ) : null}
-          </div>
+    <div className={cx('oh-rl', `is-${L.tone}`)}>
+      <div className="oh-rl-bar">
+        <LadderSwitch value={ladder} onChange={choose} controls={panelId} />
+        <div className="oh-rl-meta">
+          <span className="oh-rl-stamp" aria-live="polite">
+            <span className="oh-livedot" aria-hidden="true" />
+            {st.syncedAt ? (
+              <>
+                Read <LocalTime iso={st.syncedAt} options={HM} /> · refreshes every 30 min
+              </>
+            ) : (
+              'Reading the ladder…'
+            )}
+          </span>
+          {can(user, 'system.manage') ? (
+            <Button size="sm" icon="refresh" disabled={refreshing} onClick={refresh}>
+              {refreshing ? 'Refreshing…' : 'Refresh leaderboard'}
+            </Button>
+          ) : null}
         </div>
+      </div>
 
-        {refresh === 'error' && isLive ? (
-          <p role="alert" className="mt-3 text-negative body-sm">
-            Couldn&apos;t refresh the leaderboard. Try again.
-          </p>
-        ) : null}
+      {notice ? (
+        <div className={cx('oh-cut oh-rl-notice', `is-${notice.tone}`)} role="status">
+          <div>
+            <b>{notice.title}</b>
+            <p>{notice.body}</p>
+          </div>
+          <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Dismiss" onClick={() => setNotice(null)} />
+        </div>
+      ) : null}
 
-        {current.resynced ? (
-          <p role="status" className="mt-3 border border-cyan bg-ground-cyan px-4 py-3 text-ink-dim body-sm">
-            The ladder refreshed while you were reading it, so the list restarted from rank 1.
-          </p>
-        ) : null}
-
-        {entries.length ? (
-          <>
-            <div className="mt-4.5">{champion ? <Champion season={seasonCode} entry={champion} /> : null}</div>
-
-            {runnersUp.length ? (
-              <ul className="mt-3.5 grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-                {runnersUp.map((entry) => (
-                  <li key={entry.id}>
-                    <RunnerUp season={seasonCode} entry={entry} />
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="mt-[clamp(20px,2.4vw,28px)]">
-              <YourStanding
-                entry={mine}
-                signedIn={signedIn}
-                loaded={entries.length}
-                format={format}
-                onLoadMore={nextCursor ? loadMore : undefined}
-                loading={loading}
-                season={seasonCode}
-              />
-            </div>
-
-            {rest.length ? (
-              <div className="mt-[clamp(20px,2.4vw,28px)]">
-                <LedgerHead />
-                <ul>
-                  {rest.map((entry) => (
-                    <Row key={entry.id} season={seasonCode} entry={entry} mine={entry.id === user?.id} />
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3.5">
-              <p className="text-ink-muted signal-sm" aria-live="polite">
-                Showing {formatNumber(entries.length)}
-                {season ? ` of ${formatNumber(season.standings)}` : ''} duelists
-                {loading ? ' · loading…' : ''}
-              </p>
-              {nextCursor ? (
-                <span className="flex flex-wrap items-center gap-3">
-                  {current.status === 'error' ? (
-                    <span role="alert" className="text-negative body-sm">
-                      Couldn&apos;t load the next page.
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    disabled={loading}
-                    className={buttonClasses({ variant: 'ghost', size: 'sm' })}
-                  >
-                    {loading ? 'Loading…' : current.status === 'error' ? 'Try again' : 'Load more'}
-                  </button>
-                </span>
-              ) : (
-                <p className="text-ink-muted signal-sm">End of the ladder</p>
-              )}
-            </div>
-          </>
-        ) : loading ? (
-          <p role="status" className="mt-4.5 text-ink-muted signal-sm">
-            Loading {title}…
-          </p>
-        ) : current.status === 'error' ? (
-          <div className="mt-4.5 flex flex-wrap items-center gap-3">
-            <p role="alert" className="text-negative body-sm">
-              Couldn&apos;t load {title}.
-            </p>
-            <button type="button" onClick={loadMore} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+      <section id={panelId} role="tabpanel" aria-labelledby={`ladder-tab-${ladder}`} className="oh-rl-panel">
+        <RailHead
+          num="01"
+          label={L.format + (seasonName ? ' · ' + seasonName : '')}
+          stamp={season ? "Season W–L–D counts from the season's start" : null}
+        />
+        {st.status === 'error' ? (
+          <div className="oh-rl-empty">
+            <h3>Couldn&apos;t read the ladder</h3>
+            <p>The leaderboard didn&apos;t load. The game server may be busy.</p>
+            <Button variant="primary" onClick={() => loadTop(ladder)}>
               Try again
-            </button>
+            </Button>
+          </div>
+        ) : !loading && !season ? (
+          <div className="oh-rl-empty">
+            <h3>No open {L.format} season</h3>
+            <p>There&apos;s no season running on this ladder right now, so there&apos;s nothing to rank.</p>
+          </div>
+        ) : !loading && !entries.length ? (
+          <div className="oh-rl-empty">
+            {/* eslint-disable-next-line @next/next/no-img-element -- fixed 60×56 mark, as in the bundle */}
+            <img src="/omega-mark.png" alt="" />
+            <h3>Nobody has played {seasonName} yet</h3>
+            <p>The season just started. The first ranked {L.format} game puts its players on the board.</p>
           </div>
         ) : (
-          empty
+          <Fragment>
+            {loading ? (
+              <div className="oh-podium-skel" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+            ) : (
+              <LeaderboardPodium rows={rows.slice(0, 3)} label={`Top three, ${L.format}`} />
+            )}
+            {rows.length > 3 || loading ? (
+              <Leaderboard
+                rows={rows.slice(3)}
+                loading={loading || st.status === 'more'}
+                label={`${L.format} ladder, rank 4 and below`}
+              />
+            ) : null}
+            <div className="oh-rl-foot">
+              <span className="oh-rl-count">{entries.length ? `Showing 1–${entries.at(-1)?.rank}` : ''}</span>
+              {st.nextCursor ? (
+                <Button onClick={more} disabled={st.status === 'more'} icon={st.status === 'more' ? undefined : 'down'}>
+                  {st.status === 'more' ? 'Loading…' : `Show ${limit} more`}
+                </Button>
+              ) : entries.length && !loading ? (
+                <span className="oh-rl-count">End of the ladder</span>
+              ) : null}
+            </div>
+          </Fragment>
         )}
       </section>
 
-      <section className="pt-section">
-        <h2 className="text-ink display-5">Tiers</h2>
-        <p className="mt-3.5 mb-4 max-w-[62ch] text-ink-dim body-sm">
-          A tier is a band of Elo, not a separate score, and it has no subdivisions. The Elo below is where each band
-          starts.
-        </p>
-        <TierLegend season={seasonCode} />
-      </section>
-
-      <section className="pt-section">
-        <Callout>
-          The live list is read from the game server and kept for 30 minutes, while a profile reads its Elo on every
-          visit — so right after a duel your profile can be a little ahead of the ladder. Past seasons show the rank,
-          Elo and tier frozen when the season closed, and only the games played in it.
-        </Callout>
-      </section>
+      <p className="oh-rl-note">
+        Elo and tier are read from the game server and cached for 30 minutes, so a profile can be a little ahead of this
+        list. W–L–D counts only games in the open season. Only duelists who have played it are listed.
+      </p>
     </div>
   )
 }
+
+/* ---------- PageHeader ---------- */
+export const PageHeader = ({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: string }) => (
+  <header className="oh-pagehead">
+    <div className="oh-pagehead-main">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h1 className="oh-pagehead-title">{title}</h1>
+      <p className="oh-pagehead-lead">{lead}</p>
+    </div>
+  </header>
+)

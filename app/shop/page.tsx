@@ -1,5 +1,4 @@
 import { Footer } from '@ui/footer'
-import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
 import { getCatalog } from '@utils/shop'
 import type { ShopCatalog } from '@utils/types'
@@ -14,21 +13,23 @@ export const metadata = pageMetadata({
 
 const EMPTY: ShopCatalog = { items: [], types: [], categories: [] }
 
-/** The page still renders with the API down; the empty state says there is nothing on sale. */
+/** The page still renders with the API down; the empty state says there is nothing on sale. `readAt` stamps the read. */
 const catalog = () =>
-  getCatalog().catch((error) => {
-    console.error(error)
-    return EMPTY
-  })
+  getCatalog()
+    .catch((error) => {
+      console.error(error)
+      return EMPTY
+    })
+    .then((data) => ({ data, readAt: new Date().toISOString() }))
 
-const ShopPageRoute = async () => (
-  <>
-    <Header />
-    <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
-      <ShopBrowser catalog={await catalog()} />
-    </main>
-    <Footer />
-  </>
-)
+const ShopPageRoute = async () => {
+  const { data, readAt } = await catalog()
+  return (
+    <>
+      <ShopBrowser catalog={data} readAt={readAt} />
+      <Footer />
+    </>
+  )
+}
 
 export default ShopPageRoute

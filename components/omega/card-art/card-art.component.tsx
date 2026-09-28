@@ -17,7 +17,7 @@ type CardArtProps = {
 
 /** Card artwork filling its container. The wrapper owns the size, the image only fills it. */
 export const CardArt = ({ art, alt, sizes, className, imageClassName, priority, children }: CardArtProps) => (
-  <div className={twMerge('relative overflow-hidden bg-surface-000', className)}>
+  <div className={twMerge('relative overflow-hidden bg-space-000', className)}>
     <Image
       src={CARD_ART_URL(art.id)}
       alt={alt ?? (art.name ? `${art.name} card artwork` : 'Card artwork')}

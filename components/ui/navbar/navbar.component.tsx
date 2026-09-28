@@ -2,15 +2,24 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { Icon } from '@iconify/react'
 import { twMerge } from 'tailwind-merge'
+import Button from '@ui/button'
 import { NAVBAR_ITEMS, type NavbarItem } from '@utils/const'
-import { CELL, CELL_IDLE, CELL_ON, MOBILE_ITEM, PANEL, PANEL_ITEM, PANEL_RULE } from './bar'
-import { LanguageSwitcher } from './language-switcher.component'
-import Logo from '@ui/logo/logo.component'
+import { CELL, CELL_IDLE, CELL_ON, MOBILE_ITEM, PANEL, PANEL_ITEM } from './bar'
 
-interface NavbarProps extends React.HTMLAttributes<HTMLElement> {
-  items?: typeof NAVBAR_ITEMS
+interface NavbarProps {
+  items?: NavbarItem[]
+  /** Right-hand actions on the wide bar. */
+  end?: React.ReactNode
+  /** Stays on the collapsed bar beside the menu button (the avatar). */
+  keep?: React.ReactNode
+  /** What the drawer shows under the links. */
+  drawerExtra?: React.ReactNode
+  /** The one action visible at every width; repeats at the foot of the drawer. */
+  cta?: React.ReactNode
 }
 
 /** `▾`, rotated when its menu is open. */
@@ -23,6 +32,14 @@ const isCurrent = (pathname: string, to: string) => (to === '/' ? pathname === '
 /** Whether any link under this entry is the page we are on, so a collapsed menu still lights up. */
 const isActive = (pathname: string, { to, children }: NavbarItem) =>
   to ? isCurrent(pathname, to) : !!children?.some((child) => isCurrent(pathname, child.to))
+
+const Brand = () => (
+  <Link href="/" aria-label="Omega Hub" className="flex shrink-0 items-center gap-2.5 text-ink wordmark text-[14px]">
+    {/* Raster with its own glow: only on space-000 / surface-100 / surface-200, never recolored. */}
+    <Image src="/omega-mark.png" alt="" width={30} height={28} priority />
+    <span className="hidden sm:inline">Omega Hub</span>
+  </Link>
+)
 
 /**
  * One top-level entry. Plain `to` entries are links; entries with `children` become a dropdown that
@@ -37,7 +54,7 @@ const NavbarCell = ({ entry, pathname }: { entry: NavbarItem; pathname: string }
       <Link
         href={entry.to}
         aria-current={active ? 'page' : undefined}
-        className={twMerge(CELL, "border-r border-line", active ? CELL_ON : CELL_IDLE)}
+        className={twMerge(CELL, active ? CELL_ON : CELL_IDLE)}
       >
         {entry.item}
       </Link>
@@ -55,7 +72,7 @@ const NavbarCell = ({ entry, pathname }: { entry: NavbarItem; pathname: string }
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
-        className={twMerge(CELL, "cursor-pointer border-r border-line", isOpen ? "bg-gold text-gold-on" : active ? CELL_ON : CELL_IDLE)}
+        className={twMerge(CELL, "cursor-pointer", isOpen ? "bg-surface-300 text-ink" : active ? CELL_ON : CELL_IDLE)}
       >
         {entry.item}
         <Caret isOpen={isOpen} />
@@ -74,75 +91,85 @@ const NavbarCell = ({ entry, pathname }: { entry: NavbarItem; pathname: string }
   )
 }
 
-export const Navbar = ({ className, items, ...props }: NavbarProps) => {
-  items = items ?? NAVBAR_ITEMS
+/**
+ * The SiteNav: mark, mono links and the right-hand actions. Below 1024px the links and `end` fold
+ * into a drawer that slides in from the right over a blurred scrim.
+ */
+export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: NavbarProps) => {
   const drawer = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
+  const close = () => drawer.current?.close()
+
+  const drawerLink = (key: string, to: string, label: string, current: boolean) => (
+    <Link
+      key={key}
+      href={to}
+      onClick={close}
+      aria-current={current ? 'page' : undefined}
+      className={twMerge(MOBILE_ITEM, current && "pl-3 text-ink shadow-selected [&>svg]:text-cyan")}
+    >
+      {label}
+      <Icon icon="mdi:chevron-right" aria-hidden className="text-base text-ink-muted" />
+    </Link>
+  )
 
   return (
     <>
-      <Link href="/" className="flex min-h-16 shrink-0 items-center gap-3 pl-6">
-        <Logo width='36' height='36' type='shadow' />
-      </Link>
+      <Brand />
 
-      <nav aria-label="Main" className={twMerge("flex min-w-0 flex-1 items-stretch", className)} {...props}>
-        <div className="hidden min-[1081px]:flex">
-          {items.map((entry) => (
-            <NavbarCell key={entry.item} entry={entry} pathname={pathname} />
-          ))}
-        </div>
+      <nav aria-label="Main" className="hidden items-stretch gap-1 lg:flex">
+        {items.map((entry) => (
+          <NavbarCell key={entry.item} entry={entry} pathname={pathname} />
+        ))}
+      </nav>
 
-        <div className='ml-auto flex items-center pr-4'>
-          <LanguageSwitcher />
-        </div>
-
-        <button
-          type="button"
-          aria-haspopup="dialog"
+      <div className="ml-auto flex items-center gap-4 max-lg:gap-2">
+        <div className="hidden items-center gap-4 lg:flex">{end}</div>
+        <div className="flex items-center lg:hidden">{keep}</div>
+        {cta}
+        <Button
+          variant="secondary"
+          size="icon-sm"
           aria-label="Open menu"
+          aria-haspopup="dialog"
           onClick={() => drawer.current?.showModal()}
-          className={twMerge(CELL, CELL_IDLE, "cursor-pointer border-l border-line font-bold min-[1081px]:hidden")}
+          className="lg:hidden"
         >
-          <span aria-hidden className="flex flex-col gap-0.75">
-            <span className="block h-0.5 w-4.25 bg-current" />
-            <span className="block h-0.5 w-4.25 bg-current" />
-            <span className="block h-0.5 w-4.25 bg-current" />
-          </span>
-          Menu
-        </button>
+          <Icon icon="mdi:menu" aria-hidden className="text-lg" />
+        </Button>
+      </div>
 
-        {/* Native <dialog> for the free focus trap, Escape and backdrop, restyled as a full-width
-            sheet under the bar. It appears and disappears; nothing in this system slides. */}
-        <dialog
-          ref={drawer}
-          aria-label="Menu"
-          onClick={(e) => e.target === drawer.current && drawer.current?.close()}
-          className="fixed inset-x-0 top-16 m-0 max-h-[calc(100dvh-4rem)] w-full max-w-none border-b border-line-strong bg-surface-000 text-ink shadow-offset-void backdrop:bg-scrim"
-        >
-          {NAVBAR_ITEMS.map((entry) =>
+      {/* Native <dialog> for the free focus trap, Escape, backdrop and focus return. */}
+      <dialog
+        id="site-drawer"
+        ref={drawer}
+        aria-label="Menu"
+        onClick={(e) => e.target === drawer.current && close()}
+        className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(360px,88vw)] max-w-none flex-col overflow-y-auto border-l border-line-mid bg-surface-100 text-ink shadow-lift [clip-path:polygon(var(--cut-lg)_0,100%_0,100%_100%,0_100%,0_var(--cut-lg))] open:flex backdrop:bg-scrim-soft backdrop:backdrop-blur-[10px] backdrop:backdrop-saturate-120 motion-safe:open:animate-drawer-in motion-safe:backdrop:animate-fade-in"
+      >
+        <div className="flex min-h-16 items-center justify-between gap-3 border-b border-line px-5">
+          <Brand />
+          <Button variant="secondary" size="icon-sm" aria-label="Close menu" autoFocus onClick={close}>
+            <Icon icon="mdi:close" aria-hidden className="text-lg" />
+          </Button>
+        </div>
+
+        <nav aria-label="Main" className="flex flex-col px-5 py-2">
+          {items.map((entry) =>
             entry.to ? (
-              <Link
-                key={entry.item}
-                href={entry.to}
-                onClick={() => drawer.current?.close()}
-                aria-current={isActive(pathname, entry) ? 'page' : undefined}
-                className={twMerge(MOBILE_ITEM, "font-bold", isActive(pathname, entry) && "text-gold")}
-              >
-                {entry.item}
-              </Link>
+              drawerLink(entry.item, entry.to, entry.item, isActive(pathname, entry))
             ) : (
               <div key={entry.item}>
-                <p className={twMerge(PANEL_RULE, "px-5 pt-3.25 pb-2")}>{entry.item}</p>
-                {entry.children?.map((child) => (
-                  <Link key={child.to} href={child.to} onClick={() => drawer.current?.close()} className={MOBILE_ITEM}>
-                    {child.item}
-                  </Link>
-                ))}
+                <p className="pt-4 pb-2 text-ink-muted signal-sm">{entry.item}</p>
+                {entry.children?.map((child) => drawerLink(child.to, child.to, child.item, isCurrent(pathname, child.to)))}
               </div>
             ),
           )}
-        </dialog>
-      </nav>
+        </nav>
+
+        {drawerExtra ? <div className="flex flex-col gap-4 p-5">{drawerExtra}</div> : null}
+        {cta ? <div className="mt-auto flex flex-col gap-3 border-t border-line p-5 [&>*]:w-full">{cta}</div> : null}
+      </dialog>
     </>
   )
 }

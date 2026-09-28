@@ -15,7 +15,7 @@ export const REGION_LABEL: Record<Region, string> = {
 
 /** Only the owner ever sees this: it is their own privacy setting, not a viewer-facing state. */
 export const VISIBILITY_LABEL: Record<Visibility, string> = {
-  everyone: 'Public profile',
+  everyone: 'Visible to everyone',
   friends_rivals: 'Visible to friends & rivals',
   friends: 'Visible to friends',
   nobody: 'Visible to you only',

@@ -15,7 +15,7 @@ const ExampleArticlePage = async () => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-surface-000">
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000">
         <ArticleView doc={EXAMPLE_DOC} slug="example" html={html}>
           <AsideBlock label="Document" className="bg-ground-subtle">
             <p className="mt-2 text-ink-dim mono-data">
@@ -25,7 +25,7 @@ const ExampleArticlePage = async () => {
         </ArticleView>
 
         <details className={twMerge('border-t border-line py-6', WIKI_PAD)}>
-          <summary className="cursor-pointer text-ink-muted signal-sm hover:text-gold">Stored document (JSON)</summary>
+          <summary className="cursor-pointer text-ink-muted signal-sm hover:text-cyan">Stored document (JSON)</summary>
           <pre className="mt-4 max-h-[60dvh] overflow-auto border border-line bg-surface-200 p-4 text-ink-dim mono-note">
             {JSON.stringify(EXAMPLE_DOC, null, 2)}
           </pre>

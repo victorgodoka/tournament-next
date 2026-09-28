@@ -1,20 +1,18 @@
-import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
-import { Hub, type HubTab } from "./sections/Hub";
+import { MessengerPage as Messenger } from "@omega/messenger";
 
 type MessengerPageProps = {
   initialId?: string
-  initialTab?: HubTab
+  initialTab?: 'requests'
 }
 
-/** The full friends / rivals list. The dock is left out here: this page is the dock, expanded. */
+/** The full-height, three-column messenger. The dock is left out here: this page is the dock, expanded. */
 const MessengerPage = ({ initialId, initialTab }: MessengerPageProps) => (
   <>
     <Header />
-    <main className="flex min-h-dvh flex-col overflow-x-hidden bg-surface-000 pt-16">
-      <Hub initialId={initialId} initialTab={initialTab} />
+    <main className="flex h-dvh flex-col overflow-hidden bg-space-000 pt-16">
+      <Messenger defaultSelected={initialId} defaultTab={initialTab} height="calc(100dvh - 64px)" />
     </main>
-    <Footer />
   </>
 )
 

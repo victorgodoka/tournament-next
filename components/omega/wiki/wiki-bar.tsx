@@ -76,7 +76,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
           />
         </span>
 
-        <Link href={link.to} className="whitespace-nowrap text-gold signal hover:text-cyan">
+        <Link href={link.to} className="whitespace-nowrap text-cyan signal hover:text-cyan">
           {link.label}
         </Link>
       </div>
@@ -90,7 +90,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
                 <Link
                   key={card.id}
                   href={`/wiki/card/${card.id}`}
-                  className="inline-flex items-baseline gap-2 border border-line bg-surface-000 px-2.75 py-1.75 text-ink caption font-bold hover:bg-gold hover:text-gold-on"
+                  className="inline-flex items-baseline gap-2 border border-line bg-space-000 px-2.75 py-1.75 text-ink caption font-bold hover:bg-cyan hover:text-cyan-on"
                 >
                   <span>{card.name ?? 'Unknown card'}</span>
                   <span className="mono-handle">{card.id}</span>
