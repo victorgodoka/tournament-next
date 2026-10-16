@@ -1,7 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { fromYdke } from '@utils/deck/codecs/ydke'
@@ -13,6 +14,7 @@ import { CardDetail } from './card-detail'
 import { CardPool } from './card-pool'
 import { shakeTiles } from './card-tile'
 import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
+import { DeckTray } from './deck-tray'
 import { DeckZone, type DragPayload } from './deck-zone'
 import { draftKey, readDraft, writeDraft, type Draft } from './drafts'
 import { HoverPreview } from './hover-preview'
@@ -71,6 +73,15 @@ const flushDraft = (unsaved: React.RefObject<{ key: string; draft: Draft } | nul
 
 const ZONE_OF: Partial<Record<Problem['code'], Zone>> = { 'main-size': 'main', 'extra-size': 'extra', 'side-size': 'side' }
 
+/** Tailwind's `lg`: the two-column editor. Below it, the pool and the deck tray. */
+const WIDE = '(min-width: 1024px)'
+const watchWide = (onChange: () => void) => {
+  const query = matchMedia(WIDE)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+const useWide = () => useSyncExternalStore(watchWide, () => matchMedia(WIDE).matches)
+
 const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const t = useTranslations('DeckEditor')
   const [{ state: bootState, damaged, today }] = useState(() => boot(deckId))
@@ -81,6 +92,8 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const [view, setView] = useState(readView)
   const { cards, failed, isPending, remember, ensure } = useCardCache()
   const [detail, setDetail] = useState<{ card: CardData; art: number } | null>(null)
+  const wide = useWide()
+  const [trayTab, setTrayTab] = useState<Zone>('main')
   const { deck } = state
   const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
   /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
@@ -142,8 +155,10 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   const jump = (problem: Problem) => {
     const id = problem.cardId === undefined ? undefined : deckIdsOf(deck, cards, problem.cardId)[0]
-    const target =
-      id !== undefined ? document.querySelector(`[data-card="${id}"]`) : document.getElementById(`zone-${ZONE_OF[problem.code] ?? 'main'}`)
+    const zone = id !== undefined ? ZONES.find((z) => deck[z].includes(id)) : (ZONE_OF[problem.code] ?? 'main')
+    // The tray shows one zone at a time: switch to the card's before looking for it.
+    if (!wide && zone) flushSync(() => setTrayTab(zone))
+    const target = id !== undefined ? document.querySelector(`section[data-zone] [data-card="${id}"]`) : document.getElementById(`zone-${zone}`)
     target?.scrollIntoView({ block: 'center' })
     target?.querySelector('button')?.focus({ preventScroll: true })
   }
@@ -192,70 +207,100 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       ? t(`rejected.${state.rejected.reason}`, { name: rejectedName })
       : t('counts', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length })
 
+  const toolbar = (
+    <Toolbar
+      name={state.name}
+      onRename={(name) => dispatch({ type: 'rename', name })}
+      banlists={banlists ?? []}
+      banlist={banlist}
+      onFormat={(format) => dispatch({ type: 'format', format })}
+      validity={validity}
+      problems={problems}
+      nameOf={(cardId) => {
+        const id = deckIdsOf(deck, cards, cardId)[0] ?? cardId
+        return cards.get(id)?.name ?? String(cardId)
+      }}
+      onJump={jump}
+      points={points}
+      canUndo={state.past.length > 0}
+      canRedo={state.future.length > 0}
+      onUndo={() => dispatch({ type: 'undo' })}
+      onRedo={() => dispatch({ type: 'redo' })}
+      onSort={() => dispatch({ type: 'sort', cards })}
+      view={view}
+      onView={changeView}
+      dirty={state.dirty}
+      onSave={() => {}} // Task 12
+    />
+  )
+
+  const alerts = (
+    <>
+      {notice ? (
+        <Alert tone="warn" edged title={t('damagedLink')} action={<Button variant="ghost" size="sm" onClick={() => setNotice(false)}>{t('dismiss')}</Button>} />
+      ) : null}
+      {lookupFailed ? (
+        <Alert
+          tone="negative"
+          edged
+          title={t('lookupFailed')}
+          action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)}>{t('retry')}</Button>}
+        />
+      ) : null}
+    </>
+  )
+
+  // One layout at a time, not both hidden by CSS: the toolbar and the zones carry ids that must stay unique.
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]">
-      <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
-        <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">
-          <Toolbar
-            name={state.name}
-            onRename={(name) => dispatch({ type: 'rename', name })}
-            banlists={banlists ?? []}
-            banlist={banlist}
-            onFormat={(format) => dispatch({ type: 'format', format })}
-            validity={validity}
-            problems={problems}
-            nameOf={(cardId) => {
-              const id = deckIdsOf(deck, cards, cardId)[0] ?? cardId
-              return cards.get(id)?.name ?? String(cardId)
-            }}
-            onJump={jump}
-            points={points}
-            canUndo={state.past.length > 0}
-            canRedo={state.future.length > 0}
-            onUndo={() => dispatch({ type: 'undo' })}
-            onRedo={() => dispatch({ type: 'redo' })}
-            onSort={() => dispatch({ type: 'sort', cards })}
-            view={view}
-            onView={changeView}
-            dirty={state.dirty}
-            onSave={() => {}} // Task 12
-          />
+      {wide ? (
+        <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
+          <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">{toolbar}</div>
+          {alerts}
+          {ZONES.map((zone) => (
+            <DeckZone
+              key={zone}
+              zone={zone}
+              ids={deck[zone]}
+              cards={cards}
+              view={view}
+              problems={flagged}
+              onRemove={(id) => dispatch({ type: 'remove', zone, id })}
+              onDropCard={dropCard(zone)}
+              onOpen={open}
+            />
+          ))}
         </div>
+      ) : null}
 
-        {notice ? (
-          <Alert tone="warn" edged title={t('damagedLink')} action={<Button variant="ghost" size="sm" onClick={() => setNotice(false)}>{t('dismiss')}</Button>} />
-        ) : null}
-        {lookupFailed ? (
-          <Alert
-            tone="negative"
-            edged
-            title={t('lookupFailed')}
-            action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)}>{t('retry')}</Button>}
-          />
-        ) : null}
-
-        {ZONES.map((zone) => (
-          <DeckZone
-            key={zone}
-            zone={zone}
-            ids={deck[zone]}
-            cards={cards}
-            view={view}
-            problems={flagged}
-            onRemove={(id) => dispatch({ type: 'remove', zone, id })}
-            onDropCard={dropCard(zone)}
-            onOpen={open}
-          />
-        ))}
-
-        <p aria-live="polite" className="sr-only">
-          {announcement}
-        </p>
-      </div>
-
-      <aside aria-label={t('pool.title')} className="px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line">
+      {/* Below lg the pool is the page; its bottom clears the tray's peek row (+16px). */}
+      <aside
+        aria-label={t('pool.title')}
+        className="flex flex-col gap-4 px-4 pt-3 pb-8 max-lg:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line"
+      >
+        {wide ? null : alerts}
         <CardPool deck={deck} cards={cards} banlist={banlist} onAdd={add} onOpen={(card) => setDetail({ card, art: card.id })} remember={remember} />
       </aside>
+
+      {wide ? null : (
+        <DeckTray
+          state={state}
+          cards={cards}
+          problems={problems}
+          validity={validity}
+          flagged={flagged}
+          tab={trayTab}
+          onTab={setTrayTab}
+          onRemove={(zone, id) => dispatch({ type: 'remove', zone, id })}
+          onDropCard={dropCard}
+          onOpen={open}
+          toolbar={toolbar}
+        />
+      )}
+
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
       <HoverPreview cards={cards} />
       <CardDetail

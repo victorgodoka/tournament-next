@@ -11,14 +11,19 @@ import type { ViewMode } from './deck-editor.reducer'
 
 const POPOVER_ID = 'deck-problems'
 
+/** `checking`: cards or banlists still loading. `unavailable`: the banlists failed, so no format checks ran. */
+export type Validity = 'checking' | 'unavailable' | 'ready'
+
+/** Below lg the toolbar lives in the deck tray's menu: 44px tap targets. */
+const TOUCH = 'max-lg:min-h-11'
+
 type ToolbarProps = {
   name: string
   onRename(name: string): void
   banlists: Banlist[]
   banlist: Banlist | null
   onFormat(id: number): void
-  /** `checking`: cards or banlists still loading. `unavailable`: the banlists failed, so no format checks ran. */
-  validity: 'checking' | 'unavailable' | 'ready'
+  validity: Validity
   problems: Problem[]
   /** Name shown for a problem's card (canonical id → a deck print's name, else the passcode). */
   nameOf(cardId: number): string
@@ -49,7 +54,7 @@ export const Toolbar = (p: ToolbarProps) => {
         placeholder={t('newDeck')}
         aria-label={t('toolbar.name')}
         maxLength={100}
-        plateClassName="min-w-0 flex-1 basis-48"
+        plateClassName="min-w-0 flex-1 basis-48 max-lg:h-11"
       />
       <Select
         banlist
@@ -58,7 +63,7 @@ export const Toolbar = (p: ToolbarProps) => {
         value={p.banlist ? String(p.banlist.id) : ''}
         onChange={(e) => p.onFormat(Number(e.target.value))}
         disabled={!p.banlists.length}
-        className="min-w-44"
+        className="min-w-44 max-lg:h-11"
       />
 
       {p.validity === 'checking' ? (
@@ -67,7 +72,7 @@ export const Toolbar = (p: ToolbarProps) => {
         </span>
       ) : p.problems.length ? (
         <>
-          <button type="button" popoverTarget={POPOVER_ID} className={twMerge(PILL, 'cursor-pointer text-crimson-lift [--edge:var(--color-crimson-lift)] hover:[--fill:var(--color-surface-300)]')}>
+          <button type="button" popoverTarget={POPOVER_ID} className={twMerge(PILL, 'cursor-pointer text-crimson-lift [--edge:var(--color-crimson-lift)] hover:[--fill:var(--color-surface-300)]', TOUCH)}>
             {t('problems', { count: p.problems.length })}
           </button>
           <div
@@ -86,7 +91,7 @@ export const Toolbar = (p: ToolbarProps) => {
                     popoverTarget={POPOVER_ID}
                     popoverTargetAction="hide"
                     onClick={() => p.onJump(problem)}
-                    className="w-full cursor-pointer px-3 py-2 text-left body-sm hover:bg-surface-300"
+                    className={twMerge('w-full cursor-pointer px-3 py-2 text-left body-sm hover:bg-surface-300', TOUCH)}
                   >
                     {t(`problem.${problem.code}`, { count: problem.count ?? 0, limit: problem.limit ?? 0, name: problem.cardId === undefined ? '' : p.nameOf(problem.cardId) })}
                   </button>
@@ -113,26 +118,28 @@ export const Toolbar = (p: ToolbarProps) => {
       ) : null}
 
       <div className="flex gap-1">
-        <Button variant="secondary" size="mono" aria-disabled={!p.canUndo || undefined} onClick={p.onUndo}>
+        <Button variant="secondary" size="mono" aria-disabled={!p.canUndo || undefined} onClick={p.onUndo} className={TOUCH}>
           {t('toolbar.undo')}
         </Button>
-        <Button variant="secondary" size="mono" aria-disabled={!p.canRedo || undefined} onClick={p.onRedo}>
+        <Button variant="secondary" size="mono" aria-disabled={!p.canRedo || undefined} onClick={p.onRedo} className={TOUCH}>
           {t('toolbar.redo')}
         </Button>
-        <Button variant="secondary" size="mono" onClick={p.onSort}>
+        <Button variant="secondary" size="mono" onClick={p.onSort} className={TOUCH}>
           {t('toolbar.sort')}
         </Button>
       </div>
 
+      {/* Below lg the toolbar sits in the deck tray, which always lists; the view only changes the desktop deck. */}
       <Segmented
         size="sm"
         label={t('toolbar.view')}
         value={p.view}
         onChange={p.onView}
         options={(['grid', 'list', 'stacked'] as const).map((v) => ({ value: v, label: t(`views.${v}`) }))}
+        className="max-lg:hidden"
       />
 
-      <Button size="mono" onClick={p.onSave} className="ml-auto">
+      <Button size="mono" onClick={p.onSave} className={twMerge('ml-auto', TOUCH)}>
         {t('toolbar.save')}
         {p.dirty ? (
           <>

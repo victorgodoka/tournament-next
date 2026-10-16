@@ -37,7 +37,7 @@ type RangeInputProps = { value: number | undefined; onCommit(value: number | und
 /** A number that reaches the query 250 ms after typing stops (or on blur), like the search text. */
 const RangeInput = ({ value, onCommit, ...props }: RangeInputProps) => {
   const lazy = useLazyText(value === undefined ? '' : String(value), (text) => onCommit(toInt(text)), 250)
-  return <TextInput type="number" inputMode="numeric" plateClassName="min-w-0 flex-1" {...props} {...lazy} />
+  return <TextInput type="number" inputMode="numeric" plateClassName="min-w-0 flex-1 max-lg:h-11" {...props} {...lazy} />
 }
 
 type PoolFiltersProps = {
@@ -48,7 +48,10 @@ type PoolFiltersProps = {
   banlist: Banlist | null
 }
 
-/** Every `GET /cards` filter, in a drawer from the right. Changes apply as they are made; Done closes. */
+/**
+ * Every `GET /cards` filter, in a drawer from the right (a full-screen sheet below lg). Changes apply
+ * as they are made; Done closes.
+ */
 export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFiltersProps) => {
   const t = useTranslations('DeckEditor.filters')
   const ref = useRef<HTMLDialogElement>(null)
@@ -67,7 +70,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
   const chips = (key: 'types' | 'race' | 'attribute' | 'status', values: readonly string[], label: (v: string) => string) => (
     <div className="flex flex-wrap gap-x-1">
       {values.map((v) => (
-        <FilterChip key={v} pressed={query[key].includes(v)} label={label(v)} onClick={() => patch({ [key]: toggle(query[key], v) })} />
+        <FilterChip key={v} pressed={query[key].includes(v)} label={label(v)} onClick={() => patch({ [key]: toggle(query[key], v) })} className="max-lg:py-1.25" />
       ))}
     </div>
   )
@@ -103,11 +106,11 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(440px,92vw)] max-w-none flex-col border-l border-line-mid bg-surface-100 text-ink shadow-lift open:flex backdrop:bg-scrim motion-safe:open:animate-drawer-in motion-safe:backdrop:animate-fade-in"
+      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(440px,92vw)] max-w-none flex-col border-l border-line-mid max-lg:w-full max-lg:border-l-0 bg-surface-100 text-ink shadow-lift open:flex backdrop:bg-scrim motion-safe:open:animate-drawer-in motion-safe:backdrop:animate-fade-in"
     >
       <header className="flex min-h-16 items-center justify-between gap-3 border-b border-line px-5">
         <h2 id={titleId} className="signal-strong">{t('title')}</h2>
-        <Button variant="ghost" size="icon" aria-label={t('close')} onClick={onClose}>
+        <Button variant="ghost" size="icon" aria-label={t('close')} onClick={onClose} className="max-lg:size-11">
           <Icon name="close" />
         </Button>
       </header>
@@ -122,7 +125,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
               </Tag>
             </div>
           ) : (
-            <Lookup label={t('archetype')} placeholder={t('archetypeSearch')} search={searchArchetypes} onPick={(o) => patch({ archetype: String(o.key) })} />
+            <Lookup label={t('archetype')} placeholder={t('archetypeSearch')} search={searchArchetypes} onPick={(o) => patch({ archetype: String(o.key) })} className="max-lg:[&>label]:h-11" />
           ),
         )}
         {section(t('types'), chips('types', TYPES, titleCase))}
@@ -148,14 +151,14 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
                   aria-label={t(`arrows.${arrow}`)}
                   onClick={() => patch({ linkMarkers: toggle(query.linkMarkers, arrow) })}
                   className={twMerge(
-                    'cut grid size-10 cursor-pointer place-items-center text-lg [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]',
+                    'cut grid size-10 cursor-pointer max-lg:size-11 place-items-center text-lg [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]',
                     query.linkMarkers.includes(arrow) ? 'text-ink [--edge:var(--color-cyan)] [--fill:var(--color-ground-cyan)]' : 'text-ink-dim hover:text-ink',
                   )}
                 >
                   <span aria-hidden>{ARROW_GLYPH[arrow]}</span>
                 </button>
               ) : (
-                <button key={i} type="button" disabled aria-hidden tabIndex={-1} className="size-10 bg-surface-300 opacity-(--opacity-dim)" />
+                <button key={i} type="button" disabled aria-hidden tabIndex={-1} className="size-10 bg-surface-300 opacity-(--opacity-dim) max-lg:size-11" />
               ),
             )}
           </div>,
@@ -171,7 +174,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
                 aria-label={t(key)}
                 value={query[key] ?? ''}
                 onChange={(e) => patch({ [key]: e.target.value || undefined })}
-                plateClassName="min-w-0 flex-1"
+                plateClassName="min-w-0 flex-1 max-lg:h-11"
               />
             ))}
           </div>
@@ -183,10 +186,12 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
       </div>
 
       <footer className="flex items-center justify-end gap-3 border-t border-line p-5">
-        <Button variant="ghost" onClick={() => onChange(resetFilters(query))}>
+        <Button variant="ghost" onClick={() => onChange(resetFilters(query))} className="max-lg:min-h-11">
           {t('reset')}
         </Button>
-        <Button onClick={onClose}>{t('done')}</Button>
+        <Button onClick={onClose} className="max-lg:min-h-11">
+          {t('done')}
+        </Button>
       </footer>
     </dialog>
   )

@@ -91,13 +91,13 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
               return (
                 <li key={zone} className="flex items-center gap-2 py-1.5">
                   <span className="flex-1 text-ink-dim signal-sm">{t(`zones.${zone}`)}</span>
-                  <Button variant="secondary" size="icon-sm" aria-label={t('detail.removeFrom', { zone: t(`zones.${zone}`) })} aria-disabled={!count || undefined} onClick={() => count && onRemove(selected, zone)}>
+                  <Button variant="secondary" size="icon-sm" aria-label={t('detail.removeFrom', { zone: t(`zones.${zone}`) })} aria-disabled={!count || undefined} onClick={() => count && onRemove(selected, zone)} className="max-lg:size-11">
                     −
                   </Button>
                   <output aria-label={t('detail.inZone', { count, zone: t(`zones.${zone}`) })} className="w-6 text-center text-ink mono-data">
                     {count}
                   </output>
-                  <Button variant="secondary" size="icon-sm" aria-label={t('detail.addTo', { zone: t(`zones.${zone}`) })} onClick={() => onAdd(printOf(card, selected), zone)}>
+                  <Button variant="secondary" size="icon-sm" aria-label={t('detail.addTo', { zone: t(`zones.${zone}`) })} onClick={() => onAdd(printOf(card, selected), zone)} className="max-lg:size-11">
                     +
                   </Button>
                 </li>

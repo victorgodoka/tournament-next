@@ -64,7 +64,8 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
       data-tile
       {...button}
       className={twMerge(
-        'relative block aspect-[59/86] w-full cursor-pointer overflow-hidden bg-surface-300 text-left',
+        // No selection or iOS callout under a long press.
+        'relative block aspect-[59/86] w-full cursor-pointer overflow-hidden bg-surface-300 text-left select-none [-webkit-touch-callout:none]',
         problem && 'outline outline-2 outline-crimson-lift',
         className,
       )}

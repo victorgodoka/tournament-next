@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { SectionHead } from '@ui/section-head'
 import { TypeCounts, type CardType } from '@ui/type-counts'
@@ -9,6 +9,7 @@ import { frameOf } from '@utils/deck/model'
 import type { CardMap, Zone } from '@utils/deck/types'
 import type { ViewMode } from './deck-editor.reducer'
 import { CardTile } from './card-tile'
+import { swipeCommits, swipeTravel } from './gestures'
 
 export type DragPayload = { from: Zone | 'pool'; id: number; index?: number }
 
@@ -42,6 +43,9 @@ const SIZES = {
   side: '(min-width: 1024px) 4vw, (min-width: 640px) 12vw, 20vw',
 }
 
+/** 32px on a desktop row, 44px tap targets below lg or on a coarse pointer. */
+const ROW_BUTTON = 'size-8 shrink-0 cursor-pointer text-ink-dim hover:text-ink max-lg:size-11 pointer-coarse:size-11'
+
 type DeckZoneProps = {
   zone: Zone
   ids: number[]
@@ -57,6 +61,8 @@ type DeckZoneProps = {
 export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCard, onOpen }: DeckZoneProps) => {
   const t = useTranslations('DeckEditor.zones')
   const [over, setOver] = useState(false)
+  const [swipe, setSwipe] = useState<{ id: number; dx: number } | null>(null)
+  const swipeStart = useRef<{ id: number; x: number; y: number } | null>(null)
 
   const unique = useMemo(() => {
     const counts = new Map<number, number>()
@@ -74,6 +80,31 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
   }, [ids, cards])
 
   const nameOf = (id: number) => cards.get(id)?.name ?? String(id)
+
+  /** List rows: a touch or pen swipe left past 64 px removes a copy; the row follows the finger until then. */
+  const rowSwipe = (id: number) => {
+    const end = () => {
+      swipeStart.current = null
+      setSwipe(null)
+    }
+    return {
+      onPointerDown: (e: React.PointerEvent) => {
+        swipeStart.current = e.pointerType === 'mouse' ? null : { id, x: e.clientX, y: e.clientY }
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        const s = swipeStart.current
+        if (s?.id !== id) return
+        const dx = swipeTravel(e.clientX - s.x, e.clientY - s.y)
+        setSwipe(dx ? { id, dx } : null)
+      },
+      onPointerUp: (e: React.PointerEvent) => {
+        const s = swipeStart.current
+        end()
+        if (s?.id === id && swipeCommits(e.clientX - s.x, e.clientY - s.y)) onRemove(id)
+      },
+      onPointerCancel: end,
+    }
+  }
 
   const dragStart = (id: number, index: number) => (e: React.DragEvent) => {
     e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ from: zone, id, index } satisfies DragPayload))
@@ -123,6 +154,7 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
             const card = cards.get(id)
             const level = card?.level
             const levelKey = card?.monsterTypes.includes('xyz') ? 'rank' : card?.monsterTypes.includes('link') ? 'link' : 'level'
+            const dx = swipe?.id === id ? swipe.dx : 0
             return (
               <li
                 key={id}
@@ -131,18 +163,27 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
                 draggable
                 onDragStart={dragStart(id, ids.indexOf(id))}
                 onContextMenu={open(id)}
-                className={twMerge('flex items-center gap-3 px-2 py-1.5', problems.has(id) && 'outline outline-2 outline-crimson-lift')}
+                {...rowSwipe(id)}
+                // pan-y: the list still scrolls under a vertical swipe; horizontal ones come to us.
+                className={twMerge('relative touch-pan-y overflow-hidden', problems.has(id) && 'outline outline-2 outline-crimson-lift')}
               >
-                <span className="w-8 shrink-0 text-ink-muted mono-data">{t('copies', { count })}</span>
-                <span className="min-w-0 flex-1 truncate text-ink body-sm">{nameOf(id)}</span>
-                <span className="shrink-0 text-ink-muted signal-sm max-sm:hidden">{card?.humanReadableCardType}</span>
-                <span className="w-14 shrink-0 text-ink-muted signal-sm">{level != null ? t(levelKey, { level }) : null}</span>
-                <button type="button" aria-label={t('removeOne', { name: nameOf(id) })} onClick={() => onRemove(id)} className="size-8 cursor-pointer text-ink-dim hover:text-ink">
-                  −
-                </button>
-                <button type="button" aria-label={t('addOne', { name: nameOf(id) })} onClick={() => onDropCard({ from: 'pool', id })} className="size-8 cursor-pointer text-ink-dim hover:text-ink">
-                  +
-                </button>
+                {dx ? (
+                  <span aria-hidden style={{ width: -dx }} className="absolute inset-y-0 right-0 grid place-items-center overflow-hidden bg-crimson text-ink mono-data">
+                    −1
+                  </span>
+                ) : null}
+                <div style={dx ? { transform: `translateX(${dx}px)` } : undefined} className="flex items-center gap-3 px-2 py-1.5">
+                  <span className="w-8 shrink-0 text-ink-muted mono-data">{t('copies', { count })}</span>
+                  <span className="min-w-0 flex-1 truncate text-ink body-sm">{nameOf(id)}</span>
+                  <span className="shrink-0 text-ink-muted signal-sm max-sm:hidden">{card?.humanReadableCardType}</span>
+                  <span className="w-14 shrink-0 text-ink-muted signal-sm">{level != null ? t(levelKey, { level }) : null}</span>
+                  <button type="button" aria-label={t('removeOne', { name: nameOf(id) })} onClick={() => onRemove(id)} className={ROW_BUTTON}>
+                    −
+                  </button>
+                  <button type="button" aria-label={t('addOne', { name: nameOf(id) })} onClick={() => onDropCard({ from: 'pool', id })} className={ROW_BUTTON}>
+                    +
+                  </button>
+                </div>
               </li>
             )
           })}

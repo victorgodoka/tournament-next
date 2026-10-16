@@ -67,6 +67,15 @@
       "zone": "{name} não pode ir para esse deck"
     },
     "counts": "Main {main}, Extra {extra}, Side {side}",
+    "tray": {
+      "label": "Deck",
+      "counts": "Main {main} · Extra {extra} · Side {side}",
+      "main": "Main",
+      "extra": "Extra",
+      "side": "Side",
+      "zones": "Partes do deck",
+      "actions": "Ações do deck"
+    },
     "facts": {
       "atk": "ATK {value}",
       "def": "DEF {value}",
