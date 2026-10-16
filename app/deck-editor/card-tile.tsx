@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon } from '@ui/icon'
 import type { CardType } from '@ui/type-counts'
 import { frameOf } from '@utils/deck/model'
 import type { CardData } from '@utils/deck/types'
@@ -34,6 +35,8 @@ type CardTileProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'id' | 
   problem?: boolean
   /** The button's accessible name when it says more than the card's name ("Remove a copy of …"). */
   label?: string
+  /** Adds an info button over the top-right corner that opens the card's detail sheet. */
+  onInfo?(): void
 }
 
 /** Light frames take dark text, as in `TypeCounts`. */
@@ -42,7 +45,7 @@ const LIGHT_FRAMES: CardType[] = ['normal', 'spell', 'synchro']
 const BADGE ='absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
 
 /** A card scan at 59:86. Without data, or when the scan fails, a frame-coloured plate with the name or passcode. */
-export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, className, ...button }: CardTileProps) => {
+export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, onInfo, className, ...button }: CardTileProps) => {
   const t = useTranslations('DeckEditor.tile')
   const [failed, setFailed] = useState(false)
   const name = card?.name ?? String(id)
@@ -54,7 +57,7 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
 
   const frame = card && frameOf(card)
 
-  return (
+  const tile = (
     <button
       type="button"
       title={name}
@@ -104,5 +107,23 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
         </span>
       ) : null}
     </button>
+  )
+  if (!onInfo) return tile
+
+  // A sibling, not a child: a click here never reaches the tile's add/remove. Out of the tab order,
+  // since Enter on the tile opens the same sheet; always shown where there is no hover.
+  return (
+    <div className="group relative">
+      {tile}
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={t('info', { name })}
+        onClick={onInfo}
+        className="absolute top-0 right-0 grid size-7 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:opacity-100 [@media(hover:none)]:opacity-100"
+      >
+        <Icon name="info" size={14} />
+      </button>
+    </div>
   )
 }

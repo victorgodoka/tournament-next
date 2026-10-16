@@ -73,7 +73,7 @@ export type PoolQuery = {
   format?: 'tcg' | 'ocg'
   releasedAfter?: string
   releasedBefore?: string
-  sort:'name' | 'atk' | 'def' | 'level' | 'released_tcg' | 'released_ocg'
+  sort: 'name' | 'atk' | 'def' | 'level' | 'released_tcg' | 'released_ocg'
   order: 'asc' | 'desc'
 }
 

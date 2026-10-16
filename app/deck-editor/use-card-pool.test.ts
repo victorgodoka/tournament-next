@@ -61,6 +61,26 @@ describe('useCardPool', () => {
     expect(result.current.cards.map((c) => c.id)).toEqual([1])
   })
 
+  it('starts from page 1 on returning to an earlier query, never showing its old pages as current', async () => {
+    const A: PoolQuery = EMPTY_POOL_QUERY
+    const B: PoolQuery = { ...EMPTY_POOL_QUERY, kind: ['spell'] }
+    queryCards.mockReturnValueOnce(page([1], 9)).mockReturnValueOnce(page([2], 9)) // A1, A2
+    const { result, rerender } = renderHook(({ q }) => useCardPool(q), { initialProps: { q: A } })
+    await settle()
+    act(() => result.current.more())
+    await settle()
+    expect(result.current.cards.map((c) => c.id)).toEqual([1, 2])
+
+    queryCards.mockReturnValueOnce(new Promise(() => {})) // B never lands
+    rerender({ q: B })
+    queryCards.mockReturnValueOnce(page([1], 9))
+    rerender({ q: A })
+    expect(queryCards.mock.calls.at(-1)!.slice(0, 2)).toEqual([A, 1])
+    expect(result.current).toMatchObject({ loading: true, cards: [] }) // A's old pages aren't current
+    await settle()
+    expect(result.current.cards.map((c) => c.id)).toEqual([1])
+  })
+
   it('reports a failure and retries the same page', async () => {
     queryCards.mockReturnValueOnce(Promise.reject(new Error('down'))).mockReturnValueOnce(page([1], 1))
     const { result } = renderHook(() => useCardPool(EMPTY_POOL_QUERY))

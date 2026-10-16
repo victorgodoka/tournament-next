@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useId, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useLazyText } from '@hooks/index'
 import { Button } from '@ui/button'
 import { FilterChip, Tag } from '@ui/chip'
 import { FIELD_LABEL, TextInput } from '@ui/field'
@@ -30,6 +31,14 @@ const searchArchetypes = async (text: string, signal: AbortSignal): Promise<Look
   (await findArchetypes(text, signal)).map(({ name }) => ({ key: name, label: name }))
 
 const toInt = (value: string) => (value.trim() === '' || !Number.isFinite(Number(value)) ? undefined : Math.trunc(Number(value)))
+
+type RangeInputProps = { value: number | undefined; onCommit(value: number | undefined): void; 'aria-label': string; placeholder: string }
+
+/** A number that reaches the query 250 ms after typing stops (or on blur), like the search text. */
+const RangeInput = ({ value, onCommit, ...props }: RangeInputProps) => {
+  const lazy = useLazyText(value === undefined ? '' : String(value), (text) => onCommit(toInt(text)), 250)
+  return <TextInput type="number" inputMode="numeric" plateClassName="min-w-0 flex-1" {...props} {...lazy} />
+}
 
 type PoolFiltersProps = {
   open: boolean
@@ -68,15 +77,12 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
       <legend className={FIELD_LABEL}>{t(key)}</legend>
       <div className="flex gap-2">
         {(['Min', 'Max'] as const).map((end) => (
-          <TextInput
+          <RangeInput
             key={end}
-            type="number"
-            inputMode="numeric"
             aria-label={t(`range${end}`, { label: t(key) })}
             placeholder={t(`range${end}Short`)}
-            value={query[`${key}${end}`] ?? ''}
-            onChange={(e) => patch({ [`${key}${end}`]: toInt(e.target.value) })}
-            plateClassName="min-w-0 flex-1"
+            value={query[`${key}${end}`]}
+            onCommit={(value) => patch({ [`${key}${end}`]: value })}
           />
         ))}
       </div>

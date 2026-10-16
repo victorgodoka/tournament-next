@@ -22,6 +22,15 @@ const SORTS = ['name-asc', 'name-desc', 'atk-desc', 'atk-asc', 'def-desc', 'leve
 // Four columns in a ~38vw column on lg.
 const SIZES = '(min-width: 1024px) 10vw, (min-width: 640px) 20vw, 33vw'
 
+/** The nearest ancestor that scrolls vertically, or null (the viewport). */
+const scrollParent = (el: HTMLElement): HTMLElement | null => {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const { overflowY } = getComputedStyle(p)
+    if (overflowY === 'auto' || overflowY === 'scroll') return p
+  }
+  return null
+}
+
 type CardPoolProps = {
   deck: Deck
   cards: CardMap
@@ -46,7 +55,8 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
     const el = sentinel.current
     if (!el) return
     // Re-observing after each page fires once more, so a short page that leaves the sentinel visible loads the next.
-    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && more(), { rootMargin: '400px' })
+    // The root is the column that scrolls (lg), else the viewport; rootMargin only prefetches against the real root.
+    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && more(), { root: scrollParent(el), rootMargin: '400px' })
     observer.observe(el)
     return () => observer.disconnect()
   }, [more])
@@ -131,7 +141,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
                 e.preventDefault()
                 onAdd(card, 'side')
               }}
-              onDoubleClick={() => onOpen(card)}
+              onInfo={() => onOpen(card)}
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ from: 'pool', id: card.id } satisfies DragPayload))

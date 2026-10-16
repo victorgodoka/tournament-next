@@ -162,7 +162,7 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
                   label={t('removeOne', { name: nameOf(id) })}
                   onClick={() => onRemove(id)}
                   onContextMenu={open(id)}
-                  onDoubleClick={open(id)}
+                  onInfo={() => onOpen(id)}
                   draggable
                   onDragStart={dragStart(id, index)}
                 />

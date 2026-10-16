@@ -45,7 +45,7 @@ describe('activeFilterCount', () => {
     expect(activeFilterCount(EMPTY_POOL_QUERY)).toBe(0)
     expect(activeFilterCount({ ...EMPTY_POOL_QUERY, archetype: 'Sky Striker', types: ['xyz', 'effect'], levelMin: 4, levelMax: 4, atkMax: 2000 })).toBe(4)
     // Quick chips and the search are on screen already.
-    expect(activeFilterCount({ ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster'], extraDeck: true })).toBe(0)
+    expect(activeFilterCount({ ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster'], extraDeck: true, attribute: ['dark'] })).toBe(0)
   })
 
   it('ignores a release window that is not sent', () => {

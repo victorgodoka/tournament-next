@@ -27,7 +27,7 @@ export const canonicalId = (card: CardData): number => card.alias ?? card.ruleId
 export const printOf = (card: CardData, passcode: number): CardData =>
   passcode === card.id ? card : { ...card, id: passcode, alias: canonicalId(card) }
 
-export const copiesOf =(deck: Deck, card: CardData, cards: CardMap): number => {
+export const copiesOf = (deck: Deck, card: CardData, cards: CardMap): number => {
   const target = canonicalId(card)
   return [...deck.main, ...deck.extra, ...deck.side].filter((id) => {
     const c = cards.get(id)

@@ -45,7 +45,8 @@
       "limited": "Limitada",
       "semiLimited": "Semilimitada",
       "points": "{points} pontos",
-      "inDeck": "{count} no deck"
+      "inDeck": "{count} no deck",
+      "info": "Detalhes da carta: {name}"
     },
     "problem": {
       "main-size": "O Main Deck tem {count} cartas; precisa ter de 40 a 60.",

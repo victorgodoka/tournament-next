@@ -8,9 +8,9 @@ type Keys = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'al
 const ARROWS: Record<string, Arrow> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
 const PLAIN: Record<string, Shortcut> = { '/': 'search', '+': 'add', '-': 'remove', s: 'side', S: 'side', Enter: 'open', ...ARROWS }
 
-/** The editor's shortcut for a key press, or null. Nothing fires while typing in a field. */
-export const shortcutOf = (e: Keys, typing: boolean): Shortcut | null => {
-  if (typing || e.altKey) return null
+/** The editor's shortcut for a key press, or null. Nothing fires while the focused element owns the keys. */
+export const shortcutOf = (e: Keys, owned: boolean): Shortcut | null => {
+  if (owned || e.altKey) return null
   if (e.ctrlKey || e.metaKey) {
     const key = e.key.toLowerCase()
     if (key === 'z') return e.shiftKey ? 'redo' : 'undo'
@@ -25,7 +25,16 @@ export const nextIndex = (index: number, arrow: Arrow, columns: number, length: 
   return next >= 0 && next < length ? next : index
 }
 
-const isTyping = (el: Element | null) => !!el?.closest('input, textarea, select, [contenteditable="true"]')
+const TEXT_INPUTS = ['text', 'search', 'number', 'email', 'url', 'password', 'tel']
+
+/**
+ * Keys belong to the focused element: a text-like field (Ctrl+Z is its own undo; a checkbox or radio
+ * doesn't count), or anything in an open dialog (the detail sheet, the filters drawer).
+ */
+export const ownsKeys = (el: Element | null): boolean =>
+  !!el &&
+  ((el instanceof HTMLInputElement ? TEXT_INPUTS.includes(el.type) : !!el.closest('textarea, select, [contenteditable=""], [contenteditable="true"]')) ||
+    !!el.closest('dialog[open]'))
 
 /** The tile a shortcut acts on: its passcode and where it sits (`pool`, `main`, `extra` or `side`). */
 export type FocusedTile = { id: number; zone: string }
@@ -53,7 +62,7 @@ export const useEditorKeys = (handlers: Handlers) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const active = document.activeElement
-      const shortcut = shortcutOf(e, isTyping(active))
+      const shortcut = shortcutOf(e, ownsKeys(active))
       if (!shortcut) return
       if (shortcut === 'search') {
         document.getElementById('pool-search')?.focus()

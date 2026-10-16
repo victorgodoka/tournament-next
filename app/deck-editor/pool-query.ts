@@ -34,9 +34,12 @@ const RANGES = [
   ['releasedAfter', 'releasedBefore'],
 ] as const
 
-/** Filters the drawer holds, one per field or range. Pass the effective query so unsent filters don't count. */
+/**
+ * Filters only the drawer shows, one per field or range; the quick chips (kind, Extra, attributes) are
+ * on screen already. Pass the effective query so unsent filters don't count.
+ */
 export const activeFilterCount = (q: PoolQuery): number =>
-  [q.archetype, q.types.length, q.race.length, q.attribute.length, q.linkMarkers.length, q.status.length].filter(Boolean).length +
+  [q.archetype, q.types.length, q.race.length, q.linkMarkers.length, q.status.length].filter(Boolean).length +
   RANGES.filter(([min, max]) => (min !== 'releasedAfter' || q.format) && (q[min] !== undefined || q[max] !== undefined)).length
 
 /** Clears the drawer, keeping the search, the quick chips, the sort and legal-only. */

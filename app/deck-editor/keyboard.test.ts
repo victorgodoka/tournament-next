@@ -1,5 +1,31 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { nextIndex, shortcutOf } from './keyboard'
+import { nextIndex, ownsKeys, shortcutOf } from './keyboard'
+
+describe('ownsKeys', () => {
+  const make = (html: string) => {
+    document.body.innerHTML = html
+    return (selector: string) => document.querySelector(selector)
+  }
+
+  it('is true in text-like fields, false on switches, radios and checkboxes', () => {
+    const $ = make(
+      '<input id="plain"><input id="search" type="search"><input id="num" type="number"><textarea></textarea><select></select>' +
+        '<div contenteditable="true"><span id="rich"></span></div>' +
+        '<input id="radio" type="radio"><input id="check" type="checkbox"><button id="switch" role="switch"></button>',
+    )
+    for (const s of ['#plain', '#search', '#num', 'textarea', 'select', '#rich']) expect(ownsKeys($(s)), s).toBe(true)
+    for (const s of ['#radio', '#check', '#switch']) expect(ownsKeys($(s)), s).toBe(false)
+    expect(ownsKeys(null)).toBe(false)
+  })
+
+  it('is true for anything inside an open dialog only', () => {
+    const $ = make('<dialog open><button id="in"></button></dialog><dialog><button id="closed"></button></dialog><button id="out"></button>')
+    expect(ownsKeys($('#in'))).toBe(true)
+    expect(ownsKeys($('#closed'))).toBe(false)
+    expect(ownsKeys($('#out'))).toBe(false)
+  })
+})
 
 const key = (k: string, mods: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean; altKey?: boolean } = {}) => ({
   key: k,

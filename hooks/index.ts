@@ -91,10 +91,11 @@ export function useResource<T>(key: string | null, load: (signal: AbortSignal) =
 }
 
 /**
- * A text field that keeps its keystrokes local and hands the text to `commit` 400 ms after typing
- * stops, or on blur. For fields whose parent is expensive to re-render. Spread onto the input.
+ * A text field that keeps its keystrokes local and hands the text to `commit` `delay` ms (400 by
+ * default) after typing stops, or on blur. For fields whose parent is expensive to re-render, or
+ * whose value starts a request. Spread onto the input.
  */
-export function useLazyText(value: string, commit: (text: string) => void) {
+export function useLazyText(value: string, commit: (text: string) => void, delay = 400) {
   const [text, setText] = useState(value)
   const [seen, setSeen] = useState(value)
   const commitRef = useRef(commit)
@@ -122,7 +123,7 @@ export function useLazyText(value: string, commit: (text: string) => void) {
       const next = e.target.value
       setText(next)
       clearTimeout(timer.current)
-      timer.current = setTimeout(() => flush(next), 400)
+      timer.current = setTimeout(() => flush(next), delay)
     },
     onBlur: () => flush(text),
   }

@@ -11,13 +11,18 @@ const WIDTH = 320
 const GAP = 12
 const FINE_POINTER = '(hover: hover) and (pointer: fine)'
 
-type Shown = { id: number; left: number; top?: number; bottom?: number }
+type Shown = { id: number; left: number; top?: number; bottom?: number; maxHeight: number }
 
-/** Beside the card on whichever side has room; anchored to its top, or its bottom in the lower half. */
+/**
+ * Beside the card on whichever side has room; anchored to its top, or its bottom in the lower half.
+ * It grows away from the anchor and stops a gap short of the viewport's far edge.
+ */
 const place = (id: number, rect: DOMRect): Shown => {
   const right = rect.right + GAP + WIDTH <= window.innerWidth
   const left = right ? rect.right + GAP : Math.max(GAP, rect.left - GAP - WIDTH)
-  return rect.top > window.innerHeight / 2 ? { id, left, bottom: Math.max(GAP, window.innerHeight - rect.bottom) } : { id, left, top: Math.max(GAP, rect.top) }
+  const low = rect.top > window.innerHeight / 2
+  const edge = Math.max(GAP, low ? window.innerHeight - rect.bottom : rect.top) // distance from the anchored edge
+  return { id, left, ...(low ? { bottom: edge } : { top: edge }), maxHeight: window.innerHeight - edge - GAP }
 }
 
 /**
@@ -68,8 +73,8 @@ export const HoverPreview = ({ cards }: { cards: CardMap }) => {
   return (
     <div
       aria-hidden
-      style={{ left: shown.left, top: shown.top, bottom: shown.bottom, width: WIDTH }}
-      className="pointer-events-none fixed z-(--z-overlay) flex max-h-[calc(100dvh-24px)] flex-col gap-3 overflow-hidden bg-surface-200 p-3 shadow-lift"
+      style={{ left: shown.left, top: shown.top, bottom: shown.bottom, maxHeight: shown.maxHeight, width: WIDTH }}
+      className="pointer-events-none fixed z-(--z-overlay) flex flex-col gap-3 overflow-hidden bg-surface-200 p-3 shadow-lift"
     >
       <div className="relative aspect-[59/86] w-full shrink-0 bg-surface-300">
         {/* 320 CSS px resolves to the 640 scan at 1x and 2x alike. */}
