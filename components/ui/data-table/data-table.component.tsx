@@ -9,6 +9,8 @@ export type Column<R> = {
   strong?: boolean
   width?: number | string
   render?: (row: R) => React.ReactNode
+  /** Set on a sortable column (put the sort button in `label`); lands on the header as `aria-sort`. */
+  sort?: 'ascending' | 'descending' | 'none'
 }
 
 type DataTableProps<R> = {
@@ -35,6 +37,7 @@ export const DataTable = <R,>({ columns, rows, caption, rowKey = (_, i) => i, is
           <th
             key={c.key}
             scope="col"
+            aria-sort={c.sort}
             style={c.width ? { width: c.width } : undefined}
             className={twMerge('border-b border-line-mid bg-surface-200 px-4 py-2.5 text-left font-normal whitespace-nowrap text-ink-muted signal-sm', roomy && 'h-10 px-5 py-0 signal', c.numeric && 'text-right')}
           >
