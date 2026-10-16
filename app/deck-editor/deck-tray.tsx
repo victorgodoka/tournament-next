@@ -11,7 +11,7 @@ import { CARD_IMAGE_URL } from '@utils/const'
 import type { EditorState } from './deck-editor.reducer'
 import { DeckZone, type DragPayload } from './deck-zone'
 import { MOVE_SLOP, trayAfterDrag } from './gestures'
-import type { Validity } from './toolbar'
+import { PROBLEMS_POPOVER, type Validity } from './toolbar'
 
 const ZONES: Zone[] = ['main', 'extra', 'side']
 /** The peek row, clear of the home indicator. The pool pads its bottom by the same amount. */
@@ -53,9 +53,14 @@ export const DeckTray = (p: DeckTrayProps) => {
   const menuId = useId()
   const { deck, lastAdded } = p.state
 
+  const section = useRef<HTMLElement>(null)
+
   const show = (next: boolean) => {
     setOpen(next)
-    if (!next) setMenu(false)
+    if (next) return
+    setMenu(false)
+    // The body goes inert: focus inside it would be lost, so it returns to the handle.
+    if (section.current?.contains(document.activeElement)) handle.current?.focus()
   }
 
   const [flag, flagClass] =
@@ -70,10 +75,14 @@ export const DeckTray = (p: DeckTrayProps) => {
     <>
       {open ? <div aria-hidden onClick={() => show(false)} className="fixed inset-0 z-(--z-dock) bg-scrim motion-safe:animate-fade-in" /> : null}
       <section
+        ref={section}
+        id="deck-tray"
+        data-open={open || undefined}
         aria-label={t('tray.label')}
         onKeyDown={(e) => {
-          // A popover inside (the problems list) closes itself first.
-          if (e.key !== 'Escape' || !open || (e.target as Element).closest('[popover]')) return
+          // The problems list (a popover) takes the first Escape for itself.
+          if (e.key !== 'Escape' || !open) return
+          if (document.getElementById(PROBLEMS_POPOVER)?.matches(':popover-open') || (e.target as Element).closest('[popover]')) return
           show(false)
           handle.current?.focus()
         }}

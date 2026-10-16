@@ -9,7 +9,8 @@ import type { Problem } from '@utils/deck/rules'
 import type { Banlist } from '@utils/wiki'
 import type { ViewMode } from './deck-editor.reducer'
 
-const POPOVER_ID = 'deck-problems'
+export const PROBLEMS_POPOVER = 'deck-problems'
+const POPOVER_ID = PROBLEMS_POPOVER
 
 /** `checking`: cards or banlists still loading. `unavailable`: the banlists failed, so no format checks ran. */
 export type Validity = 'checking' | 'unavailable' | 'ready'

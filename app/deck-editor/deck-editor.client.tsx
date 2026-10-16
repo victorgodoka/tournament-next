@@ -237,14 +237,14 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const alerts = (
     <>
       {notice ? (
-        <Alert tone="warn" edged title={t('damagedLink')} action={<Button variant="ghost" size="sm" onClick={() => setNotice(false)}>{t('dismiss')}</Button>} />
+        <Alert tone="warn" edged title={t('damagedLink')} action={<Button variant="ghost" size="sm" onClick={() => setNotice(false)} className="max-lg:min-h-11">{t('dismiss')}</Button>} />
       ) : null}
       {lookupFailed ? (
         <Alert
           tone="negative"
           edged
           title={t('lookupFailed')}
-          action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)}>{t('retry')}</Button>}
+          action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)} className="max-lg:min-h-11">{t('retry')}</Button>}
         />
       ) : null}
     </>

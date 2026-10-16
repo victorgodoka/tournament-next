@@ -76,7 +76,7 @@ export const Dialog = ({ open, onClose, title, eyebrow, description, footer, siz
               <h2 id={titleId} className="display-2">{title}</h2>
               {description ? <p className="text-ink-dim body">{description}</p> : null}
             </div>
-            <button type="button" aria-label="Close" onClick={onClose} className={buttonClasses({ variant: 'ghost', size: 'icon' })}>
+            <button type="button" aria-label="Close" onClick={onClose} className={twMerge(buttonClasses({ variant: 'ghost', size: 'icon' }), 'max-lg:size-11')}>
               <Icon name="close" />
             </button>
           </header>

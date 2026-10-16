@@ -111,7 +111,8 @@
       "count": "{count, plural, one {# carta} other {# cartas}}",
       "loading": "Carregando cartas…",
       "empty": "Nenhuma carta com esses filtros.",
-      "failed": "A busca de cartas falhou."
+      "failed": "A busca de cartas falhou.",
+      "tileHint": "Clique para adicionar uma cópia. Em tela de toque, toque para ver os detalhes e segure para adicionar."
     },
     "filters": {
       "title": "Filtros",

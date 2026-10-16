@@ -666,8 +666,9 @@
   }
 }
 
-/* The page behind the open nav drawer doesn't scroll. */
-html:has(#site-drawer[open]) {
+/* The page behind the open nav drawer, or the deck editor's open tray, doesn't scroll. */
+html:has(#site-drawer[open]),
+html:has(#deck-tray[data-open]) {
   overflow: hidden;
 }
 

@@ -91,7 +91,7 @@ export const Tag = ({ children, note, onRemove, removeLabel }: { children: React
   <span className="cut inline-flex h-8 items-center gap-2 pr-1 pl-3 text-sm text-ink [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]">
     {children}
     {note != null ? <span className="text-ink-muted data">{note}</span> : null}
-    <button type="button" aria-label={removeLabel} onClick={onRemove} className="grid size-7 cursor-pointer place-items-center text-ink-muted hover:text-crimson-lift">
+    <button type="button" aria-label={removeLabel} onClick={onRemove} className="grid size-7 cursor-pointer place-items-center text-ink-muted hover:text-crimson-lift max-lg:size-11">
       <svg viewBox="0 0 24 24" width={12} height={12} aria-hidden fill="currentColor">
         <path d="M5.3 3.9 12 10.6l6.7-6.7 1.4 1.4-6.7 6.7 6.7 6.7-1.4 1.4-6.7-6.7-6.7 6.7-1.4-1.4 6.7-6.7-6.7-6.7z" />
       </svg>

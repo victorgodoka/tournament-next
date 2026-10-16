@@ -111,7 +111,8 @@
       "count": "{count, plural, one {# card} other {# cards}}",
       "loading": "Loading cards…",
       "empty": "No cards match these filters.",
-      "failed": "The card search failed."
+      "failed": "The card search failed.",
+      "tileHint": "Click to add a copy. On a touch screen, tap for details and hold to add."
     },
     "filters": {
       "title": "Filters",

@@ -123,7 +123,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
       </div>
 
       {pool.error ? (
-        <Alert tone="negative" edged title={t('pool.failed')} action={<Button variant="secondary" size="sm" onClick={pool.retry}>{t('retry')}</Button>} />
+        <Alert tone="negative" edged title={t('pool.failed')} action={<Button variant="secondary" size="sm" onClick={pool.retry} className="max-lg:min-h-11">{t('retry')}</Button>} />
       ) : null}
 
       <p role="status" className="text-ink-muted signal-sm">
@@ -142,7 +142,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
               sizes={SIZES}
               dots={copiesOf(deck, card, cards)}
               status={tileStatus(card, banlist)}
-              label={t('zones.addOne', { name: card.name })}
+              aria-description={t('pool.tileHint')} // named by the card; what a press does depends on the pointer
               tabIndex={i === roving ? 0 : -1}
               onFocus={() => setFocus(i)}
               {...press.bind(() => onAdd(card))}
@@ -158,7 +158,8 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
               onInfo={() => onOpen(card)}
               draggable
               onDragStart={(e) => {
-                if (press.kind(e) !== 'click') return e.preventDefault() // no deck to drop on; it would cancel the long press
+                // Touch and pen never drag from the pool: a drag would cancel the long press (which adds instead).
+                if (press.kind(e) !== 'click') return e.preventDefault()
                 e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ from: 'pool', id: card.id } satisfies DragPayload))
                 e.dataTransfer.effectAllowed = 'copy'
               }}
