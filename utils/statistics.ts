@@ -127,7 +127,7 @@ export type DeepDiveState =
   | { status: 'queued'; position: number }
   | { status: 'running' }
   | { status: 'failed'; error: string }
-  | { status: 'limited'; retryAt: string }
+  | { status: 'limited'; retryAt?: string }
 
 /** Anything but a 2xx throws an Error carrying the HTTP status (`.status`). */
 const ok = async (res: Response) => {
@@ -152,6 +152,7 @@ export const requestDeepDive = async (season: string, key: ArchetypeKey): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ season, key: archKey(key) }),
   })
-  if (res.status === 429) return { status: 'limited', retryAt: (await res.json()).retryAt }
+  /* The IP limiter answers 429 too, without a `retryAt`. */
+  if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
   return ok(res)
 }

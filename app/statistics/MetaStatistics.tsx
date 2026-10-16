@@ -29,6 +29,7 @@ import {
   Art, ariaSort, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortButton, type SortState, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
+import { DeepDiveSearch } from './DeepDiveSearch'
 
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 /** Rows the archetype table shows before "Show all". */
@@ -478,6 +479,8 @@ const Report = ({ data }: { data: Statistics }) => {
       ) : null}
 
       <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
+        {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
+        <DeepDiveSearch key={season.code} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} />
         <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
