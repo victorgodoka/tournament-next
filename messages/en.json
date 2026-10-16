@@ -1,4 +1,67 @@
 {
+  "DeckEditor": {
+    "meta": "Build and check Yu-Gi-Oh! decks against the TCG, OCG and Genesys lists.",
+    "newDeck": "New deck",
+    "legal": "Legal",
+    "problems": "{count, plural, one {# problem} other {# problems}}",
+    "damagedLink": "This deck link is damaged, so the editor opened an empty deck.",
+    "dismiss": "Dismiss",
+    "toolbar": {
+      "name": "Deck name",
+      "format": "Format",
+      "problemsList": "Problems with this deck",
+      "points": "Points",
+      "pointsValue": "{used} / {cap}",
+      "undo": "Undo",
+      "redo": "Redo",
+      "sort": "Sort",
+      "view": "View",
+      "save": "Save",
+      "unsaved": "Unsaved changes"
+    },
+    "views": {
+      "grid": "Grid",
+      "list": "List",
+      "stacked": "Stacked"
+    },
+    "zones": {
+      "main": "Main Deck",
+      "extra": "Extra Deck",
+      "side": "Side Deck",
+      "empty": "Drop cards here",
+      "removeOne": "Remove a copy of {name}",
+      "addOne": "Add a copy of {name}",
+      "copies": "{count}×",
+      "level": "Lv {level}",
+      "rank": "Rank {level}",
+      "link": "Link {level}"
+    },
+    "tile": {
+      "forbidden": "Forbidden",
+      "limited": "Limited",
+      "semiLimited": "Semi-Limited",
+      "points": "{points} points",
+      "inDeck": "{count} in deck"
+    },
+    "problem": {
+      "main-size": "Main Deck has {count} cards; it needs 40 to 60.",
+      "extra-size": "Extra Deck has {count} cards; the most is {limit}.",
+      "side-size": "Side Deck has {count} cards; the most is {limit}.",
+      "copies": "{name}: {count} copies, the most is {limit}.",
+      "forbidden": "{name} is Forbidden.",
+      "limited": "{name} is Limited: {count} copies, {limit} allowed.",
+      "semi-limited": "{name} is Semi-Limited: {count} copies, {limit} allowed.",
+      "points": "{count} points used; the cap is {limit}.",
+      "banned-type": "{name}: its card type is banned in this format.",
+      "unreleased": "{name} isn't released in this format yet.",
+      "unknown-card": "Card {name} wasn't found."
+    },
+    "rejected": {
+      "copies": "{name} is at 3 copies",
+      "full": "No room for {name}: that deck is full",
+      "zone": "{name} can't go in that deck"
+    }
+  },
   "Welcome": {
     "meta": {
       "title": "Home",

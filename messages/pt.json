@@ -1,4 +1,67 @@
 {
+  "DeckEditor": {
+    "meta": "Monte e confira decks de Yu-Gi-Oh! nas listas TCG, OCG e Genesys.",
+    "newDeck": "Novo deck",
+    "legal": "Legal",
+    "problems": "{count, plural, one {# problema} other {# problemas}}",
+    "damagedLink": "O link deste deck está corrompido, então o editor abriu um deck vazio.",
+    "dismiss": "Fechar",
+    "toolbar": {
+      "name": "Nome do deck",
+      "format": "Formato",
+      "problemsList": "Problemas deste deck",
+      "points": "Pontos",
+      "pointsValue": "{used} / {cap}",
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "sort": "Ordenar",
+      "view": "Visualização",
+      "save": "Salvar",
+      "unsaved": "Alterações não salvas"
+    },
+    "views": {
+      "grid": "Grade",
+      "list": "Lista",
+      "stacked": "Agrupado"
+    },
+    "zones": {
+      "main": "Main Deck",
+      "extra": "Extra Deck",
+      "side": "Side Deck",
+      "empty": "Solte cartas aqui",
+      "removeOne": "Tirar uma cópia de {name}",
+      "addOne": "Pôr mais uma cópia de {name}",
+      "copies": "{count}×",
+      "level": "Nv {level}",
+      "rank": "Rank {level}",
+      "link": "Link {level}"
+    },
+    "tile": {
+      "forbidden": "Proibida",
+      "limited": "Limitada",
+      "semiLimited": "Semilimitada",
+      "points": "{points} pontos",
+      "inDeck": "{count} no deck"
+    },
+    "problem": {
+      "main-size": "O Main Deck tem {count} cartas; precisa ter de 40 a 60.",
+      "extra-size": "O Extra Deck tem {count} cartas; o máximo é {limit}.",
+      "side-size": "O Side Deck tem {count} cartas; o máximo é {limit}.",
+      "copies": "{name}: {count} cópias, o máximo é {limit}.",
+      "forbidden": "{name} está Proibida.",
+      "limited": "{name} está Limitada: {count} cópias, {limit} permitida.",
+      "semi-limited": "{name} está Semilimitada: {count} cópias, {limit} permitidas.",
+      "points": "{count} pontos usados; o limite é {limit}.",
+      "banned-type": "{name}: o tipo desta carta é banido neste formato.",
+      "unreleased": "{name} ainda não saiu neste formato.",
+      "unknown-card": "A carta {name} não foi encontrada."
+    },
+    "rejected": {
+      "copies": "{name} já está com 3 cópias",
+      "full": "Não cabe {name}: esse deck está cheio",
+      "zone": "{name} não pode ir para esse deck"
+    }
+  },
   "Welcome": {
     "meta": {
       "title": "Início",
