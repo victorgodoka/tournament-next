@@ -129,10 +129,17 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
     return controller.current.signal
   }
 
+  /* The latest `onRemote`, for the unmount below: a season switch remounts this search empty, so the page's deep dive must come back. */
+  const remote = useRef(onRemote)
+  useEffect(() => {
+    remote.current = onRemote
+  })
+
   useEffect(
     () => () => {
       controller.current?.abort()
       clearTimeout(timer.current)
+      remote.current(false)
     },
     [],
   )
