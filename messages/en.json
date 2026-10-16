@@ -10,6 +10,51 @@
     "rulesUnavailable": "Format rules unavailable",
     "lookupFailed": "Some cards couldn't be loaded, so they aren't checked yet.",
     "retry": "Retry",
+    "deckMissing": "That deck isn't available: it was deleted, or it isn't yours. The editor opened a new deck.",
+    "save": {
+      "failed": "Couldn't save the deck.",
+      "rejected": "The server refused the deck: {reason}",
+      "kept": "Your changes are kept on this device."
+    },
+    "load": {
+      "loading": "Loading the deck…",
+      "failed": "Couldn't load the deck.",
+      "newerDraft": "This device has unsaved changes to this deck, newer than the saved version.",
+      "restore": "Restore draft",
+      "discard": "Discard"
+    },
+    "conflict": {
+      "title": "Deck changed elsewhere",
+      "body": "“{name}” was saved somewhere else {when} (version {revision}). Load that version, or save yours over it? The version you replace stays in the history.",
+      "load": "Load latest",
+      "overwrite": "Save mine anyway"
+    },
+    "myDecks": {
+      "title": "My decks",
+      "new": "New deck",
+      "newTitle": "Start a new deck?",
+      "newBody": "Your unsaved new deck will be discarded.",
+      "newConfirm": "Discard and start",
+      "cancel": "Cancel",
+      "loading": "Loading decks…",
+      "signedOut": "Sign in to save decks and open them on any device.",
+      "signIn": "Sign in",
+      "empty": "No saved decks yet.",
+      "failed": "Couldn't load your decks.",
+      "more": "Load more",
+      "open": "Open",
+      "openNamed": "Open {name}",
+      "delete": "Delete",
+      "deleteNamed": "Delete {name}",
+      "deleteTitle": "Delete deck",
+      "deleteBody": "Delete “{name}” and its history? This can't be undone.",
+      "deleteFailed": "Couldn't delete the deck.",
+      "visibility": {
+        "private": "Private",
+        "unlisted": "Unlisted",
+        "public": "Public"
+      }
+    },
     "toolbar": {
       "name": "Deck name",
       "format": "Format",
@@ -21,7 +66,9 @@
       "sort": "Sort",
       "view": "View",
       "save": "Save",
-      "unsaved": "Unsaved changes"
+      "saving": "Saving…",
+      "unsaved": "Unsaved changes",
+      "myDecks": "My decks"
     },
     "views": {
       "grid": "Grid",

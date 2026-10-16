@@ -8,6 +8,7 @@ import { Select, TextInput } from '@ui/field'
 import type { Problem } from '@utils/deck/rules'
 import type { Banlist } from '@utils/wiki'
 import type { ViewMode } from './deck-editor.reducer'
+import { DECK_NAME_ID } from './keyboard'
 
 export const PROBLEMS_POPOVER = 'deck-problems'
 const POPOVER_ID = PROBLEMS_POPOVER
@@ -39,7 +40,9 @@ type ToolbarProps = {
   view: ViewMode
   onView(view: ViewMode): void
   dirty: boolean
+  saving: boolean
   onSave(): void
+  onMyDecks(): void
 }
 
 const PILL = 'cut inline-flex h-9 items-center gap-2 px-3 signal-strong [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]'
@@ -50,11 +53,12 @@ export const Toolbar = (p: ToolbarProps) => {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <TextInput
+        id={DECK_NAME_ID}
         value={p.name}
         onChange={(e) => p.onRename(e.target.value)}
         placeholder={t('newDeck')}
         aria-label={t('toolbar.name')}
-        maxLength={100}
+        maxLength={80}
         plateClassName="min-w-0 flex-1 basis-48 max-lg:h-11"
       />
       <Select
@@ -140,9 +144,12 @@ export const Toolbar = (p: ToolbarProps) => {
         className="max-lg:hidden"
       />
 
-      <Button size="mono" onClick={p.onSave} className={twMerge('ml-auto', TOUCH)}>
-        {t('toolbar.save')}
-        {p.dirty ? (
+      <Button variant="secondary" size="mono" onClick={p.onMyDecks} className={twMerge('ml-auto', TOUCH)}>
+        {t('toolbar.myDecks')}
+      </Button>
+      <Button size="mono" aria-disabled={p.saving || undefined} onClick={p.onSave} className={TOUCH}>
+        {p.saving ? t('toolbar.saving') : t('toolbar.save')}
+        {p.dirty && !p.saving ? (
           <>
             <span aria-hidden className="size-1.5 bg-cyan-on" />
             <span className="sr-only">{t('toolbar.unsaved')}</span>

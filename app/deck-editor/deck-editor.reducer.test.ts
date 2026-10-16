@@ -132,5 +132,7 @@ describe('editorReducer', () => {
   it('saved sets ids and clears dirty', () => {
     const s = editorReducer(add(initialEditorState(), cards.get(1)!), { type: 'saved', deckId: 'abc', revision: 2 })
     expect(s).toMatchObject({ deckId: 'abc', revision: 2, dirty: false })
+    // Edits made while the request was in flight stay unsaved.
+    expect(editorReducer(s, { type: 'saved', deckId: 'abc', revision: 3, dirty: true }).dirty).toBe(true)
   })
 })

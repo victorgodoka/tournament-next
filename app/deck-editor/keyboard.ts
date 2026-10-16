@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type Shortcut = 'search' | 'undo' | 'redo' | 'add' | 'remove' | 'side' | 'open' | Arrow
+export type Shortcut = 'search' | 'undo' | 'redo' | 'save' | 'add' | 'remove' | 'side' | 'open' | Arrow
 export type Arrow = 'left' | 'right' | 'up' | 'down'
 
 type Keys = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>
@@ -8,9 +8,15 @@ type Keys = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'al
 const ARROWS: Record<string, Arrow> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
 const PLAIN: Record<string, Shortcut> = { '/': 'search', '+': 'add', '-': 'remove', s: 'side', S: 'side', Enter: 'open', ...ARROWS }
 
-/** The editor's shortcut for a key press, or null. Nothing fires while the focused element owns the keys. */
-export const shortcutOf = (e: Keys, owned: boolean): Shortcut | null => {
-  if (owned || e.altKey) return null
+/**
+ * The editor's shortcut for a key press, or null. Nothing fires while the focused element owns the keys,
+ * except Ctrl+S from the deck-name field (`nameField`).
+ */
+export const shortcutOf = (e: Keys, owned: boolean, nameField = false): Shortcut | null => {
+  if (e.altKey) return null
+  const save = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 's'
+  if (save && (!owned || nameField)) return 'save'
+  if (owned) return null
   if (e.ctrlKey || e.metaKey) {
     const key = e.key.toLowerCase()
     if (key === 'z') return e.shiftKey ? 'redo' : 'undo'
@@ -39,9 +45,13 @@ export const ownsKeys = (el: Element | null): boolean =>
 /** The tile a shortcut acts on: its passcode and where it sits (`pool`, `main`, `extra` or `side`). */
 export type FocusedTile = { id: number; zone: string }
 
+/** The toolbar's deck-name input: Ctrl+S saves from it. */
+export const DECK_NAME_ID = 'deck-name'
+
 type Handlers = {
   undo(): void
   redo(): void
+  save(): void
   /** `add`, `remove`, `side` and `open` on the focused tile. */
   act(shortcut: 'add' | 'remove' | 'side' | 'open', tile: FocusedTile): void
 }
@@ -62,14 +72,14 @@ export const useEditorKeys = (handlers: Handlers) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const active = document.activeElement
-      const shortcut = shortcutOf(e, ownsKeys(active))
+      const shortcut = shortcutOf(e, ownsKeys(active), active?.id === DECK_NAME_ID)
       if (!shortcut) return
       if (shortcut === 'search') {
         document.getElementById('pool-search')?.focus()
         e.preventDefault()
         return
       }
-      if (shortcut === 'undo' || shortcut === 'redo') {
+      if (shortcut === 'undo' || shortcut === 'redo' || shortcut === 'save') {
         ref.current[shortcut]()
         e.preventDefault()
         return

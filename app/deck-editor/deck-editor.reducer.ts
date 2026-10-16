@@ -30,7 +30,8 @@ export type EditorAction =
   | { type: 'rename'; name: string }
   | { type: 'format'; format: number | null }
   | { type: 'load'; deck: Deck; name: string; format: number | null; deckId: string | null; revision: number | null; dirty?: boolean }
-  | { type: 'saved'; deckId: string; revision: number }
+  /** `dirty`: the deck changed while the save was in flight. */
+  | { type: 'saved'; deckId: string; revision: number; dirty?: boolean }
 
 export const initialEditorState = (): EditorState => ({
   deck: EMPTY_DECK,
@@ -102,6 +103,6 @@ export const editorReducer = (s: EditorState, a: EditorAction): EditorState => {
         dirty: a.dirty ?? false,
       }
     case 'saved':
-      return { ...s, deckId: a.deckId, revision: a.revision, dirty: false }
+      return { ...s, deckId: a.deckId, revision: a.revision, dirty: a.dirty ?? false }
   }
 }

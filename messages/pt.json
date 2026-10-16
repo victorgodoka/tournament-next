@@ -10,6 +10,51 @@
     "rulesUnavailable": "Regras do formato indisponíveis",
     "lookupFailed": "Algumas cartas não carregaram, então ainda não foram verificadas.",
     "retry": "Tentar de novo",
+    "deckMissing": "Esse deck não está disponível: foi excluído ou não é seu. O editor abriu um deck novo.",
+    "save": {
+      "failed": "Não foi possível salvar o deck.",
+      "rejected": "O servidor recusou o deck: {reason}",
+      "kept": "Suas alterações continuam salvas neste dispositivo."
+    },
+    "load": {
+      "loading": "Carregando o deck…",
+      "failed": "Não foi possível carregar o deck.",
+      "newerDraft": "Este dispositivo tem alterações não salvas neste deck, mais novas que a versão salva.",
+      "restore": "Restaurar rascunho",
+      "discard": "Descartar"
+    },
+    "conflict": {
+      "title": "Deck alterado em outro lugar",
+      "body": "“{name}” foi salvo em outro lugar {when} (versão {revision}). Carregar essa versão ou salvar a sua por cima? A versão substituída fica no histórico.",
+      "load": "Carregar a mais recente",
+      "overwrite": "Salvar a minha mesmo assim"
+    },
+    "myDecks": {
+      "title": "Meus decks",
+      "new": "Novo deck",
+      "newTitle": "Começar um deck novo?",
+      "newBody": "Seu deck novo não salvo será descartado.",
+      "newConfirm": "Descartar e começar",
+      "cancel": "Cancelar",
+      "loading": "Carregando decks…",
+      "signedOut": "Entre para salvar decks e abri-los em qualquer dispositivo.",
+      "signIn": "Entrar",
+      "empty": "Nenhum deck salvo ainda.",
+      "failed": "Não foi possível carregar seus decks.",
+      "more": "Carregar mais",
+      "open": "Abrir",
+      "openNamed": "Abrir {name}",
+      "delete": "Excluir",
+      "deleteNamed": "Excluir {name}",
+      "deleteTitle": "Excluir deck",
+      "deleteBody": "Excluir “{name}” e o histórico dele? Não dá para desfazer.",
+      "deleteFailed": "Não foi possível excluir o deck.",
+      "visibility": {
+        "private": "Privado",
+        "unlisted": "Não listado",
+        "public": "Público"
+      }
+    },
     "toolbar": {
       "name": "Nome do deck",
       "format": "Formato",
@@ -21,7 +66,9 @@
       "sort": "Ordenar",
       "view": "Visualização",
       "save": "Salvar",
-      "unsaved": "Alterações não salvas"
+      "saving": "Salvando…",
+      "unsaved": "Alterações não salvas",
+      "myDecks": "Meus decks"
     },
     "views": {
       "grid": "Grade",

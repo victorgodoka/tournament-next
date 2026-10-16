@@ -53,8 +53,15 @@ describe('shortcutOf', () => {
     expect(shortcutOf(key('z', { metaKey: true }), false)).toBe('undo')
     expect(shortcutOf(key('Z', { ctrlKey: true, shiftKey: true }), false)).toBe('redo')
     expect(shortcutOf(key('y', { ctrlKey: true }), false)).toBe('redo')
-    // Ctrl+S is the save shortcut (Task 12), not "add to side".
-    expect(shortcutOf(key('s', { ctrlKey: true }), false)).toBeNull()
+  })
+
+  it('saves on Ctrl/Cmd+S, not in fields or dialogs, except from the deck name', () => {
+    expect(shortcutOf(key('s', { ctrlKey: true }), false)).toBe('save')
+    expect(shortcutOf(key('S', { metaKey: true }), false)).toBe('save')
+    expect(shortcutOf(key('s', { ctrlKey: true, shiftKey: true }), false)).toBeNull()
+    expect(shortcutOf(key('s', { ctrlKey: true }), true)).toBeNull()
+    expect(shortcutOf(key('s', { ctrlKey: true }), true, true)).toBe('save')
+    expect(shortcutOf(key('z', { ctrlKey: true }), true, true)).toBeNull() // the field's own undo
   })
 
   it('ignores everything while typing, and Alt chords', () => {
