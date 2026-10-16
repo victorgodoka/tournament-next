@@ -73,6 +73,24 @@ describe('return-to', () => {
     expect(takeReturnTo()).toBeNull()
   })
 
+  it('rejects control characters and whitespace that URL parsers strip', () => {
+    const s = mapStorage()
+    vi.stubGlobal('sessionStorage', s)
+    for (const p of ['/\t/evil.test', '/\n/evil.test', '/ /evil.test', '/\r/evil.test']) {
+      setReturnTo(p)
+      expect(takeReturnTo()).toBeNull()
+      // also rejected when taking, even if something else wrote it
+      s.setItem('return-to', p)
+      expect(takeReturnTo()).toBeNull()
+    }
+  })
+
+  it('keeps query strings intact', () => {
+    vi.stubGlobal('sessionStorage', mapStorage())
+    setReturnTo('/deck-editor?d=ydke%3A%2F%2Fabc')
+    expect(takeReturnTo()).toBe('/deck-editor?d=ydke%3A%2F%2Fabc')
+  })
+
   it('returns the path once', () => {
     vi.stubGlobal('sessionStorage', mapStorage())
     setReturnTo('/deck-editor')
