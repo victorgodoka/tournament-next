@@ -63,4 +63,24 @@ describe('codecs', () => {
     expect(detectFormat('7Vi7SgNBFL2zSUyCRbQQLWwsLCwsLBQLC8HCxk/wEyws/AMbP0LbtLCwsLCwsBAsLBQRwSJGTMhkdmZ3Z2fP7MzOJsQkkMDl3Hvuuffc2b1oACgFAIVCoaASlUqlUCgUigVSqWTkcrmSyWQikUgkEolEIpFIJBKJRCKRSCQSCcrLy8vLy8vL')).toBe('omega')
     expect(detectFormat('3 Ash Blossom & Joyous Spring')).toBe('text')
   })
+  it('reads a real-world ydk: BOM, CRLF, blanks, trailing spaces, comments, no side section', () => {
+    const text = '﻿#created by EDOPro\r\n\r\n#main  \r\n14558127 \r\n\r\n#comment\r\n46986414\r\n#extra\r\n84013237  \r\n'
+    expect(fromYdk(text)).toEqual({ main: [14558127, 46986414], extra: [84013237], side: [] })
+  })
+  it('reads section markers case-insensitively and with # or !', () => {
+    expect(fromYdk('#main\n1\n#extra\n2\n#side\n3')).toEqual({ main: [1], extra: [2], side: [3] })
+    expect(fromYdk('#Main\n1\n!Extra\n2\n!SIDE\n3')).toEqual({ main: [1], extra: [2], side: [3] })
+  })
+  it('reads annotated card lines but rejects bare names', () => {
+    expect(fromYdk('#main\n14558127 ; Ash Blossom\n46986414 # Dark Magician\n')).toEqual({ main: [14558127, 46986414], extra: [], side: [] })
+    expect(() => fromYdk('#main\nAsh Blossom\n')).toThrow(DeckCodeError)
+  })
+  it('reads lone-CR files', () => {
+    expect(fromYdk('#main\r1\r#extra\r2\r!side\r3\r')).toEqual({ main: [1], extra: [2], side: [3] })
+  })
+  it('rejects over-long Omega codes and over-full zones on write', async () => {
+    await expect(fromOmega('A'.repeat(1025))).rejects.toThrow(DeckCodeError)
+    await expect(toOmega({ main: Array(60).fill(1), extra: Array(16).fill(2), side: [] })).rejects.toThrow(DeckCodeError)
+    await expect(toOmega({ main: [1], extra: [], side: Array(16).fill(1) })).rejects.toThrow(DeckCodeError)
+  })
 })

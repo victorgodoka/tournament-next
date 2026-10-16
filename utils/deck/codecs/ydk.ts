@@ -18,13 +18,31 @@ export const assertDeck = ({ main, extra, side }: Deck) => {
 export const toYdk = (deck: Deck): string =>
   ['#created by Duelists Unite Hub', '#main', ...deck.main, '#extra', ...deck.extra, '!side', ...deck.side, ''].join('\n')
 
+const MARKER = /^[#!]\s*(main|extra|side)\s*$/i
+
+/** Canonical lines for the library: markers fixed to `#main` / `#extra` / `!side`, annotations and comments dropped. */
+const normalizeYdk = (text: string): string[] => {
+  const lines: string[] = []
+  for (const raw of text.replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+    const line = raw.trim()
+    const marker = MARKER.exec(line)
+    if (marker) lines.push(marker[1]!.toLowerCase() === 'side' ? '!side' : `#${marker[1]!.toLowerCase()}`)
+    else if (/^\d/.test(line)) {
+      const id = line.replace(/\s*[#;].*$/, '')
+      // The library silently skips lines it can't read; a damaged file must fail instead of losing cards.
+      if (!/^\d+$/.test(id)) throw new DeckCodeError('Invalid line in .ydk file')
+      lines.push(id)
+    } else if (line && !/^[#!]/.test(line)) throw new DeckCodeError('Invalid line in .ydk file')
+  }
+  return lines
+}
+
 export const fromYdk = (text: string): Deck => {
-  if (!/^\s*#main\s*$/im.test(text)) throw new DeckCodeError('Not a .ydk file')
-  // The library silently skips lines it can't read; a damaged file must fail instead of losing cards.
-  if (text.split(/\r?\n/).some((l) => l.trim() && !/^[#!]|^\d+$/.test(l.trim()))) throw new DeckCodeError('Invalid line in .ydk file')
+  const lines = normalizeYdk(text)
+  if (!lines.includes('#main')) throw new DeckCodeError('Not a .ydk file')
   let parsed: YGOProDeck
   try {
-    parsed = YGOProDeck.fromYdkString(text)
+    parsed = YGOProDeck.fromYdkString(lines.join('\n'))
   } catch (e) {
     throw new DeckCodeError(e instanceof Error ? e.message : 'Invalid .ydk file')
   }

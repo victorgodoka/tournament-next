@@ -6,6 +6,7 @@ const pipe = async (bytes: Uint8Array<ArrayBuffer>, t: CompressionStream | Decom
 
 /** Omega layout: base64(raw DEFLATE([main+extra count, side count, ...uint32 LE passcodes])). */
 export const toOmega = async ({ main, extra, side }: Deck): Promise<string> => {
+  if (main.length + extra.length > ZONE_MAX.main + ZONE_MAX.extra || side.length > ZONE_MAX.side) throw new DeckCodeError('Deck too large for an Omega code')
   const ids = [...main, ...extra, ...side]
   const raw = new Uint8Array(2 + 4 * ids.length)
   raw[0] = main.length + extra.length
@@ -18,6 +19,8 @@ export const toOmega = async ({ main, extra, side }: Deck): Promise<string> => {
 
 /** `main` is main + extra together, in stored order; callers split with `splitExtra`. */
 export const fromOmega = async (code: string): Promise<{ main: number[]; side: number[] }> => {
+  // 90 cards * 4 bytes deflates to well under 1 KB of base64.
+  if (code.length > 1024) throw new DeckCodeError('Omega deck code too long')
   let raw: Uint8Array
   try {
     const bytes = Uint8Array.from(atob(code.trim()), (c) => c.charCodeAt(0))
