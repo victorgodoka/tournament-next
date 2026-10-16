@@ -17,6 +17,8 @@ type ToolbarProps = {
   banlists: Banlist[]
   banlist: Banlist | null
   onFormat(id: number): void
+  /** `checking`: cards or banlists still loading. `unavailable`: the banlists failed, so no format checks ran. */
+  validity: 'checking' | 'unavailable' | 'ready'
   problems: Problem[]
   /** Name shown for a problem's card (canonical id → a deck print's name, else the passcode). */
   nameOf(cardId: number): string
@@ -59,7 +61,11 @@ export const Toolbar = (p: ToolbarProps) => {
         className="min-w-44"
       />
 
-      {p.problems.length ? (
+      {p.validity === 'checking' ? (
+        <span role="status" className={twMerge(PILL, 'text-ink-muted')}>
+          {t('checking')}
+        </span>
+      ) : p.problems.length ? (
         <>
           <button type="button" popoverTarget={POPOVER_ID} className={twMerge(PILL, 'cursor-pointer text-crimson-lift [--edge:var(--color-crimson-lift)] hover:[--fill:var(--color-surface-300)]')}>
             {t('problems', { count: p.problems.length })}
@@ -67,6 +73,7 @@ export const Toolbar = (p: ToolbarProps) => {
           <div
             id={POPOVER_ID}
             popover="auto"
+            role="dialog"
             aria-label={t('toolbar.problemsList')}
             // `fixed` beats `.cut`'s position: relative; the UA popover border and Canvas fill give way to the chamfer.
             className="cut notch fixed inset-x-4 top-32 bottom-auto mx-auto w-auto max-w-105 border-0 bg-transparent p-2 text-ink [--cut:var(--cut-md)] [--edge:var(--color-line-strong)] [--fill:var(--color-surface-200)]"
@@ -88,6 +95,10 @@ export const Toolbar = (p: ToolbarProps) => {
             </ul>
           </div>
         </>
+      ) : p.validity === 'unavailable' ? (
+        <span role="status" className={twMerge(PILL, 'text-ink-muted')}>
+          {t('rulesUnavailable')}
+        </span>
       ) : (
         <span role="status" className={twMerge(PILL, 'text-win [--edge:var(--color-win)]')}>
           {t('legal')}

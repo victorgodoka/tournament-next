@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { fromYdke } from '@utils/deck/codecs/ydke'
@@ -11,7 +11,7 @@ import { DeckCodeError, type CardMap, type Deck, type Zone } from '@utils/deck/t
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
 import { DeckZone, type DragPayload } from './deck-zone'
-import { draftKey, readDraft, writeDraft } from './drafts'
+import { draftKey, readDraft, writeDraft, type Draft } from './drafts'
 import { Toolbar } from './toolbar'
 import { useCardCache } from './use-card-cache'
 
@@ -30,7 +30,9 @@ const readView = (): ViewMode => {
 
 /** Runs once (client only): `?d=` wins over the local draft; a damaged link opens an empty deck. */
 const boot = (deckId: string | null): { state: EditorState; damaged: boolean; today: string } => {
-  const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD, local
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` // local date
   const load = (deck: Deck, name = '', format: number | null = null, revision: number | null = null) =>
     editorReducer(initialEditorState(), { type: 'load', deck, name, format, deckId, revision, dirty: true })
 
@@ -56,6 +58,12 @@ const deckIdsOf = (deck: Deck, cards: CardMap, cardId: number): number[] =>
     return (card ? canonicalId(card) : id) === cardId
   })
 
+const flushDraft = (unsaved: React.RefObject<{ key: string; draft: Draft } | null>) => {
+  if (!unsaved.current) return
+  writeDraft(unsaved.current.key, unsaved.current.draft)
+  unsaved.current = null
+}
+
 const ZONE_OF: Partial<Record<Problem['code'], Zone>> = { 'main-size': 'main', 'extra-size': 'extra', 'side-size': 'side' }
 
 const DeckEditor = ({ deckId }: { deckId: string | null }) => {
@@ -63,10 +71,14 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const [{ state: bootState, damaged, today }] = useState(() => boot(deckId))
   const [state, dispatch] = useReducer(editorReducer, bootState)
   const [notice, setNotice] = useState(damaged)
-  const [banlists, setBanlists] = useState<Banlist[]>([])
+  /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
+  const [banlists, setBanlists] = useState<Banlist[] | null>(null)
   const [view, setView] = useState(readView)
-  const { cards, ensure } = useCardCache()
+  const { cards, failed, isPending, ensure } = useCardCache()
   const { deck } = state
+  const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
+  /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
+  const unsaved = useRef<{ key: string; draft: Draft } | null>(null)
 
   useEffect(() => {
     getBanlists().then(setBanlists)
@@ -79,21 +91,39 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   }, [])
 
   useEffect(() => {
-    ensure([...deck.main, ...deck.extra, ...deck.side]).catch(console.error)
-  }, [deck, ensure])
+    ensure(allIds).catch(console.error)
+  }, [allIds, ensure])
 
   useEffect(() => {
     if (!state.dirty) return
-    const timer = setTimeout(
-      () => writeDraft(draftKey(deckId), { deck, name: state.name, format: state.format, revision: state.revision, at: Date.now() }),
-      500,
-    )
+    unsaved.current = {
+      key: draftKey(deckId),
+      draft: { deck, name: state.name, format: state.format, revision: state.revision, at: Date.now() },
+    }
+    const timer = setTimeout(() => flushDraft(unsaved), 500)
     return () => clearTimeout(timer)
   }, [deckId, deck, state.dirty, state.name, state.format, state.revision])
 
+  useEffect(() => {
+    const flush = () => flushDraft(unsaved)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [])
+
   // No format chosen yet: the TCG list.
-  const banlist = banlists.find((b) => (state.format === null ? b.format === 'tcg' : b.id === state.format)) ?? null
-  const problems = useMemo(() => validate(deck, cards, banlist, today), [deck, cards, banlist, today])
+  const banlist = banlists?.find((b) => (state.format === null ? b.format === 'tcg' : b.id === state.format)) ?? null
+  const problems = useMemo(
+    () =>
+      // A card still loading, or whose lookup failed, isn't "not found": that verdict waits for an answer.
+      validate(deck, cards, banlist, today).filter((p) => !(p.code === 'unknown-card' && (isPending(p.cardId!) || failed.has(p.cardId!)))),
+    [deck, cards, banlist, today, isPending, failed],
+  )
+  const checking = banlists === null || allIds.some(isPending)
+  const lookupFailed = allIds.some((id) => failed.has(id))
+  const validity = checking ? 'checking' : banlists.length ? 'ready' : 'unavailable'
   const flagged = useMemo(() => new Set(problems.flatMap((p) => (p.cardId === undefined ? [] : deckIdsOf(deck, cards, p.cardId)))), [problems, deck, cards])
   const points = banlist && banlist.pointCap !== null ? { used: pointsUsed(deck, cards, banlist), cap: banlist.pointCap } : null
 
@@ -130,9 +160,10 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
           <Toolbar
             name={state.name}
             onRename={(name) => dispatch({ type: 'rename', name })}
-            banlists={banlists}
+            banlists={banlists ?? []}
             banlist={banlist}
             onFormat={(format) => dispatch({ type: 'format', format })}
+            validity={validity}
             problems={problems}
             nameOf={(cardId) => {
               const id = deckIdsOf(deck, cards, cardId)[0] ?? cardId
@@ -154,6 +185,14 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
         {notice ? (
           <Alert tone="warn" edged title={t('damagedLink')} action={<Button variant="ghost" size="sm" onClick={() => setNotice(false)}>{t('dismiss')}</Button>} />
+        ) : null}
+        {lookupFailed ? (
+          <Alert
+            tone="negative"
+            edged
+            title={t('lookupFailed')}
+            action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)}>{t('retry')}</Button>}
+          />
         ) : null}
 
         {ZONES.map((zone) => (

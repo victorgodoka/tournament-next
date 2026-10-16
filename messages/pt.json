@@ -6,6 +6,10 @@
     "problems": "{count, plural, one {# problema} other {# problemas}}",
     "damagedLink": "O link deste deck está corrompido, então o editor abriu um deck vazio.",
     "dismiss": "Fechar",
+    "checking": "Verificando…",
+    "rulesUnavailable": "Regras do formato indisponíveis",
+    "lookupFailed": "Algumas cartas não carregaram, então ainda não foram verificadas.",
+    "retry": "Tentar de novo",
     "toolbar": {
       "name": "Nome do deck",
       "format": "Formato",

@@ -6,6 +6,10 @@
     "problems": "{count, plural, one {# problem} other {# problems}}",
     "damagedLink": "This deck link is damaged, so the editor opened an empty deck.",
     "dismiss": "Dismiss",
+    "checking": "Checking…",
+    "rulesUnavailable": "Format rules unavailable",
+    "lookupFailed": "Some cards couldn't be loaded, so they aren't checked yet.",
+    "retry": "Retry",
     "toolbar": {
       "name": "Deck name",
       "format": "Format",

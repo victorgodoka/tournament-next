@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard } from './model'
+import { copiesOf, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf } from './model'
 import { EMPTY_DECK, type CardData } from './types'
 
 const card = (id: number, patch: Partial<CardData>): CardData =>
@@ -24,6 +24,12 @@ describe('deck model', () => {
     expect(canonicalId(dmAlt)).toBe(dm.id)
     expect(canonicalId(harpie2)).toBe(harpie.id)
     expect(canonicalId(ash)).toBe(ash.id)
+  })
+
+  it('reads the frame: first special frame, else normal/effect; spells and traps by kind', () => {
+    const pendulumXyz = card(11, { monsterTypes: ['xyz', 'pendulum', 'effect'] })
+    const tunerNormal = card(12, { monsterTypes: ['normal', 'tuner'] })
+    expect([ash, dm, utopia, pendulumXyz, tunerNormal, pot, imperm].map(frameOf)).toEqual(['effect', 'normal', 'xyz', 'xyz', 'normal', 'spell', 'trap'])
   })
 
   it('routes extra-deck monsters to Extra unless a zone is given', () => {

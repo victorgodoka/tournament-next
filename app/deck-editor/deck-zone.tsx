@@ -5,9 +5,10 @@ import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { SectionHead } from '@ui/section-head'
 import { TypeCounts, type CardType } from '@ui/type-counts'
+import { frameOf } from '@utils/deck/model'
 import type { CardMap, Zone } from '@utils/deck/types'
 import type { ViewMode } from './deck-editor.reducer'
-import { CardTile, frameOf } from './card-tile'
+import { CardTile } from './card-tile'
 
 export type DragPayload = { from: Zone | 'pool'; id: number; index?: number }
 

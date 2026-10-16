@@ -5,16 +5,9 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import type { CardType } from '@ui/type-counts'
+import { frameOf } from '@utils/deck/model'
 import type { CardData } from '@utils/deck/types'
 import { CARD_IMAGE_URL } from '@utils/const'
-
-const FRAMES = ['ritual', 'fusion', 'synchro', 'xyz', 'link'] as const
-
-/** The card's frame, by the same rule as `sortZone`: Pendulum and Tuner fall to their base frame. */
-export const frameOf = (card: CardData): CardType => {
-  if (card.kind !== 'monster') return card.kind
-  return FRAMES.find((t) => card.monsterTypes.includes(t)) ?? (card.monsterTypes.includes('normal') ? 'normal' : 'effect')
-}
 
 type Status = 'forbidden' | 'limited' | 'semi-limited' | { points: number }
 

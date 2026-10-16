@@ -3,7 +3,17 @@ import { MAX_COPIES, ZONE_MAX, type CardData, type CardMap, type Deck, type Zone
 export type AddResult = { deck: Deck; rejected: null | 'copies' | 'full' | 'zone' }
 
 const EXTRA_TYPES = ['fusion', 'synchro', 'xyz', 'link']
-const FRAMES = ['normal', 'effect', 'ritual', 'fusion', 'synchro', 'xyz', 'link']
+export type CardFrame = 'normal' | 'effect' | 'ritual' | 'fusion' | 'synchro' | 'xyz' | 'link' | 'spell' | 'trap'
+
+/** Game order: monster frames, then spells, then traps. */
+const FRAMES: CardFrame[] = ['normal', 'effect', 'ritual', 'fusion', 'synchro', 'xyz', 'link', 'spell', 'trap']
+const SPECIAL_FRAMES = ['ritual', 'fusion', 'synchro', 'xyz', 'link'] as const
+
+/** A monster's frame is its first special frame, else Normal or Effect; Pendulum follows the same rule. */
+export const frameOf = (card: CardData): CardFrame => {
+  if (card.kind !== 'monster') return card.kind
+  return SPECIAL_FRAMES.find((t) => card.monsterTypes.includes(t)) ?? (card.monsterTypes.includes('normal') ? 'normal' : 'effect')
+}
 
 export const isExtraDeckCard = (card: CardData): boolean => card.monsterTypes.some((t) => EXTRA_TYPES.includes(t))
 
@@ -52,13 +62,7 @@ export const reorder = (deck: Deck, zone: Zone, from: number, to: number): Deck 
   return { ...deck, [zone]: next }
 }
 
-/** Monster frame rank; Pendulum follows the same rule as any other monster. */
-const frameRank = (card: CardData): number => {
-  const frame = ['ritual', 'fusion', 'synchro', 'xyz', 'link'].find((t) => card.monsterTypes.includes(t))
-  return FRAMES.indexOf(frame ?? (card.monsterTypes.includes('normal') ? 'normal' : 'effect'))
-}
-
-const groupRank = (card: CardData): number => (card.kind === 'monster' ? frameRank(card) : card.kind === 'spell' ? 10 : 11)
+const groupRank = (card: CardData): number => FRAMES.indexOf(frameOf(card))
 
 export const sortZone = (ids: readonly number[], cards: CardMap): number[] => {
   const known = ids.filter((id) => cards.has(id))
