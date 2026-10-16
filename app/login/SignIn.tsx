@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation'
 import { Icon } from '@iconify/react'
 import { Button } from '@ui/button'
 import { useAuth } from '@hooks/index'
-import { takeReturnTo } from '@app/deck-editor/drafts'
 import { signIn } from '@utils/auth'
+import { useReturnTo } from '@utils/return-to'
 
 /** After a failed attempt an older session may still be valid, so only bounce to /welcome when there is no error to show. */
 export const SignIn = ({ redirectIfSignedIn }: { redirectIfSignedIn: boolean }) => {
   const { user } = useAuth()
   const router = useRouter()
+  const returnTo = useReturnTo()
 
   useEffect(() => {
-    if (user && redirectIfSignedIn) router.replace(takeReturnTo() ?? '/welcome')
-  }, [user, redirectIfSignedIn, router])
+    if (user && redirectIfSignedIn) router.replace(returnTo() ?? '/welcome')
+  }, [user, redirectIfSignedIn, router, returnTo])
 
   return (
     <div className="border-t border-line mt-8 pt-8">

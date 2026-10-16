@@ -11,17 +11,28 @@
     "lookupFailed": "Algumas cartas não carregaram, então ainda não foram verificadas.",
     "retry": "Tentar de novo",
     "deckMissing": "Esse deck não está disponível: foi excluído ou não é seu. O editor abriu um deck novo.",
+    "deckCarried": "Esse deck foi excluído ou não é seu. Suas alterações não salvas nele estão abertas aqui como um deck novo.",
     "save": {
       "failed": "Não foi possível salvar o deck.",
-      "rejected": "O servidor recusou o deck: {reason}",
-      "kept": "Suas alterações continuam salvas neste dispositivo."
+      "rejected": "O servidor recusou este deck. Confira a quantidade de cartas e as cópias de cada uma.",
+      "kept": "Suas alterações continuam salvas neste dispositivo.",
+      "wait": "Ainda carregando. Tente de novo em instantes.",
+      "loadFailed": "O deck salvo não carregou, então ainda não dá para salvar por cima. Tente carregar de novo primeiro.",
+      "choose": "Escolha primeiro o que fazer com estas alterações.",
+      "notLoaded": "Este deck não carregou do servidor, então ainda não dá para salvar."
     },
     "load": {
       "loading": "Carregando o deck…",
       "failed": "Não foi possível carregar o deck.",
-      "newerDraft": "Este dispositivo tem alterações não salvas neste deck, mais novas que a versão salva.",
-      "restore": "Restaurar rascunho",
-      "discard": "Descartar"
+      "draft": "Estas são alterações não salvas deste dispositivo. Elas diferem do deck salvo (versão {revision}).",
+      "draftDetail": "Mantenha e salve quando quiser, ou descarte e abra a versão salva.",
+      "keep": "Manter rascunho",
+      "discard": "Descartar rascunho",
+      "signIn": "Entre para abrir este deck. As alterações não salvas nele continuam neste dispositivo.",
+      "goneTitle": "Esse deck foi excluído ou não é seu.",
+      "goneCollision": "Suas alterações não salvas nele aparecem aqui. Levá-las para um deck novo substitui o outro deck novo não salvo deste dispositivo.",
+      "goneCarry": "Substituir o outro deck novo",
+      "goneDiscard": "Descartar estas alterações"
     },
     "conflict": {
       "title": "Deck alterado em outro lugar",
@@ -49,6 +60,7 @@
       "deleteTitle": "Excluir deck",
       "deleteBody": "Excluir “{name}” e o histórico dele? Não dá para desfazer.",
       "deleteFailed": "Não foi possível excluir o deck.",
+      "deleteReplacesNew": "Este deck está aberto: o conteúdo dele fica no editor como um deck novo, substituindo o seu outro deck novo não salvo.",
       "visibility": {
         "private": "Privado",
         "unlisted": "Não listado",

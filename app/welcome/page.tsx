@@ -21,6 +21,7 @@ import { getMeServer } from '@utils/auth'
 import { pageMetadata } from '@utils/metadata'
 import type { WelcomeData, WelcomeLadder, WelcomeMeta, WelcomeTournament, WelcomeUpcoming } from '@utils/types'
 import { change, getWelcomeData } from '@utils/welcome'
+import { ReturnAfterSignIn } from './return-to'
 
 export async function generateMetadata() {
   const t = await getTranslations('Welcome.meta')
@@ -371,6 +372,7 @@ const WelcomePage = async () => {
   const background = me?.cosmetics?.BACKGROUND?.assetUrl
   return (
     <>
+      <ReturnAfterSignIn />
       <Header />
       <main
         className="flex min-h-dvh flex-col overflow-x-clip pt-16 pb-24"

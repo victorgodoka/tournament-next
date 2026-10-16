@@ -2,8 +2,6 @@ import type { Deck } from '@utils/deck/types'
 
 export type Draft = { deck: Deck; name: string; format: number | null; revision: number | null; at: number }
 
-const RETURN_KEY = 'return-to'
-
 export const draftKey = (deckId: string | null): string => `deck-draft:${deckId ?? 'new'}`
 
 // Storage can be missing or throw on access itself (private mode, blocked site data); every use goes through here.
@@ -48,20 +46,6 @@ export const writeDraft = (key: string, draft: Draft): void =>
 
 export const clearDraft = (key: string): void => attempt(() => localStorage.removeItem(key), undefined)
 
-// Same-origin rooted paths only: no `//host` or `/\host`, and no control/whitespace characters
-// (URL parsers strip tab/newline, so `/\t/evil.test` would navigate to `//evil.test`).
-const isSafePath = (path: string | null): path is string =>
-  !!path && /^\/(?![/\\])/.test(path) && !/[\u0000-\u001f\u007f\s]/.test(path)
-
-export const setReturnTo = (path: string): void =>
-  attempt(() => {
-    if (isSafePath(path)) sessionStorage.setItem(RETURN_KEY, path)
-  }, undefined)
-
-/** Reads and clears the stored path; returns it only if still safe. */
-export const takeReturnTo = (): string | null =>
-  attempt(() => {
-    const path = sessionStorage.getItem(RETURN_KEY)
-    sessionStorage.removeItem(RETURN_KEY)
-    return isSafePath(path) ? path : null
-  }, null)
+/** Same deck, name and format: the draft holds nothing the other doesn't. */
+export const sameDraft = (a: Pick<Draft, 'deck' | 'name' | 'format'>, b: Pick<Draft, 'deck' | 'name' | 'format'>): boolean =>
+  a.name === b.name && a.format === b.format && (['main', 'extra', 'side'] as const).every((z) => a.deck[z].join() === b.deck[z].join())

@@ -11,17 +11,28 @@
     "lookupFailed": "Some cards couldn't be loaded, so they aren't checked yet.",
     "retry": "Retry",
     "deckMissing": "That deck isn't available: it was deleted, or it isn't yours. The editor opened a new deck.",
+    "deckCarried": "That deck was deleted, or isn't yours. Your unsaved changes to it are open here as a new deck.",
     "save": {
       "failed": "Couldn't save the deck.",
-      "rejected": "The server refused the deck: {reason}",
-      "kept": "Your changes are kept on this device."
+      "rejected": "The server refused this deck. Check the card counts and the copies of each card.",
+      "kept": "Your changes are kept on this device.",
+      "wait": "Still loading. Try again in a moment.",
+      "loadFailed": "The saved deck didn't load, so it can't be saved over yet. Retry loading first.",
+      "choose": "Choose what to do with these changes first.",
+      "notLoaded": "This deck hasn't loaded from the server, so it can't be saved yet."
     },
     "load": {
       "loading": "Loading the deck…",
       "failed": "Couldn't load the deck.",
-      "newerDraft": "This device has unsaved changes to this deck, newer than the saved version.",
-      "restore": "Restore draft",
-      "discard": "Discard"
+      "draft": "These are unsaved changes from this device. They differ from the saved deck (version {revision}).",
+      "draftDetail": "Keep them and save when ready, or discard them and open the saved version.",
+      "keep": "Keep draft",
+      "discard": "Discard draft",
+      "signIn": "Sign in to open this deck. Unsaved changes to it stay on this device.",
+      "goneTitle": "That deck was deleted, or isn't yours.",
+      "goneCollision": "Your unsaved changes to it are shown here. Carrying them into a new deck replaces the other unsaved new deck on this device.",
+      "goneCarry": "Replace the other new deck",
+      "goneDiscard": "Discard these changes"
     },
     "conflict": {
       "title": "Deck changed elsewhere",
@@ -49,6 +60,7 @@
       "deleteTitle": "Delete deck",
       "deleteBody": "Delete “{name}” and its history? This can't be undone.",
       "deleteFailed": "Couldn't delete the deck.",
+      "deleteReplacesNew": "This deck is open: its content stays in the editor as a new deck, replacing your other unsaved new deck.",
       "visibility": {
         "private": "Private",
         "unlisted": "Unlisted",

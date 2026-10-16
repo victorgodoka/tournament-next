@@ -1,6 +1,6 @@
 'use client'
 
-import { useFormatter, useTranslations } from 'next-intl'
+import { useFormatter, useNow, useTranslations } from 'next-intl'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import type { SavedDeck } from '@utils/decks'
@@ -12,6 +12,8 @@ import type { SavedDeck } from '@utils/decks'
 export const ConflictDialog = ({ latest, onResolve }: { latest: SavedDeck | null; onResolve(choice: 'load' | 'overwrite' | 'cancel'): void }) => {
   const t = useTranslations('DeckEditor')
   const format = useFormatter()
+  // Mounted for the editor's whole life: keep "n minutes ago" current.
+  const now = useNow({ updateInterval: 30_000 })
 
   return (
     <Dialog
@@ -32,7 +34,7 @@ export const ConflictDialog = ({ latest, onResolve }: { latest: SavedDeck | null
     >
       {latest ? (
         <p className="text-ink body">
-          {t('conflict.body', { name: latest.name, revision: latest.revision, when: format.relativeTime(new Date(latest.updatedAt)) })}
+          {t('conflict.body', { name: latest.name, revision: latest.revision, when: format.relativeTime(new Date(latest.updatedAt), now) })}
         </p>
       ) : null}
     </Dialog>

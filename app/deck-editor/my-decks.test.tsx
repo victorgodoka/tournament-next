@@ -12,6 +12,7 @@ vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: { name?: string }) => (values?.name ? `${key}:${values.name}` : key),
   useFormatter: () => ({ relativeTime: () => 'now' }),
+  useNow: () => new Date(),
 }))
 vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', () => ({ listMyDecks: vi.fn(), deleteDeck: vi.fn() }))
@@ -28,10 +29,10 @@ const summary = (id: string, name: string): DeckSummary => ({
   label: null,
 })
 
-const setup = async () => {
+const setup = async (replacesNew = false) => {
   const onDeleted = vi.fn()
   await act(async () => {
-    render(<MyDecks open onClose={() => {}} currentId={null} onNew={() => {}} newDiscards={() => false} onDeleted={onDeleted} />)
+    render(<MyDecks open onClose={() => {}} currentId="a" onNew={() => {}} newDiscards={() => false} onDeleted={onDeleted} deleteReplacesNew={() => replacesNew} />)
   })
   return { onDeleted }
 }
@@ -58,10 +59,17 @@ describe('MyDecks', () => {
   })
 
   it('opens a deck by its URL', async () => {
-    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary('a', 'Blue-Eyes')], nextCursor: null })
+    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary('b', 'Snake-Eye')], nextCursor: null })
     await setup()
-    fireEvent.click(screen.getByLabelText('myDecks.openNamed:Blue-Eyes'))
-    expect(router.push).toHaveBeenCalledWith('/deck-editor/a')
+    fireEvent.click(screen.getByLabelText('myDecks.openNamed:Snake-Eye'))
+    expect(router.push).toHaveBeenCalledWith('/deck-editor/b')
+  })
+
+  it('warns in the confirm when deleting the open deck replaces another unsaved new deck', async () => {
+    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary('a', 'Blue-Eyes')], nextCursor: null })
+    await setup(true)
+    fireEvent.click(screen.getByLabelText('myDecks.deleteNamed:Blue-Eyes'))
+    expect(screen.getByText('myDecks.deleteReplacesNew')).toBeTruthy()
   })
 
   it('deletes a deck after the confirm, removing its row', async () => {

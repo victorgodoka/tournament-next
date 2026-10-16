@@ -134,5 +134,8 @@ describe('editorReducer', () => {
     expect(s).toMatchObject({ deckId: 'abc', revision: 2, dirty: false })
     // Edits made while the request was in flight stay unsaved.
     expect(editorReducer(s, { type: 'saved', deckId: 'abc', revision: 3, dirty: true }).dirty).toBe(true)
+    // The name and format as saved replace the placeholder and the default list.
+    expect(editorReducer(s, { type: 'saved', deckId: 'abc', revision: 3, name: 'New deck', format: 44 })).toMatchObject({ name: 'New deck', format: 44 })
+    expect(editorReducer(s, { type: 'saved', deckId: 'abc', revision: 3 })).toMatchObject({ name: s.name, format: s.format })
   })
 })

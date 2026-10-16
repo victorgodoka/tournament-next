@@ -3,11 +3,11 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createDeck, DeckApiError, DeckConflictError, updateDeck, type SavedDeck } from '@utils/decks'
 import { initialEditorState, type EditorState } from './deck-editor.reducer'
-import { draftKey, readDraft } from './drafts'
-import { useSave } from './use-save'
+import { draftKey, readDraft, writeDraft } from './drafts'
+import { draftOf, useSave } from './use-save'
 
 const router = { push: vi.fn(), replace: vi.fn() }
-const auth: { user: { id: string } | null | undefined } = { user: { id: 'u1' } }
+const auth: { user: { id: string } | null | undefined; refresh: () => Promise<void> } = { user: { id: 'u1' }, refresh: vi.fn() }
 
 vi.mock('next/navigation', () => ({ useRouter: () => router }))
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
@@ -15,8 +15,9 @@ vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), createDeck: vi.fn(), updateDeck: vi.fn() }))
 
 const deck = { main: [1, 2, 3], extra: [], side: [] }
+const NEW_ID = '0123456789abcdef'
 const saved = (over: Partial<SavedDeck> = {}): SavedDeck => ({
-  id: '0123456789abcdef',
+  id: NEW_ID,
   ownerId: 'u1',
   owner: { id: 'u1', name: 'kaiba' },
   name: 'Blue-Eyes',
@@ -34,10 +35,17 @@ const saved = (over: Partial<SavedDeck> = {}): SavedDeck => ({
 })
 const editor = (over: Partial<EditorState> = {}): EditorState => ({ ...initialEditorState(), deck, dirty: true, ...over })
 
-const setup = (state: EditorState, format: number | null = 44) => {
+const setup = (state: EditorState, format: number | null = 44, wait: string | null = null) => {
   const dispatch = vi.fn()
-  const hook = renderHook(({ s }) => useSave(s, dispatch, format), { initialProps: { s: state } })
+  const hook = renderHook(({ s }) => useSave(s, dispatch, format, wait), { initialProps: { s: state } })
   return { dispatch, ...hook }
+}
+
+/** A request that resolves when the test says so. */
+const deferred = () => {
+  let resolve!: (d: SavedDeck) => void
+  const promise = new Promise<SavedDeck>((r) => (resolve = r))
+  return { promise, resolve }
 }
 
 // Node's own (flagged) localStorage shadows happy-dom's: stub both storages.
@@ -48,6 +56,7 @@ const memoryStorage = () => {
 
 beforeEach(() => {
   auth.user = { id: 'u1' }
+  auth.refresh = vi.fn(() => Promise.resolve())
   vi.stubGlobal('localStorage', memoryStorage())
   vi.stubGlobal('sessionStorage', memoryStorage())
   window.history.replaceState(null, '', '/deck-editor')
@@ -65,9 +74,10 @@ describe('useSave', () => {
     await act(() => result.current.save())
     // An empty name goes out as the placeholder; the effective format, never null.
     expect(createDeck).toHaveBeenCalledWith({ name: 'newDeck', format: 44, ...deck })
-    expect(dispatch).toHaveBeenCalledWith({ type: 'saved', deckId: '0123456789abcdef', revision: 1, dirty: false })
+    // The editor takes the name and format as saved, so later drafts compare like for like.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'saved', deckId: NEW_ID, revision: 1, name: 'newDeck', format: 44 })
     expect(localStorage.getItem(draftKey(null))).toBeNull()
-    expect(window.location.pathname).toBe('/deck-editor/0123456789abcdef')
+    expect(window.location.pathname).toBe(`/deck-editor/${NEW_ID}`)
     expect(result.current.saving).toBe(false)
   })
 
@@ -79,9 +89,9 @@ describe('useSave', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'saved', revision: 4 }))
   })
 
-  it('keeps the deck dirty when it changed while saving', async () => {
-    let finish!: (d: SavedDeck) => void
-    vi.mocked(updateDeck).mockReturnValue(new Promise((r) => (finish = r)))
+  it('keeps edits made while saving dirty, as a draft on the new revision', async () => {
+    const request = deferred()
+    vi.mocked(updateDeck).mockReturnValue(request.promise)
     const first = editor({ deckId: 'abc', revision: 3 })
     const { result, dispatch, rerender } = setup(first)
     let pending!: Promise<void>
@@ -90,15 +100,20 @@ describe('useSave', () => {
     })
     rerender({ s: { ...first, name: 'edited' } })
     await act(async () => {
-      finish(saved({ revision: 4 }))
+      request.resolve(saved({ id: 'abc', revision: 4 }))
       await pending
     })
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'saved', dirty: true }))
+    expect(dispatch).toHaveBeenCalledWith({ type: 'saved', deckId: 'abc', revision: 4, dirty: true })
+    expect(readDraft(draftKey('abc'))).toMatchObject({ name: 'edited', revision: 4 })
   })
 
-  it('does nothing for a saved deck that has not loaded yet', async () => {
-    const { result } = setup(editor({ deckId: 'abc', revision: null }))
-    await act(() => result.current.save())
+  it('says why when it cannot save yet', async () => {
+    const loading = setup(editor({ deckId: 'abc', revision: 3 }), 44, 'save.wait')
+    await act(() => loading.result.current.save())
+    expect(loading.result.current.error).toBe('save.wait')
+    const unloaded = setup(editor({ deckId: 'abc', revision: null }))
+    await act(() => unloaded.result.current.save())
+    expect(unloaded.result.current.error).toBe('save.notLoaded')
     expect(updateDeck).not.toHaveBeenCalled()
   })
 
@@ -135,6 +150,15 @@ describe('useSave', () => {
     expect(result.current.error).toBeNull()
   })
 
+  it("a 400 shows a translated message; the server's text only goes to the console", async () => {
+    vi.mocked(updateDeck).mockRejectedValue(new DeckApiError(400, 'BAD_REQUEST', 'main: too many copies'))
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = setup(editor({ deckId: 'abc', revision: 3 }))
+    await act(() => result.current.save())
+    expect(result.current.error).toBe('save.rejected')
+    expect(log).toHaveBeenCalled()
+  })
+
   it('signed out: writes the draft, remembers the page and goes to /login', async () => {
     auth.user = null
     window.history.replaceState(null, '', '/deck-editor?x=1')
@@ -144,13 +168,60 @@ describe('useSave', () => {
     expect(readDraft(draftKey(null))).toMatchObject({ deck, name: 'Mine' })
     expect(sessionStorage.getItem('return-to')).toBe('/deck-editor?x=1')
     expect(router.push).toHaveBeenCalledWith('/login')
+    expect(auth.refresh).not.toHaveBeenCalled()
   })
 
-  it('a 401 takes the same way to /login', async () => {
+  it('a 401 re-reads the session before going to /login, so /login sees the user signed out', async () => {
+    let signedOut!: () => void
+    auth.refresh = vi.fn(() => new Promise<void>((r) => (signedOut = r)))
     vi.mocked(updateDeck).mockRejectedValue(new DeckApiError(401))
     const { result } = setup(editor({ deckId: 'abc', revision: 3 }))
-    await act(() => result.current.save())
+    let pending!: Promise<void>
+    await act(async () => {
+      pending = result.current.save()
+    })
+    expect(auth.refresh).toHaveBeenCalled()
+    expect(router.push).not.toHaveBeenCalled()
     expect(readDraft(draftKey('abc'))).toMatchObject({ deck, revision: 3 })
+    await act(async () => {
+      signedOut()
+      await pending
+    })
     expect(router.push).toHaveBeenCalledWith('/login')
+  })
+
+  describe('a create that resolves after the editor unmounted', () => {
+    const start = () => {
+      const request = deferred()
+      vi.mocked(createDeck).mockReturnValue(request.promise)
+      const first = editor({ name: 'A' })
+      const hook = setup(first)
+      let pending!: Promise<void>
+      act(() => {
+        pending = hook.result.current.save()
+      })
+      const edited = { ...first, name: 'A, edited' }
+      hook.rerender({ s: edited })
+      return { ...hook, edited, finish: () => act(async () => (request.resolve(saved()), await pending)) }
+    }
+
+    it("keeps the edits made meanwhile under the new deck's draft and leaves the URL alone", async () => {
+      const { unmount, edited, finish } = start()
+      writeDraft(draftKey(null), draftOf(edited)) // what the shell's unmount flush stores
+      unmount()
+      window.history.replaceState(null, '', '/somewhere-else')
+      await finish()
+      expect(window.location.pathname).toBe('/somewhere-else')
+      expect(readDraft(draftKey(NEW_ID))).toMatchObject({ name: 'A, edited', revision: 1 })
+      expect(readDraft(draftKey(null))).toBeNull() // moved, not duplicated
+    })
+
+    it('leaves a new draft that holds something else alone', async () => {
+      const { unmount, finish } = start()
+      writeDraft(draftKey(null), { deck: { main: [9], extra: [], side: [] }, name: 'Another', format: null, revision: null, at: 1 })
+      unmount()
+      await finish()
+      expect(readDraft(draftKey(null))).toMatchObject({ name: 'Another' })
+    })
   })
 })

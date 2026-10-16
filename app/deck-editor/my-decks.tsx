@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useFormatter, useNow, useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { twMerge } from 'tailwind-merge'
@@ -13,7 +13,7 @@ import { Dialog } from '@ui/dialog'
 import { useAuth } from '@hooks/index'
 import { CARD_ART_URL } from '@utils/const'
 import { deleteDeck, listMyDecks, type DeckSummary } from '@utils/decks'
-import { setReturnTo } from './drafts'
+import { setReturnTo } from '@utils/return-to'
 
 const TOUCH = 'max-lg:min-h-11'
 
@@ -27,6 +27,8 @@ type MyDecksProps = {
   /** Whether New would throw away an unsaved new deck: it asks first. Read on click. */
   newDiscards(): boolean
   onDeleted(id: string): void
+  /** Deleting this deck turns the open one into the unsaved new deck over another one: the confirm says so. Read on click. */
+  deleteReplacesNew(id: string): boolean
 }
 
 /** The signed-in user's saved decks (`GET /decks/mine`); signed out, a sign-in prompt that comes back here. */
@@ -58,7 +60,7 @@ export const MyDecks = (p: MyDecksProps) => {
         {user === undefined ? (
           <p role="status" className="text-ink-muted body">{t('myDecks.loading')}</p>
         ) : user ? (
-          <DeckList currentId={p.currentId} onClose={p.onClose} onDeleted={p.onDeleted} />
+          <DeckList currentId={p.currentId} onClose={p.onClose} onDeleted={p.onDeleted} deleteReplacesNew={p.deleteReplacesNew} />
         ) : (
           <div className="flex flex-col items-start gap-4">
             <p className="text-ink body">{t('myDecks.signedOut')}</p>
@@ -104,12 +106,13 @@ const fetchPage = (setPage: React.Dispatch<React.SetStateAction<Page>>, cursor?:
   )
 
 /** Mounted each time the dialog opens, so every opening reads a fresh first page. */
-const DeckList = ({ currentId, onClose, onDeleted }: Pick<MyDecksProps, 'currentId' | 'onClose' | 'onDeleted'>) => {
+const DeckList = ({ currentId, onClose, onDeleted, deleteReplacesNew }: Pick<MyDecksProps, 'currentId' | 'onClose' | 'onDeleted' | 'deleteReplacesNew'>) => {
   const t = useTranslations('DeckEditor')
   const format = useFormatter()
+  const now = useNow()
   const router = useRouter()
   const [page, setPage] = useState<Page>({ decks: [], cursor: null, status: 'loading' })
-  const [confirm, setConfirm] = useState<DeckSummary | null>(null)
+  const [confirm, setConfirm] = useState<{ deck: DeckSummary; replacesNew: boolean } | null>(null)
   const [deleting, setDeleting] = useState<'idle' | 'busy' | 'failed'>('idle')
   const list = useRef<HTMLUListElement>(null)
 
@@ -162,7 +165,7 @@ const DeckList = ({ currentId, onClose, onDeleted }: Pick<MyDecksProps, 'current
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="truncate text-ink body-strong">{d.name}</span>
                 <span className="truncate text-ink-muted signal-sm">
-                  {[d.label?.name, t('tray.counts', d.counts), t(`myDecks.visibility.${d.visibility}`), format.relativeTime(new Date(d.updatedAt))]
+                  {[d.label?.name, t('tray.counts', d.counts), t(`myDecks.visibility.${d.visibility}`), format.relativeTime(new Date(d.updatedAt), now)]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>
@@ -175,7 +178,7 @@ const DeckList = ({ currentId, onClose, onDeleted }: Pick<MyDecksProps, 'current
                 variant="ghost"
                 onClick={() => {
                   setDeleting('idle')
-                  setConfirm(d)
+                  setConfirm({ deck: d, replacesNew: deleteReplacesNew(d.id) })
                 }}
                 aria-label={t('myDecks.deleteNamed', { name: d.name })}
                 className={TOUCH}
@@ -208,13 +211,14 @@ const DeckList = ({ currentId, onClose, onDeleted }: Pick<MyDecksProps, 'current
             <Button variant="secondary" onClick={() => setConfirm(null)} className={TOUCH}>
               {t('myDecks.cancel')}
             </Button>
-            <Button variant="danger" aria-disabled={deleting === 'busy' || undefined} onClick={() => confirm && deleting !== 'busy' && remove(confirm)} className={TOUCH}>
+            <Button variant="danger" aria-disabled={deleting === 'busy' || undefined} onClick={() => confirm && deleting !== 'busy' && remove(confirm.deck)} className={TOUCH}>
               {t('myDecks.delete')}
             </Button>
           </>
         }
       >
-        <p className="text-ink body">{t('myDecks.deleteBody', { name: confirm?.name ?? '' })}</p>
+        <p className="text-ink body">{t('myDecks.deleteBody', { name: confirm?.deck.name ?? '' })}</p>
+        {confirm?.replacesNew ? <Alert tone="warn" edged title={t('myDecks.deleteReplacesNew')} /> : null}
         {deleting === 'failed' ? <Alert tone="negative" edged title={t('myDecks.deleteFailed')} /> : null}
       </Dialog>
     </div>
