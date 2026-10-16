@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EMPTY_DECK, type CardData } from '@utils/deck/types'
 import { CardPool } from './card-pool'
+import { initialEditorState } from './deck-editor.reducer'
+import { DeckTray } from './deck-tray'
 import { DeckZone } from './deck-zone'
 import { LONG_PRESS_MS } from './gestures'
 
@@ -106,5 +108,22 @@ describe('deck row swipe', () => {
     swipe(row, -70, 120)
     swipe(row, -50, 0)
     expect(onRemove).not.toHaveBeenCalled()
+  })
+})
+
+describe('deck tray scrim', () => {
+  it('closing from the scrim returns focus from inside the tray to the handle', () => {
+    const { container } = render(
+      <DeckTray state={initialEditorState()} cards={new Map()} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={() => {}} onDropCard={() => () => {}} onOpen={() => {}} toolbar={null} />,
+    )
+    const handle = screen.getByRole('button', { name: /tray\.counts/ })
+    fireEvent.click(handle, { detail: 0 })
+    screen.getByRole('button', { name: 'tray.actions' }).focus()
+    const scrim = container.querySelector('.bg-scrim')!
+    fireEvent.pointerDown(scrim)
+    ;(document.activeElement as HTMLElement).blur() // what the browser's press on a non-focusable does
+    fireEvent.click(scrim)
+    expect(handle.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(handle)
   })
 })

@@ -54,13 +54,16 @@ export const DeckTray = (p: DeckTrayProps) => {
   const { deck, lastAdded } = p.state
 
   const section = useRef<HTMLElement>(null)
+  /** Focus was in the tray when the scrim was pressed: by its click, the press has moved it to body. */
+  const focusIn = useRef(false)
+  const hasFocus = () => !!section.current?.contains(document.activeElement)
 
-  const show = (next: boolean) => {
+  const show = (next: boolean, refocus = hasFocus()) => {
     setOpen(next)
     if (next) return
     setMenu(false)
     // The body goes inert: focus inside it would be lost, so it returns to the handle.
-    if (section.current?.contains(document.activeElement)) handle.current?.focus()
+    if (refocus) handle.current?.focus()
   }
 
   const [flag, flagClass] =
@@ -73,7 +76,7 @@ export const DeckTray = (p: DeckTrayProps) => {
 
   return (
     <>
-      {open ? <div aria-hidden onClick={() => show(false)} className="fixed inset-0 z-(--z-dock) bg-scrim motion-safe:animate-fade-in" /> : null}
+      {open ? <div aria-hidden onPointerDown={() => (focusIn.current = hasFocus())} onClick={() => show(false, focusIn.current)} className="fixed inset-0 z-(--z-dock) bg-scrim motion-safe:animate-fade-in" /> : null}
       <section
         ref={section}
         id="deck-tray"
