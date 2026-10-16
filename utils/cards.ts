@@ -138,9 +138,19 @@ export const cardsByIds = async (ids: readonly number[], signal?: AbortSignal): 
   const unique = [...new Set(ids)]
   const chunks = Array.from({ length: Math.ceil(unique.length / ID_CHUNK) }, (_, i) => unique.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK))
   const pages = await Promise.all(
-    chunks.map((chunk) => get<{ cards: (WikiCard & { idSearched: number })[] }>(`/cards?id=${chunk.join(',')}&limit=${ID_CHUNK}`, signal)),
+    chunks.map(async (chunk) => ({
+      chunk,
+      ...(await get<{ cards: (WikiCard & { idSearched: number })[] }>(`/cards?id=${chunk.join(',')}&limit=${ID_CHUNK}`, signal)),
+    })),
   )
   const map = new Map<number, WikiCard>()
-  for (const { cards } of pages) for (const { idSearched, ...card } of cards) map.set(idSearched, card as WikiCard)
+  for (const { chunk, cards } of pages)
+    for (const { idSearched, ...rest } of cards) {
+      const card = rest as WikiCard
+      map.set(idSearched, card)
+      // Passcodes of one card come back once, under a single idSearched: map the other requested ones too.
+      const own = [card.id, ...(card.alternateArts ?? [])]
+      for (const id of chunk) if (own.includes(id)) map.set(id, card)
+    }
   return map
 }

@@ -1,5 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cardsByIds, EMPTY_POOL_QUERY, poolParams } from './cards'
+import { CARD_IMAGE_URL } from './const'
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('card scans', () => {
+  it('points at the common scan folder', () => {
+    expect(CARD_IMAGE_URL(44649322)).toBe('https://ygopro.online/assets/card-images/common/44649322.jpg')
+  })
+})
 
 describe('card pool', () => {
   it('maps the query onto the API parameters, omitting empty ones', () => {
@@ -17,6 +26,12 @@ describe('card pool', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ cards: [{ idSearched: 46986431, id: 46986414, name: 'Dark Magician' }], total: 1 })))
     const map = await cardsByIds([46986431])
     expect(map.get(46986431)?.id).toBe(46986414)
-    vi.unstubAllGlobals()
+  })
+
+  it('maps every requested passcode of a card that came back once', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ cards: [{ idSearched: 46986414, id: 46986414, name: 'Dark Magician', alternateArts: [46986431] }], total: 1 })))
+    const map = await cardsByIds([46986414, 46986431])
+    expect(map.get(46986414)?.id).toBe(46986414)
+    expect(map.get(46986431)?.id).toBe(46986414)
   })
 })
