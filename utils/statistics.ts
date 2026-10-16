@@ -38,7 +38,7 @@ export type StatArchetype = {
   players: number
   turnOrder: TurnSplit
   sideboarding: { game1: Side; postSide: Side }
-  pace: { averageTurns: number; actionsPerTurn: number; turn1SpecialSummons: number; averageLongestChain: number }
+  pace: { averageTurns: number | null; actionsPerTurn: number | null; turn1SpecialSummons: number | null; averageLongestChain: number | null }
   cards: StatCard[]
   engines: CardGroup[]
   techs: CardGroup[]

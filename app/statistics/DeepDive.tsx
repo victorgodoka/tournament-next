@@ -14,7 +14,8 @@ import { StatGrid } from '@ui/stat-grid'
 import type { CardGroup, StatArchetype, StatCard } from '@utils/statistics'
 
 export const pct = (r: number | null | undefined) => (r == null ? '—' : (r * 100).toFixed(1) + '%')
-export const num = (n: number) => n.toLocaleString('en-US')
+const fixed = (n: number | null, digits: number) => (n == null ? '—' : n.toFixed(digits))
+export const num =(n: number) => n.toLocaleString('en-US')
 export const nameOf = (a: { name: string | null; archetype: number[] }) => a.name ?? `Setcode ${a.archetype.join(' / ')}`
 export const cardName = (c: { name: string | null; id: number }) => c.name ?? `Retired card #${c.id}`
 /** A deck's face: its most included tracked card, its own signature card in practice. */
@@ -238,10 +239,10 @@ export const DeepDive = ({ archetype: focus, rank }: { archetype: StatArchetype;
         <StatGrid
           columns={2}
           items={[
-            { label: 'Turns a game', value: focus.pace.averageTurns.toFixed(2) },
-            { label: 'Actions a turn', value: focus.pace.actionsPerTurn.toFixed(1) },
-            { label: 'Turn 1 summons', value: focus.pace.turn1SpecialSummons.toFixed(1), hint: 'Special Summons going first' },
-            { label: 'Longest chain', value: focus.pace.averageLongestChain.toFixed(2), hint: 'Average per game' },
+            { label: 'Turns a game', value: fixed(focus.pace.averageTurns, 2) },
+            { label: 'Actions a turn', value: fixed(focus.pace.actionsPerTurn, 1) },
+            { label: 'Turn 1 summons', value: fixed(focus.pace.turn1SpecialSummons, 1), hint: 'Special Summons going first' },
+            { label: 'Longest chain', value: fixed(focus.pace.averageLongestChain, 2), hint: 'Average per game' },
           ]}
         />
       </div>

@@ -30,17 +30,28 @@ type Picked = { archetype: number[]; name: string }
 const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
   name: string
   state: DeepDiveState | null
-  failed: boolean
+  failed: number | null
   signedIn: boolean | undefined
   onLoad: () => void
   onCalculate: () => void
 }) => {
-  if (failed)
+  if (failed !== null)
     return (
       <Panel title={name} meta="Couldn't read it">
         <div className="flex flex-col items-start gap-4">
-          <p className="text-ink-dim body">The game server didn&apos;t answer. Try again in a moment.</p>
-          <Button size="sm" variant="secondary" onClick={onLoad}>Retry</Button>
+          {failed === 401 ? (
+            <>
+              <p className="text-ink-dim body">Your session expired. Sign in again.</p>
+              <Button size="sm" variant="secondary" href="/login">Sign in</Button>
+            </>
+          ) : failed === 404 ? (
+            <p className="text-ink-dim body">Not enough games for this deck anymore.</p>
+          ) : (
+            <>
+              <p className="text-ink-dim body">The game server didn&apos;t answer. Try again in a moment.</p>
+              <Button size="sm" variant="secondary" onClick={onLoad}>Retry</Button>
+            </>
+          )}
         </div>
       </Panel>
     )
@@ -94,12 +105,17 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
   }
 }
 
-export const DeepDiveSearch = ({ season, onLocal }: { season: Statistics['season']; onLocal: (key: string) => boolean }) => {
+/** `onRemote(true)` while a pick outside the page's data is shown (the page hides its own deep dive then). */
+export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
+  season: Statistics['season']
+  onLocal: (key: string) => boolean
+  onRemote: (active: boolean) => void
+}) => {
   const { user } = useAuth()
   const code = season.code
   const [picked, setPicked] = useState<Picked | null>(null)
   const [state, setState] = useState<DeepDiveState | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<number | null>(null)
   const [indexFailed, setIndexFailed] = useState(false)
   const index = useRef<{ code: string; promise: Promise<IndexEntry[]> } | null>(null)
   const controller = useRef<AbortController | null>(null)
@@ -122,7 +138,7 @@ export const DeepDiveSearch = ({ season, onLocal }: { season: Statistics['season
   )
 
   /* Leaving mid-calculation loses the poll, not the job; still, ask first. */
-  const active = isActive(state)
+  const active = failed === null && isActive(state)
   useEffect(() => {
     if (!active) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
@@ -152,7 +168,7 @@ export const DeepDiveSearch = ({ season, onLocal }: { season: Statistics['season
   /** Runs `first`, then polls while the job is queued or running. A `missing` answer ends the poll. */
   const run = (archetype: number[], first: (signal: AbortSignal) => Promise<DeepDiveState>, shown: DeepDiveState | null) => {
     const signal = restart()
-    setFailed(false)
+    setFailed(null)
     setState(shown)
     const step = (req: Promise<DeepDiveState>) =>
       req.then(
@@ -161,8 +177,8 @@ export const DeepDiveSearch = ({ season, onLocal }: { season: Statistics['season
           setState(s)
           if (s.status === 'queued' || s.status === 'running') timer.current = setTimeout(() => step(getDeepDive(code, archetype, signal)), POLL_MS)
         },
-        () => {
-          if (!signal.aborted) setFailed(true)
+        (e: { status?: number }) => {
+          if (!signal.aborted) setFailed(e?.status ?? 0)
         },
       )
     step(first(signal))
@@ -176,11 +192,13 @@ export const DeepDiveSearch = ({ season, onLocal }: { season: Statistics['season
       restart()
       setPicked(null)
       setState(null)
-      setFailed(false)
+      setFailed(null)
+      onRemote(false)
       return
     }
     const next = { archetype: String(key).split('-').map(Number), name: String(label) }
     setPicked(next)
+    onRemote(true)
     load(next)
   }
 

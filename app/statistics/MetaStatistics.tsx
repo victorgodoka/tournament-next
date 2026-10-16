@@ -234,6 +234,8 @@ const TRAP_COLS = 'minmax(190px, 2fr) repeat(7, minmax(72px, 0.8fr))'
 const Report = ({ data }: { data: Statistics }) => {
   const [showAll, setShowAll] = useState(false)
   const [focusKey, setFocusKey] = useState<string | null>(null)
+  const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
+  const [searchRound, setSearchRound] = useState(0)
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [metric, setMetric] = useState<'share' | 'wr'>('share')
   const [trapId, setTrapId] = useState<number | null>(null)
@@ -480,15 +482,19 @@ const Report = ({ data }: { data: Statistics }) => {
 
       <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
-        <DeepDiveSearch key={season.code} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} />
+        <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} />
         <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
           value={fKey}
-          onChange={setFocusKey}
+          onChange={(key) => {
+            setFocusKey(key)
+            setRemoteSeason(null)
+            setSearchRound((n) => n + 1) // remounts the search: its pick goes away with the chip click
+          }}
         />
 
-        <DeepDive archetype={focus} rank={rank} />
+        {remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
       </Section>
 
       <Section num="06" label="Staples" stamp="Cards in 2+ archetypes · all deck-games">
