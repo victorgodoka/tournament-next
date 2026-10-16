@@ -84,6 +84,29 @@ describe('deck model', () => {
     expect(bad.deck).toBe(deck)
   })
 
+  it('moves an unknown passcode through Side but leaves main<->extra alone', () => {
+    const deck = { main: [999], extra: [], side: [] }
+    expect(moveCard(deck, 'main', 999, 'side', cards).deck).toEqual({ main: [], extra: [], side: [999] })
+    expect(moveCard({ main: [], extra: [], side: [999] }, 'side', 999, 'main', cards).deck).toEqual(deck)
+    const res = moveCard(deck, 'main', 999, 'extra', cards)
+    expect(res).toEqual({ deck, rejected: null })
+    expect(res.deck).toBe(deck)
+  })
+
+  it('does not apply the copies check to a move, only zone and full', () => {
+    const over = { main: Array(4).fill(ash.id), extra: [], side: [] }
+    expect(moveCard(over, 'main', ash.id, 'side', cards)).toEqual({ deck: { main: Array(3).fill(ash.id), extra: [], side: [ash.id] }, rejected: null })
+    const fullSide = { main: [ash.id], extra: [], side: Array(15).fill(pot.id) }
+    const res = moveCard(fullSide, 'main', ash.id, 'side', cards)
+    expect(res.rejected).toBe('full')
+    expect(res.deck).toBe(fullSide)
+  })
+
+  it('returns the same deck when reordering onto the same index', () => {
+    const deck = { main: [1, 2, 3], extra: [], side: [] }
+    expect(reorder(deck, 'main', 1, 1)).toBe(deck)
+  })
+
   it('sorts in game order: monsters by frame then level desc then name, spells, traps', () => {
     expect(sortZone([imperm.id, pot.id, ash.id, big.id, plain.id], cards)).toEqual([plain.id, big.id, ash.id, pot.id, imperm.id])
   })

@@ -33,15 +33,20 @@ export const removeCard = (deck: Deck, zone: Zone, id: number): Deck => {
 }
 
 export const moveCard = (deck: Deck, from: Zone, id: number, to: Zone, cards: CardMap): AddResult => {
+  if (from === to || !deck[from].includes(id)) return { deck, rejected: null }
   const card = cards.get(id)
-  if (!card || !deck[from].includes(id)) return { deck, rejected: card ? null : 'zone' }
-  const res = addCard(removeCard(deck, from, id), card, cards, to)
-  return res.rejected ? { deck, rejected: res.rejected } : res
+  // An unknown card (cache lag) can only be placed via Side, which accepts anything; main<->extra is a no-op.
+  if (!card && from !== 'side' && to !== 'side') return { deck, rejected: null }
+  if (card && (to === 'extra') !== isExtraDeckCard(card) && to !== 'side') return { deck, rejected: 'zone' }
+  // A move never changes the total copy count, so no copies check (imported decks may exceed 3).
+  if (deck[to].length >= ZONE_MAX[to]) return { deck, rejected: 'full' }
+  const removed = removeCard(deck, from, id)
+  return { deck: { ...removed, [to]: [...removed[to], id] }, rejected: null }
 }
 
 export const reorder = (deck: Deck, zone: Zone, from: number, to: number): Deck => {
   const list = deck[zone]
-  if (from < 0 || from >= list.length || to < 0 || to >= list.length) return deck
+  if (from === to || from < 0 || from >= list.length || to < 0 || to >= list.length) return deck
   const next = [...list]
   next.splice(to, 0, ...next.splice(from, 1))
   return { ...deck, [zone]: next }
