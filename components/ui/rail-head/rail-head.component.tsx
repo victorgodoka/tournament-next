@@ -17,7 +17,7 @@ type RailHeadProps = {
 export const RailHead = ({ num, label, stamp, emphasis, as: Label = 'span', className }: RailHeadProps) => (
   <div className={twMerge('flex items-center gap-3 border-b border-line px-gutter py-3 text-ink-muted signal', className)}>
     {num ? <span className="shrink-0 font-bold text-gold">{num}</span> : null}
-    <Label className={twMerge('min-w-0 truncate font-bold text-ink', emphasis && 'text-cyan')}>{label}</Label>
+    <Label className={twMerge('min-w-0 truncate text-sm leading-5 font-bold text-ink', emphasis && 'text-cyan')}>{label}</Label>
     {stamp ? (
       <>
         <span aria-hidden className="h-px flex-1 bg-line-mid" />

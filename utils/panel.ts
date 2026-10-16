@@ -322,6 +322,20 @@ export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: Analy
 export const startAnalyticsSweep = (range: { from?: string; to?: string }) =>
   request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync', json('POST', range))
 
+/** A ranked season and its /statistics freeze. `lastDay` (job zone) is `null` while open; `frozenAt` `null` while live. */
+export type StatisticsSeason = {
+  code: string
+  label: string
+  ladder: RankedLadderId
+  startsAt: string
+  endsAt: string | null
+  lastDay: string | null
+  frozenAt: string | null
+}
+
+export const listStatisticsSeasons = (signal?: AbortSignal) =>
+  request<StatisticsSeason[]>('/panel/analytics/statistics/seasons', { signal })
+
 export const getAnalyticsSweep = (signal?: AbortSignal) =>
   request<AnalyticsSweepStatus>('/panel/analytics/sync', { signal })
 
