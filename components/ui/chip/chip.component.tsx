@@ -86,12 +86,12 @@ export const FilterChip = ({ pressed, label, count, className, ...props }: Filte
   </button>
 )
 
-/** A picked value that can be taken out: 32px, a mono note after the label, an × on the right. */
+/** A picked value that can be taken out: 32px, a mono note after the label, an × on the right (a 44px hit area on touch). */
 export const Tag = ({ children, note, onRemove, removeLabel }: { children: React.ReactNode; note?: React.ReactNode; onRemove: () => void; removeLabel: string }) => (
   <span className="cut inline-flex h-8 items-center gap-2 pr-1 pl-3 text-sm text-ink [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]">
     {children}
     {note != null ? <span className="text-ink-muted data">{note}</span> : null}
-    <button type="button" aria-label={removeLabel} onClick={onRemove} className="grid size-7 cursor-pointer place-items-center text-ink-muted hover:text-crimson-lift">
+    <button type="button" aria-label={removeLabel} onClick={onRemove} className="relative grid size-7 cursor-pointer place-items-center text-ink-muted hover:text-crimson-lift pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2">
       <svg viewBox="0 0 24 24" width={12} height={12} aria-hidden fill="currentColor">
         <path d="M5.3 3.9 12 10.6l6.7-6.7 1.4 1.4-6.7 6.7 6.7 6.7-1.4 1.4-6.7-6.7-6.7 6.7-1.4-1.4 6.7-6.7-6.7-6.7z" />
       </svg>

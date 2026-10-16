@@ -1,0 +1,600 @@
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
+import { twMerge } from 'tailwind-merge'
+import { Alert } from '@ui/alert'
+import { Button, buttonClasses } from '@ui/button'
+import { useAuth } from '@hooks/index'
+import { fromYdke } from '@utils/deck/codecs/ydke'
+import { addCard, canonicalId, printOf } from '@utils/deck/model'
+import { pointsUsed, validate, type Problem } from '@utils/deck/rules'
+import { DeckCodeError, EMPTY_DECK, type CardData, type CardMap, type Deck, type Zone } from '@utils/deck/types'
+import { getDeck, type SavedDeck } from '@utils/decks'
+import { setReturnTo } from '@utils/return-to'
+import { getBanlists, type Banlist } from '@utils/wiki'
+import { CardDetail } from './card-detail'
+import { CardPool } from './card-pool'
+import { shakeTiles } from './card-tile'
+import { ConflictDialog } from './conflict-dialog'
+import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
+import { DeckTray } from './deck-tray'
+import { DeckZone, type DragPayload } from './deck-zone'
+import { canStore, clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
+import { HoverPreview } from './hover-preview'
+import { useEditorKeys } from './keyboard'
+import { MyDecks } from './my-decks'
+import { Toolbar } from './toolbar'
+import { useCardCache } from './use-card-cache'
+import { draftOf, loadAction, useSave } from './use-save'
+
+const ZONES: Zone[] = ['main', 'extra', 'side']
+const VIEW_KEY = 'deck-view'
+const VIEWS: ViewMode[] = ['grid', 'list', 'stacked']
+
+const readView = (): ViewMode => {
+  try {
+    const v = localStorage.getItem(VIEW_KEY)
+    return VIEWS.includes(v as ViewMode) ? (v as ViewMode) : 'grid'
+  } catch {
+    return 'grid'
+  }
+}
+
+type Notice = 'damagedLink' | 'deckMissing' | 'deckCarried'
+
+/** Runs once (client only): `?d=` wins over the local draft; a damaged link opens an empty deck. */
+const boot = (deckId: string | null): { state: EditorState; notice: Notice | null; today: string } => {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` // local date
+  const load = (deck: Deck, name = '', format: number | null = null, revision: number | null = null) =>
+    editorReducer(initialEditorState(), { type: 'load', deck, name, format, deckId, revision, dirty: true })
+
+  const params = new URLSearchParams(window.location.search)
+  // Set by the redirect away from a deck that doesn't exist or isn't the user's; `carried`: its draft came along.
+  const missing: Notice | null = params.has('missing') ? (params.get('missing') === 'carried' ? 'deckCarried' : 'deckMissing') : null
+  // URLSearchParams turns an unencoded `+` into a space; base64 has no spaces, so put them back.
+  const code = params.get('d')?.replaceAll(' ', '+')
+  if (code !== undefined) {
+    try {
+      return { state: load(fromYdke(code)), notice: missing, today }
+    } catch (error) {
+      if (!(error instanceof DeckCodeError)) throw error
+      return { state: { ...initialEditorState(), deckId }, notice: 'damagedLink', today }
+    }
+  }
+  const draft = readDraft(draftKey(deckId))
+  if (draft) return { state: load(draft.deck, draft.name, draft.format, draft.revision), notice: missing, today }
+  return { state: { ...initialEditorState(), deckId }, notice: missing, today }
+}
+
+/** Whether a local dirty state holds anything the saved deck doesn't. */
+const differs = (s: EditorState, saved: SavedDeck) =>
+  s.revision !== saved.revision || !sameDraft(s, { deck: { main: saved.main, extra: saved.extra, side: saved.side }, name: saved.name, format: saved.format })
+
+/** Every canonical card a problem names, as the deck passcodes that print it. */
+const deckIdsOf = (deck: Deck, cards: CardMap, cardId: number): number[] =>
+  [...deck.main, ...deck.extra, ...deck.side].filter((id) => {
+    const card = cards.get(id)
+    return (card ? canonicalId(card) : id) === cardId
+  })
+
+const flushDraft = (unsaved: Unsaved) => {
+  if (!unsaved.current) return
+  writeDraft(unsaved.current.key, unsaved.current.draft)
+  unsaved.current = null
+}
+
+type Unsaved = React.RefObject<{ key: string; draft: Draft } | null>
+
+/**
+ * The deck is gone (deleted, or not the user's): its local changes become the unsaved new deck, and
+ * the editor reopens on it. Replaces any other new draft: callers ask first when there is one.
+ */
+const carryAway = (deckId: string, local: EditorState, unsaved: Unsaved, router: { replace(href: string): void }) => {
+  unsaved.current = null // or the unmount flush would write the orphan back
+  writeDraft(draftKey(null), { ...draftOf(local), revision: null })
+  clearDraft(draftKey(deckId))
+  router.replace('/deck-editor?missing=carried')
+}
+
+const ZONE_OF: Partial<Record<Problem['code'], Zone>> = { 'main-size': 'main', 'extra-size': 'extra', 'side-size': 'side' }
+
+/** Tailwind's `lg`: the two-column editor. Below it, the pool and the deck tray. */
+const WIDE = '(min-width: 1024px)'
+const watchWide = (onChange: () => void) => {
+  const query = matchMedia(WIDE)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+const useWide = () => useSyncExternalStore(watchWide, () => matchMedia(WIDE).matches)
+
+const DeckEditor = ({ deckId }: { deckId: string | null }) => {
+  const t = useTranslations('DeckEditor')
+  const router = useRouter()
+  const { user } = useAuth()
+  const [{ state: bootState, notice: bootNotice, today }] = useState(() => boot(deckId))
+  const [state, dispatch] = useReducer(editorReducer, bootState)
+  const [notice, setNotice] = useState(bootNotice)
+  /** A saved deck reads from the server before it can be saved again. */
+  const [loadState, setLoadState] = useState<'loading' | 'failed' | 'ready'>(deckId === null ? 'ready' : 'loading')
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  /** The saved deck, while the editor shows a local draft that differs from it: Keep or Discard. */
+  const [pending, setPending] = useState<SavedDeck | null>(null)
+  /**
+   * The deck isn't readable. `signin`: signed out (it may be theirs). `collision`: deleted or not
+   * theirs, with local changes to carry into a new deck, but another unsaved new deck is in the way.
+   */
+  const [gone, setGone] = useState<'signin' | 'collision' | null>(null)
+  const [myDecks, setMyDecks] = useState(false)
+  /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
+  const [banlists, setBanlists] = useState<Banlist[] | null>(null)
+  // No format chosen yet: the TCG list. It is also the list a save records.
+  const banlist = banlists?.find((b) => (state.format === null ? b.format === 'tcg' : b.id === state.format)) ?? null
+  const wait =
+    loadState === 'loading' || banlists === null ? t('save.wait')
+    : loadState === 'failed' ? t('save.loadFailed')
+    : gone === 'collision' ? t('save.choose')
+    : null
+  const { cards, failed, isPending, remember, rememberArt, ensure } = useCardCache()
+  const { deck } = state
+  /** A canonical card's name, as the deck prints it. */
+  const nameOf = (cardId: number) => cards.get(deckIdsOf(deck, cards, cardId)[0] ?? cardId)?.name ?? String(cardId)
+  const { save, saving, conflict, resolveConflict, error: saveError, dismissError, signInTab, dismissSignInTab, latest } = useSave(
+    state,
+    dispatch,
+    banlist?.id ?? state.format,
+    wait,
+    nameOf,
+  )
+  const [view, setView] = useState(readView)
+  const [detail, setDetail] = useState<{ card: CardData; art: number } | null>(null)
+  const wide = useWide()
+  const [trayTab, setTrayTab] = useState<Zone>('main')
+  const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
+  /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
+  const unsaved = useRef<{ key: string; draft: Draft } | null>(null)
+
+  useEffect(() => {
+    getBanlists().then(setBanlists)
+    // `?d=` is read once; left in the URL it would beat the draft on reload and drop the edits made since.
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('d') || url.searchParams.has('missing')) {
+      url.searchParams.delete('d')
+      url.searchParams.delete('missing')
+      window.history.replaceState(null, '', url)
+    }
+  }, [])
+
+  // A saved deck: wait for the session to know the owner, then read it.
+  const userId = user === undefined ? undefined : (user?.id ?? null)
+  useEffect(() => {
+    if (deckId === null || userId === undefined) return
+    let live = true
+    getDeck(deckId).then(
+      (saved) => {
+        if (!live) return
+        const local = latest.current
+        setLoadState('ready')
+        if (!saved || saved.ownerId !== userId) {
+          // Signed out it may still be theirs: the draft stays put for after sign-in.
+          if (userId === null) setGone('signin')
+          else if (!local.dirty) router.replace('/deck-editor?missing')
+          else {
+            const other = readDraft(draftKey(null))
+            if (other && !sameDraft(other, local)) setGone('collision')
+            else carryAway(deckId, local, unsaved, router)
+          }
+          return
+        }
+        setGone(null)
+        if (local.dirty && differs(local, saved)) {
+          // The editor keeps showing the local draft; nothing is cleared until the user picks Discard.
+          // Edits made while loading have no base revision: they sit on the one just read.
+          if (local.revision === null) dispatch({ type: 'load', deck: local.deck, name: local.name, format: local.format, deckId, revision: saved.revision, dirty: true })
+          setPending(saved)
+        } else {
+          dispatch(loadAction(saved))
+          clearDraft(draftKey(deckId)) // none, or the same content
+        }
+      },
+      (error) => {
+        if (!live) return
+        console.error(error)
+        setLoadState('failed')
+      },
+    )
+    return () => {
+      live = false
+    }
+  }, [deckId, userId, loadAttempt, router, latest])
+
+  useEffect(() => {
+    ensure(allIds).catch(console.error)
+  }, [allIds, ensure])
+
+  useEffect(() => {
+    // Saved or loaded: a draft still waiting on the debounce is stale now.
+    if (!state.dirty) {
+      unsaved.current = null
+      return
+    }
+    unsaved.current = { key: draftKey(state.deckId), draft: draftOf(state) }
+    const timer = setTimeout(() => flushDraft(unsaved), 500)
+    return () => clearTimeout(timer)
+  }, [state])
+
+  // Unsaved server changes; a new deck's draft survives a reload on its own, unless storage is unavailable.
+  useEffect(() => {
+    if (!state.dirty || (state.deckId === null && canStore())) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [state.dirty, state.deckId])
+
+  useEffect(() => {
+    const flush = () => flushDraft(unsaved)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [])
+
+  const problems = useMemo(
+    () =>
+      // A card still loading, or whose lookup failed, isn't "not found": that verdict waits for an answer.
+      validate(deck, cards, banlist, today).filter((p) => !(p.code === 'unknown-card' && (isPending(p.cardId!) || failed.has(p.cardId!)))),
+    [deck, cards, banlist, today, isPending, failed],
+  )
+  const checking = banlists === null || allIds.some(isPending)
+  const lookupFailed = allIds.some((id) => failed.has(id))
+  const validity = checking ? 'checking' : banlists.length ? 'ready' : 'unavailable'
+  const flagged = useMemo(() => new Set(problems.flatMap((p) => (p.cardId === undefined ? [] : deckIdsOf(deck, cards, p.cardId)))), [problems, deck, cards])
+  const points = banlist && banlist.pointCap !== null ? { used: pointsUsed(deck, cards, banlist), cap: banlist.pointCap } : null
+  const saveNow = () => void save()
+
+  /** Keeps the current deck's pending edits, then opens an empty one. */
+  const startNew = () => {
+    flushDraft(unsaved)
+    clearDraft(draftKey(null)) // My decks asked first if there was one
+    dispatch({ type: 'load', deck: EMPTY_DECK, name: '', format: null, deckId: null, revision: null })
+    router.push('/deck-editor')
+  }
+
+  /** Deleting the open deck turns its content into the unsaved new deck; this other one would be replaced. */
+  const otherNewDraft = () => {
+    const other = readDraft(draftKey(null))
+    return !!other && !sameDraft(other, state)
+  }
+
+  /** The open deck was deleted: its content carries on as the new, unsaved deck (My decks warned if that replaces one). */
+  const deletedOpen = (id: string) => {
+    if (id !== state.deckId) return
+    unsaved.current = null
+    clearDraft(draftKey(id))
+    writeDraft(draftKey(null), { ...draftOf(state), revision: null })
+    dispatch({ type: 'load', deck, name: state.name, format: state.format, deckId: null, revision: null, dirty: true })
+    window.history.replaceState(null, '', '/deck-editor')
+  }
+
+  const changeView = (next: ViewMode) => {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {}
+  }
+
+  const jump = (problem: Problem) => {
+    const id = problem.cardId === undefined ? undefined : deckIdsOf(deck, cards, problem.cardId)[0]
+    const zone = id !== undefined ? ZONES.find((z) => deck[z].includes(id)) : (ZONE_OF[problem.code] ?? 'main')
+    // The tray shows one zone at a time: switch to the card's before looking for it.
+    if (!wide && zone) flushSync(() => setTrayTab(zone))
+    const target = id !== undefined ? document.querySelector(`section[data-zone] [data-card="${id}"]`) : document.getElementById(`zone-${zone}`)
+    target?.scrollIntoView({ block: 'center' })
+    target?.querySelector('button')?.focus({ preventScroll: true })
+  }
+
+  /** A refused add shakes the card's tiles; the live region below says why. */
+  const add = (card: CardData, zone?: Zone) => {
+    if (addCard(deck, card, cards, zone).rejected) shakeTiles(card.id)
+    dispatch({ type: 'add', card, cards, zone })
+  }
+
+  const open = (id: number) => {
+    const card = cards.get(id)
+    if (card) setDetail({ card, art: id })
+  }
+
+  useEditorKeys({
+    undo: () => dispatch({ type: 'undo' }),
+    redo: () => dispatch({ type: 'redo' }),
+    save: saveNow,
+    act: (shortcut, tile) => {
+      const card = cards.get(tile.id)
+      const zone = ZONES.find((z) => z === tile.zone) // undefined in the pool
+      if (!card) return
+      if (shortcut === 'open') open(tile.id)
+      else if (shortcut === 'add') add(printOf(card, tile.id), zone)
+      else if (shortcut === 'side') add(printOf(card, tile.id), 'side')
+      else {
+        const from = zone ?? ZONES.find((z) => deck[z].includes(tile.id))
+        if (from) dispatch({ type: 'remove', zone: from, id: tile.id })
+      }
+    },
+  })
+
+  const dropCard = (to: Zone) => (payload: DragPayload, index?: number) => {
+    if (payload.from === to) {
+      if (payload.index !== undefined) dispatch({ type: 'reorder', zone: to, from: payload.index, to: index ?? deck[to].length - 1 })
+    } else if (payload.from === 'pool') {
+      const card = cards.get(payload.id)
+      if (card) add(printOf(card, payload.id), to) // the list view's + sends a deck passcode
+    } else dispatch({ type: 'move', from: payload.from, id: payload.id, to, cards })
+  }
+
+  const rejectedName = state.rejected && (cards.get(state.rejected.cardId)?.name ?? String(state.rejected.cardId))
+  const announcement =
+    state.rejected && rejectedName
+      ? t(`rejected.${state.rejected.reason}`, { name: rejectedName })
+      : t('counts', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length })
+
+  const toolbar = (
+    <Toolbar
+      name={state.name}
+      onRename={(name) => dispatch({ type: 'rename', name })}
+      banlists={banlists ?? []}
+      banlist={banlist}
+      onFormat={(format) => dispatch({ type: 'format', format })}
+      validity={validity}
+      problems={problems}
+      nameOf={nameOf}
+      onJump={jump}
+      points={points}
+      canUndo={state.past.length > 0}
+      canRedo={state.future.length > 0}
+      onUndo={() => dispatch({ type: 'undo' })}
+      onRedo={() => dispatch({ type: 'redo' })}
+      onSort={() => dispatch({ type: 'sort', cards })}
+      view={view}
+      onView={changeView}
+      dirty={state.dirty}
+      saving={saving}
+      onSave={saveNow}
+      onMyDecks={() => setMyDecks(true)}
+    />
+  )
+
+  const alerts = (
+    <>
+      {notice ? (
+        <Alert tone="warn" edged title={t(notice)} action={<Button variant="ghost" size="sm" onClick={() => setNotice(null)} className="max-lg:min-h-11">{t('dismiss')}</Button>} />
+      ) : null}
+      {loadState === 'loading' ? <Alert title={t('load.loading')} /> : null}
+      {loadState === 'failed' ? (
+        <Alert
+          tone="negative"
+          edged
+          title={t('load.failed')}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setLoadState('loading')
+                setLoadAttempt((n) => n + 1)
+              }}
+              className="max-lg:min-h-11"
+            >
+              {t('retry')}
+            </Button>
+          }
+        />
+      ) : null}
+      {pending ? (
+        <Alert
+          tone="warn"
+          edged
+          title={t('load.draft', { revision: pending.revision })}
+          action={
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setPending(null)} className="max-lg:min-h-11">
+                {t('load.keep')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  dispatch(loadAction(pending))
+                  clearDraft(draftKey(pending.id))
+                  setPending(null)
+                }}
+                className="max-lg:min-h-11"
+              >
+                {t('load.discard')}
+              </Button>
+            </div>
+          }
+        >
+          {t('load.draftDetail')}
+        </Alert>
+      ) : null}
+      {gone === 'signin' ? (
+        <Alert
+          tone="warn"
+          edged
+          title={t('load.signIn')}
+          action={
+            <Link href="/login" onClick={() => setReturnTo(location.pathname + location.search)} className={twMerge(buttonClasses({ variant: 'secondary', size: 'sm' }), 'max-lg:min-h-11')}>
+              {t('myDecks.signIn')}
+            </Link>
+          }
+        />
+      ) : null}
+      {gone === 'collision' && deckId !== null ? (
+        <Alert
+          tone="warn"
+          edged
+          title={t('load.goneTitle')}
+          action={
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => carryAway(deckId, latest.current, unsaved, router)} className="max-lg:min-h-11">
+                {t('load.goneCarry')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  unsaved.current = null
+                  clearDraft(draftKey(deckId))
+                  router.replace('/deck-editor?missing')
+                }}
+                className="max-lg:min-h-11"
+              >
+                {t('load.goneDiscard')}
+              </Button>
+            </div>
+          }
+        >
+          {t('load.goneCollision')}
+        </Alert>
+      ) : null}
+      {lookupFailed ? (
+        <Alert
+          tone="negative"
+          edged
+          title={t('lookupFailed')}
+          action={<Button variant="secondary" size="sm" onClick={() => ensure(allIds).catch(console.error)} className="max-lg:min-h-11">{t('retry')}</Button>}
+        />
+      ) : null}
+    </>
+  )
+
+  // One layout at a time, not both hidden by CSS: the toolbar and the zones carry ids that must stay unique.
+  return (
+    <div className="lg:grid lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]">
+      {wide ? (
+        <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
+          <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">{toolbar}</div>
+          {alerts}
+          {ZONES.map((zone) => (
+            <DeckZone
+              key={zone}
+              zone={zone}
+              ids={deck[zone]}
+              cards={cards}
+              view={view}
+              problems={flagged}
+              onRemove={(id) => dispatch({ type: 'remove', zone, id })}
+              onDropCard={dropCard(zone)}
+              onOpen={open}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {/* Below lg the pool is the page; its bottom clears the tray's peek row (+16px). */}
+      <aside
+        aria-label={t('pool.title')}
+        className="flex flex-col gap-4 px-4 pt-3 pb-8 max-lg:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line"
+      >
+        {wide ? null : alerts}
+        <CardPool deck={deck} cards={cards} banlist={banlist} onAdd={add} onOpen={(card) => setDetail({ card, art: card.id })} remember={remember} />
+      </aside>
+
+      {wide ? null : (
+        <DeckTray
+          state={state}
+          cards={cards}
+          problems={problems}
+          validity={validity}
+          flagged={flagged}
+          tab={trayTab}
+          onTab={setTrayTab}
+          onRemove={(zone, id) => dispatch({ type: 'remove', zone, id })}
+          onDropCard={dropCard}
+          onOpen={open}
+          toolbar={toolbar}
+        />
+      )}
+
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+
+      {signInTab ? (
+        <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-toast) mx-auto max-w-120 lg:bottom-6">
+          <Alert
+            tone="warn"
+            edged
+            title={t('save.noStorage')}
+            action={
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => window.open('/login', '_blank', 'noopener')} className="max-lg:min-h-11">
+                  {t('save.signInTab')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={dismissSignInTab} className="max-lg:min-h-11">
+                  {t('dismiss')}
+                </Button>
+              </div>
+            }
+          >
+            {t('save.noStorageDetail')}
+          </Alert>
+        </div>
+      ) : saveError ? (
+        <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-toast) mx-auto max-w-120 lg:bottom-6">
+          <Alert
+            tone="negative"
+            edged
+            title={saveError}
+            action={
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={saveNow} className="max-lg:min-h-11">
+                  {t('retry')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={dismissError} className="max-lg:min-h-11">
+                  {t('dismiss')}
+                </Button>
+              </div>
+            }
+          >
+            {t('save.kept')}
+          </Alert>
+        </div>
+      ) : null}
+
+      <ConflictDialog latest={conflict} onResolve={resolveConflict} />
+      <MyDecks
+        open={myDecks}
+        onClose={() => setMyDecks(false)}
+        currentId={state.deckId}
+        onNew={startNew}
+        newDiscards={() => (state.deckId === null ? state.dirty : readDraft(draftKey(null)) !== null)}
+        onDeleted={deletedOpen}
+        deleteReplacesNew={(id) => id === state.deckId && otherNewDraft()}
+      />
+      <HoverPreview cards={cards} />
+      <CardDetail
+        card={detail?.card ?? null}
+        art={detail?.art}
+        deck={deck}
+        cards={cards}
+        banlists={banlists ?? []}
+        onClose={() => setDetail(null)}
+        onAdd={(print, zone) => {
+          // An artwork picked in the sheet: its passcode resolves to the sheet's (API) card, as a lookup would.
+          if (detail && !cards.has(print.id)) rememberArt(print.id, detail.card)
+          add(print, zone)
+        }}
+        onRemove={(id, zone) => dispatch({ type: 'remove', zone, id })}
+      />
+    </div>
+  )
+}
+
+export default DeckEditor
