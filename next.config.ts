@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.discordapp.com", pathname: "/avatars/**" },
       { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-arts/**" },
+      { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-images/**" },
     ],
     // res.cloudinary.com is deliberately absent: `coverUrl` asks Cloudinary itself for a
     // sized f_auto image and the cover <Image>s render it `unoptimized`, so covers never

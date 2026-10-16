@@ -153,6 +153,8 @@ export const GO_NEXT = [
 ]
 
 export const CARD_ART_URL = (id: string | number) => `https://ygopro.online/assets/card-arts/${id}.jpg`
+/** The full card scan (frame, text and all), as opposed to the cropped art above. */
+export const CARD_IMAGE_URL = (id: string | number) => `https://ygopro.online/assets/card-images/${id}.jpg`
 
 export const FOOTER_LINKS = [
   { item: "Home", to: "https://omega.duelistsunite.org/" },
