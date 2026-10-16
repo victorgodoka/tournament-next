@@ -132,7 +132,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
 
       {!pool.loading && !pool.error && !pool.cards.length ? <p className="py-6 text-center text-ink-muted body-sm">{t('pool.empty')}</p> : null}
 
-      <ul data-zone="pool" aria-label={t('pool.results')} aria-busy={pool.loading} className="grid grid-cols-3 gap-1 min-[600px]:grid-cols-4">
+      <ul data-zone="pool" aria-label={t('pool.results')} aria-busy={pool.loading} className="grid grid-cols-3 gap-1 min-[600px]:grid-cols-4 pointer-coarse:[&_[data-info]]:hidden">
         {pool.cards.map((card, i) => (
           <li key={card.id} data-card={card.id}>
             {/* Mouse and keyboard: click adds. Touch and pen: tap opens the sheet, long-press adds. */}

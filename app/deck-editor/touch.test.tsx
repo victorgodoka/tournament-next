@@ -89,6 +89,18 @@ describe('deck row swipe', () => {
     expect(onRemove).toHaveBeenCalledWith(1)
   })
 
+  it('a grid tile keeps its info button, which opens the sheet without removing a copy', () => {
+    const onRemove = vi.fn()
+    const onOpen = vi.fn()
+    render(<DeckZone zone="main" ids={[1]} cards={new Map([[1, ASH]])} view="grid" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={onOpen} />)
+    const info = screen.getByRole('button', { name: 'info' })
+    fireEvent.pointerDown(info, { pointerType: 'touch' })
+    fireEvent.pointerUp(info, { pointerType: 'touch' })
+    fireEvent.click(info, { detail: 1 })
+    expect(onOpen).toHaveBeenCalledWith(1)
+    expect(onRemove).not.toHaveBeenCalled()
+  })
+
   it('a mostly vertical drag, or a short swipe, removes nothing', () => {
     const { onRemove, row } = setup()
     swipe(row, -70, 120)

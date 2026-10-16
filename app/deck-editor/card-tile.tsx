@@ -112,17 +112,19 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
   if (!onInfo) return tile
 
   // A sibling, not a child: a click here never reaches the tile's add/remove. Out of the tab order,
-  // since Enter on the tile opens the same sheet; always shown where there is no hover. Gone on
-  // coarse pointers, where a tap on a pool tile opens the sheet (and a 28px target is too small).
+  // since Enter on the tile opens the same sheet; always shown where there is no hover. On coarse
+  // pointers an invisible ::after grows the 28px glyph to a 44px target, into the tile. The pool
+  // hides it there via `data-info`: a tap on a pool tile already opens the sheet.
   return (
     <div className="group relative">
       {tile}
       <button
         type="button"
         tabIndex={-1}
+        data-info
         aria-label={t('info', { name })}
         onClick={onInfo}
-        className="absolute top-0 right-0 grid size-7 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:hidden [@media(hover:none)]:opacity-100"
+        className="absolute top-0 right-0 grid size-7 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:opacity-100 pointer-coarse:after:absolute pointer-coarse:after:top-0 pointer-coarse:after:right-0 pointer-coarse:after:size-11 [@media(hover:none)]:opacity-100"
       >
         <Icon name="info" size={14} />
       </button>
