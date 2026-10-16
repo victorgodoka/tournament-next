@@ -50,7 +50,7 @@ export const pointsUsed = (deck: Deck, cards: CardMap, banlist: Banlist): number
   return total
 }
 
-const releaseRegion = (format: string): 'tcg' | 'ocg' | null =>
+export const releaseRegion = (format: string): 'tcg' | 'ocg' | null =>
   format === 'tcg' || format === 'genesys' ? 'tcg' : format === 'ocg' || format === 'genesys_ocg' ? 'ocg' : null
 
 export const validate = (deck: Deck, cards: CardMap, banlist: Banlist | null, today: string): Problem[] => {

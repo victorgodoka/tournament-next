@@ -9,9 +9,19 @@ import { frameOf } from '@utils/deck/model'
 import type { CardData } from '@utils/deck/types'
 import { CARD_IMAGE_URL } from '@utils/const'
 
-type Status = 'forbidden' | 'limited' | 'semi-limited' | { points: number }
+export type TileStatus = 'forbidden' | 'limited' | 'semi-limited' | { points: number }
 
-type CardTileProps = {
+/** Every tile of a card, in the pool and the deck, shakes once: an add that was refused. */
+export const shakeTiles = (id: number) => {
+  for (const tile of document.querySelectorAll<HTMLElement>(`[data-card="${id}"] [data-tile]`)) {
+    tile.classList.remove('animate-shake')
+    void tile.offsetWidth // restart the animation when it is already running
+    tile.classList.add('animate-shake')
+    tile.addEventListener('animationend', () => tile.classList.remove('animate-shake'), { once: true })
+  }
+}
+
+type CardTileProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'id' | 'children'> & {
   id: number
   card?: CardData
   sizes: string
@@ -19,16 +29,11 @@ type CardTileProps = {
   count?: number
   /** Copies already in the deck, as dots. */
   dots?: number
-  status?: Status
+  status?: TileStatus
   /** Crimson outline: the card is part of a validation problem. */
   problem?: boolean
   /** The button's accessible name when it says more than the card's name ("Remove a copy of …"). */
   label?: string
-  onClick?(): void
-  onContextMenu?(e: React.MouseEvent<HTMLButtonElement>): void
-  draggable?: boolean
-  onDragStart?(e: React.DragEvent<HTMLButtonElement>): void
-  className?: string
 }
 
 /** Light frames take dark text, as in `TypeCounts`. */
@@ -37,7 +42,7 @@ const LIGHT_FRAMES: CardType[] = ['normal', 'spell', 'synchro']
 const BADGE ='absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
 
 /** A card scan at 59:86. Without data, or when the scan fails, a frame-coloured plate with the name or passcode. */
-export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, onClick, onContextMenu, draggable, onDragStart, className }: CardTileProps) => {
+export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, className, ...button }: CardTileProps) => {
   const t = useTranslations('DeckEditor.tile')
   const [failed, setFailed] = useState(false)
   const name = card?.name ?? String(id)
@@ -53,10 +58,8 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
     <button
       type="button"
       title={name}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      draggable={draggable}
-      onDragStart={onDragStart}
+      data-tile
+      {...button}
       className={twMerge(
         'relative block aspect-[59/86] w-full cursor-pointer overflow-hidden bg-surface-300 text-left',
         problem && 'outline outline-2 outline-crimson-lift',

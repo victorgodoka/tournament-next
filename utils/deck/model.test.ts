@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf } from './model'
+import { copiesOf, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf } from './model'
 import { EMPTY_DECK, type CardData } from './types'
 
 const card = (id: number, patch: Partial<CardData>): CardData =>
@@ -24,6 +24,16 @@ describe('deck model', () => {
     expect(canonicalId(dmAlt)).toBe(dm.id)
     expect(canonicalId(harpie2)).toBe(harpie.id)
     expect(canonicalId(ash)).toBe(ash.id)
+  })
+
+  it('adds an alternate artwork by its own passcode, counted as the original', () => {
+    expect(printOf(dm, dm.id)).toBe(dm)
+    const alt = printOf(dm, 46986431)
+    const known = new Map([...cards, [alt.id, alt]]) // the editor remembers the print it adds
+    const r = addCard({ ...EMPTY_DECK, main: [dm.id, dm.id] }, alt, known)
+    expect(r.deck.main).toEqual([dm.id, dm.id, 46986431])
+    expect(addCard(r.deck, printOf(dm, dm.id), known).rejected).toBe('copies')
+    expect(canonicalId(printOf(harpie2, 99))).toBe(harpie.id)
   })
 
   it('reads the frame: first special frame, else normal/effect; spells and traps by kind', () => {

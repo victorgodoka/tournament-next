@@ -69,7 +69,11 @@ export type PoolQuery = {
   status: string[]
   pointsMin?: number
   pointsMax?: number
-  sort: 'name' | 'atk' | 'def' | 'level' | 'released_tcg' | 'released_ocg'
+  /** Release region; the window below is sent only with it, since the API rejects dates alone. */
+  format?: 'tcg' | 'ocg'
+  releasedAfter?: string
+  releasedBefore?: string
+  sort:'name' | 'atk' | 'def' | 'level' | 'released_tcg' | 'released_ocg'
   order: 'asc' | 'desc'
 }
 
@@ -119,6 +123,11 @@ export const poolParams = (q: PoolQuery, page: number): URLSearchParams => {
     set('status', q.status)
     set('pointsMin', q.pointsMin)
     set('pointsMax', q.pointsMax)
+  }
+  if (q.format) {
+    set('format', q.format)
+    set('releasedAfter', q.releasedAfter)
+    set('releasedBefore', q.releasedBefore)
   }
   set('sort', q.sort)
   set('order', q.order)

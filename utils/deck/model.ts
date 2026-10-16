@@ -19,7 +19,15 @@ export const isExtraDeckCard = (card: CardData): boolean => card.monsterTypes.so
 
 export const canonicalId = (card: CardData): number => card.alias ?? card.ruleId ?? card.id
 
-export const copiesOf = (deck: Deck, card: CardData, cards: CardMap): number => {
+/**
+ * The card as one of its artworks. The cache keys an alternate artwork's passcode to the original
+ * card, so adding that object would add the original's passcode; this one adds `passcode` and still
+ * counts as the original.
+ */
+export const printOf = (card: CardData, passcode: number): CardData =>
+  passcode === card.id ? card : { ...card, id: passcode, alias: canonicalId(card) }
+
+export const copiesOf =(deck: Deck, card: CardData, cards: CardMap): number => {
   const target = canonicalId(card)
   return [...deck.main, ...deck.extra, ...deck.side].filter((id) => {
     const c = cards.get(id)

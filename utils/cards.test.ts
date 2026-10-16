@@ -20,6 +20,10 @@ describe('card pool', () => {
     expect(poolParams({ ...EMPTY_POOL_QUERY, status: ['limited'] }, 1).has('status')).toBe(false)
     expect(poolParams({ ...EMPTY_POOL_QUERY, types: ['synchro', 'tuner'], levelMin: 0 }, 1).get('types')).toBe('synchro,tuner')
     expect(poolParams({ ...EMPTY_POOL_QUERY, levelMin: 0 }, 1).get('levelMin')).toBe('0')
+    // Release dates need a region: alone the API would 400.
+    expect(poolParams({ ...EMPTY_POOL_QUERY, releasedBefore: '2005-04-01' }, 1).has('releasedBefore')).toBe(false)
+    expect(poolParams({ ...EMPTY_POOL_QUERY, format: 'tcg', releasedBefore: '2005-04-01' }, 1).toString())
+      .toBe('format=tcg&releasedBefore=2005-04-01&sort=name&order=asc&page=1&limit=60')
   })
 
   it('keys looked-up cards by the passcode asked for, so alt arts resolve', async () => {

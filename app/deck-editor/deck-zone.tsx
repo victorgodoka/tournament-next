@@ -96,6 +96,7 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
   return (
     <section
       id={`zone-${zone}`}
+      data-zone={zone}
       aria-labelledby={`zone-${zone}-title`}
       onDragOver={(e) => {
         if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
@@ -161,6 +162,7 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
                   label={t('removeOne', { name: nameOf(id) })}
                   onClick={() => onRemove(id)}
                   onContextMenu={open(id)}
+                  onDoubleClick={open(id)}
                   draggable
                   onDragStart={dragStart(id, index)}
                 />

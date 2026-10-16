@@ -5,13 +5,18 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { fromYdke } from '@utils/deck/codecs/ydke'
-import { canonicalId } from '@utils/deck/model'
+import { addCard, canonicalId, printOf } from '@utils/deck/model'
 import { pointsUsed, validate, type Problem } from '@utils/deck/rules'
-import { DeckCodeError, type CardMap, type Deck, type Zone } from '@utils/deck/types'
+import { DeckCodeError, type CardData, type CardMap, type Deck, type Zone } from '@utils/deck/types'
 import { getBanlists, type Banlist } from '@utils/wiki'
+import { CardDetail } from './card-detail'
+import { CardPool } from './card-pool'
+import { shakeTiles } from './card-tile'
 import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
 import { DeckZone, type DragPayload } from './deck-zone'
 import { draftKey, readDraft, writeDraft, type Draft } from './drafts'
+import { HoverPreview } from './hover-preview'
+import { useEditorKeys } from './keyboard'
 import { Toolbar } from './toolbar'
 import { useCardCache } from './use-card-cache'
 
@@ -74,7 +79,8 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
   const [view, setView] = useState(readView)
-  const { cards, failed, isPending, ensure } = useCardCache()
+  const { cards, failed, isPending, remember, ensure } = useCardCache()
+  const [detail, setDetail] = useState<{ card: CardData; art: number } | null>(null)
   const { deck } = state
   const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
   /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
@@ -142,16 +148,49 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     target?.querySelector('button')?.focus({ preventScroll: true })
   }
 
+  /** A refused add shakes the card's tiles; the live region below says why. */
+  const add = (card: CardData, zone?: Zone) => {
+    if (!cards.has(card.id)) remember([card]) // an artwork picked in the detail sheet
+    if (addCard(deck, card, cards, zone).rejected) shakeTiles(card.id)
+    dispatch({ type: 'add', card, cards, zone })
+  }
+
+  const open = (id: number) => {
+    const card = cards.get(id)
+    if (card) setDetail({ card, art: id })
+  }
+
+  useEditorKeys({
+    undo: () => dispatch({ type: 'undo' }),
+    redo: () => dispatch({ type: 'redo' }),
+    act: (shortcut, tile) => {
+      const card = cards.get(tile.id)
+      const zone = ZONES.find((z) => z === tile.zone) // undefined in the pool
+      if (!card) return
+      if (shortcut === 'open') open(tile.id)
+      else if (shortcut === 'add') add(printOf(card, tile.id), zone)
+      else if (shortcut === 'side') add(printOf(card, tile.id), 'side')
+      else {
+        const from = zone ?? ZONES.find((z) => deck[z].includes(tile.id))
+        if (from) dispatch({ type: 'remove', zone: from, id: tile.id })
+      }
+    },
+  })
+
   const dropCard = (to: Zone) => (payload: DragPayload, index?: number) => {
     if (payload.from === to) {
       if (payload.index !== undefined) dispatch({ type: 'reorder', zone: to, from: payload.index, to: index ?? deck[to].length - 1 })
     } else if (payload.from === 'pool') {
       const card = cards.get(payload.id)
-      if (card) dispatch({ type: 'add', card, cards, zone: to })
+      if (card) add(printOf(card, payload.id), to) // the list view's + sends a deck passcode
     } else dispatch({ type: 'move', from: payload.from, id: payload.id, to, cards })
   }
 
   const rejectedName = state.rejected && (cards.get(state.rejected.cardId)?.name ?? String(state.rejected.cardId))
+  const announcement =
+    state.rejected && rejectedName
+      ? t(`rejected.${state.rejected.reason}`, { name: rejectedName })
+      : t('counts', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length })
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]">
@@ -205,17 +244,30 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
             problems={flagged}
             onRemove={(id) => dispatch({ type: 'remove', zone, id })}
             onDropCard={dropCard(zone)}
-            onOpen={() => {}} // detail sheet: a later task
+            onOpen={open}
           />
         ))}
 
         <p aria-live="polite" className="sr-only">
-          {state.rejected && rejectedName ? t(`rejected.${state.rejected.reason}`, { name: rejectedName }) : null}
+          {announcement}
         </p>
       </div>
 
-      {/* Card pool: Task 10. */}
-      <div className="max-lg:hidden" />
+      <aside aria-label={t('pool.title')} className="px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line">
+        <CardPool deck={deck} cards={cards} banlist={banlist} onAdd={add} onOpen={(card) => setDetail({ card, art: card.id })} remember={remember} />
+      </aside>
+
+      <HoverPreview cards={cards} />
+      <CardDetail
+        card={detail?.card ?? null}
+        art={detail?.art}
+        deck={deck}
+        cards={cards}
+        banlists={banlists ?? []}
+        onClose={() => setDetail(null)}
+        onAdd={add}
+        onRemove={(id, zone) => dispatch({ type: 'remove', zone, id })}
+      />
     </div>
   )
 }
