@@ -14,6 +14,7 @@ import { CARD_IMAGE_URL } from '@utils/const'
 import { CardFacts } from './card-facts'
 
 type CardDetailProps = {
+  /** The API's card, never a `printOf` copy: a copy's `alias` can be a ruleId target, which has no artwork of its own. */
   card: CardData | null
   /** The artwork to start on (a deck tile's passcode); the card's own by default. */
   art?: number

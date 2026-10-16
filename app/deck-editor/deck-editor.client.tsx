@@ -23,7 +23,7 @@ import { ConflictDialog } from './conflict-dialog'
 import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
 import { DeckTray } from './deck-tray'
 import { DeckZone, type DragPayload } from './deck-zone'
-import { clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
+import { canStore, clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
 import { HoverPreview } from './hover-preview'
 import { useEditorKeys } from './keyboard'
 import { MyDecks } from './my-decks'
@@ -140,13 +140,21 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     : loadState === 'failed' ? t('save.loadFailed')
     : gone === 'collision' ? t('save.choose')
     : null
-  const { save, saving, conflict, resolveConflict, error: saveError, dismissError, latest } = useSave(state, dispatch, banlist?.id ?? state.format, wait)
+  const { cards, failed, isPending, remember, rememberArt, ensure } = useCardCache()
+  const { deck } = state
+  /** A canonical card's name, as the deck prints it. */
+  const nameOf = (cardId: number) => cards.get(deckIdsOf(deck, cards, cardId)[0] ?? cardId)?.name ?? String(cardId)
+  const { save, saving, conflict, resolveConflict, error: saveError, dismissError, signInTab, dismissSignInTab, latest } = useSave(
+    state,
+    dispatch,
+    banlist?.id ?? state.format,
+    wait,
+    nameOf,
+  )
   const [view, setView] = useState(readView)
-  const { cards, failed, isPending, remember, ensure } = useCardCache()
   const [detail, setDetail] = useState<{ card: CardData; art: number } | null>(null)
   const wide = useWide()
   const [trayTab, setTrayTab] = useState<Zone>('main')
-  const { deck } = state
   const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
   /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
   const unsaved = useRef<{ key: string; draft: Draft } | null>(null)
@@ -220,9 +228,9 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     return () => clearTimeout(timer)
   }, [state])
 
-  // Unsaved server changes; a new deck's draft survives a reload on its own.
+  // Unsaved server changes; a new deck's draft survives a reload on its own, unless storage is unavailable.
   useEffect(() => {
-    if (!state.dirty || state.deckId === null) return
+    if (!state.dirty || (state.deckId === null && canStore())) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
@@ -293,7 +301,6 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   /** A refused add shakes the card's tiles; the live region below says why. */
   const add = (card: CardData, zone?: Zone) => {
-    if (!cards.has(card.id)) remember([card]) // an artwork picked in the detail sheet
     if (addCard(deck, card, cards, zone).rejected) shakeTiles(card.id)
     dispatch({ type: 'add', card, cards, zone })
   }
@@ -345,10 +352,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       onFormat={(format) => dispatch({ type: 'format', format })}
       validity={validity}
       problems={problems}
-      nameOf={(cardId) => {
-        const id = deckIdsOf(deck, cards, cardId)[0] ?? cardId
-        return cards.get(id)?.name ?? String(cardId)
-      }}
+      nameOf={nameOf}
       onJump={jump}
       points={points}
       canUndo={state.past.length > 0}
@@ -522,7 +526,27 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         {announcement}
       </p>
 
-      {saveError ? (
+      {signInTab ? (
+        <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-toast) mx-auto max-w-120 lg:bottom-6">
+          <Alert
+            tone="warn"
+            edged
+            title={t('save.noStorage')}
+            action={
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => window.open('/login', '_blank', 'noopener')} className="max-lg:min-h-11">
+                  {t('save.signInTab')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={dismissSignInTab} className="max-lg:min-h-11">
+                  {t('dismiss')}
+                </Button>
+              </div>
+            }
+          >
+            {t('save.noStorageDetail')}
+          </Alert>
+        </div>
+      ) : saveError ? (
         <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-toast) mx-auto max-w-120 lg:bottom-6">
           <Alert
             tone="negative"
@@ -562,7 +586,11 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         cards={cards}
         banlists={banlists ?? []}
         onClose={() => setDetail(null)}
-        onAdd={add}
+        onAdd={(print, zone) => {
+          // An artwork picked in the sheet: its passcode resolves to the sheet's (API) card, as a lookup would.
+          if (detail && !cards.has(print.id)) rememberArt(print.id, detail.card)
+          add(print, zone)
+        }}
         onRemove={(id, zone) => dispatch({ type: 'remove', zone, id })}
       />
     </div>

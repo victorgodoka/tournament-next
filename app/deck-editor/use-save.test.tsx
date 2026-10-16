@@ -10,7 +10,7 @@ const router = { push: vi.fn(), replace: vi.fn() }
 const auth: { user: { id: string } | null | undefined; refresh: () => Promise<void> } = { user: { id: 'u1' }, refresh: vi.fn() }
 
 vi.mock('next/navigation', () => ({ useRouter: () => router }))
-vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string, values?: object) => (values ? `${key} ${JSON.stringify(values)}` : key) }))
 vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), createDeck: vi.fn(), updateDeck: vi.fn() }))
 
@@ -37,7 +37,7 @@ const editor = (over: Partial<EditorState> = {}): EditorState => ({ ...initialEd
 
 const setup = (state: EditorState, format: number | null = 44, wait: string | null = null) => {
   const dispatch = vi.fn()
-  const hook = renderHook(({ s }) => useSave(s, dispatch, format, wait), { initialProps: { s: state } })
+  const hook = renderHook(({ s }) => useSave(s, dispatch, format, wait, (id) => `card${id}`), { initialProps: { s: state } })
   return { dispatch, ...hook }
 }
 
@@ -157,6 +157,59 @@ describe('useSave', () => {
     await act(() => result.current.save())
     expect(result.current.error).toBe('save.rejected')
     expect(log).toHaveBeenCalled()
+  })
+
+  it.each([
+    [{ unknown: [7, 8] }, 'save.unknownCards {"cards":"card7, card8"}'],
+    [{ overLimit: [9] }, 'save.overLimit {"cards":"card9"}'],
+    [{ unknownFormat: 44 }, 'save.unknownFormat'],
+  ])('a 400 with details %j says what the server refused', async (details, message) => {
+    vi.mocked(updateDeck).mockRejectedValue(new DeckApiError(400, 'BAD_REQUEST', 'refused', details))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = setup(editor({ deckId: 'abc', revision: 3 }))
+    await act(() => result.current.save())
+    expect(result.current.error).toBe(message)
+  })
+
+  it('a clean saved deck is a no-op: no request, no revision, no message', async () => {
+    const { result, dispatch } = setup(editor({ deckId: 'abc', revision: 3, dirty: false }))
+    await act(() => result.current.save())
+    expect(updateDeck).not.toHaveBeenCalled()
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(result.current.error).toBeNull()
+  })
+
+  describe('storage unavailable', () => {
+    const denied = () => {
+      throw new Error('denied')
+    }
+    beforeEach(() => {
+      vi.stubGlobal('localStorage', { getItem: denied, setItem: denied, removeItem: denied })
+    })
+
+    it('signed out: stays here and offers a sign-in in a new tab; the next Save asks the server', async () => {
+      auth.user = null
+      const { result } = setup(editor({ name: 'Mine' }))
+      await act(() => result.current.save())
+      expect(router.push).not.toHaveBeenCalled()
+      expect(createDeck).not.toHaveBeenCalled()
+      expect(result.current.signInTab).toBe(true)
+      // Signed in from the other tab: the cookie is there, so the create goes through.
+      vi.mocked(createDeck).mockResolvedValue(saved())
+      await act(() => result.current.save())
+      expect(createDeck).toHaveBeenCalled()
+      expect(result.current.signInTab).toBe(false)
+      expect(auth.refresh).toHaveBeenCalled()
+      expect(router.push).not.toHaveBeenCalled()
+    })
+
+    it('a 401 stays here too', async () => {
+      vi.mocked(updateDeck).mockRejectedValue(new DeckApiError(401))
+      const { result } = setup(editor({ deckId: 'abc', revision: 3 }))
+      await act(() => result.current.save())
+      expect(router.push).not.toHaveBeenCalled()
+      expect(result.current.signInTab).toBe(true)
+    })
   })
 
   it('signed out: writes the draft, remembers the page and goes to /login', async () => {

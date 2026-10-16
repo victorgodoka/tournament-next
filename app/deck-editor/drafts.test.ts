@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
+import { canStore, clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
 
 const mapStorage = () => {
   const m = new Map<string, string>()
@@ -26,7 +26,8 @@ describe('drafts', () => {
 
   it('round-trips and clears', () => {
     vi.stubGlobal('localStorage', mapStorage())
-    writeDraft('k', draft)
+    expect(canStore()).toBe(true)
+    expect(writeDraft('k', draft)).toBe(true)
     expect(readDraft('k')).toEqual(draft)
     clearDraft('k')
     expect(readDraft('k')).toBeNull()
@@ -50,15 +51,23 @@ describe('drafts', () => {
   it('survives throwing storage', () => {
     vi.stubGlobal('localStorage', throwing)
     expect(readDraft('k')).toBeNull()
-    expect(() => writeDraft('k', draft)).not.toThrow()
+    expect(writeDraft('k', draft)).toBe(false)
+    expect(canStore()).toBe(false)
     expect(() => clearDraft('k')).not.toThrow()
   })
 
   it('survives a storage property access that throws', () => {
     vi.stubGlobal('localStorage', undefined)
     expect(readDraft('k')).toBeNull()
-    expect(() => writeDraft('k', draft)).not.toThrow()
+    expect(writeDraft('k', draft)).toBe(false)
+    expect(canStore()).toBe(false)
     expect(() => clearDraft('k')).not.toThrow()
+  })
+
+  it('a write that silently drops the value is not stored', () => {
+    vi.stubGlobal('localStorage', { ...mapStorage(), setItem: () => {} })
+    expect(writeDraft('k', draft)).toBe(false)
+    expect(canStore()).toBe(false)
   })
 
   it('sameDraft compares deck, name and format, not revision or time', () => {

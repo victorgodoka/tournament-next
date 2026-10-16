@@ -41,8 +41,23 @@ export const readDraft = (key: string): Draft | null =>
     return isDraft(parsed) ? parsed : null
   }, null)
 
-export const writeDraft = (key: string, draft: Draft): void =>
-  attempt(() => localStorage.setItem(key, JSON.stringify(draft)), undefined)
+/** True only when the draft is stored and reads back the same: without it, nothing survives a reload. */
+export const writeDraft = (key: string, draft: Draft): boolean =>
+  attempt(() => {
+    const raw = JSON.stringify(draft)
+    localStorage.setItem(key, raw)
+    return localStorage.getItem(key) === raw
+  }, false)
+
+/** Whether drafts can be kept in this browser at all (private mode and blocked site data can't). */
+export const canStore = (): boolean =>
+  attempt(() => {
+    const key = 'deck-draft:probe'
+    localStorage.setItem(key, '1')
+    const ok = localStorage.getItem(key) === '1'
+    localStorage.removeItem(key)
+    return ok
+  }, false)
 
 export const clearDraft = (key: string): void => attempt(() => localStorage.removeItem(key), undefined)
 

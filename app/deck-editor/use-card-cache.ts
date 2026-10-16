@@ -22,20 +22,26 @@ export const useCardCache = () => {
     [],
   )
 
-  const remember = useCallback(
-    (list: Iterable<CardData>) => {
+  /** `[passcode, card]` pairs; the card is the API's, so an alternate artwork keys to its original as a lookup would. */
+  const store = useCallback(
+    (entries: Iterable<readonly [number, CardData]>) => {
       let added = false
-      for (const card of list) {
-        if (known.current.get(card.id) === card) continue
-        known.current.set(card.id, card)
-        unknown.current.delete(card.id)
-        failed.current.delete(card.id)
+      for (const [id, card] of entries) {
+        if (known.current.get(id) === card) continue
+        known.current.set(id, card)
+        unknown.current.delete(id)
+        failed.current.delete(id)
         added = true
       }
       if (added) publish()
     },
     [publish],
   )
+
+  const remember = useCallback((list: Iterable<CardData>) => store(Array.from(list, (card) => [card.id, card] as const)), [store])
+
+  /** An artwork picked in the detail sheet: `passcode` resolves to the API card, never to a `printOf` copy. */
+  const rememberArt = useCallback((passcode: number, card: CardData) => store([[passcode, card]]), [store])
 
   /** Looks up the ids not known, not known-absent and not already in flight. Failed ids are asked again. */
   const ensure = useCallback(
@@ -68,5 +74,5 @@ export const useCardCache = () => {
     [snapshot],
   )
 
-  return { cards, failed: failedIds, isPending, remember, ensure }
+  return { cards, failed: failedIds, isPending, remember, rememberArt, ensure }
 }

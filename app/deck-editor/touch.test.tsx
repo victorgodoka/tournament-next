@@ -61,6 +61,12 @@ describe('pool tile', () => {
     expect(onOpen).not.toHaveBeenCalled()
   })
 
+  it('dots count every copy in the deck, alternate artworks included', () => {
+    // 77 is an alternate artwork: the cache keys it to the original card.
+    render(<CardPool deck={{ main: [1, 77], extra: [], side: [1] }} cards={new Map([[1, ASH], [77, ASH]])} banlist={null} onAdd={() => {}} onOpen={() => {}} remember={() => {}} />)
+    expect(screen.getByTitle('c1').querySelectorAll('i')).toHaveLength(3)
+  })
+
   it('a mouse click adds, as on desktop', () => {
     const { onAdd, onOpen, tile } = setup()
     fireEvent.pointerDown(tile, { pointerType: 'mouse' })
@@ -96,6 +102,21 @@ describe('deck row swipe', () => {
     const onOpen = vi.fn()
     render(<DeckZone zone="main" ids={[1]} cards={new Map([[1, ASH]])} view="grid" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={onOpen} />)
     const info = screen.getByRole('button', { name: 'info' })
+    fireEvent.pointerDown(info, { pointerType: 'touch' })
+    fireEvent.pointerUp(info, { pointerType: 'touch' })
+    fireEvent.click(info, { detail: 1 })
+    expect(onOpen).toHaveBeenCalledWith(1)
+    expect(onRemove).not.toHaveBeenCalled()
+  })
+
+  it('a tray list row has an info button (iOS fires no contextmenu) that opens the sheet without removing', () => {
+    const onRemove = vi.fn()
+    const onOpen = vi.fn()
+    render(
+      <DeckTray state={{ ...initialEditorState(), deck: { main: [1], extra: [], side: [] } }} cards={new Map([[1, ASH]])} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={onRemove} onDropCard={() => () => {}} onOpen={onOpen} toolbar={null} />,
+    )
+    const info = screen.getByRole('button', { name: 'info', hidden: true }) // the tray body is inert while closed
+    expect(info.className).toMatch(/pointer-coarse:size-11/)
     fireEvent.pointerDown(info, { pointerType: 'touch' })
     fireEvent.pointerUp(info, { pointerType: 'touch' })
     fireEvent.click(info, { detail: 1 })

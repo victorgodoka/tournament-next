@@ -1,5 +1,6 @@
 {
   "DeckEditor": {
+    "title": "Editor de decks",
     "meta": "Monte e confira decks de Yu-Gi-Oh! nas listas TCG, OCG e Genesys.",
     "newDeck": "Novo deck",
     "legal": "Legal",
@@ -19,7 +20,13 @@
       "wait": "Ainda carregando. Tente de novo em instantes.",
       "loadFailed": "O deck salvo não carregou, então ainda não dá para salvar por cima. Tente carregar de novo primeiro.",
       "choose": "Escolha primeiro o que fazer com estas alterações.",
-      "notLoaded": "Este deck não carregou do servidor, então ainda não dá para salvar."
+      "notLoaded": "Este deck não carregou do servidor, então ainda não dá para salvar.",
+      "unknownCards": "O servidor não conhece estas cartas: {cards}. Remova-as e salve de novo.",
+      "overLimit": "Mais de 3 cópias (artes alternativas contam juntas) de: {cards}.",
+      "unknownFormat": "O formato deste deck não está mais disponível. Escolha um formato e salve de novo.",
+      "noStorage": "Este navegador não consegue guardar o deck enquanto você entra.",
+      "noStorageDetail": "Entre em uma nova aba e deixe esta aberta; depois salve aqui de novo.",
+      "signInTab": "Entrar em uma nova aba"
     },
     "load": {
       "loading": "Carregando o deck…",

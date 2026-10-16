@@ -1,5 +1,6 @@
 {
   "DeckEditor": {
+    "title": "Deck Editor",
     "meta": "Build and check Yu-Gi-Oh! decks against the TCG, OCG and Genesys lists.",
     "newDeck": "New deck",
     "legal": "Legal",
@@ -19,7 +20,13 @@
       "wait": "Still loading. Try again in a moment.",
       "loadFailed": "The saved deck didn't load, so it can't be saved over yet. Retry loading first.",
       "choose": "Choose what to do with these changes first.",
-      "notLoaded": "This deck hasn't loaded from the server, so it can't be saved yet."
+      "notLoaded": "This deck hasn't loaded from the server, so it can't be saved yet.",
+      "unknownCards": "The server doesn't know these cards: {cards}. Remove them and save again.",
+      "overLimit": "More than 3 copies (alternate arts count together) of: {cards}.",
+      "unknownFormat": "This deck's format is no longer available. Pick a format and save again.",
+      "noStorage": "This browser can't keep the deck while you sign in.",
+      "noStorageDetail": "Sign in in a new tab and keep this one open, then save here again.",
+      "signInTab": "Sign in in a new tab"
     },
     "load": {
       "loading": "Loading the deck…",

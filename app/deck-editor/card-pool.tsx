@@ -8,7 +8,7 @@ import { FilterChip } from '@ui/chip'
 import { Segmented, Switch } from '@ui/choice'
 import { SearchField, Select } from '@ui/field'
 import { EMPTY_POOL_QUERY, type PoolQuery } from '@utils/cards'
-import { copiesOf } from '@utils/deck/model'
+import { canonicalId, copyCounts } from '@utils/deck/model'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
 import { titleCase, type Banlist, type CardKind } from '@utils/wiki'
 import { CardTile } from './card-tile'
@@ -50,6 +50,8 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
   const [drawer, setDrawer] = useState(false)
   const [focus, setFocus] = useState(0)
   const sent = useMemo(() => effectiveQuery(query, banlist), [query, banlist])
+  // One pass per deck change, not one per tile.
+  const copies = useMemo(() => copyCounts(deck, cards), [deck, cards])
   const pool = useCardPool(sent, remember)
   const sentinel = useRef<HTMLDivElement>(null)
   const press = useLongPress()
@@ -140,7 +142,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
               id={card.id}
               card={card}
               sizes={SIZES}
-              dots={copiesOf(deck, card, cards)}
+              dots={copies.get(canonicalId(card)) ?? 0}
               status={tileStatus(card, banlist)}
               aria-description={t('pool.tileHint')} // named by the card; what a press does depends on the pointer
               tabIndex={i === roving ? 0 : -1}

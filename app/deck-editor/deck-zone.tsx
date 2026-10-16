@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Icon } from '@ui/icon'
 import { SectionHead } from '@ui/section-head'
 import { TypeCounts, type CardType } from '@ui/type-counts'
 import { frameOf } from '@utils/deck/model'
@@ -60,6 +61,7 @@ type DeckZoneProps = {
 
 export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCard, onOpen }: DeckZoneProps) => {
   const t = useTranslations('DeckEditor.zones')
+  const tile = useTranslations('DeckEditor.tile')
   const [over, setOver] = useState(false)
   const [swipe, setSwipe] = useState<{ id: number; dx: number } | null>(null)
   const swipeStart = useRef<{ id: number; x: number; y: number } | null>(null)
@@ -177,6 +179,10 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
                   <span className="min-w-0 flex-1 truncate text-ink body-sm">{nameOf(id)}</span>
                   <span className="shrink-0 text-ink-muted signal-sm max-sm:hidden">{card?.humanReadableCardType}</span>
                   <span className="w-14 shrink-0 text-ink-muted signal-sm">{level != null ? t(levelKey, { level }) : null}</span>
+                  {/* iOS Safari fires no contextmenu: the sheet needs a button of its own. */}
+                  <button type="button" aria-label={tile('info', { name: nameOf(id) })} onClick={() => onOpen(id)} className={twMerge(ROW_BUTTON, 'grid place-items-center')}>
+                    <Icon name="info" size={14} />
+                  </button>
                   <button type="button" aria-label={t('removeOne', { name: nameOf(id) })} onClick={() => onRemove(id)} className={ROW_BUTTON}>
                     −
                   </button>

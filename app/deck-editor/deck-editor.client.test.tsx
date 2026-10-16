@@ -17,7 +17,8 @@ vi.mock('next-intl', () => ({
 }))
 vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
 vi.mock('@utils/wiki', () => ({ getBanlists: () => Promise.resolve([]) }))
-vi.mock('@utils/cards', () => ({ cardsByIds: () => Promise.resolve(new Map()) }))
+const cardsByIds = vi.hoisted(() => vi.fn())
+vi.mock('@utils/cards', () => ({ cardsByIds }))
 vi.mock('@utils/decks', async (original) => ({
   ...(await original<typeof import('@utils/decks')>()),
   createDeck: vi.fn(),
@@ -63,6 +64,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) })
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
   auth.user = { id: 'u1' }
+  cardsByIds.mockResolvedValue(new Map())
   window.history.replaceState(null, '', '/deck-editor')
 })
 afterEach(() => {
@@ -202,4 +204,72 @@ it('deleting the open deck over another unsaved new deck warns first, then carri
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'myDecks.delete' })))
   expect(stored(draftKey(null))).toMatchObject({ name: 'Saved', deck: { main: [1] } })
   expect(window.location.pathname).toBe('/deck-editor')
+})
+
+describe('storage unavailable', () => {
+  const denied = () => {
+    throw new Error('denied')
+  }
+  const blockStorage = () => vi.stubGlobal('localStorage', { getItem: denied, setItem: denied, removeItem: denied })
+  /** Whether a page leave would ask first. */
+  const leaveWarns = () => {
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+    return e.defaultPrevented
+  }
+
+  it('signed out, Save keeps the deck here and offers a sign-in in a new tab', async () => {
+    blockStorage()
+    auth.user = null
+    const opened = vi.fn()
+    vi.stubGlobal('open', opened)
+    await open(null)
+    fireEvent.change(nameInput(), { target: { value: 'Blue-Eyes' } })
+    await clickSave()
+    expect(router.push).not.toHaveBeenCalled()
+    expect(screen.getByText('save.noStorage')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'save.signInTab' }))
+    expect(opened).toHaveBeenCalledWith('/login', '_blank', 'noopener')
+    expect(nameInput().value).toBe('Blue-Eyes')
+  })
+
+  it('a dirty new deck warns before leaving, since no draft survives the reload', async () => {
+    await open(null)
+    fireEvent.change(nameInput(), { target: { value: 'Stored' } })
+    expect(leaveWarns()).toBe(false) // with storage, the draft survives on its own
+    cleanup()
+    blockStorage()
+    await open(null)
+    fireEvent.change(nameInput(), { target: { value: 'Unstored' } })
+    expect(leaveWarns()).toBe(true)
+  })
+})
+
+it('an artwork added from the sheet keeps the original card behind its passcode, not the ruleId target', async () => {
+  // 100 is always treated as 50 (ruleId) and has an alternate artwork, 101.
+  const api = {
+    id: 100, name: 'Polymerization', kind: 'spell', monsterTypes: [], level: null, alias: null, ruleId: 50, alternateArts: [101],
+    i18n: {}, erratas: [], description: '', humanReadableCardType: 'Normal Spell', banlists: null,
+  }
+  cardsByIds.mockImplementation(async (ids: number[]) => new Map(ids.filter((id) => id === 100 || id === 101).map((id) => [id, api])))
+  put(draftKey(null), draft({ deck: { main: [100], extra: [], side: [] }, revision: null }))
+  const { container } = await open(null)
+  const tiles = () => [...container.querySelectorAll<HTMLElement>('section[data-zone="main"] li[data-card]')].map((li) => li.dataset.card)
+  const info = (id: number) => container.querySelector<HTMLElement>(`section[data-zone="main"] li[data-card="${id}"] [data-info]`)!
+  const pickAndAdd = (art: number) => {
+    fireEvent.click(screen.getAllByRole('button', { name: 'detail.art', hidden: true })[art]!)
+    fireEvent.click(screen.getAllByRole('button', { name: 'detail.addTo', hidden: true })[0]!)
+  }
+
+  fireEvent.click(info(100))
+  pickAndAdd(1) // the alternate artwork
+  await act(async () => {})
+  expect(tiles()).toEqual(['100', '101'])
+
+  // Opened from its own tile, the artwork lists the original and itself: never 50, which has no art of its own.
+  fireEvent.click(info(101))
+  expect(screen.getAllByRole('button', { name: 'detail.art', hidden: true })).toHaveLength(2)
+  pickAndAdd(0)
+  await act(async () => {})
+  expect(tiles()).toEqual(['100', '101', '100'])
 })

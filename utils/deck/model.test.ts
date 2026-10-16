@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf } from './model'
+import { copiesOf, copyCounts, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf } from './model'
 import { EMPTY_DECK, type CardData } from './types'
 
 const card = (id: number, patch: Partial<CardData>): CardData =>
@@ -63,6 +63,13 @@ describe('deck model', () => {
 
   it('counts a passcode missing from the map as itself', () => {
     expect(copiesOf({ main: [999, 999], extra: [], side: [] }, card(999, {}), cards)).toBe(2)
+  })
+
+  it('copyCounts gives every card the count copiesOf gives it, in one pass', () => {
+    const deck = { main: [dm.id, harpie.id, 999], extra: [utopia.id], side: [dmAlt.id, harpie2.id] }
+    const counts = copyCounts(deck, cards)
+    expect(Object.fromEntries(counts)).toEqual({ [dm.id]: 2, [harpie.id]: 2, 999: 1, [utopia.id]: 1 })
+    for (const c of [...cards.values(), card(999, {})]) expect(counts.get(canonicalId(c)) ?? 0).toBe(copiesOf(deck, c, cards))
   })
 
   it('rejects a full zone', () => {

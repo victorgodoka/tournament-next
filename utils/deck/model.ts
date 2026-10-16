@@ -27,13 +27,18 @@ export const canonicalId = (card: CardData): number => card.alias ?? card.ruleId
 export const printOf = (card: CardData, passcode: number): CardData =>
   passcode === card.id ? card : { ...card, id: passcode, alias: canonicalId(card) }
 
-export const copiesOf = (deck: Deck, card: CardData, cards: CardMap): number => {
-  const target = canonicalId(card)
-  return [...deck.main, ...deck.extra, ...deck.side].filter((id) => {
+/** Copies per canonical card across the deck; a passcode not in `cards` counts as itself. One pass for a whole pool page. */
+export const copyCounts = (deck: Deck, cards: CardMap): Map<number, number> => {
+  const counts = new Map<number, number>()
+  for (const id of [...deck.main, ...deck.extra, ...deck.side]) {
     const c = cards.get(id)
-    return (c ? canonicalId(c) : id) === target
-  }).length
+    const key = c ? canonicalId(c) : id
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return counts
 }
+
+export const copiesOf = (deck: Deck, card: CardData, cards: CardMap): number => copyCounts(deck, cards).get(canonicalId(card)) ?? 0
 
 export const addCard = (deck: Deck, card: CardData, cards: CardMap, zone?: Zone): AddResult => {
   const extra = isExtraDeckCard(card)

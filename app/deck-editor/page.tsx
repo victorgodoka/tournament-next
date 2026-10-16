@@ -5,7 +5,7 @@ import { DeckEditorLoader } from './deck-editor.loader'
 
 export async function generateMetadata() {
   const t = await getTranslations('DeckEditor')
-  return pageMetadata({ title: 'Deck Editor', path: '/deck-editor', description: t('meta') })
+  return pageMetadata({ title: t('title'), path: '/deck-editor', description: t('meta') })
 }
 
 const DeckEditorPage = () => (

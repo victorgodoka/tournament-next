@@ -25,16 +25,27 @@ export const loadAction = (deck: SavedDeck): EditorAction => ({
 /**
  * Server saves. `format` is the effective banlist id (the TCG list while none is chosen). `wait` is why
  * the editor can't save yet (still loading), shown instead of saving. Signed out, or on a `401`, the
- * draft is written and the user goes to /login, coming back here after. No failure drops local work.
- * `latest` is the last committed state, for callbacks that outlive a render.
+ * draft is written and the user goes to /login, coming back here after; when the draft can't be stored,
+ * the editor stays put and `signInTab` asks the user to sign in in another tab instead. No failure drops
+ * local work. `nameOf` names a canonical card for a rejected save. `latest` is the last committed state,
+ * for callbacks that outlive a render.
  */
-export const useSave = (state: EditorState, dispatch: React.Dispatch<EditorAction>, format: number | null, wait: string | null) => {
+export const useSave = (
+  state: EditorState,
+  dispatch: React.Dispatch<EditorAction>,
+  format: number | null,
+  wait: string | null,
+  nameOf: (cardId: number) => string,
+) => {
   const t = useTranslations('DeckEditor')
   const { user, refresh } = useAuth()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState<SavedDeck | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [signInTab, setSignInTab] = useState(false)
+  /** A draft couldn't be stored: Save then asks the server, which sees a sign-in made in another tab. */
+  const noStorage = useRef(false)
   const latest = useRef(state)
   const busy = useRef(false)
   const mounted = useRef(true)
@@ -50,18 +61,34 @@ export const useSave = (state: EditorState, dispatch: React.Dispatch<EditorActio
 
   /** `stale`: a 401 under a signed-in user. /login would see that user and send them straight back, so re-read the session first. */
   const toLogin = async (s: EditorState, stale: boolean) => {
-    if (s.dirty) writeDraft(draftKey(s.deckId), draftOf(s))
+    // Unstored, the deck wouldn't survive the trip to /login: it stays here, and the sign-in happens in another tab.
+    if (s.dirty && !writeDraft(draftKey(s.deckId), draftOf(s))) {
+      noStorage.current = true
+      setSignInTab(true)
+      return
+    }
     if (stale) await refresh()
     if (!mounted.current) return
     setReturnTo(location.pathname + location.search)
     router.push('/login')
   }
 
+  /** A 400 names what the server refused: unknown cards, too many copies, or a format that is no longer a list. */
+  const rejected = (e: DeckApiError): string => {
+    const d = e.details ?? {}
+    const names = (ids: unknown[]) => ids.map((id) => nameOf(Number(id))).join(', ')
+    if (Array.isArray(d.unknown)) return t('save.unknownCards', { cards: names(d.unknown) })
+    if (Array.isArray(d.overLimit)) return t('save.overLimit', { cards: names(d.overLimit) })
+    if ('unknownFormat' in d) return t('save.unknownFormat')
+    return t('save.rejected')
+  }
+
   const save = async (force = false) => {
     if (busy.current) return // the button already reads "Saving…"
     const s = latest.current
     const { deckId, revision } = s
-    if (user === null) return toLogin(s, false)
+    if (!s.dirty && deckId !== null) return // nothing changed: no new revision
+    if (user === null && !noStorage.current) return toLogin(s, false)
     if (wait) return setError(wait)
     if (deckId !== null && revision === null) return setError(t('save.notLoaded'))
     busy.current = true
@@ -70,6 +97,8 @@ export const useSave = (state: EditorState, dispatch: React.Dispatch<EditorActio
     const input = { name: s.name.trim() || t('newDeck'), format, main: s.deck.main, extra: s.deck.extra, side: s.deck.side }
     try {
       const saved = deckId === null ? await createDeck(input) : await updateDeck(deckId, input, revision!, force)
+      setSignInTab(false)
+      if (user === null) void refresh() // signed in from another tab: the header catches up
       const now = latest.current
       const changed = !sameDraft(now, s)
       // Unchanged, the editor takes the name and format as saved, so a later draft compares like for like.
@@ -88,7 +117,7 @@ export const useSave = (state: EditorState, dispatch: React.Dispatch<EditorActio
       else if (e instanceof DeckApiError && e.status === 401) await toLogin(latest.current, true)
       else {
         console.error(e) // a 400's server text is English and technical: it stays here
-        setError(e instanceof DeckApiError && e.status === 400 ? t('save.rejected') : t('save.failed'))
+        setError(e instanceof DeckApiError && e.status === 400 ? rejected(e) : t('save.failed'))
       }
     } finally {
       busy.current = false
@@ -109,5 +138,5 @@ export const useSave = (state: EditorState, dispatch: React.Dispatch<EditorActio
     clearDraft(draftKey(theirs.id))
   }
 
-  return { save, saving, conflict, resolveConflict, error, dismissError: () => setError(null), latest }
+  return { save, saving, conflict, resolveConflict, error, dismissError: () => setError(null), signInTab, dismissSignInTab: () => setSignInTab(false), latest }
 }
