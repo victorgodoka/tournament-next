@@ -121,6 +121,36 @@ describe('validate', () => {
     expect(validate(d, cards, null, TODAY).filter((p) => p.code === 'copies')).toHaveLength(1)
   })
 
+  it('takes the strictest limit across prints, in any deck order', () => {
+    const harpie = card(60, { banlists: [{ name: 'TCG 18.05.2026', limitation: 1 }] })
+    const harpie1 = card(61, { ruleId: harpie.id })
+    const map = new Map([...cards, [harpie.id, harpie], [harpie1.id, harpie1]])
+    const expected = { code: 'limited', cardId: harpie.id, count: 3, limit: 1 }
+    expect(validate(base({ side: [harpie1.id, harpie.id, harpie.id] }), map, tcg, TODAY)).toContainEqual(expected)
+    expect(validate(base({ side: [harpie.id, harpie.id, harpie1.id] }), map, tcg, TODAY)).toContainEqual(expected)
+  })
+
+  it('charges every copy the highest-cost print of the group', () => {
+    const orig = card(62, { banlists: [{ name: 'Genesys', limitation: 30 }] })
+    const alt = card(63, { alias: orig.id })
+    const map = new Map([...cards, [orig.id, orig], [alt.id, alt]])
+    expect(pointsUsed(base({ side: [alt.id, alt.id, orig.id] }), map, gen)).toBe(90)
+    expect(pointsUsed(base({ side: [orig.id, alt.id, alt.id] }), map, gen)).toBe(90)
+  })
+
+  it('reports only the copy limit when a limited card exceeds both limits', () => {
+    expect(validate(base({ side: [lim.id, lim.id, lim.id, lim.id] }), cards, tcg, TODAY)).toEqual([
+      { code: 'limited', cardId: lim.id, count: 4, limit: 1 },
+    ])
+  })
+
+  it('reports copies for a free card above 3', () => {
+    // `free` already has one copy in main; three more in side makes four.
+    expect(validate(base({ side: [free.id, free.id, free.id] }), cards, tcg, TODAY)).toEqual([
+      { code: 'copies', cardId: free.id, count: 4, limit: 3 },
+    ])
+  })
+
   it('flags an unknown passcode once, even without a banlist', () => {
     expect(validate(base({ side: [999, 999] }), cards, null, TODAY)).toEqual([{ code: 'unknown-card', cardId: 999 }])
   })

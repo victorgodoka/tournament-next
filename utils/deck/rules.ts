@@ -26,12 +26,29 @@ export const cardStatus = (card: CardData, banlist: Banlist): { copies: 0 | 1 | 
   return { copies: (limitation ?? MAX_COPIES) as 0 | 1 | 2 | 3 }
 }
 
-export const pointsUsed = (deck: Deck, cards: CardMap, banlist: Banlist): number =>
-  [...deck.main, ...deck.extra, ...deck.side].reduce((sum, id) => {
+/** One entry per canonical card, in first-appearance order (main, extra, side); counts span all zones. */
+const groupCards = (deck: Deck, cards: CardMap): Map<number, { prints: CardData[]; count: number }> => {
+  const groups = new Map<number, { prints: CardData[]; count: number }>()
+  for (const id of [...deck.main, ...deck.extra, ...deck.side]) {
     const card = cards.get(id)
-    const status = card && cardStatus(card, banlist)
-    return sum + (status && 'points' in status ? status.points : 0)
-  }, 0)
+    const key = card ? canonicalId(card) : id
+    const group = groups.get(key) ?? { prints: [], count: 0 }
+    group.count++
+    if (card && !group.prints.includes(card)) group.prints.push(card)
+    groups.set(key, group)
+  }
+  return groups
+}
+
+const maxPoints = (prints: CardData[], banlist: Banlist): number =>
+  Math.max(0, ...prints.map((p) => (cardStatus(p, banlist) as { points: number }).points))
+
+/** Every copy is charged the group's highest-cost print, so a print without banlist data cannot undercount. */
+export const pointsUsed = (deck: Deck, cards: CardMap, banlist: Banlist): number => {
+  let total = 0
+  for (const { prints, count } of groupCards(deck, cards).values()) total += count * maxPoints(prints, banlist)
+  return total
+}
 
 const releaseRegion = (format: string): 'tcg' | 'ocg' | null =>
   format === 'tcg' || format === 'genesys' ? 'tcg' : format === 'ocg' || format === 'genesys_ocg' ? 'ocg' : null
@@ -50,22 +67,19 @@ export const validate = (deck: Deck, cards: CardMap, banlist: Banlist | null, to
     if (used > banlist.pointCap) problems.push({ code: 'points', count: used, limit: banlist.pointCap })
   }
 
-  // One entry per canonical card, in first-appearance order; counts span all zones.
-  const seen = new Map<number, { card: CardData | undefined; count: number }>()
-  for (const id of [...deck.main, ...deck.extra, ...deck.side]) {
-    const card = cards.get(id)
-    const key = card ? canonicalId(card) : id
-    const entry = seen.get(key)
-    if (entry) entry.count++
-    else seen.set(key, { card, count: 1 })
-  }
-
   const region = banlist && releaseRegion(banlist.format)
-  for (const [cardId, { card, count }] of seen) {
+  for (const [cardId, { prints, count }] of groupCards(deck, cards)) {
+    const card = prints[0]
     if (!card) problems.push({ code: 'unknown-card', cardId })
 
-    const status = card && banlist ? cardStatus(card, banlist) : null
-    const allowed: number = status && 'copies' in status ? status.copies : MAX_COPIES
+    // Strictest limit across the group's prints, so the result doesn't depend on deck order.
+    const allowed = Math.min(
+      MAX_COPIES,
+      ...prints.map((p) => {
+        const status = banlist && cardStatus(p, banlist)
+        return status && 'copies' in status ? status.copies : MAX_COPIES
+      }),
+    )
     if (count > allowed) {
       if (allowed === 0) problems.push({ code: 'forbidden', cardId })
       else problems.push({ code: COPY_CODE[allowed] ?? 'copies', cardId, count, limit: allowed })
