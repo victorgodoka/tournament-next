@@ -117,3 +117,41 @@ export const getStatistics = async ({ ladder, season }: { ladder: RankedLadderId
 }
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
+
+/** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */
+export type IndexEntry = { archetype: ArchetypeKey; name: string | null; games: number; ready: boolean }
+export type DeepDiveRow = StatArchetype & { rank: number }
+export type DeepDiveState =
+  | { status: 'ready'; archetype: DeepDiveRow }
+  | { status: 'missing' }
+  | { status: 'queued'; position: number }
+  | { status: 'running' }
+  | { status: 'failed'; error: string }
+  | { status: 'limited'; retryAt: string }
+
+/** Anything but a 2xx throws an Error carrying the HTTP status (`.status`). */
+const ok = async (res: Response) => {
+  if (!res.ok) throw Object.assign(new Error(`Statistics request failed (${res.status})`), { status: res.status })
+  return res.json()
+}
+
+/** Every searchable archetype, most played first. */
+export const getArchetypeIndex = async (season: string, signal?: AbortSignal): Promise<IndexEntry[]> =>
+  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season })}`, { signal }))).archetypes
+
+/** Always a state, never cached: poll it while `queued` or `running`. */
+export const getDeepDive = async (season: string, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
+  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, key: archKey(key) })}`, { cache: 'no-store', signal }))
+
+/** Signed in only (`omega_session`). 429 is the account's hourly limit, not an error. */
+export const requestDeepDive = async (season: string, key: ArchetypeKey): Promise<DeepDiveState> => {
+  const res = await fetch(`${API_URL}/statistics/archetype`, {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ season, key: archKey(key) }),
+  })
+  if (res.status === 429) return { status: 'limited', retryAt: (await res.json()).retryAt }
+  return ok(res)
+}
