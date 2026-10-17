@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useFormatter, useNow, useTranslations } from 'next-intl'
 import { LocalTime } from '@omega/profile/local-time'
 import { TIME_ONLY, banlistLabel, formatTone } from '@omega/tournament/labels'
 import { Chip } from '@ui/chip/chip.component'
@@ -8,8 +8,11 @@ import type { CalendarEntry } from '@utils/types'
 
 const META = 'signal-sm text-ink-muted'
 
-/** Stable key: ids repeat across sources, and the game's recurring tournaments have none. */
-export const calendarKey = (entry: CalendarEntry) => `${entry.source}-${entry.id ?? entry.startsAt}`
+/**
+ * Stable key: ids repeat across sources, and the game's recurring tournaments have none. Two of
+ * those can start at the same minute (one per format), so the format is in their key too.
+ */
+export const calendarKey = (entry: CalendarEntry) => `${entry.source}-${entry.id ?? `${entry.startsAt}-${entry.format}-${entry.banlist}`}`
 
 /**
  * One calendar entry: date block, format, settings and where to sign up. The whole row links to
@@ -20,6 +23,8 @@ export const CalendarRow = ({ entry }: { entry: CalendarEntry }) => {
   const t = useTranslations('Calendar')
   const tt = useTranslations('Tournaments')
   const format = useFormatter()
+  // relativeTime needs `now` when this renders in a client component (the calendar grid).
+  const now = useNow()
   const { format: name, banlist, startsAt, status } = entry
   const href = calendarHref(entry)
 
@@ -47,7 +52,7 @@ export const CalendarRow = ({ entry }: { entry: CalendarEntry }) => {
         </span>
         <span className="flex flex-wrap items-center gap-2">
           {status === 'scheduled' ? (
-            <span className="text-gold signal-sm">{format.relativeTime(new Date(startsAt))}</span>
+            <span className="text-gold signal-sm">{format.relativeTime(new Date(startsAt), now)}</span>
           ) : (
             <Chip tone={status === 'live' ? 'live' : 'neutral'}>{tt(`status.${status}`)}</Chip>
           )}

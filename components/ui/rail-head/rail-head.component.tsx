@@ -21,7 +21,8 @@ export const RailHead = ({ num, label, stamp, emphasis, as: Label = 'span', clas
     {stamp ? (
       <>
         <span aria-hidden className="h-px flex-1 bg-line-mid" />
-        <span className="shrink-0 signal-sm">{stamp}</span>
+        {/* Truncates on a phone rather than pushing past the edge; the label keeps its room first. */}
+        <span title={typeof stamp === 'string' ? stamp : undefined} className="min-w-0 truncate signal-sm">{stamp}</span>
       </>
     ) : null}
   </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { LocalTime } from '@omega/profile/local-time'
 import { CopyButton } from '@omega/tournament/copy-deck'
 import { DAY_YEAR, TIME_ONLY, banlistLabel, cardPoolYear, formatDuration, formatNumber, formatTone } from '@omega/tournament/labels'
@@ -16,6 +16,7 @@ import { TournamentTabs } from './TournamentTabs'
 
 const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
   const t = useTranslations('Tournaments')
+  const locale = useLocale()
   const { tournament, standings, rounds, stats } = detail
   const { id, status, format, settings, startedAt, endedAt, players } = tournament
   const { matches } = stats
@@ -56,7 +57,7 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
                 <Chip tone={formatTone(format)}>{format}</Chip>
                 <Chip>{t(`mode.long.${settings.mode}`)}</Chip>
                 <Chip>{t('detail.chips.masterRule', { rule: settings.masterRule })}</Chip>
-                <Chip>{t('detail.chips.lp', { lp: formatNumber(settings.startingLp) })}</Chip>
+                <Chip>{t('detail.chips.lp', { lp: formatNumber(settings.startingLp, locale) })}</Chip>
                 <Chip>{t('detail.chips.timer', { seconds: settings.timer })}</Chip>
                 <Chip>{t('detail.chips.hand', { cards: settings.startingHand })}</Chip>
                 {year ? <Chip>{t('cardPool', { year })}</Chip> : null}
@@ -96,7 +97,7 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
             }
             standings={<Standings tournament={tournament} standings={standings} rounds={rounds} />}
             rounds={<Rounds rounds={rounds} standings={standings} live={live} />}
-            stats={<Stats stats={stats} players={players} />}
+            stats={<Stats stats={stats} players={players} live={live} standings={standings} />}
           />
         </div>
       </main>

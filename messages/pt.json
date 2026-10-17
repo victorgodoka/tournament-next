@@ -327,7 +327,20 @@
       "copies": "Cópias",
       "inSide": "No side",
       "gamesRecord": "Jogos V–D",
-      "fallbackName": "Carta {id}"
+      "fallbackName": "Carta {id}",
+      "turnOrder": "Ordem de turno",
+      "turnOrderMeta": "Jogo 1 · {games} decididos",
+      "goingFirst": "Começando",
+      "goingSecond": "Indo de segundo",
+      "others": "Outros",
+      "winRateChart": "Win rate por arquétipo",
+      "winRateChartSub": "Partidas · linha de 50%",
+      "conversion": "Conversão",
+      "conversionStamp": "Campo vs Top {top}",
+      "conversionTitle": "Quem chegou ao Top {top}",
+      "field": "Fatia do campo",
+      "topCut": "Fatia do Top {top}",
+      "conversionNote": "Barra dourada maior que a cinza: o arquétipo pôs mais jogadores no Top {top} do que sua fatia do campo. Top {top} pela colocação final."
     },
     "cardPool": "cartas lançadas até {year}",
     "copyDeck": {

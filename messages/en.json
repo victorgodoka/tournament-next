@@ -327,7 +327,20 @@
       "copies": "Copies",
       "inSide": "In side",
       "gamesRecord": "Games W–L",
-      "fallbackName": "Card {id}"
+      "fallbackName": "Card {id}",
+      "turnOrder": "Turn order",
+      "turnOrderMeta": "Game 1 · {games} decided",
+      "goingFirst": "Going first",
+      "goingSecond": "Going second",
+      "others": "Others",
+      "winRateChart": "Win rate by archetype",
+      "winRateChartSub": "Matches · 50% line",
+      "conversion": "Conversion",
+      "conversionStamp": "Field vs Top {top}",
+      "conversionTitle": "Who reached the Top {top}",
+      "field": "Share of the field",
+      "topCut": "Share of the Top {top}",
+      "conversionNote": "A gold bar longer than the grey one: the archetype put more players in the Top {top} than its share of the field. Top {top} by final rank."
     },
     "cardPool": "cards released until {year}",
     "copyDeck": {
