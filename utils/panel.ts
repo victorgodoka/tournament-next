@@ -316,11 +316,30 @@ export type AnalyticsSweep = {
 }
 
 /** `running` is `null` when idle; `last` is `null` after a restart. */
-export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null }
+/** `rulesStale`: series, ignored archetypes or card groups changed since the open seasons were last rebuilt. */
+export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null; rulesStale: boolean }
+
+/** Sweeps the open seasons from their first day to yesterday. `409 BUSY` while one runs, `409 NOTHING_TO_REBUILD` before any day. */
+export const rebuildOpenSeasons = () =>
+  request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
 
 /** Both optional: no body is yesterday, only `from` is that single day. `409 BUSY` while one runs. */
 export const startAnalyticsSweep = (range: { from?: string; to?: string }) =>
   request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync', json('POST', range))
+
+/** A ranked season and its /statistics freeze. `lastDay` (job zone) is `null` while open; `frozenAt` `null` while live. */
+export type StatisticsSeason = {
+  code: string
+  label: string
+  ladder: RankedLadderId
+  startsAt: string
+  endsAt: string | null
+  lastDay: string | null
+  frozenAt: string | null
+}
+
+export const listStatisticsSeasons = (signal?: AbortSignal) =>
+  request<StatisticsSeason[]>('/panel/analytics/statistics/seasons', { signal })
 
 export const getAnalyticsSweep = (signal?: AbortSignal) =>
   request<AnalyticsSweepStatus>('/panel/analytics/sync', { signal })

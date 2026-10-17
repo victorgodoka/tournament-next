@@ -1,62 +1,40 @@
-import Link from 'next/link'
-import { headers } from 'next/headers'
-import { AnalyticsShell } from '@app/profile/analytics/AnalyticsShell'
-import { ExplorationCard } from '@omega/analytics/explorer/exploration-card'
-import { EmptyBox } from '@omega/profile/empty-box'
-import { duelistName } from '@utils/analytics'
-import { getPublicExplorations, getVariables, sharePath } from '@utils/explorations'
+import { Footer } from '@ui/footer'
+import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
+import { getPastSeasons } from '@utils/ranked'
+import { getStatistics } from '@utils/statistics'
+import { MetaStatistics } from './MetaStatistics'
 
-type StatisticsFeedProps = { searchParams: Promise<{ cursor?: string | string[]; before?: string | string[] }> }
+type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }> }
 
 export const metadata = pageMetadata({
-  title: 'Statistics',
+  title: 'Meta statistics',
   path: '/statistics',
-  description: 'The explorations duelists built from their own ranked games and chose to publish.',
+  description: 'Archetype shares, win rates, turn order and card choices from every ranked duel of the YGO Omega season.',
 })
 
-/** Every public exploration, newest created first. Paged with `?cursor=` (`?before=`, the old name, still read), one server page at a time. */
-const StatisticsFeed = async ({ searchParams }: StatisticsFeedProps) => {
-  const { cursor: raw, before } = await searchParams
-  const param = raw ?? before
-  const cursor = typeof param === 'string' && /^\d+$/.test(param) ? param : undefined
-  const [page, variables] = await Promise.all([getPublicExplorations(cursor, (await headers()).get('cookie')), getVariables()])
+/** The public meta report: `?ladder=` picks the open season, `?season=` a past one of that ladder. */
+const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
+  const q = await searchParams
+  const ladder = q.ladder === 'genesys' ? 'genesys' : 'tcg'
+  const season = typeof q.season === 'string' && q.season ? q.season : undefined
+  const [result, past] = await Promise.all([
+    getStatistics({ ladder, season }),
+    getPastSeasons(ladder).then((p) => p.seasons, () => []),
+  ])
 
   return (
-    <AnalyticsShell
-      eyebrow="Public statistics"
-      meta="Ranked games · updates within 5 minutes"
-      title="Explorations"
-      aside={<p className="max-w-[46ch] text-ink-dim body-sm">Pivots duelists built over their own ranked games and chose to publish. Build yours from your profile&apos;s Analytics page.</p>}
-    >
-      {page.explorations.length ? (
-        <ul className="mt-8 grid gap-px border border-line bg-line md:grid-cols-2 xl:grid-cols-3">
-          {page.explorations.map((e) => (
-            <ExplorationCard
-              key={e.id}
-              exploration={e}
-              variables={variables}
-              href={e.shareToken ? sharePath(e.shareToken) : `/profile/${e.ownerId}/analytics`}
-              owner={{ name: e.coAuthor ? `${duelistName(e.author)} with ${duelistName(e.coAuthor)}` : duelistName(e.author), avatar: e.author.avatar }}
-            />
-          ))}
-        </ul>
-      ) : (
-        <EmptyBox title={cursor ? 'No older explorations' : 'Nothing published yet'} className="mt-8">
-          {cursor ? 'You reached the first exploration ever published.' : 'Public explorations show up here as soon as a duelist publishes one.'}
-        </EmptyBox>
-      )}
-
-      <nav aria-label="Pages" className="mt-6 flex flex-wrap gap-3">
-        {cursor ? (
-          <Link href="/statistics" className="flex min-h-11 items-center border border-line px-4 text-ink-dim signal-chip hover:border-ink hover:text-ink">← Newest</Link>
-        ) : null}
-        {page.nextCursor ? (
-          <Link href={`/statistics?cursor=${page.nextCursor}`} className="flex min-h-11 items-center border border-cyan px-4 text-cyan signal-chip hover:bg-ground-cyan">Older →</Link>
-        ) : null}
-      </nav>
-    </AnalyticsShell>
+    <>
+      <Header />
+      <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
+        {/* 64px clears the fixed header. */}
+        <main style={{ width: 'min(1280px, calc(100% - 32px))', margin: '0 auto', padding: '104px 0 96px' }}>
+          <MetaStatistics ladder={ladder} season={season} past={past} result={result} />
+        </main>
+      </div>
+      <Footer />
+    </>
   )
 }
 
-export default StatisticsFeed
+export default StatisticsPage

@@ -240,10 +240,6 @@
     }
   },
   "Welcome": {
-    "meta": {
-      "title": "Home",
-      "description": "Ranked activity, the meta of each ladder and every YGO Omega tournament of the last 24 hours."
-    },
     "header": {
       "eyebrow": "Omega Hub",
       "title": "The last 24 hours",
@@ -266,6 +262,8 @@
       "split": "Split of {count} ranked duels"
     },
     "meta": {
+      "title": "Home",
+      "description": "Ranked activity, the meta of each ladder and every YGO Omega tournament of the last 24 hours.",
       "heading": "Meta",
       "duels": "{count, plural, one {# duel} other {# duels}}",
       "decks": "Top decks",
@@ -284,6 +282,7 @@
       "recentEmpty": "No finished tournaments yet.",
       "upcoming": "On the schedule",
       "upcomingEmpty": "Nothing on the schedule. New events show up on Discord first.",
+      "calendar": "Full calendar",
       "summary": "{players, plural, one {# player} other {# players}} · {rounds, plural, one {# round} other {# rounds}}",
       "points": "{points} pts",
       "fallbackFormat": "Tournament",
@@ -293,6 +292,58 @@
         "swiss": "Swiss",
         "single_elimination": "Single elimination"
       }
+    }
+  },
+  "Calendar": {
+    "meta": {
+      "title": "Tournament calendar",
+      "description": "Every Omega tournament in a month: the ones that ran, the live one and what's on the schedule."
+    },
+    "heading": "Calendar",
+    "eyebrow": "Tournaments",
+    "lead": "What ran, what's live and what's coming this month. Times are in your time zone.",
+    "months": "Months",
+    "previous": "Previous",
+    "next": "Next",
+    "empty": "Nothing this month.",
+    "grid": "Tournaments by day",
+    "dayLabel": "{day}: {count, plural, =0 {no tournaments} one {# tournament} other {# tournaments}}",
+    "more": "+{count} more",
+    "dayEmpty": "No tournaments this day.",
+    "failed": "Couldn't load the calendar. Try again in a moment.",
+    "fallbackFormat": "Tournament",
+    "pass": "Battle pass",
+    "tp": "TP reward",
+    "structure": {
+      "swiss": "Swiss",
+      "single_elimination": "Single elimination"
+    },
+    "players": "{count, plural, one {# player} other {# players}}",
+    "preRegistered": "{count} pre-registered",
+    "registration": {
+      "site": "Pre-register on the site",
+      "ingame": "Join in the game client"
+    },
+    "scheduled": {
+      "eyebrow": "Scheduled",
+      "metaTitle": "{name} · Pre-registration",
+      "metaDescription": "Pre-register for an Omega tournament and see who signed up.",
+      "notFound": "Tournament not found",
+      "fallbackFormat": "Tournament",
+      "heading": "Pre-registration",
+      "open": "Pre-registration is open.",
+      "youAreIn": "You're pre-registered.",
+      "closed": "Pre-registration is closed: the tournament has started.",
+      "closedNow": "Pre-registration just closed.",
+      "intent": "It says you mean to play. You still join in the game client when the tournament opens.",
+      "passNote": "Needs a battle pass: the game checks it when you join.",
+      "signIn": "Sign in to pre-register",
+      "register": "Pre-register",
+      "withdraw": "Withdraw",
+      "failed": "That didn't go through. Try again.",
+      "players": "{count, plural, =0 {Pre-registered} one {# pre-registered} other {# pre-registered}}",
+      "registeredAt": "Signed up",
+      "noPlayers": "Nobody has pre-registered yet."
     }
   },
   "Tournaments": {
@@ -437,6 +488,7 @@
       "unplayed": "{count} unplayed",
       "dropped": "Dropped",
       "noArchetype": "No archetype",
+      "deckHidden": "Hidden until it ends",
       "showDeck": "Show {name}'s deck",
       "hideDeck": "Hide {name}'s deck",
       "registered": "Registered deck · locked at round 1",
@@ -500,6 +552,7 @@
       "record": "W–L–D",
       "winRate": "Win rate",
       "noArchetypes": "No entrant’s deck matched a known archetype.",
+      "liveHidden": "Decklists, archetypes and card stats open when the tournament ends.",
       "matchups": "Matchups",
       "mirrors": "Mirrors left out",
       "matchupsCaption": "Results from the first archetype's side",
@@ -514,7 +567,20 @@
       "copies": "Copies",
       "inSide": "In side",
       "gamesRecord": "Games W–L",
-      "fallbackName": "Card {id}"
+      "fallbackName": "Card {id}",
+      "turnOrder": "Turn order",
+      "turnOrderMeta": "Game 1 · {games} decided",
+      "goingFirst": "Going first",
+      "goingSecond": "Going second",
+      "others": "Others",
+      "winRateChart": "Win rate by archetype",
+      "winRateChartSub": "Matches · 50% line",
+      "conversion": "Conversion",
+      "conversionStamp": "Field vs Top {top}",
+      "conversionTitle": "Who reached the Top {top}",
+      "field": "Share of the field",
+      "topCut": "Share of the Top {top}",
+      "conversionNote": "A gold bar longer than the grey one: the archetype put more players in the Top {top} than its share of the field. Top {top} by final rank."
     },
     "cardPool": "cards released until {year}",
     "copyDeck": {
@@ -524,6 +590,20 @@
     },
     "player": {
       "unknown": "Unknown duelist"
+    },
+    "record": {
+      "label": "Tournaments",
+      "stamp": "Swiss",
+      "entered": "Entered",
+      "titles": "Titles",
+      "matchRecord": "Match record",
+      "points": "Points",
+      "rank": "{rank, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "tournament": "Tournament #{id}",
+      "loading": "Loading…",
+      "seeAll": "See all tournaments",
+      "loadOlder": "Load older",
+      "error": "Couldn’t load this duelist’s tournaments. Try again."
     }
   }
 }

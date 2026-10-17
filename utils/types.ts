@@ -274,7 +274,7 @@ export interface WelcomeData {
     live: WelcomeTournament[]
     /** Last 6 finished, every format, newest first. */
     recent: WelcomeTournament[]
-    /** Next 6 on the staff schedule, soonest first. */
+    /** Next 6, staff schedule and the game's recurring scheduler mixed, soonest first. */
     upcoming: WelcomeUpcoming[]
   }
 }
@@ -290,16 +290,55 @@ export type WelcomeMeta = {
   cards: { id: number; name: string; inDecks: number; inMain: number; inSide: number; used: number }[]
 }
 
-/** A scheduled tournament. `id` is the schedule's, not a tournament id: there is no page to link. */
-export type WelcomeUpcoming = {
-  id: number
-  format: string | null
-  banlist: string | null
+/**
+ * A tournament on the calendar (TOURNAMENT_API.md §3.6), from one of three sources:
+ * `omega` ran in the game (id = tournament id), `panel` is on the staff schedule (id = schedule id,
+ * pre-registration on the site), `scheduler` is the game's recurring tournament (id `null`, join
+ * in the game client). Ids are not unique across sources: key on `source` + `id` (+ `startsAt`).
+ */
+export type CalendarEntry = {
+  id: number | null
+  source: 'omega' | 'panel' | 'scheduler'
+  status: 'scheduled' | 'live' | 'finished'
   startsAt: string
+  endedAt: string | null
+  banlist: string | null
+  format: string | null
   mode: TournamentSettings['mode']
-  structure: 'swiss' | 'single_elimination'
-  requiresPass: boolean
-  rewardTp: boolean
+  /** `null` for `omega`: the game doesn't record it. */
+  structure: 'swiss' | 'single_elimination' | null
+  requiresPass: boolean | null
+  rewardTp: boolean | null
+  /** `omega`: entrants. `panel`: pre-registrations. `scheduler`: `null`. */
+  players: number | null
+  /** `site` = pre-register on its page, `ingame` = only in the game client, `null` = already started. */
+  registration: 'site' | 'ingame' | null
+}
+
+/** The home page's upcoming list: calendar entries that haven't started (WELCOME_API.md §2.3). */
+export type WelcomeUpcoming = CalendarEntry
+
+/** A duelist pre-registered for a scheduled tournament, oldest first. */
+export type ScheduledPlayer = {
+  id: string
+  name: string | null
+  avatar: string | null
+  registeredAt: string
+  cosmetics: Cosmetics
+}
+
+/** `GET /tournaments/scheduled/{id}` (TOURNAMENT_API.md §3.7); the POST/DELETE return the same body. */
+export type ScheduledTournament = {
+  tournament: CalendarEntry
+  /** Set once staff link it to the game tournament: its page is `/tournament/{omegaTournamentId}`. */
+  omegaTournamentId: number | null
+  registration: {
+    /** `false` from `startsAt` on, or once linked. */
+    open: boolean
+    /** `null` without a session. */
+    registered: boolean | null
+    players: ScheduledPlayer[]
+  }
 }
 
 /** A tournament on the home page (WELCOME_API.md §2.3). */

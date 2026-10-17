@@ -1,14 +1,15 @@
 /** Formatting shared by the tournament list and the tournament page. The API sends raw values. */
 
-// ponytail: fixed locale so server and client render the same digits; per-reader digits need a client-only formatter.
-const NUMBER = new Intl.NumberFormat('en-US')
-export const formatNumber = (value: number) => NUMBER.format(value)
+/* `locale` is the app locale (`useLocale()`), which server and client share through the cookie,
+   so both render the same digits. Callers that don't pass it get English. */
+export const formatNumber = (value: number, locale = 'en') => new Intl.NumberFormat(locale).format(value)
 
-const DECIMAL = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
-export const formatDecimal = (value: number) => DECIMAL.format(value)
+export const formatDecimal = (value: number, locale = 'en') =>
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)
 
-/** Rates come as fractions rounded to 4 decimals: `0.5372` reads as `53.7%`. */
-export const formatRate = (rate: number | null) => (rate === null ? '—' : `${(rate * 100).toFixed(1)}%`)
+/** Rates come as fractions rounded to 4 decimals: `0.5372` reads as `53.7%` (`53,7%` in pt). */
+export const formatRate = (rate: number | null, locale = 'en') =>
+  rate === null ? '—' : new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(rate)
 
 export const formatRecord = ({ wins, loses, draws }: { wins: number; loses: number; draws: number }) =>
   `${wins}–${loses}–${draws}`
