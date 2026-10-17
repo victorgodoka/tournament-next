@@ -1,11 +1,13 @@
 /**
  * Tournament endpoints on omega-server-v3 (see its TOURNAMENT_API.md).
- * Everything is a public read-only GET: no session, no cookie to forward.
+ * Public read-only GETs, except pre-registration on a scheduled tournament (session cookie).
  */
 import { cache } from 'react'
 import { API_URL } from '@utils/auth'
 import type {
+  CalendarEntry,
   PlayerTournamentPage,
+  ScheduledTournament,
   TournamentDetail,
   TournamentPage,
   TournamentStatus,
@@ -80,3 +82,51 @@ export const getTournamentsStats = (
   query: { banlist?: string; from?: string; to?: string } = {},
   signal?: AbortSignal,
 ) => get<TournamentsStats>(`/tournaments/stats${search(query)}`, 300, signal)
+
+/** Every tournament starting in [from, to): played, live and scheduled. At most 31 days. */
+export const getCalendar = (from: Date, to: Date, signal?: AbortSignal) =>
+  get<{ from: string; to: string; entries: CalendarEntry[] }>(
+    `/calendar${search({ from: from.toISOString(), to: to.toISOString() })}`,
+    15,
+    signal,
+  )
+
+/**
+ * The page of a calendar entry. Built here rather than read from the API's `url`, which points
+ * game tournaments at `/tournaments/{id}` while this site serves them at `/tournament/{id}`.
+ */
+export const calendarHref = ({ source, id }: Pick<CalendarEntry, 'source' | 'id'>): string | null =>
+  id === null ? null : source === 'omega' ? `/tournament/${id}` : source === 'panel' ? `/tournaments/scheduled/${id}` : null
+
+/**
+ * A staff-scheduled tournament and its pre-registrations. Rendered on the server with the
+ * visitor's cookie, so `registration.registered` says whether *they* signed up. `null` for an unknown id.
+ */
+export const getScheduled = cache(async (id: string, cookie: string | null): Promise<ScheduledTournament | null> => {
+  const res = await fetch(`${API_URL}/tournaments/scheduled/${encodeURIComponent(id)}`, {
+    headers: cookie ? { cookie } : undefined,
+    cache: 'no-store',
+  })
+  if (res.status === 404) return null
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new TournamentApiError(res.status, body.error, body.message)
+  }
+  return res.json()
+})
+
+/**
+ * Pre-register (`true`) or withdraw (`false`). Idempotent; returns the page's new state.
+ * `401` without a session, `409 REGISTRATION_CLOSED` once it started or was linked.
+ */
+export const setRegistration = async (id: number, registered: boolean): Promise<ScheduledTournament> => {
+  const res = await fetch(`${API_URL}/tournaments/scheduled/${id}/registration`, {
+    method: registered ? 'POST' : 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new TournamentApiError(res.status, body.error, body.message)
+  }
+  return res.json()
+}

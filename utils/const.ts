@@ -83,6 +83,17 @@ export const HOME_DOUBLE_SCRIPT_DISPLAY = [
   },
 ]
 
+/**
+ * Kill switch for every analytics surface, admins included. Off: next.config.ts redirects the
+ * analytics routes to `/` before anything renders, links and match panels are hidden, and the
+ * landing skips its top-decks fetch. Flip back to `true` to restore it all.
+ */
+export const ANALYTICS_ENABLED = true
+
+/** Same kind of switch for the shop and the battlepass: routes redirected, links hidden. Inventory and cosmetics stay. */
+export const SHOP_ENABLED = false
+export const BATTLEPASS_ENABLED = false
+
 export type NavbarItem = {
   item: string
   /** A plain link. Mutually exclusive with `children`. */
@@ -98,15 +109,16 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     item: "Tournaments",
     children: [
       { item: "Live", to: "/tournaments" },
+      { item: "Calendar", to: "/calendar" },
       { item: "Past tournaments", to: "https://tournament.duelistsunite.org/" },
     ],
   },
   { item: "Leaderboard", to: "/leaderboard" },
-  { item: "Analytics", to: "/analytics", loggedIn: true },
+  ...(ANALYTICS_ENABLED ? [{ item: "Analytics", to: "/analytics", loggedIn: true }] : []),
   { item: "Wiki", to: "/wiki" },
-  { item: "Statistics", to: "/statistics", loggedIn: true },
-  { item: "Shop", to: "/shop", loggedIn: true },
-  { item: "Battlepass", to: "/battlepass", loggedIn: true },
+  ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
+  ...(SHOP_ENABLED ? [{ item: "Shop", to: "/shop", loggedIn: true }] : []),
+  ...(BATTLEPASS_ENABLED ? [{ item: "Battlepass", to: "/battlepass", loggedIn: true }] : []),
   {
     item: "Tools",
     children: [
