@@ -316,7 +316,12 @@ export type AnalyticsSweep = {
 }
 
 /** `running` is `null` when idle; `last` is `null` after a restart. */
-export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null }
+/** `rulesStale`: series, ignored archetypes or card groups changed since the open seasons were last rebuilt. */
+export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null; rulesStale: boolean }
+
+/** Sweeps the open seasons from their first day to yesterday. `409 BUSY` while one runs, `409 NOTHING_TO_REBUILD` before any day. */
+export const rebuildOpenSeasons = () =>
+  request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
 
 /** Both optional: no body is yesterday, only `from` is that single day. `409 BUSY` while one runs. */
 export const startAnalyticsSweep = (range: { from?: string; to?: string }) =>

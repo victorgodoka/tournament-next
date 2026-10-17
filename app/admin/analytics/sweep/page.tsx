@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Button, Chip, DataTable, FactGrid, Field, PageHeader, Panel, SectionHead, Select, TextInput } from '@ui/index'
 import { useResource } from '@hooks/index'
+import { RulesRebuildNotice } from '@omega/analytics/rules-rebuild-notice'
 import { count, dayTime, timeLabel } from '@utils/format'
 import { getAnalyticsSweep, listSeasons, listStatisticsSeasons, panelErrorText, startAnalyticsSweep, syncPlayerAnalytics, type AnalyticsSweep } from '@utils/panel'
 
@@ -98,6 +99,8 @@ const SweepPage = () => {
         lead="Season analytics are worked out once a day. Force the sweep here for a range of days, or recompute one duelist right now."
       />
       {sweep.error ? <Alert tone="negative" title="Couldn't read the sweep">{panelErrorText(sweep.error)}</Alert> : null}
+      {/* The run panel below already follows a running sweep. */}
+      {running ? null : <RulesRebuildNotice />}
 
       {running ? (
         <section aria-labelledby="sweep-run" className="cut notch flex flex-col gap-5.5 p-5 [--cut:var(--cut-lg)] [--fill:var(--color-steel)] min-[720px]:p-7">
