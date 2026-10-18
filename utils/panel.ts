@@ -306,6 +306,8 @@ export const renameSeason = (code: string, next: { code?: string; label?: string
 export type AnalyticsSweep = {
   from: string
   to: string
+  /** `null` = both formats. */
+  ladder: RankedLadderId | null
   /** Day being swept now. */
   current: string | null
   done: { day: string; matches: number; rows: number; ms: number }[]
@@ -323,9 +325,12 @@ export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: Analy
 export const rebuildOpenSeasons = () =>
   request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
 
-/** Both optional: no body is yesterday, only `from` is that single day. `409 BUSY` while one runs. */
-export const startAnalyticsSweep = (range: { from?: string; to?: string }) =>
-  request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync', json('POST', range))
+/**
+ * All optional: no dates is yesterday, only `from` is that single day; no `ladder` is both formats
+ * (with one, the other's days stay as they were). `409 BUSY` while one runs.
+ */
+export const startAnalyticsSweep = (range: { from?: string; to?: string; ladder?: RankedLadderId }) =>
+  request<{ status: 'started'; from: string; to: string; ladder: RankedLadderId | null }>('/panel/analytics/sync', json('POST', range))
 
 /** A ranked season and its /statistics freeze. `lastDay` (job zone) is `null` while open; `frozenAt` `null` while live. */
 export type StatisticsSeason = {

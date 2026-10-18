@@ -1,17 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Alert, Button, Chip, DataTable, FactGrid, Field, PageHeader, Panel, SectionHead, Select, TextInput } from '@ui/index'
+import { Alert, Button, Chip, DataTable, FactGrid, Field, PageHeader, Panel, SectionHead, Segmented, Select, TextInput } from '@ui/index'
 import { useResource } from '@hooks/index'
 import { RulesRebuildNotice } from '@omega/analytics/rules-rebuild-notice'
 import { count, dayTime, timeLabel } from '@utils/format'
 import { getAnalyticsSweep, listSeasons, listStatisticsSeasons, panelErrorText, startAnalyticsSweep, syncPlayerAnalytics, type AnalyticsSweep } from '@utils/panel'
+import { LADDERS } from '@utils/ranked'
+import type { RankedLadderId } from '@utils/types'
 
 const SNOWFLAKE = /^\d{15,20}$/
 const POLL_MS = 5000
 
 const daysIn = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
+const FORMATS = [{ value: '' as const, label: 'Both' }, ...LADDERS.map((l) => ({ value: l.id, label: l.format }))]
+/** `null` (or an older server that doesn't say) = both formats. */
+const formatName = (ladder: RankedLadderId | null) => LADDERS.find((l) => l.id === ladder)?.format ?? 'Both formats'
 /**
  * ponytail: days cut in UTC, the job's zone isn't known here. Yesterday in UTC is never past
  * the job's today; a season opening late at night may sweep one extra day before it, which is harmless.
@@ -40,6 +45,7 @@ const SweepPage = () => {
   const statSeasons = useResource('statistics-seasons', listStatisticsSeasons)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [ladder, setLadder] = useState<RankedLadderId | ''>('')
   const [startError, setStartError] = useState<string | null>(null)
   const [player, setPlayer] = useState('')
   const [season, setSeason] = useState('')
@@ -64,7 +70,7 @@ const SweepPage = () => {
     }
   }, [sweeping, reloadSweep, reloadStatSeasons])
 
-  const start = (range: { from?: string; to?: string }) => {
+  const start = (range: Parameters<typeof startAnalyticsSweep>[0]) => {
     setStartError(null)
     startAnalyticsSweep(range).then(reloadSweep, (e) => setStartError(panelErrorText(e)))
   }
@@ -87,7 +93,7 @@ const SweepPage = () => {
     if (!toRebuild) return
     const yesterday = utcDay(now - 86_400_000)
     const last = toRebuild.lastDay && toRebuild.lastDay < yesterday ? toRebuild.lastDay : yesterday
-    start({ from: utcDay(Date.parse(toRebuild.startsAt)), to: last })
+    start({ from: utcDay(Date.parse(toRebuild.startsAt)), to: last, ladder: toRebuild.ladder })
   }
 
   return (
@@ -111,7 +117,7 @@ const SweepPage = () => {
           </div>
           <div className="flex flex-col gap-2.5">
             <div className="flex items-baseline gap-3">
-              <span className="text-ink data">{running.from} → {running.to}</span>
+              <span className="text-ink data">{running.from} → {running.to} · {formatName(running.ladder)}</span>
               <span className="flex-1" />
               <span className="stat">{running.done.length}</span>
               <span className="text-ink-dim signal-sm">of {total} days done</span>
@@ -143,8 +149,15 @@ const SweepPage = () => {
                 Each day is rewritten whole.
               </span>
             </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3.5">
+                <span className="text-ink-muted signal">Format</span>
+                <Segmented label="Format" value={ladder} onChange={setLadder} options={FORMATS} />
+              </div>
+              <span className="text-ink-muted caption">One format rewrites only its own seasons and periods; the other keeps what it had.</span>
+            </div>
             <div className="flex flex-wrap items-center gap-3.5">
-              <Button size="mono-md" disabled={running !== null} onClick={() => start({ from: from || undefined, to: to || undefined })}>
+              <Button size="mono-md" disabled={running !== null} onClick={() => start({ from: from || undefined, to: to || undefined, ladder: ladder || undefined })}>
                 Start sweep
               </Button>
               {running ? <span className="text-[13px] leading-5 text-gold">A sweep is already running. Start another when it ends.</span> : null}
@@ -156,7 +169,7 @@ const SweepPage = () => {
           <Panel label="Rebuild a season" className="flex flex-col gap-4.5 [--edge:var(--color-line-mid)]">
             <SectionHead compact num="03">Rebuild a season</SectionHead>
             <p className="text-sm leading-5.5 text-ink-dim">
-              Sweeps a season from its first day to its last (yesterday, while open). Run it after changing archetypes, series or card groups:
+              Sweeps a season from its first day to its last (yesterday, while open), in its format only. Run it after changing archetypes, series or card groups:
               swept days keep the archetypes they were sorted with until they are swept again. /statistics shows the new numbers when it ends.
             </p>
             {statSeasons.error ? <Alert tone="negative" title="Couldn't read the seasons">{panelErrorText(statSeasons.error)}</Alert> : null}
@@ -193,7 +206,7 @@ const SweepPage = () => {
                 <h2 className="flex-1 text-ink-dim signal">{dayTime(last.startedAt)}</h2>
               </div>
               <span className="text-sm leading-5.5">
-                {last.from} → {last.to}
+                {last.from} → {last.to} · {formatName(last.ladder)}
                 {last.error
                   ? ` stopped on ${last.current ?? '?'} after ${last.done.length} days.`
                   : ` · ${last.done.length} days in ${last.finishedAt ? seconds(Date.parse(last.finishedAt) - Date.parse(last.startedAt)) : '?'}.`}
@@ -203,7 +216,7 @@ const SweepPage = () => {
                   <pre className="border border-line bg-space-000 px-3.5 py-3 whitespace-pre-wrap text-loss data">{last.error}</pre>
                   {last.current ? (
                     <div>
-                      <Button variant="secondary" size="mono" onClick={() => start({ from: last.current!, to: last.to })}>Re-run from {last.current}</Button>
+                      <Button variant="secondary" size="mono" onClick={() => start({ from: last.current!, to: last.to, ladder: last.ladder ?? undefined })}>Re-run from {last.current}</Button>
                     </div>
                   ) : null}
                 </>
