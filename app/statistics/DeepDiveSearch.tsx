@@ -16,8 +16,8 @@ import { DeepDive, NOTE, nameOf, num } from './DeepDive'
 /* Cheap read of a job's state: the sooner it comes back `ready`, the sooner the card shows. */
 const POLL_MS = 1000
 const SUFFIX = ['th', 'st', 'nd', 'rd']
-const ordinal = (n: number) => n + (SUFFIX[((n % 100) - 20) % 10] ?? SUFFIX[n % 100] ?? 'th')
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+export const ordinal = (n: number) => n + (SUFFIX[((n % 100) - 20) % 10] ?? SUFFIX[n % 100] ?? 'th')
+export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 const isActive = (s: DeepDiveState | null) => s?.status === 'queued' || s?.status === 'running'
 const option = (e: IndexEntry): LookupOption => ({
   key: e.archetype.join('-'),
@@ -28,7 +28,7 @@ const option = (e: IndexEntry): LookupOption => ({
 type Picked = { archetype: number[]; name: string }
 
 /** Covers the page while a pick loads or calculates. `Cancel` only stops waiting: a running job still finishes server-side. */
-const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => (
+export const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => (
   <div role="status" aria-live="polite" className="fixed inset-0 z-(--z-overlay) flex flex-col items-center justify-center gap-6 bg-scrim px-gutter text-center">
     <span className="equalizer-bars scale-200" aria-hidden>
       <span className="equalizer-bars__bar" />

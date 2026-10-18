@@ -28,6 +28,7 @@ import {
   Art, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
+import { CardSearch } from './CardSearch'
 import { DeepDiveSearch } from './DeepDiveSearch'
 import { OmegaActivity } from './OmegaActivity'
 
@@ -48,22 +49,10 @@ const day = (iso: string, plus = 0) => {
 const isSmall = (a: { winRate: number | null; wilsonLower: number | null }) =>
   a.winRate != null && a.wilsonLower != null && a.winRate - a.wilsonLower > 0.012
 
-/**
- * `snap`: from 720px the section is one screen tall (under the header, fixed from xl), scrolls inside itself, and
- * the page snaps to it: `[:root:has(&)]` turns snapping on for the page only while such a section is on it.
- */
-export const Section = ({ num: n, label, stamp, id, snap, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; snap?: boolean; children: React.ReactNode }) => (
-  <section
-    id={id}
-    aria-label={label}
-    className={twMerge(
-      'mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16',
-      snap &&
-        'min-[720px]:h-dvh min-[720px]:*:shrink-0 min-[720px]:snap-start min-[720px]:scroll-mt-0 min-[720px]:overflow-y-auto min-[720px]:py-8 xl:h-[calc(100dvh-60px)] min-[720px]:[:root:has(&)]:snap-y min-[720px]:[:root:has(&)]:snap-proximity xl:[:root:has(&)]:scroll-pt-15',
-    )}
-  >
+export const Section = ({ num: n, label, stamp, id, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; children: React.ReactNode }) => (
+  <section id={id} aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
     {/* The stamp is provenance, not content: it gives way on a phone. */}
-    <RailHead num={n} label={label} stamp={stamp ? <span className="max-[720px]:hidden">{stamp}</span> : undefined} as="h2" className="px-0" />
+    <RailHead num={n} label={label} stamp={stamp ? <span className="max-[720px]:hidden">{stamp}</span> : undefined} as="h2" className="px-0 [&_h2]:text-xl [&_h2]:leading-7" />
     {children}
   </section>
 )
@@ -112,7 +101,10 @@ export const MetaStatistics = ({ ladder, season, past, result, omega }: MetaStat
         lead="Archetype shares, win rates, trends and card choices from every ranked duel of the season. The numbers refresh once a day, after the nightly sweep."
       />
 
-      <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
+      {/* Whole-game activity first; the ladder and season below pick the report under them. */}
+      {omega ? <OmegaActivity data={omega} ladder={ladder} /> : null}
+
+      <div className={twMerge('flex flex-wrap items-end justify-between gap-6', omega ? 'mt-12 min-[720px]:mt-16' : 'mt-8')}>
         <ModeTabs
           label="Ladder"
           items={[{ id: 'tcg', label: 'TCG' }, { id: 'genesys', label: 'Genesys' }] as const}
@@ -144,8 +136,6 @@ export const MetaStatistics = ({ ladder, season, past, result, omega }: MetaStat
           />
         </div>
       </div>
-
-      {omega ? <OmegaActivity data={omega} ladder={ladder} /> : null}
 
       {data ? <Report data={data} /> : <Failure status={result.ok ? 0 : result.status} format={format} season={season} past={past} onPast={(code) => go(ladder, code)} onRetry={() => start(() => router.refresh())} />}
     </div>
@@ -239,6 +229,7 @@ const Report = ({ data }: { data: Statistics }) => {
   const [metric, setMetric] = useState<'share' | 'wr'>('share')
   const [part, setPart] = useState<'main' | 'extra'>('main')
   const [cardId, setCardId] = useState<number | null>(null)
+  const [searched, setSearched] = useState<MostUsedCard | null>(null) // card the search read from the API, outside the list
   const [archSort, sortArch] = useSort<ArchSortKey>()
   const [usedSort, sortUsed] = useSort<UsedSortKey>()
 
@@ -246,7 +237,7 @@ const Report = ({ data }: { data: Statistics }) => {
   const pctAxis = (v: number) => (v * 100).toFixed(1) + '%'
 
   const glance = (
-    <Section snap num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
+    <Section num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
       <StatGrid
         columns={5}
         items={[
@@ -358,14 +349,22 @@ const Report = ({ data }: { data: Statistics }) => {
   /* 06 · most used cards */
   const used: UsedRow[] = (data.mostUsed?.[part] ?? []).map((c, k) => ({ ...c, rank: k + 1 }))
   const sortedUsed = sortBy(used, usedSort, USED_GET)
-  const card = used.find((c) => c.id === cardId) ?? sortedUsed[0]
+  const card = searched ?? used.find((c) => c.id === cardId) ?? sortedUsed[0]
+  /** A searched card already in the list: shown on its tab, selected in the table. */
+  const pickListed = (id: number) => {
+    const side = data.mostUsed?.main.some((c) => c.id === id) ? 'main' : data.mostUsed?.extra.some((c) => c.id === id) ? 'extra' : null
+    if (!side) return false
+    setPart(side)
+    setCardId(id)
+    return true
+  }
 
   return (
     <>
       {closed}
       {glance}
 
-      <Section snap num="02" label="Turn order" stamp="Whole server · mirrors and unknown decks in">
+      <Section num="02" label="Turn order" stamp="Whole server · mirrors and unknown decks in">
         <div className={THIRDS}>
           <TurnBlock title="All games" meta="Mirrors in" split={turnOrder.all} />
           <TurnBlock title="Game 1" meta="Before siding" split={turnOrder.game1} />
@@ -373,7 +372,7 @@ const Report = ({ data }: { data: Statistics }) => {
         </div>
       </Section>
 
-      <Section snap num="03" label="Archetypes" stamp={`${pure.length} archetypes + ${arch.length - pure.length} mixes of the top ${arch.length} · by deck-games`}>
+      <Section num="03" label="Archetypes" stamp={`${pure.length} archetypes + ${arch.length - pure.length} mixes of the top ${arch.length} · by deck-games`}>
         <div className="overflow-x-auto">
           <div role="table" aria-label="Archetypes by deck-games" className="min-w-240 border border-line">
             <SortHeads
@@ -459,7 +458,7 @@ const Report = ({ data }: { data: Statistics }) => {
       </Section>
 
       {trendLabels.length ? (
-        <Section snap num="04" label="Season trends" stamp={`Day 1 = ${day(season.startsAt)}`}>
+        <Section num="04" label="Season trends" stamp={`Day 1 = ${day(season.startsAt)}`}>
           <TabBar
             label="Trend metric"
             fit
@@ -479,7 +478,7 @@ const Report = ({ data }: { data: Statistics }) => {
         </Section>
       ) : null}
 
-      <Section snap num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
+      <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
         <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} onBusy={setSearchBusy} />
         {searchBusy ? null : <Segmented
@@ -496,13 +495,15 @@ const Report = ({ data }: { data: Statistics }) => {
         {remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
       </Section>
 
-      <Section snap num="06" label="Most used cards" stamp="Generic cards in 2+ archetypes · all deck-games">
+      <Section num="06" label="Most used cards" stamp="Generic cards in 2+ archetypes · all deck-games">
+        {/* Keyed by season like the deep dive's search: a new season starts empty. */}
+        <CardSearch key={season.code} season={season} onLocal={pickListed} onCard={setSearched} />
         <TabBar
           label="Deck part"
           fit
           tabs={[{ id: 'main', label: 'Main' }, { id: 'extra', label: 'Extra' }] as const}
           active={part}
-          onSelect={(p) => { setPart(p); setCardId(null) }}
+          onSelect={(p) => { setPart(p); setCardId(null); setSearched(null) }}
         />
         {card ? (
           <div className={SPLIT}>
@@ -520,8 +521,8 @@ const Report = ({ data }: { data: Statistics }) => {
                   <button
                     key={c.id}
                     type="button"
-                    aria-pressed={c.id === card.id}
-                    onClick={() => setCardId(c.id)}
+                    aria-pressed={!searched && c.id === card.id}
+                    onClick={() => { setCardId(c.id); setSearched(null) }}
                     className={twMerge(ROW, 'w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan aria-pressed:bg-ground-cyan aria-pressed:text-ink aria-pressed:shadow-selected')}
                     style={{ gridTemplateColumns: USED_COLS }}
                   >
@@ -537,7 +538,7 @@ const Report = ({ data }: { data: Statistics }) => {
                 ))}
               </div>
             </div>
-            <Panel title={cardName(card)} meta={card.handTrap ? 'Hand trap' : part === 'main' ? 'Main deck' : 'Extra deck'}>
+            <Panel title={cardName(card)} meta={[searched ? 'Searched' : null, card.handTrap ? 'Hand trap' : card.extra ? 'Extra deck' : 'Main deck'].filter(Boolean).join(' · ')}>
               <Art card={card} size={400} className="mb-5 aspect-[2/1] w-full [&_img]:object-[center_30%]" />
               <div className="flex flex-col gap-5">
                 <RateGroup title="% in decklists" rows={[['Main/Extra', card.detail.decklists.mainExtra], ['Side', card.detail.decklists.side]]} />

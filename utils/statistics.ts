@@ -60,6 +60,8 @@ export type MostUsedCard = {
   id: number
   name: string | null
   handTrap: boolean
+  /** Extra Deck card: the row's side, also for a searched card outside the list. */
+  extra: boolean
   popularity: number
   usageRate: number | null
   winRateWhenUsed: number | null
@@ -150,6 +152,33 @@ export const requestDeepDive = async (season: string, key: ArchetypeKey): Promis
     body: JSON.stringify({ season, key: archKey(key) }),
   })
   /* The IP limiter answers 429 too, without a `retryAt`. */
+  if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
+  return ok(res)
+}
+
+/** A card of the season found by name. `ready`: in the page's list or already calculated. */
+export type CardMatch = { id: number; name: string | null; popularity: number | null; ready: boolean }
+export type CardState =
+  | { status: 'ready'; card: MostUsedCard }
+  | Exclude<DeepDiveState, { status: 'ready' }>
+
+/** Up to 20 cards whose name holds `q` (2+ characters), most played first. */
+export const searchCards = async (season: string, q: string, signal?: AbortSignal): Promise<CardMatch[]> =>
+  (await ok(await fetch(`${API_URL}/statistics/cards?${new URLSearchParams({ season, q })}`, { signal }))).cards
+
+/** Always a state, never cached: poll it while `queued` or `running`. */
+export const getCard = async (season: string, id: number, signal?: AbortSignal): Promise<CardState> =>
+  ok(await fetch(`${API_URL}/statistics/card?${new URLSearchParams({ season, id: String(id) })}`, { cache: 'no-store', signal }))
+
+/** Signed in only. Its own hourly limit, apart from the deep dive's; 429 comes back as `limited`. */
+export const requestCard = async (season: string, id: number): Promise<CardState> => {
+  const res = await fetch(`${API_URL}/statistics/card`, {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ season, id }),
+  })
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
   return ok(res)
 }
