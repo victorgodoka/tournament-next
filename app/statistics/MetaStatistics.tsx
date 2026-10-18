@@ -22,20 +22,19 @@ import { Panel } from '@ui/panel'
 import { RailHead } from '@ui/rail-head'
 import { StatGrid } from '@ui/stat-grid'
 import { TabBar } from '@ui/tab-bar'
-import { archKey, type OmegaActivity as OmegaActivityData, type MostUsedCard, type StatArchetype, type Statistics, type StatisticsResult, type TurnSplit } from '@utils/statistics'
+import { archKey, type DeepDiveMode, type OmegaActivity as OmegaActivityData, type MostUsedCard, type StatArchetype, type Statistics, type StatisticsResult, type TurnSplit } from '@utils/statistics'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import {
   Art, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
-import { DeepDiveSearch } from './DeepDiveSearch'
+import { DeepDiveSearch, PICKS } from './DeepDiveSearch'
 import { OmegaActivity } from './OmegaActivity'
 
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 /** Rows the archetype table shows before "Show all". */
 const FOLD = 12
 const TREND_DECKS = 5
-const PICKS = 8
 const PALETTE = [1, 2, 3, 4, 5, 6].map((n) => `var(--color-series-${n})`)
 
 /** "14 Aug" of a `YYYY-MM-DD` or ISO date, `plus` days later. UTC, so server and client agree. */
@@ -235,6 +234,8 @@ const Report = ({ data }: { data: Statistics }) => {
   const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
   const [searchRound, setSearchRound] = useState(0)
   const [searchBusy, setSearchBusy] = useState(false) // a searched pick is loading or calculating
+  const [ddMode, setDdMode] = useState<DeepDiveMode>('general') // section 05's mode, here so a remount of the search keeps it
+  const [ddSeason, setDdSeason] = useState(data.season.code)
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [metric, setMetric] = useState<'share' | 'wr'>('share')
   const [part, setPart] = useState<'main' | 'extra'>('main')
@@ -244,6 +245,11 @@ const Report = ({ data }: { data: Statistics }) => {
 
   const { season, totals, turnOrder, archetypes: arch, minSamples } = data
   const pctAxis = (v: number) => (v * 100).toFixed(1) + '%'
+  /* A new season starts section 05 over in General, as its search starts over. */
+  if (ddSeason !== season.code) {
+    setDdSeason(season.code)
+    setDdMode('general')
+  }
 
   const glance = (
     <Section snap num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
@@ -349,10 +355,10 @@ const Report = ({ data }: { data: Statistics }) => {
     return { name: nameOf(t), data: t.points.map(([, share, wr]) => (metric === 'share' ? share : (last = wr ?? last))) }
   })
 
-  /* 05 · deep dive */
-  const focus = (focusKey && byKey.get(focusKey)) || arch[0]!
+  /* 05 · deep dive: the page's own rows serve Pure, so its focus and chips are pure decks */
+  const focus = (focusKey && pure.find((a) => archKey(a.archetype) === focusKey)) || pure[0] || arch[0]!
   const fKey = archKey(focus.archetype)
-  const picks = arch.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? arch.slice(0, PICKS) : [...arch.slice(0, PICKS), focus]
+  const picks = pure.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? pure.slice(0, PICKS) : [...pure.slice(0, PICKS), focus]
   const rank = arch.indexOf(focus) + 1
 
   /* 06 · most used cards */
@@ -481,8 +487,17 @@ const Report = ({ data }: { data: Statistics }) => {
 
       <Section snap num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
-        <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} onBusy={setSearchBusy} />
-        {searchBusy ? null : <Segmented
+        <DeepDiveSearch
+          key={`${season.code}:${searchRound}`}
+          season={season}
+          mode={ddMode}
+          onMode={setDdMode}
+          request={null}
+          onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)}
+          onRemote={(on) => setRemoteSeason(on ? season.code : null)}
+          onBusy={setSearchBusy}
+        />
+        {searchBusy || ddMode !== 'pure' ? null : <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
           value={fKey}
@@ -493,7 +508,7 @@ const Report = ({ data }: { data: Statistics }) => {
           }}
         />}
 
-        {remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
+        {ddMode !== 'pure' || remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
       </Section>
 
       <Section snap num="06" label="Most used cards" stamp="Generic cards in 2+ archetypes · all deck-games">
