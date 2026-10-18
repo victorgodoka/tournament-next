@@ -38,7 +38,8 @@ const match = (text: string, entries: IndexEntry[]) => {
   return entries.filter((e) => nameOf(e).toLowerCase().includes(q)).slice(0, 20)
 }
 
-type Picked = { mode: DeepDiveMode; archetype: number[]; name: string }
+/** `quiet`: opened by the search itself, so it loads without the Overlay. */
+type Picked = { mode: DeepDiveMode; archetype: number[]; name: string; quiet?: boolean }
 /** An archetype to open from outside (section 03). A new `nonce` sets the mode and loads it like a search pick. */
 export type DeepDiveRequest = { mode: DeepDiveMode; archetype: number[]; name: string; nonce: number }
 
@@ -160,7 +161,8 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   /* Combined: the chosen lead, so Second only offers pairs that exist. */
   const [lead, setLead] = useState<{ code: number; name: string } | null>(null)
   /* General and Combined chips: the mode's index, once loaded. */
-  const [list, setList] = useState<{ mode: DeepDiveMode; entries: IndexEntry[] } | null>(null)
+  /* `frozen`: the General index is empty, the season was frozen before modes. */
+  const [list, setList] = useState<{ mode: DeepDiveMode; entries: IndexEntry[]; frozen: boolean } | null>(null)
   /* One index per `${code}:${mode}`, kept for the season; a failed load is forgotten so the next read retries. */
   const indexes = useRef(new Map<string, Promise<IndexEntry[]>>())
   const controller = useRef<AbortController | null>(null)
@@ -194,7 +196,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
 
   /* Leaving mid-calculation loses the poll, not the job; still, ask first. */
   const active = failed === null && isActive(state)
-  const busy = picked !== null && failed === null && (state === null || active)
+  const busy = picked !== null && failed === null && ((state === null && !picked.quiet) || active)
   useEffect(() => busyRef.current(busy), [busy])
   useEffect(() => {
     if (!active) return
@@ -228,22 +230,12 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     [indexOf],
   )
 
-  /* Pure chips are the page's; General and Combined read their index as soon as the mode shows. */
-  useEffect(() => {
-    if (mode === 'pure') return
-    let live = true
-    indexOf(mode).then(
-      (entries) => {
-        if (!live) return
-        setIndexFailed(false)
-        setList({ mode, entries })
-      },
-      () => live && setIndexFailed(true),
-    )
-    return () => {
-      live = false
-    }
-  }, [mode, indexOf])
+  /*
+   * General and Combined open on their first chip, quietly, until the viewer picks or cancels (a mode switch
+   * allows it again). An empty General index on the first read is a season frozen before modes: go to Pure.
+   */
+  const auto = useRef(true)
+  const opened = useRef(false)
 
   const search = useCallback(async (text: string) => match(text, (await read(mode)) ?? []).map(option), [mode, read])
 
@@ -297,6 +289,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   const calculate = (p: Picked) => run(p, () => requestDeepDive(code, p.mode, p.archetype), { status: 'running' })
 
   const cancel = () => {
+    auto.current = false
     restart()
     setPicked(null)
     setState(null)
@@ -306,6 +299,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
 
   /** Search picks, chips and requests all land here. A pure deck the page ships shows the page's own row. */
   const choose = (m: DeepDiveMode, archetype: number[], name: string) => {
+    auto.current = false
     if (m === 'pure' && onLocal(archKey(archetype))) return cancel()
     const next = { mode: m, archetype, name }
     setPicked(next)
@@ -319,9 +313,39 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   const switchMode = (m: DeepDiveMode) => {
     if (m === mode) return
     cancel()
+    auto.current = true
     setLead(null)
     onMode(m)
   }
+
+  const autoPick = useEffectEvent((m: DeepDiveMode, entries: IndexEntry[]) => {
+    const first = !opened.current
+    opened.current = true
+    if (!entries.length) return void (first && m === 'general' && onMode('pure'))
+    if (!auto.current || picked) return
+    const next = { mode: m, archetype: entries[0]!.archetype, name: nameOf(entries[0]!), quiet: true }
+    setPicked(next)
+    onRemote(true)
+    load(next)
+  })
+
+  /* Pure chips are the page's; General and Combined read their index as soon as the mode shows. */
+  useEffect(() => {
+    if (mode === 'pure') return
+    let live = true
+    Promise.all([indexOf(mode), indexOf('general')]).then(
+      ([entries, general]) => {
+        if (!live) return
+        setIndexFailed(false)
+        setList({ mode, entries, frozen: !general.length })
+        autoPick(mode, entries)
+      },
+      () => live && setIndexFailed(true),
+    )
+    return () => {
+      live = false
+    }
+  }, [mode, indexOf])
 
   /* A request already there at mount was handled before the remount (a chip click or a new season remounts this search). */
   const handled = useRef(request?.nonce)
@@ -345,7 +369,9 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     <div className="mb-6 flex flex-col gap-4">
       <Segmented label="Deep dive mode" options={MODES} value={mode} onChange={switchMode} />
       {entries && !entries.length ? (
-        <p className={NOTE} role="status">This season was frozen before General and Combined existed.</p>
+        <p className={NOTE} role="status">
+          {list?.frozen ? 'This season was frozen before General and Combined existed.' : 'No mixed decks with enough games yet.'}
+        </p>
       ) : mode === 'combined' ? (
         <div className="flex flex-wrap items-center gap-4">
           {lead ? (
@@ -356,12 +382,15 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
           {lead ? <Lookup label="Second" placeholder="Search the second archetype" search={searchSecond} onPick={({ key, label }) => choose('combined', String(key).split('-').map(Number), `${lead.name} with ${label}`)} className="w-full max-w-md" /> : null}
         </div>
       ) : (
-        <Lookup label="Search any archetype" placeholder="Search any archetype" search={search} onPick={onPick} className="max-w-md" />
+        /* Keyed by mode: each mode starts a fresh search, and a slow answer of the other mode can't land here. */
+        <Lookup key={mode} label="Search any archetype" placeholder="Search any archetype" search={search} onPick={onPick} className="max-w-md" />
       )}
       {indexFailed ? (
         <p className={NOTE} role="status">The archetype list isn&apos;t available right now. Try again in a moment.</p>
       ) : null}
-      {picked ? (
+      {picked?.quiet && !state && failed === null ? (
+        <p className={NOTE} role="status">Loading {picked.name}…</p>
+      ) : picked ? (
         <Result
           name={picked.name}
           state={state}

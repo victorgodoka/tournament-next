@@ -295,8 +295,12 @@ const Report = ({ data }: { data: Statistics }) => {
   const pureRank = new Map(pure.map((a, i) => [a, i + 1]))
   const sortedArch = sortBy(pure, archSort, ARCH_GET)
   const rows = showAll ? sortedArch : sortedArch.slice(0, FOLD)
+  /* The page's own row, mix or pure, opens in Pure; the search remounts so a pick of its own goes away. */
   const pick = (key: string) => {
     setFocusKey(key)
+    setDdMode('pure')
+    setRemoteSeason(null)
+    setSearchRound((n) => n + 1)
     document.getElementById('deep-dive')?.scrollIntoView({ behavior: 'smooth' })
   }
   /** A pure deck's mixes in the list: `[451]` → `[451, 207]`, `[90, 451]`. A mixed deck has none. */
@@ -355,8 +359,8 @@ const Report = ({ data }: { data: Statistics }) => {
     return { name: nameOf(t), data: t.points.map(([, share, wr]) => (metric === 'share' ? share : (last = wr ?? last))) }
   })
 
-  /* 05 · deep dive: the page's own rows serve Pure, so its focus and chips are pure decks */
-  const focus = (focusKey && pure.find((a) => archKey(a.archetype) === focusKey)) || pure[0] || arch[0]!
+  /* 05 · deep dive: Pure shows the page's own rows; the chips are pure decks, plus the focus when it isn't one of them */
+  const focus = (focusKey && byKey.get(focusKey)) || pure[0] || arch[0]!
   const fKey = archKey(focus.archetype)
   const picks = pure.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? pure.slice(0, PICKS) : [...pure.slice(0, PICKS), focus]
   const rank = arch.indexOf(focus) + 1
