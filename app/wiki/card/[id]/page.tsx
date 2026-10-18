@@ -107,7 +107,7 @@ export async function generateMetadata({ params }: CardRouteProps) {
   return pageMetadata({
     title: card.name,
     // An alternate artwork is the same card: its page points search at the original print.
-    path: `/wiki/card/${card.alias || card.id}`,
+    path: `/wiki/card/${card.alias || card.idOriginal}`,
     description: metaDescription(`${card.humanReadableCardType}. ${card.description}`),
     images: [{ url: CARD_ART_URL(card.id), alt: `${card.name} artwork` }],
   })
@@ -121,8 +121,8 @@ const CardRoute = async ({ params }: CardRouteProps) => {
   const legality = legalityRows(card, banlists)
   const genesys = banlists.find((list) => list.pointCap !== null)
   const debut = tcgDebut(card)
-  // The F&L history is keyed by the original print: an alternate artwork shares it.
-  const banned = cardByPasscode(card.alias || card.id)
+  // The F&L history is keyed by the original print: an alternate artwork and a double-script TCG print share it.
+  const banned = cardByPasscode(card.alias || card.idOriginal)
   const current = currentBanlist().index
   const translations = [
     { label: 'Português', value: card.i18n.pt },
@@ -140,7 +140,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
             '@type': 'BreadcrumbList',
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Omega Wiki', item: `${SITE_URL}/wiki` },
-              { '@type': 'ListItem', position: 2, name: card.name, item: `${SITE_URL}/wiki/card/${card.alias || card.id}` },
+              { '@type': 'ListItem', position: 2, name: card.name, item: `${SITE_URL}/wiki/card/${card.alias || card.idOriginal}` },
             ],
           })}
         />
@@ -158,6 +158,12 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                 <Prose>
                   This is an alternate artwork.{' '}
                   <Link href={`/wiki/card/${card.alias}`} className={LINK}>See the original print</Link>{' '}for the
+                  canonical page.
+                </Prose>
+              ) : card.idOriginal !== card.id ? (
+                <Prose>
+                  This is the TCG print of a double-script card, which goes by its OCG passcode.{' '}
+                  <Link href={`/wiki/card/${card.idOriginal}`} className={LINK}>See the OCG print</Link>{' '}for the
                   canonical page.
                 </Prose>
               ) : null}

@@ -18,6 +18,14 @@ export type Translation = { name: string; desc: string } | null
 
 export type WikiCard = {
   id: number
+  /**
+   * The card's identity: the OCG passcode on the TCG print of a double-script card (e.g. Ecclesia and
+   * the Dark Dragon, TCG 78397691 → 78397661), `id` on every other card. Key links and banlists by
+   * this; `id` is the print shown. A deck stores the print for its format (utils/deck/model `passcodeIn`).
+   */
+  idOriginal: number
+  /** A double-script card's TCG passcode, on both prints; `null` on every other card. */
+  idTcg: number | null
   name: string
   description: string
   kind: CardKind

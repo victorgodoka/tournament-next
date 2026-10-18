@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, copyCounts, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf } from './model'
+import { copiesOf, copyCounts, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf, inFormat, deckIn } from './model'
 import { EMPTY_DECK, type CardData } from './types'
 
 const card = (id: number, patch: Partial<CardData>): CardData =>
@@ -34,6 +34,23 @@ describe('deck model', () => {
     expect(r.deck.main).toEqual([dm.id, dm.id, 46986431])
     expect(addCard(r.deck, printOf(dm, dm.id), known).rejected).toBe('copies')
     expect(canonicalId(printOf(harpie2, 99))).toBe(harpie.id)
+  })
+
+  it('holds a double-script card as the format print; ydk/ydke get the OCG one', () => {
+    const ocg = card(78397661, { name: 'Ecclesia and the Dark Dragon', idOriginal: 78397661, idTcg: 78397691 })
+    const tcg = card(78397691, { name: 'Ecclesia and the Dark Dragon', idOriginal: 78397661, idTcg: 78397691, ruleId: 78397661 })
+    expect(inFormat(ocg, true).id).toBe(78397691)
+    expect(inFormat(tcg, false).id).toBe(78397661)
+    expect(inFormat(tcg, true)).toBe(tcg)
+    // The cache may hold either print under either passcode.
+    const known = new Map([[78397661, ocg], [78397691, ocg]])
+    const deck = { ...EMPTY_DECK, main: [78397691, 78397661, dm.id, 46986431], side: [78397661] }
+    expect(deckIn(deck, known, false).main).toEqual([78397661, 78397661, dm.id, 46986431])
+    expect(deckIn(deck, known, true)).toEqual({ ...EMPTY_DECK, main: [78397691, 78397691, dm.id, 46986431], side: [78397691] })
+    // Both prints are one card for the 3-copy limit.
+    const r = addCard({ ...EMPTY_DECK, main: [78397691, 78397691] }, inFormat(ocg, true), known)
+    expect(r.deck.main).toEqual([78397691, 78397691, 78397691])
+    expect(addCard(r.deck, inFormat(ocg, true), known).rejected).toBe('copies')
   })
 
   it('reads the frame: first special frame, else normal/effect; spells and traps by kind', () => {

@@ -38,7 +38,12 @@ export const useCardCache = () => {
     [publish],
   )
 
-  const remember = useCallback((list: Iterable<CardData>) => store(Array.from(list, (card) => [card.id, card] as const)), [store])
+  // A double-script card also under its other print: the deck stores whichever the format uses.
+  const remember = useCallback(
+    (list: Iterable<CardData>) =>
+      store(Array.from(list).flatMap((card) => [card.id, card.idOriginal, card.idTcg].filter((id) => id != null).map((id) => [id, card] as const))),
+    [store],
+  )
 
   /** An artwork picked in the detail sheet: `passcode` resolves to the API card, never to a `printOf` copy. */
   const rememberArt = useCallback((passcode: number, card: CardData) => store([[passcode, card]]), [store])
