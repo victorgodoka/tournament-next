@@ -19,6 +19,7 @@ vi.mock('@utils/decks', () => ({ listMyDecks: vi.fn(), deleteDeck: vi.fn() }))
 
 const summary = (id: string, name: string): DeckSummary => ({
   id,
+  owner: { id: 'u1', name: 'kaiba' },
   name,
   format: null,
   visibility: 'private',
@@ -26,6 +27,9 @@ const summary = (id: string, name: string): DeckSummary => ({
   updatedAt: '2026-10-16T12:00:00.000Z',
   counts: { main: 40, extra: 15, side: 0 },
   coverCardId: null,
+  description: '',
+  links: [],
+  deckTags: [],
   label: null,
 })
 

@@ -13,6 +13,7 @@
     "retry": "Retry",
     "deckMissing": "That deck isn't available: it was deleted, or it isn't yours. The Deck Builder opened a new deck.",
     "deckCarried": "That deck was deleted, or isn't yours. Your unsaved changes to it are open here as a new deck.",
+    "deckCopied": "This is a copy of another duelist's deck. Saving adds it to your decks.",
     "save": {
       "failed": "Couldn't save the deck.",
       "rejected": "The server refused this deck. Check the card counts and the copies of each card.",
@@ -70,10 +71,56 @@
       "deleteFailed": "Couldn't delete the deck.",
       "deleteReplacesNew": "This deck is open: its content stays in the Deck Builder as a new deck, replacing your other unsaved new deck.",
       "visibility": {
-        "private": "Private",
-        "unlisted": "Unlisted",
-        "public": "Public"
+        "public": "Public deck",
+        "friends": "Only friends",
+        "private": "Private"
       }
+    },
+    "deckTags": {
+      "competitive": "Competitive",
+      "rogue": "Rogue",
+      "casual": "Casual"
+    },
+    "saveDialog": {
+      "title": "Save deck",
+      "visibility": "Who can see it",
+      "visibilityHint": {
+        "public": "Anyone can open it, and it's listed on Public decks and your profile.",
+        "friends": "Only duelists you added as friends can open it.",
+        "private": "Only you can open it."
+      },
+      "tags": "Tags",
+      "description": "Short description",
+      "links": "Links",
+      "linksHint": "One per line, up to {max}. Videos, guides, tournament results.",
+      "tooManyLinks": "Up to {max} links.",
+      "badLink": "Each link must start with http:// or https://.",
+      "cover": "Cover",
+      "coverHint": "Automatic uses the archetype's card.",
+      "coverAuto": "Automatic"
+    },
+    "browse": {
+      "title": "Public decks",
+      "meta": "Decks shared by Omega duelists. Filter by name, archetype, format, tag or cards.",
+      "userTitle": "{name}'s decks",
+      "userMeta": "Decks saved by {name}.",
+      "name": "Deck name",
+      "archetype": "Archetype",
+      "format": "Format",
+      "anyFormat": "Any format",
+      "tag": "Tag",
+      "anyTag": "Any",
+      "cards": "Has cards",
+      "cardsPlaceholder": "Search a card…",
+      "removeCard": "Remove {name}",
+      "clear": "Clear filters",
+      "loading": "Loading decks…",
+      "empty": "No decks match.",
+      "failed": "Couldn't load the decks.",
+      "more": "Load more",
+      "by": "by {name}",
+      "unknownOwner": "Unknown duelist",
+      "links": "Links"
     },
     "toolbar": {
       "name": "Deck name",

@@ -13,6 +13,7 @@
     "retry": "Tentar de novo",
     "deckMissing": "Esse deck não está disponível: foi excluído ou não é seu. O Deck Builder abriu um deck novo.",
     "deckCarried": "Esse deck foi excluído ou não é seu. Suas alterações não salvas nele estão abertas aqui como um deck novo.",
+    "deckCopied": "Esta é uma cópia do deck de outro duelista. Salvar adiciona ela aos seus decks.",
     "save": {
       "failed": "Não foi possível salvar o deck.",
       "rejected": "O servidor recusou este deck. Confira a quantidade de cartas e as cópias de cada uma.",
@@ -70,10 +71,56 @@
       "deleteFailed": "Não foi possível excluir o deck.",
       "deleteReplacesNew": "Este deck está aberto: o conteúdo dele fica no Deck Builder como um deck novo, substituindo o seu outro deck novo não salvo.",
       "visibility": {
-        "private": "Privado",
-        "unlisted": "Não listado",
-        "public": "Público"
+        "public": "Deck público",
+        "friends": "Só amigos",
+        "private": "Privado"
       }
+    },
+    "deckTags": {
+      "competitive": "Competitivo",
+      "rogue": "Rogue",
+      "casual": "Casual"
+    },
+    "saveDialog": {
+      "title": "Salvar deck",
+      "visibility": "Quem pode ver",
+      "visibilityHint": {
+        "public": "Qualquer um abre, e ele aparece em Decks públicos e no seu perfil.",
+        "friends": "Só duelistas que você adicionou como amigos podem abrir.",
+        "private": "Só você pode abrir."
+      },
+      "tags": "Tags",
+      "description": "Descrição curta",
+      "links": "Links",
+      "linksHint": "Um por linha, até {max}. Vídeos, guias, resultados de torneio.",
+      "tooManyLinks": "Até {max} links.",
+      "badLink": "Cada link precisa começar com http:// ou https://.",
+      "cover": "Capa",
+      "coverHint": "Automática usa a carta do arquétipo.",
+      "coverAuto": "Automática"
+    },
+    "browse": {
+      "title": "Decks públicos",
+      "meta": "Decks compartilhados por duelistas do Omega. Filtre por nome, arquétipo, formato, tag ou cartas.",
+      "userTitle": "Decks de {name}",
+      "userMeta": "Decks salvos por {name}.",
+      "name": "Nome do deck",
+      "archetype": "Arquétipo",
+      "format": "Formato",
+      "anyFormat": "Qualquer formato",
+      "tag": "Tag",
+      "anyTag": "Todas",
+      "cards": "Tem as cartas",
+      "cardsPlaceholder": "Buscar uma carta…",
+      "removeCard": "Remover {name}",
+      "clear": "Limpar filtros",
+      "loading": "Carregando decks…",
+      "empty": "Nenhum deck encontrado.",
+      "failed": "Não foi possível carregar os decks.",
+      "more": "Carregar mais",
+      "by": "por {name}",
+      "unknownOwner": "Duelista desconhecido",
+      "links": "Links"
     },
     "toolbar": {
       "name": "Nome do deck",
