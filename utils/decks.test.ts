@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DeckApiError, DeckConflictError, createDeck, deleteDeck, getDeck, getRevision, listMyDecks, listRevisions, restoreRevision, updateDeck } from './decks'
+import {
+  DeckApiError, DeckConflictError, createDeck, deleteDeck, filterParams, getDeck, getRevision, listMyDecks, listRevisions, listUserDecks, restoreRevision, updateDeck,
+} from './decks'
 
 const reply = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status })
 const stub = (res: Response) => {
@@ -92,6 +94,15 @@ describe('decks client', () => {
     fetchMock = stub(reply(200, { decks: [], nextCursor: null }))
     await listMyDecks('1_ab&c')
     expect(call(fetchMock).url).toMatch(/\/decks\/mine\?cursor=1_ab%26c$/)
+  })
+
+  it('listings send only the filters that are set', async () => {
+    expect(filterParams({})).toBe('')
+    expect(filterParams({ q: ' ', archetype: '', format: null, tag: null, cards: [] })).toBe('')
+    expect(filterParams({ q: ' Snake ', format: 0, tag: 'rogue', cards: [1, 2] }, '1_a')).toBe('?q=Snake&format=0&tag=rogue&cards=1%2C2&cursor=1_a')
+    const fetchMock = stub(reply(200, { decks: [], nextCursor: null }))
+    await listUserDecks('42', { archetype: 'Blue-Eyes' })
+    expect(call(fetchMock).url).toMatch(/\/decks\/user\/42\?archetype=Blue-Eyes$/)
   })
 
   it('deleteDeck resolves on 204 with no body and no content-type', async () => {

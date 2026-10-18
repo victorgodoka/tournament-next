@@ -4,13 +4,26 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@hooks/index'
-import { createDeck, DeckApiError, DeckConflictError, updateDeck, type SavedDeck } from '@utils/decks'
+import { createDeck, DeckApiError, DeckConflictError, updateDeck, type DeckMeta, type SavedDeck } from '@utils/decks'
 import { setReturnTo } from '@utils/return-to'
 import type { EditorAction, EditorState } from './deck-editor.reducer'
 import { clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
 
 /** The editor's content as a local draft, stamped now. Call it from effects, handlers and callbacks, never in render. */
 export const draftOf = (s: EditorState): Draft => ({ deck: s.deck, name: s.name, format: s.format, revision: s.revision, at: Date.now() })
+
+export const NEW_META: DeckMeta = { visibility: 'private', coverCardId: null, description: '', links: [], deckTags: [] }
+
+export const metaOf = (deck: SavedDeck): DeckMeta => ({
+  visibility: deck.visibility,
+  coverCardId: deck.coverCardId,
+  description: deck.description,
+  links: deck.links,
+  deckTags: deck.deckTags,
+})
+
+/** What the save dialog confirms: the showcase plus the name. */
+export type SaveDetails = DeckMeta & { name: string }
 
 /** The saved deck as the editor's `load` action. */
 export const loadAction = (deck: SavedDeck): EditorAction => ({
@@ -44,6 +57,10 @@ export const useSave = (
   const [conflict, setConflict] = useState<SavedDeck | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [signInTab, setSignInTab] = useState(false)
+  /** The deck's showcase as last loaded or saved. Not part of drafts: the save dialog edits it. */
+  const [meta, setMeta] = useState<DeckMeta>(NEW_META)
+  /** The details of the save in flight, so overwriting after a conflict sends them again. */
+  const lastDetails = useRef<SaveDetails | null>(null)
   /** A draft couldn't be stored: Save then asks the server, which sees a sign-in made in another tab. */
   const noStorage = useRef(false)
   const latest = useRef(state)
@@ -83,20 +100,24 @@ export const useSave = (
     return t('save.rejected')
   }
 
-  const save = async (force = false) => {
+  /** `details`: from the save dialog, which always writes (the showcase may be all that changed). */
+  const save = async (force = false, details: SaveDetails | null = null) => {
     if (busy.current) return // the button already reads "Saving…"
     const s = latest.current
     const { deckId, revision } = s
-    if (!s.dirty && deckId !== null) return // nothing changed: no new revision
+    if (!s.dirty && deckId !== null && !details) return // nothing changed: no new revision
     if (user === null && !noStorage.current) return toLogin(s, false)
     if (wait) return setError(wait)
     if (deckId !== null && revision === null) return setError(t('save.notLoaded'))
     busy.current = true
+    lastDetails.current = details
     setSaving(true)
     setError(null)
-    const input = { name: s.name.trim() || t('newDeck'), format, main: s.deck.main, extra: s.deck.extra, side: s.deck.side }
+    const { name: detailsName, ...showcase } = details ?? { name: s.name }
+    const input = { ...showcase, name: detailsName.trim() || t('newDeck'), format, main: s.deck.main, extra: s.deck.extra, side: s.deck.side }
     try {
       const saved = deckId === null ? await createDeck(input) : await updateDeck(deckId, input, revision!, force)
+      setMeta(metaOf(saved))
       setSignInTab(false)
       if (user === null) void refresh() // signed in from another tab: the header catches up
       const now = latest.current
@@ -136,12 +157,18 @@ export const useSave = (
     setConflict(null)
     if (!theirs || choice === 'cancel') return
     if (choice === 'overwrite') {
-      void save(true)
+      void save(true, lastDetails.current)
       return
     }
     dispatch(loadAction(theirs))
+    setMeta(metaOf(theirs))
     clearDraft(draftKey(theirs.id))
   }
 
-  return { save, saving, conflict, resolveConflict, error, dismissError: () => setError(null), signInTab, dismissSignInTab: () => setSignInTab(false), latest }
+  return {
+    save, saving, conflict, resolveConflict, error, dismissError: () => setError(null), signInTab, dismissSignInTab: () => setSignInTab(false), latest,
+    meta, setMeta,
+    /** The failed save again, with the dialog's details if it had them. */
+    retry: () => void save(false, lastDetails.current),
+  }
 }

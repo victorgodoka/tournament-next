@@ -157,7 +157,8 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
           {ANALYTICS_ENABLED && !profile.isPrivate ? (
             <Button variant="secondary" href={`/profile/${profile.id}/statistics`}><Icon name="chart" />Statistics</Button>
           ) : null}
-          {isOwner ? <Button variant="secondary" href="/my-decks"><Icon name="deck" />My decks</Button> : null}
+          {/* Each deck's own visibility decides who sees it there; the owner sees all of them. */}
+          {profile.isPrivate ? null : <Button variant="secondary" href={`/profile/${profile.id}/my-decks`}><Icon name="deck" />{isOwner ? 'My decks' : 'Decks'}</Button>}
           <RelationActions id={profile.id} isOwner={isOwner} relation={profile.relation} />
         </>
       }

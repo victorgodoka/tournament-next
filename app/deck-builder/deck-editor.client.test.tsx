@@ -45,6 +45,9 @@ const server = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   tags: {},
   visibility: 'private',
   coverCardId: null,
+  description: '',
+  links: [],
+  deckTags: [],
   revision: 5,
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
@@ -81,7 +84,12 @@ const open = async (deckId: string | null) => {
   return view
 }
 const nameInput = () => screen.getByLabelText('toolbar.name') as HTMLInputElement
-const clickSave = () => act(async () => fireEvent.click(screen.getByRole('button', { name: /toolbar\.save/ })))
+/** Save, then confirm the save dialog as it opens. */
+const clickSave = async () => {
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /toolbar\.save/ })))
+  const confirm = document.querySelector<HTMLButtonElement>('button[type="submit"][form="deck-save"]')
+  if (confirm) await act(async () => fireEvent.click(confirm))
+}
 
 it('a save within the autosave debounce leaves no stale draft behind on unmount', async () => {
   vi.mocked(createDeck).mockResolvedValue(server({ id: NEW_ID, revision: 1 }))
@@ -109,8 +117,14 @@ it('a create that resolves after unmount keeps the edits made meanwhile, under t
 })
 
 describe('opening a saved deck', () => {
-  it("someone else's deck sends the user back to a new deck with a notice", async () => {
+  it("someone else's readable deck opens as an unsaved copy, named like it", async () => {
     vi.mocked(getDeck).mockResolvedValue(server({ ownerId: 'u2' }))
+    await open(ID)
+    expect(router.replace).toHaveBeenCalledWith(expect.stringMatching(/^\/deck-builder\?d=ydke[^&]+&name=Saved&copy=$/))
+  })
+
+  it("a deck the API won't show sends the user back to a new deck with a notice", async () => {
+    vi.mocked(getDeck).mockResolvedValue(null)
     await open(ID)
     expect(router.replace).toHaveBeenCalledWith('/deck-builder?missing')
   })
@@ -193,7 +207,10 @@ it('deleting the open deck over another unsaved new deck warns first, then carri
   put(draftKey(null), draft({ name: 'Other new', revision: null }))
   vi.mocked(getDeck).mockResolvedValue(server())
   vi.mocked(listMyDecks).mockResolvedValue({
-    decks: [{ id: ID, name: 'Saved', format: null, visibility: 'private', revision: 5, updatedAt: '2026-10-16T12:00:00.000Z', counts: { main: 1, extra: 0, side: 0 }, coverCardId: null, label: null }],
+    decks: [{
+      id: ID, owner: { id: 'u1', name: 'kaiba' }, name: 'Saved', format: null, visibility: 'private', revision: 5, updatedAt: '2026-10-16T12:00:00.000Z',
+      counts: { main: 1, extra: 0, side: 0 }, coverCardId: null, description: '', links: [], deckTags: [], label: null,
+    }],
     nextCursor: null,
   })
   vi.mocked(deleteDeck).mockResolvedValue(undefined)
