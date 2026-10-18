@@ -55,35 +55,32 @@ export type Matchup = {
   wilsonLower: number | null
 }
 
-export type Staple = { id: number; name: string | null; inclusion: number; archetypes: number; playRate: number | null; winRateWhenUsed: number | null }
-
-export type HandTrap = {
+/** Rates are 0–1; `null` is "not enough data" (days swept before the counters, or no denominator). */
+export type MostUsedCard = {
   id: number
   name: string | null
-  inclusion: number
-  activations: number
-  respondedRate: number | null
-  calledRate: number | null
-  crossoutRate: number | null
-  /**
-   * "Ash'd or Purged": responses that were Ash Blossom or Dominus Purge ÷ responses (not activations).
-   * `null` while part of the season predates the counter; it fills in once staff re-sweep the season.
-   */
-  ashedOrPurgedRate: number | null
-  /** Games where it was activated at least once, from the side that activated it. `null` on a partly old season. */
-  whenUsed: WhenUsed | null
-  targets: {
-    archetype: ArchetypeKey
-    name: string | null
-    activations: number
-    respondedRate: number | null
-    /** Games where it was used against this deck: the user's win rate in that matchup. */
-    whenUsed: WhenUsed | null
-  }[]
+  handTrap: boolean
+  popularity: number
+  usageRate: number | null
+  winRateWhenUsed: number | null
+  detail: {
+    decklists: { mainExtra: number | null; side: number | null }
+    usage: { game1: number | null; postSide: number | null }
+    winRate: { match: number | null; game1: number | null; postSide: number | null }
+    responded: {
+      activations: number
+      rate: number | null
+      dominus: number | null
+      yokaiGirls: number | null
+      psyFrame: number | null
+      calledCrossout: number | null
+      impermanence: number | null
+      mulcharmy: number | null
+      solemn: number | null
+      others: number | null
+    }
+  }
 }
-
-/** Mirrors count in `games`, not in wins/losses. */
-export type WhenUsed = { games: number; wins: number; losses: number; draws: number; winRate: number | null; wilsonLower: number | null }
 
 export type Statistics = {
   season: { id: number; code: string; label: string; ladder: RankedLadderId; startsAt: string; endsAt: string | null }
@@ -93,8 +90,8 @@ export type Statistics = {
   turnOrder: { all: TurnSplit; game1: TurnSplit; postSide: TurnSplit }
   archetypes: StatArchetype[]
   matchups: Matchup[]
-  staples: Staple[]
-  handTraps: HandTrap[]
+  /** Generic cards in 2+ archetypes, 30 a part, most popular first. */
+  mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
 }

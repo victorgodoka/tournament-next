@@ -14,7 +14,6 @@ import { Button } from '@ui/button'
 import { BarList, LineChart } from '@ui/chart'
 import { Chip } from '@ui/chip'
 import { Segmented } from '@ui/choice'
-import { DataTable, type Column } from '@ui/data-table'
 import { Select } from '@ui/field'
 import { ModeTabs } from '@ui/mode-tabs'
 import { Notice } from '@ui/notice'
@@ -23,10 +22,10 @@ import { Panel } from '@ui/panel'
 import { RailHead } from '@ui/rail-head'
 import { StatGrid } from '@ui/stat-grid'
 import { TabBar } from '@ui/tab-bar'
-import { archKey, type OmegaActivity as OmegaActivityData, type HandTrap, type StatArchetype, type Statistics, type StatisticsResult, type Staple, type TurnSplit } from '@utils/statistics'
+import { archKey, type OmegaActivity as OmegaActivityData, type MostUsedCard, type StatArchetype, type Statistics, type StatisticsResult, type TurnSplit } from '@utils/statistics'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import {
-  Art, ariaSort, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortButton, type SortState, SortHeads,
+  Art, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
 import { DeepDiveSearch } from './DeepDiveSearch'
@@ -49,8 +48,20 @@ const day = (iso: string, plus = 0) => {
 const isSmall = (a: { winRate: number | null; wilsonLower: number | null }) =>
   a.winRate != null && a.wilsonLower != null && a.winRate - a.wilsonLower > 0.012
 
-export const Section = ({ num: n, label, stamp, id, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; children: React.ReactNode }) => (
-  <section id={id} aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
+/**
+ * `snap`: from 720px the section is one screen tall (under the header, fixed from xl), scrolls inside itself, and
+ * the page snaps to it (app/styles.css).
+ */
+export const Section = ({ num: n, label, stamp, id, snap, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; snap?: boolean; children: React.ReactNode }) => (
+  <section
+    id={id}
+    aria-label={label}
+    data-snap={snap || undefined}
+    className={twMerge(
+      'mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16',
+      snap && 'min-[720px]:h-dvh min-[720px]:snap-start min-[720px]:scroll-mt-0 min-[720px]:overflow-y-auto min-[720px]:pt-8 min-[720px]:pb-8 xl:h-[calc(100dvh-60px)]',
+    )}
+  >
     {/* The stamp is provenance, not content: it gives way on a phone. */}
     <RailHead num={n} label={label} stamp={stamp ? <span className="max-[720px]:hidden">{stamp}</span> : undefined} as="h2" className="px-0" />
     {children}
@@ -67,26 +78,14 @@ const ARCH_GET: Getters<StatArchetype, ArchSortKey> = {
   mirrorShare: (a) => a.mirrorShare,
 }
 
-type TrapSortKey = 'name' | 'inclusion' | 'activations' | 'respondedRate' | 'calledRate' | 'crossoutRate' | 'ashedOrPurgedRate' | 'winRateWhenUsed'
-const TRAP_GET: Getters<HandTrap, TrapSortKey> = {
+type UsedSortKey = 'name' | 'popularity' | 'usageRate' | 'winRateWhenUsed'
+/** `rank` stays the API's order whatever the sort, so a sorted row still says where it stands. */
+type UsedRow = MostUsedCard & { rank: number }
+const USED_GET: Getters<UsedRow, UsedSortKey> = {
   name: cardName,
-  inclusion: (t) => t.inclusion,
-  activations: (t) => t.activations,
-  respondedRate: (t) => t.respondedRate,
-  calledRate: (t) => t.calledRate,
-  crossoutRate: (t) => t.crossoutRate,
-  ashedOrPurgedRate: (t) => t.ashedOrPurgedRate,
-  winRateWhenUsed: (t) => t.whenUsed?.winRate ?? null,
-}
-
-type StapleSortKey = 'name' | 'inclusion' | 'archetypes' | 'playRate' | 'winRateWhenUsed'
-type StapleRow = Staple & { rank: number }
-const STAPLE_GET: Getters<StapleRow, StapleSortKey> = {
-  name: cardName,
-  inclusion: (s) => s.inclusion,
-  archetypes: (s) => s.archetypes,
-  playRate: (s) => s.playRate,
-  winRateWhenUsed: (s) => s.winRateWhenUsed,
+  popularity: (c) => c.popularity,
+  usageRate: (c) => c.usageRate,
+  winRateWhenUsed: (c) => c.winRateWhenUsed,
 }
 
 /* ---------------------------------------------------------------- *
@@ -214,43 +213,40 @@ const TurnBlock = ({ title, meta, split }: { title: string; meta: string; split:
   )
 }
 
-/** `#` stays the API's rank by inclusion whatever the sort, so a sorted row still says where it stands. */
-const stapleCols = (sort: SortState<StapleSortKey>, onSort: (key: StapleSortKey, text?: boolean) => void): Column<StapleRow>[] => {
-  const head = (key: StapleSortKey, label: string) => ({
-    key,
-    sort: ariaSort(sort, key),
-    label: <SortButton label={label} state={ariaSort(sort, key)} onSort={() => onSort(key, key === 'name')} />,
-  })
-  return [
-    { key: 'rank', label: '#', numeric: true, width: 40 },
-    { ...head('name', 'Card'), strong: true, render: (s) => <Named card={s}><span className="truncate">{cardName(s)}</span></Named> },
-    { ...head('inclusion', 'Inclusion'), numeric: true, render: (s) => pct(s.inclusion) },
-    { ...head('archetypes', 'Archetypes'), numeric: true, render: (s) => num(s.archetypes) },
-    { ...head('playRate', 'Play rate'), numeric: true, render: (s) => pct(s.playRate) },
-    { ...head('winRateWhenUsed', 'WR when used'), numeric: true, strong: true, render: (s) => pct(s.winRateWhenUsed) },
-  ]
-}
-
 const ARCH_COLS = '32px minmax(240px, 1.6fr) minmax(180px, 1.5fr) repeat(4, minmax(80px, 0.75fr))'
-const TRAP_COLS = 'minmax(190px, 2fr) repeat(7, minmax(72px, 0.8fr))'
+const USED_COLS = '40px minmax(200px, 2fr) repeat(3, minmax(88px, 0.8fr))'
+
+/** A label over rows of `[label, rate]`; `null` reads "—". A bold row is the group's total. */
+const RateGroup = ({ title, rows }: { title: string; rows: [label: string, rate: number | null, bold?: boolean][] }) => (
+  <div className="flex flex-col gap-2">
+    <span className="text-ink-muted signal">{title}</span>
+    {rows.map(([label, rate, bold]) => (
+      <div key={label} className="flex justify-between gap-3 text-[13px] leading-5">
+        <span className={bold ? 'font-bold text-ink' : 'text-ink-dim'}>{label}</span>
+        <span className={twMerge('font-mono text-xs tabular-nums', bold ? 'font-bold text-ink' : 'text-ink-dim')}>{pct(rate)}</span>
+      </div>
+    ))}
+  </div>
+)
 
 const Report = ({ data }: { data: Statistics }) => {
   const [showAll, setShowAll] = useState(false)
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
   const [searchRound, setSearchRound] = useState(0)
+  const [searchBusy, setSearchBusy] = useState(false) // a searched pick is loading or calculating
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [metric, setMetric] = useState<'share' | 'wr'>('share')
-  const [trapId, setTrapId] = useState<number | null>(null)
+  const [part, setPart] = useState<'main' | 'extra'>('main')
+  const [cardId, setCardId] = useState<number | null>(null)
   const [archSort, sortArch] = useSort<ArchSortKey>()
-  const [stapleSort, sortStaples] = useSort<StapleSortKey>()
-  const [trapSort, sortTraps] = useSort<TrapSortKey>()
+  const [usedSort, sortUsed] = useSort<UsedSortKey>()
 
   const { season, totals, turnOrder, archetypes: arch, minSamples } = data
   const pctAxis = (v: number) => (v * 100).toFixed(1) + '%'
 
   const glance = (
-    <Section num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
+    <Section snap num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
       <StatGrid
         columns={5}
         items={[
@@ -359,17 +355,17 @@ const Report = ({ data }: { data: Statistics }) => {
   const picks = arch.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? arch.slice(0, PICKS) : [...arch.slice(0, PICKS), focus]
   const rank = arch.indexOf(focus) + 1
 
-  /* 07 · hand traps */
-  const traps = data.handTraps
-  const trap = traps.find((t) => t.id === trapId) ?? traps[0]
-  const maxHit = trap?.targets[0]?.activations || 1
+  /* 06 · most used cards */
+  const used: UsedRow[] = (data.mostUsed?.[part] ?? []).map((c, k) => ({ ...c, rank: k + 1 }))
+  const sortedUsed = sortBy(used, usedSort, USED_GET)
+  const card = used.find((c) => c.id === cardId) ?? sortedUsed[0]
 
   return (
     <>
       {closed}
       {glance}
 
-      <Section num="02" label="Turn order" stamp="Whole server · mirrors and unknown decks in">
+      <Section snap num="02" label="Turn order" stamp="Whole server · mirrors and unknown decks in">
         <div className={THIRDS}>
           <TurnBlock title="All games" meta="Mirrors in" split={turnOrder.all} />
           <TurnBlock title="Game 1" meta="Before siding" split={turnOrder.game1} />
@@ -377,7 +373,7 @@ const Report = ({ data }: { data: Statistics }) => {
         </div>
       </Section>
 
-      <Section num="03" label="Archetypes" stamp={`${pure.length} archetypes + ${arch.length - pure.length} mixes of the top ${arch.length} · by deck-games`}>
+      <Section snap num="03" label="Archetypes" stamp={`${pure.length} archetypes + ${arch.length - pure.length} mixes of the top ${arch.length} · by deck-games`}>
         <div className="overflow-x-auto">
           <div role="table" aria-label="Archetypes by deck-games" className="min-w-240 border border-line">
             <SortHeads
@@ -463,7 +459,7 @@ const Report = ({ data }: { data: Statistics }) => {
       </Section>
 
       {trendLabels.length ? (
-        <Section num="04" label="Season trends" stamp={`Day 1 = ${day(season.startsAt)}`}>
+        <Section snap num="04" label="Season trends" stamp={`Day 1 = ${day(season.startsAt)}`}>
           <TabBar
             label="Trend metric"
             fit
@@ -483,10 +479,10 @@ const Report = ({ data }: { data: Statistics }) => {
         </Section>
       ) : null}
 
-      <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
+      <Section snap num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
-        <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} />
-        <Segmented
+        <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} onBusy={setSearchBusy} />
+        {searchBusy ? null : <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
           value={fKey}
@@ -495,83 +491,82 @@ const Report = ({ data }: { data: Statistics }) => {
             setRemoteSeason(null)
             setSearchRound((n) => n + 1) // remounts the search: its pick goes away with the chip click
           }}
-        />
+        />}
 
         {remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
       </Section>
 
-      <Section num="06" label="Staples" stamp="Cards in 2+ archetypes · all deck-games">
-        <div className="overflow-x-auto">
-          <DataTable
-            caption="By inclusion over every deck-game"
-            className="min-w-160"
-            columns={stapleCols(stapleSort, sortStaples)}
-            rows={[...sortBy(data.staples.map((s, k) => ({ ...s, rank: k + 1 })), stapleSort, STAPLE_GET)]}
-            rowKey={(s) => s.id}
-            empty="No generic card is in two archetypes yet."
-          />
-        </div>
-      </Section>
-
-      {trap ? (
-        <Section num="07" label="Hand traps" stamp="Most activated first">
+      <Section snap num="06" label="Most used cards" stamp="Generic cards in 2+ archetypes · all deck-games">
+        <TabBar
+          label="Deck part"
+          fit
+          tabs={[{ id: 'main', label: 'Main' }, { id: 'extra', label: 'Extra' }] as const}
+          active={part}
+          onSelect={(p) => { setPart(p); setCardId(null) }}
+        />
+        {card ? (
           <div className={SPLIT}>
             <div className="overflow-x-auto">
-              <div role="table" aria-label="Hand traps" className="min-w-210 border border-line">
+              <div role="table" aria-label={`Most used ${part} deck cards`} className="min-w-160 border border-line">
                 <SortHeads
-                  cols={TRAP_COLS}
-                  labels={['Hand trap', 'In deck', 'Activations', 'Answered', 'Called', 'Crossout', "Ash'd or Purged", 'Win when used']}
-                  keys={['name', 'inclusion', 'activations', 'respondedRate', 'calledRate', 'crossoutRate', 'ashedOrPurgedRate', 'winRateWhenUsed']}
-                  sort={trapSort}
-                  onSort={sortTraps}
-                  right={(i) => i > 0}
+                  cols={USED_COLS}
+                  labels={['#', 'Card', 'Popularity', 'Usage rate', 'WR when used']}
+                  keys={[null, 'name', 'popularity', 'usageRate', 'winRateWhenUsed']}
+                  sort={usedSort}
+                  onSort={sortUsed}
+                  right={(i) => i === 0 || i > 1}
                 />
-                {sortBy(traps, trapSort, TRAP_GET).map((t) => (
+                {sortedUsed.map((c) => (
                   <button
-                    key={t.id}
+                    key={c.id}
                     type="button"
-                    aria-pressed={t === trap}
-                    onClick={() => setTrapId(t.id)}
+                    aria-pressed={c.id === card.id}
+                    onClick={() => setCardId(c.id)}
                     className={twMerge(ROW, 'w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan aria-pressed:bg-ground-cyan aria-pressed:text-ink aria-pressed:shadow-selected')}
-                    style={{ gridTemplateColumns: TRAP_COLS }}
+                    style={{ gridTemplateColumns: USED_COLS }}
                   >
-                    <Named card={t}><span className="truncate font-bold text-ink">{cardName(t)}</span></Named>
-                    <span className={NUM}>{pct(t.inclusion)}</span>
-                    <span className={twMerge(NUM, 'font-bold text-ink')}>{num(t.activations)}</span>
-                    <span className={NUM}>{pct(t.respondedRate)}</span>
-                    <span className={NUM}>{pct(t.calledRate)}</span>
-                    <span className={NUM}>{pct(t.crossoutRate)}</span>
-                    <span className={NUM}>{pct(t.ashedOrPurgedRate)}</span>
-                    <span className={NUM}>{pct(t.whenUsed?.winRate)}</span>
+                    <span className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{c.rank}</span>
+                    <Named card={c}>
+                      <span className="truncate font-bold text-ink">{cardName(c)}</span>
+                      {c.handTrap ? <Chip className="flex-none">Hand trap</Chip> : null}
+                    </Named>
+                    <span className={NUM}>{pct(c.popularity)}</span>
+                    <span className={NUM}>{pct(c.usageRate)}</span>
+                    <span className={twMerge(NUM, 'font-bold text-ink')}>{pct(c.winRateWhenUsed)}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <Panel title={cardName(trap)} meta={`${num(trap.activations)} activations`}>
-              <Art card={trap} size={400} className="mb-5 aspect-[2/1] w-full [&_img]:object-[center_30%]" />
-              <span className="mb-4 block text-ink-muted signal">Most hit decks</span>
-              {trap.targets.length ? (
-                <div className="flex flex-col gap-3.5">
-                  {trap.targets.map((g) => (
-                    <div key={archKey(g.archetype)} className="flex flex-col gap-1.5">
-                      <div className="flex justify-between gap-3 text-[13px] leading-5">
-                        <span className="font-bold text-ink">{nameOf(g)}</span>
-                        <span className="font-mono text-xs text-ink-dim">
-                          {pct(g.respondedRate)} answered · {pct(g.whenUsed?.winRate)} won
-                        </span>
-                      </div>
-                      <Bar value={g.activations} max={maxHit} label={num(g.activations)} w={60} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className={NOTE}>Not activated against a listed deck yet.</p>
-              )}
-              <p className={twMerge(NOTE, 'mt-4')}>Answered: activations that got a chain response. Called, Crossout and Ash&apos;d or Purged (Ash Blossom or Dominus Purge): share of those answers. Win when used / won: games where it was activated at least once, from the side that used it; against a deck, that matchup. Listed decks only.</p>
+            <Panel title={cardName(card)} meta={card.handTrap ? 'Hand trap' : part === 'main' ? 'Main deck' : 'Extra deck'}>
+              <Art card={card} size={400} className="mb-5 aspect-[2/1] w-full [&_img]:object-[center_30%]" />
+              <div className="flex flex-col gap-5">
+                <RateGroup title="% in decklists" rows={[['Main/Extra', card.detail.decklists.mainExtra], ['Side', card.detail.decklists.side]]} />
+                <RateGroup title="Usage rate" rows={[['G1', card.detail.usage.game1], ['After side', card.detail.usage.postSide]]} />
+                <RateGroup title="Win rate" rows={[['Match', card.detail.winRate.match], ['G1', card.detail.winRate.game1], ['After side', card.detail.winRate.postSide]]} />
+                <RateGroup
+                  title="Responded rate"
+                  rows={[
+                    ['Total', card.detail.responded.rate, true],
+                    ['Dominus', card.detail.responded.dominus],
+                    ['Yo-kai Girls', card.detail.responded.yokaiGirls],
+                    ['Psy-Frame', card.detail.responded.psyFrame],
+                    ['Called / Crossout', card.detail.responded.calledCrossout],
+                    ['Infinite Impermanence', card.detail.responded.impermanence],
+                    ['Mulcharmy', card.detail.responded.mulcharmy],
+                    ['Solemns', card.detail.responded.solemn],
+                    ['Others', card.detail.responded.others],
+                  ]}
+                />
+              </div>
+              <p className={twMerge(NOTE, 'mt-4')}>Used: summoned or activated in the game. Win rates count games and matches where it was used, from the side that used it. Responded: activations the opponent answered with a chain link; each source is a share of activations. A side card only shows once it is used, so after-side usage leans high for side cards. — means not enough data: days swept before these counters.</p>
             </Panel>
           </div>
-        </Section>
-      ) : null}
+        ) : (
+          <Panel title={part === 'main' ? 'Main deck' : 'Extra deck'} meta="Nothing yet">
+            <p className={NOTE}>No most used cards for this season yet.</p>
+          </Panel>
+        )}
+      </Section>
 
       <section aria-label="Method" className="mt-12 min-[720px]:mt-16">
         <Notice title="How it's counted" date={data.syncedDays.last ? day(data.syncedDays.last) : undefined} mark>

@@ -749,6 +749,19 @@ html:has(#deck-tray[data-open]) {
   overflow: hidden;
 }
 
+/* /statistics report sections (`Section snap`): from 720px the page snaps to each one; the header is fixed (60px) from xl. */
+@media (min-width: 720px) {
+  html:has([data-snap]) {
+    scroll-snap-type: y proximity;
+  }
+}
+
+@media (min-width: 1280px) {
+  html:has([data-snap]) {
+    scroll-padding-top: 60px;
+  }
+}
+
 /* Transitions run 120ms ease-out on transform, fill and color. */
 @media (prefers-reduced-motion: no-preference) {
   .cut::after,
