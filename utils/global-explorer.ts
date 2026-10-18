@@ -91,18 +91,6 @@ export type TopDeck = {
 export const getTopDecks = async (format: 'tcg' | 'genesys', decks = 10) =>
   (await get<{ decks: TopDeck[] }>(`/analytics/global/top-decks?ladder=${format}&decks=${decks}`, { next: { revalidate: 300 } }))?.decks ?? null
 
-/** `GET /analytics/global/explorations`: published ones only, in the order staff chose. */
-export const listGlobalExplorations = cache(async () =>
-  (await get<{ explorations: GlobalExploration[] }>('/analytics/global/explorations', { next: { revalidate: 60 } }))?.explorations ?? [],
-)
-
-/** One published exploration and the season code of each segment (`null` = season deleted). `null` for a draft or unknown id. */
-export const getGlobalExploration = cache((id: string) =>
-  get<{ exploration: GlobalExploration; seasons: Record<string, string | null> }>(`/analytics/global/explorations/${encodeURIComponent(id)}`, { next: { revalidate: 60 } }),
-)
-
-export const globalPath = (id: string) => `/analytics/global/${id}`
-
 /* ---------------------------------------------------------------- *
  * Facts: one per tuple (two per hand-trap row, one from each deck's side)
  * ---------------------------------------------------------------- */

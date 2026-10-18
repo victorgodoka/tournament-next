@@ -1,100 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Modal } from '@ui/modal/modal.component'
-import { MatchAnalytics } from '@omega/analytics/match-analytics'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { Skeleton } from '@omega/analytics/primitives'
-import { getPlayerSeason, type PlayerSeason } from '@utils/analytics'
-import { getSharedExploration, type SharedExploration } from '@utils/explorations'
 import {
-  SOURCE_NAME, WIN_LOSS, blocker, buildSegment, catalogOf, dimNatural, fixFor, fmt, lineSeries, namesOf, run, summary,
-  type Catalog, type ExplorationConfig, type GroupSegment, type LineData, type Names, type PivotResult, type Segment, type SegmentOption, type Variables,
+  SOURCE_NAME, WIN_LOSS, blocker, dimNatural, fixFor, fmt,
+  type Catalog, type ExplorationConfig, type GroupSegment, type LineData, type PivotResult,
 } from '@utils/explorer'
 
-type SeasonLoad = PlayerSeason | 'forbidden' | 'missing' | 'error'
-export type Loaded = { segments: Segment[]; names: Names; pending: boolean; failure?: 'forbidden' | 'error' }
-
-/** Segments from season responses that came ready (the shared endpoint). A deleted season (`null`) is skipped. */
-export const segmentsFrom = (ids: string[], seasons: Record<string, PlayerSeason | null>) =>
-  ids.flatMap((id) => (seasons[id] ? [buildSegment(id, seasons[id]!)] : []))
-
-/**
- * A saved exploration as anyone may see it: `GET …/shared/:token` carries its seasons, so it works
- * even when the owner's profile is private. Fetched once per token. `null` token = off.
- */
-export const useSharedSegments = (token: string | null, ids: string[]): Loaded => {
-  const [loaded, setLoaded] = useState<Record<string, SharedExploration | 'error'>>({})
-  useEffect(() => {
-    if (!token || token in loaded) return
-    getSharedExploration(token).then(
-      (data) => setLoaded((all) => ({ ...all, [token]: data ?? 'error' })),
-      () => setLoaded((all) => ({ ...all, [token]: 'error' })),
-    )
-  }, [token, loaded])
-  const data = token ? loaded[token] : undefined
-  const idsKey = ids.join(',')
-  const segments = useMemo(
-    () => (typeof data === 'object' ? segmentsFrom(idsKey.split(','), data.seasons) : []),
-    [data, idsKey],
-  )
-  const names = useMemo(() => namesOf(segments), [segments])
-  return { segments, names, pending: !!token && data === undefined, failure: data === 'error' ? 'error' : undefined }
-}
-
-/**
- * The owner's live view: one `GET …/seasons/:season` per compared season, once each, reused across tabs.
- * `failure` is the first season that couldn't load, which the page explains instead of drawing.
- */
-export const useSegments = (playerId: string, options: SegmentOption[], ids: string[]): Loaded => {
-  const [loaded, setLoaded] = useState<Record<string, SeasonLoad>>({})
-  const asked = useRef(new Set<string>())
-  const codeOf = (id: string) => options.find((o) => o.id === id)?.code ?? (id.startsWith('current:') ? null : id)
-  const wanted = [...new Set(ids.map(codeOf).filter((c): c is string => !!c))]
-  const key = wanted.join(',')
-
-  useEffect(() => {
-    for (const code of key.split(',').filter(Boolean)) {
-      if (asked.current.has(code)) continue
-      asked.current.add(code)
-      getPlayerSeason(playerId, code).then(
-        (data) => setLoaded((all) => ({ ...all, [code]: data ?? 'missing' })),
-        () => {
-          asked.current.delete(code)
-          setLoaded((all) => ({ ...all, [code]: 'error' }))
-        },
-      )
-    }
-  }, [playerId, key])
-
-  const idsKey = ids.join(',')
-  const segments = useMemo(
-    () =>
-      idsKey.split(',').flatMap((id) => {
-        const code = codeOf(id)
-        const data = code ? loaded[code] : undefined
-        return typeof data === 'object' ? [buildSegment(id, data)] : []
-      }),
-    // `codeOf` reads `options`, which the server sends once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [idsKey, loaded],
-  )
-  const names = useMemo(() => namesOf(segments), [segments])
-  const states = wanted.map((c) => loaded[c])
-  return {
-    segments,
-    names,
-    pending: states.some((s) => s === undefined),
-    failure: states.find((s): s is 'forbidden' | 'error' => s === 'forbidden' || s === 'error'),
-  }
-}
-
 /** Why seasons couldn't load, or the skeleton while they do. */
-export const SeasonsGate = ({ pending, failure, empty = 'None of these seasons has a ranked record for this duelist.' }: { pending: boolean; failure?: 'forbidden' | 'error'; empty?: string }) =>
-  failure === 'forbidden' ? (
-    <EmptyBox title="Match history is hidden" className="mt-6">This duelist only shows their ranked games to friends or rivals.</EmptyBox>
-  ) : failure === 'error' ? (
+export const SeasonsGate = ({ pending, failure, empty }: { pending: boolean; failure?: 'error'; empty: string }) =>
+  failure === 'error' ? (
     <EmptyBox title="Analytics unavailable" className="mt-6">Couldn&apos;t load the season. Try again in a moment.</EmptyBox>
   ) : pending ? (
     <div className="mt-6"><Skeleton rows={8} label="Reading the ranked season…" /></div>
@@ -116,7 +32,7 @@ const heat = (v: number | null, wl: boolean, max: number, n: number) => {
 type Edit = (fn: (t: ExplorationConfig) => void) => void
 type ViewProps = { cat: Catalog; res: PivotResult; cfg: ExplorationConfig }
 
-const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Edit; onOpenMatch?: (id: string) => void }) => {
+const Table = ({ cat, res, cfg, onEdit }: ViewProps & { onEdit?: Edit }) => {
   const heatmap = cfg.technique === 'heatmap'
   const multi = res.segs.length > 1
   const metric = (i: number) => cat.metrics.get(res.values[i]!)!
@@ -141,18 +57,12 @@ const Table = ({ cat, res, cfg, onEdit, onOpenMatch }: ViewProps & { onEdit?: Ed
         return <td key={i} className={twMerge('px-3.5 py-2 text-right mono-data tabular-nums', tone)}>{fmt(v, M.format)}</td>
       })
 
-  const label = (g: PivotResult['groups'][number]) =>
-    g.matchId && onOpenMatch ? (
-      <button type="button" onClick={() => onOpenMatch(g.matchId!)} className="min-h-11 min-w-0 text-left">
-        <span className="block text-cyan mono-data hover:text-cyan">{g.labels[0]} →</span>
-        <span className="block truncate text-ink-muted mono-note">{g.sub}</span>
-      </button>
-    ) : (
-      <>
-        <span className="block truncate text-ink body-strong">{g.labels[0]}</span>
-        {g.labels[1] ? <span className="block truncate text-ink-muted mono-note">{g.labels[1]}</span> : null}
-      </>
-    )
+  const label = (g: PivotResult['groups'][number]) => (
+    <>
+      <span className="block truncate text-ink body-strong">{g.labels[0]}</span>
+      {g.labels[1] ? <span className="block truncate text-ink-muted mono-note">{g.labels[1]}</span> : null}
+    </>
+  )
 
   return (
     <>
@@ -363,24 +273,16 @@ const Line = ({ cat, res, cfg, line }: ViewProps & { line: LineData }) => {
 type OutputProps = {
   cat: Catalog
   cfg: ExplorationConfig
-  /** The cut, from the duelist engine (`run`) or the global one (`runGlobal`). */
+  /** The cut (`runGlobal`). */
   res: PivotResult
   /** The line technique's series, over the same segments. */
   line: (res: PivotResult) => LineData
   /** Owner controls: sort headers and the blocker's fix. Read-only when absent. */
   onEdit?: Edit
-  /** Match rows open their timeline. The global cut has none. */
-  onOpenMatch?: (matchId: string) => void
 }
 
-/** The duelist cut of these seasons, ready for `ExplorationOutput`. */
-export const duelistPivot = (cat: Catalog, segs: Segment[], names: Names, cfg: ExplorationConfig) => ({
-  res: run(cat, segs, cfg, names),
-  line: (res: PivotResult) => lineSeries(cat, segs, res, cfg),
-})
-
 /** Legend, then the chosen technique, or why it can't draw this configuration. */
-export const ExplorationOutput = ({ cat, cfg, res, line, onEdit, onOpenMatch }: OutputProps) => {
+export const ExplorationOutput = ({ cat, cfg, res, line, onEdit }: OutputProps) => {
   const block = blocker(cfg, res)
   const fix = block && onEdit ? fixFor(cat, cfg) : null
   const series = cfg.technique === 'line' && !block ? line(res) : null
@@ -415,45 +317,8 @@ export const ExplorationOutput = ({ cat, cfg, res, line, onEdit, onOpenMatch }: 
       ) : series ? (
         <Line cat={cat} res={res} cfg={cfg} line={series} />
       ) : (
-        <Table cat={cat} res={res} cfg={cfg} onEdit={onEdit} onOpenMatch={onOpenMatch} />
+        <Table cat={cat} res={res} cfg={cfg} onEdit={onEdit} />
       )}
     </>
-  )
-}
-
-/** A match's timeline and statistics, over the page. */
-export const MatchDrawer = ({ matchId, onClose }: { matchId: string | null; onClose: () => void }) => (
-  <Modal isOpen={!!matchId} onClose={onClose} aria-label={`Match #${matchId}`} className="items-stretch justify-end p-0">
-    <div className="h-full w-full max-w-[640px] overflow-y-auto border-l border-line-strong bg-space-000 px-5 pt-14 pb-8">
-      <h2 className="text-ink display-4">Match #{matchId}</h2>
-      {matchId ? <MatchAnalytics matchId={matchId} /> : null}
-    </div>
-  </Modal>
-)
-
-/** How a segment reads in a summary: its season's label once loaded, else the saved id. */
-export const segLabelOf = (segments: Segment[]) => (id: string) => segments.find((s) => s.id === id)?.label ?? id
-
-/** Seasons named in the config that the shared response no longer has. */
-const Unavailable = ({ ids, seasons }: { ids: string[]; seasons: Record<string, PlayerSeason | null> }) => {
-  const gone = ids.filter((id) => !seasons[id])
-  return gone.length ? <p className="mt-2 text-gold mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null
-}
-
-/** One saved exploration, read-only, drawn from the shared response the server already fetched. */
-export const ExplorationView = ({ shared, variables }: { shared: SharedExploration; variables: Variables }) => {
-  const cat = useMemo(() => catalogOf(variables), [variables])
-  const { config, name } = shared.exploration
-  const segments = useMemo(() => segmentsFrom(config.segments, shared.seasons), [config.segments, shared.seasons])
-  const names = useMemo(() => namesOf(segments), [segments])
-  const [match, setMatch] = useState<string | null>(null)
-  if (!segments.length) return <SeasonsGate pending={false} />
-  return (
-    <section aria-label={name} className="mt-6">
-      <p className="text-ink-muted mono-note">{summary(cat, config, segLabelOf(segments), names)}</p>
-      <Unavailable ids={config.segments} seasons={shared.seasons} />
-      <ExplorationOutput cat={cat} cfg={config} {...duelistPivot(cat, segments, names, config)} onOpenMatch={setMatch} />
-      <MatchDrawer matchId={match} onClose={() => setMatch(null)} />
-    </section>
   )
 }

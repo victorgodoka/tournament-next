@@ -6,9 +6,7 @@
  * Never say an effect was negated — only that something was chained to it. `player1` is always the
  * match winner unless it was a draw. Rates are fractions 0–1, and `null` when the denominator is 0.
  */
-import { cache } from 'react'
 import { API_URL } from '@utils/auth'
-import type { AnalyticsPeriod } from '@utils/explorer'
 import type { EloPoint } from '@utils/types'
 
 export class AnalyticsApiError extends Error {
@@ -247,29 +245,6 @@ export const getMatchTimeline = (matchId: string, signal?: AbortSignal) =>
 
 export const getMatchStats = (matchId: string, signal?: AbortSignal) =>
   request<MatchStats>(`/analytics/matches/${encodeURIComponent(analyticsMatchId(matchId))}/stats`, { signal })
-
-/**
- * 1–3 s: it reads every ranked match of the season. On the server, pass the incoming `cookie` so a
- * private history unlocks for friends. `null` for 404; `'forbidden'` when the player hides it.
- */
-export const getPlayerSeason = cache(
-  async (playerId: string, season: string, cookie?: string | null): Promise<PlayerSeason | 'forbidden' | null> => {
-    try {
-      return await request<PlayerSeason>(
-        `/analytics/players/${encodeURIComponent(playerId)}/seasons/${encodeURIComponent(season)}`,
-        cookie ? { headers: { cookie } } : undefined,
-      )
-    } catch (error) {
-      if (error instanceof AnalyticsApiError && error.status === 404) return null
-      if (error instanceof AnalyticsApiError && error.status === 403) return 'forbidden'
-      throw error
-    }
-  },
-)
-
-/** The panel's periods, newest first. A failed read is none: the seasons still work. */
-export const listPeriods = () =>
-  request<{ periods: AnalyticsPeriod[] }>('/analytics/periods').then((body) => body.periods, () => [] as AnalyticsPeriod[])
 
 /* ---------------------------------------------------------------- *
  * Labels

@@ -8,7 +8,7 @@ import { GlobalTiles, globalPivot, globalSummary, useGlobalSegments } from '@ome
 import { ExplorationOutput, SeasonsGate } from '@omega/analytics/explorer/output'
 import { useLazyText, useResource } from '@hooks/index'
 import { configProblem, sourceOf, type ExplorationConfig, type SegmentOption } from '@utils/explorer'
-import { getGlobalVariables, globalCatalogOf, globalPath, globalValuesOf } from '@utils/global-explorer'
+import { getGlobalVariables, globalCatalogOf, globalValuesOf } from '@utils/global-explorer'
 import { createPanelExploration, listPanelExplorations, listSeasons, panelErrorText, updatePanelExploration } from '@utils/panel'
 import { getPastSeasons } from '@utils/ranked'
 
@@ -84,7 +84,7 @@ export const Builder = ({ id }: { id: string | null }) => {
       .then((stored) => {
         setDirty(false)
         if (!id) router.replace(`/admin/statistics/explorations/${stored.id}`)
-        setFlash({ tone: 'positive', text: stored.published ? `Saved and public at ${globalPath(stored.id)}.` : 'Saved as a draft. Only the panel sees it.' })
+        setFlash({ tone: 'positive', text: stored.published ? 'Saved and published.' : 'Saved as a draft. Only the panel sees it.' })
       })
       .catch((e) => setFlash({ tone: 'negative', text: panelErrorText(e) }))
       .finally(() => setBusy(false))

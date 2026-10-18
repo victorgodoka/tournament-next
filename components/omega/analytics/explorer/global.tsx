@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { StatTiles } from '@omega/analytics/primitives'
-import { seasonState, type Catalog, type ExplorationConfig, type Variables } from '@utils/explorer'
+import { seasonState, type Catalog, type ExplorationConfig } from '@utils/explorer'
 import {
-  buildGlobalSegment, getGlobalSeason, globalCatalogOf, globalDimLabel, globalKpis, globalLineSeries, globalNamesOf, runGlobal,
-  type GlobalExploration, type GlobalNames, type GlobalSeason, type GlobalSegment,
+  buildGlobalSegment, getGlobalSeason, globalDimLabel, globalKpis, globalLineSeries, globalNamesOf, runGlobal,
+  type GlobalNames, type GlobalSeason, type GlobalSegment,
 } from '@utils/global-explorer'
-import { ExplorationOutput, SeasonsGate } from './output'
 
 type Load = GlobalSeason | 'missing' | 'error'
 
@@ -83,35 +82,3 @@ export const GlobalTiles = ({ seg, names }: { seg: GlobalSegment; names: GlobalN
     ]}
   />
 )
-
-type ViewProps = {
-  exploration: GlobalExploration
-  /** Season code per segment, `null` = the season was deleted. */
-  seasons: Record<string, string | null>
-  variables: Variables
-}
-
-/** A published global exploration, read-only. The seasons load in the browser: they're large and cached by the API. */
-export const GlobalExplorationView = ({ exploration, seasons, variables }: ViewProps) => {
-  const cat = useMemo(() => globalCatalogOf(variables), [variables])
-  const { config } = exploration
-  const { segments, names, pending, failure } = useGlobalSegments(config.segments, (id) => seasons[id] ?? null)
-  const gone = config.segments.filter((id) => !seasons[id])
-  const lead = segments[0]
-
-  return (
-    <section aria-label={exploration.name} className="mt-6">
-      {exploration.description ? <p className="max-w-[72ch] text-ink-dim body">{exploration.description}</p> : null}
-      {lead ? <GlobalTiles seg={lead} names={names} /> : null}
-      {gone.length ? <p className="mt-3 text-gold mono-note">Unavailable: {gone.join(', ')} (the season was deleted).</p> : null}
-      {failure || !segments.length ? (
-        <SeasonsGate pending={pending} failure={failure} empty="None of these seasons has server-wide data yet." />
-      ) : (
-        <>
-          <p className="mt-5 text-ink-muted mono-note">{globalSummary(cat, config, segments, names)}</p>
-          <ExplorationOutput cat={cat} cfg={config} {...globalPivot(cat, segments, names, config)} />
-        </>
-      )}
-    </section>
-  )
-}
