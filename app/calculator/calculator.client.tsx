@@ -8,6 +8,7 @@ import { Button } from '@ui/button'
 import { Select, TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
+import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
 import { rolesFromTags } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
@@ -16,6 +17,7 @@ import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { calculatorReducer, initialState } from './calculator.reducer'
 import { CardRoles } from './card-roles'
+import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
 import { useCalculation } from './use-calculation'
 
@@ -132,6 +134,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   const subjects = { roles: view.palette, cards: view.rows, nameOf }
   const error = 'error' in view.result ? view.result.error : null
+  /** Roles a rule names that no card in the deck carries: the rule can never pass. */
+  const unusedRoles = useMemo(() => {
+    const unused = new Set<string>()
+    for (const hand of state.calc.analysis.hands)
+      for (const rule of hand.rules) if (rule.subject.kind === 'role' && subjectCopies(view.rows, build.roles, rule.subject) === 0) unused.add(rule.subject.role)
+    return unused
+  }, [state.calc.analysis.hands, view.rows, build.roles])
 
   return (
     <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-8 pb-24">
@@ -224,7 +233,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onCopies={(id, copies, passcode) => dispatch({ type: 'setCopies', id, copies, passcode, cards })}
             onRestore={() => dispatch({ type: 'restoreDeck' })}
           />
-          {/* The hand builder (Task 8) mounts here. */}
+          <HandBuilder
+            analysis={state.calc.analysis}
+            subjects={subjects}
+            result={view.result}
+            unusedRoles={unusedRoles}
+            onAdd={(hand) => dispatch({ type: 'addHand', hand })}
+            onRemove={(index) => dispatch({ type: 'removeHand', index })}
+            onRename={(index, name) => dispatch({ type: 'renameHand', index, name })}
+            onRule={(hand, index, rule) => dispatch({ type: 'setRule', hand, index, rule })}
+            onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
+            onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
+          />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />
