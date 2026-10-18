@@ -232,10 +232,9 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
 
   /*
    * General and Combined open on their first chip, quietly, until the viewer picks or cancels (a mode switch
-   * allows it again). An empty General index on the first read is a season frozen before modes: go to Pure.
+   * allows it again). A season frozen before modes starts on Pure (the page picks the mode), so General there is just empty.
    */
   const auto = useRef(true)
-  const opened = useRef(false)
 
   const search = useCallback(async (text: string) => match(text, (await read(mode)) ?? []).map(option), [mode, read])
 
@@ -319,10 +318,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   }
 
   const autoPick = useEffectEvent((m: DeepDiveMode, entries: IndexEntry[]) => {
-    const first = !opened.current
-    opened.current = true
-    if (!entries.length) return void (first && m === 'general' && onMode('pure'))
-    if (!auto.current || picked) return
+    if (!entries.length || !auto.current || picked) return
     const next = { mode: m, archetype: entries[0]!.archetype, name: nameOf(entries[0]!), quiet: true }
     setPicked(next)
     onRemote(true)
@@ -370,7 +366,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
       <Segmented label="Deep dive mode" options={MODES} value={mode} onChange={switchMode} />
       {entries && !entries.length ? (
         <p className={NOTE} role="status">
-          {list?.frozen ? 'This season was frozen before General and Combined existed.' : 'No mixed decks with enough games yet.'}
+          {list?.frozen ? 'This season was frozen before General and Combined existed.' : 'No mixed decks with a known lead in this season.'}
         </p>
       ) : mode === 'combined' ? (
         <div className="flex flex-wrap items-center gap-4">

@@ -234,7 +234,7 @@ const Report = ({ data }: { data: Statistics }) => {
   const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
   const [searchRound, setSearchRound] = useState(0)
   const [searchBusy, setSearchBusy] = useState(false) // a searched pick is loading or calculating
-  const [ddMode, setDdMode] = useState<DeepDiveMode>('general') // section 05's mode, here so a remount of the search keeps it
+  const [ddMode, setDdMode] = useState<DeepDiveMode>(data.views ? 'general' : 'pure') // section 05's mode, here so a remount of the search keeps it; a season frozen before modes starts on Pure
   const [request, setRequest] = useState<DeepDiveRequest | null>(null) // section 03's last click on a General row
   const [ddSeason, setDdSeason] = useState(data.season.code)
   const [openKey, setOpenKey] = useState<string | null>(null)
@@ -246,10 +246,10 @@ const Report = ({ data }: { data: Statistics }) => {
 
   const { season, totals, turnOrder, archetypes: arch, minSamples, views } = data
   const pctAxis = (v: number) => (v * 100).toFixed(1) + '%'
-  /* A new season starts section 05 over in General, as its search starts over. */
+  /* A new season starts section 05 over in General (Pure when frozen before modes), as its search starts over. */
   if (ddSeason !== season.code) {
     setDdSeason(season.code)
-    setDdMode('general')
+    setDdMode(views ? 'general' : 'pure')
   }
 
   const glance = (
@@ -436,7 +436,7 @@ const Report = ({ data }: { data: Statistics }) => {
                         {sortBy(mixes, archSort, ARCH_GET).map((b) =>
                           archRow(b, { nested: true, dot: [...b.archetype].sort((x, y) => x - y), go: () => ask('combined', b) }),
                         )}
-                        {mixNote(a, <>Mixed decks led by {nameOf(a)}. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there.</>, general)}
+                        {mixNote(a, <>The most played mixed decks led by {nameOf(a)}. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there. Find any other mix in the deep dive&apos;s Combined search.</>, general)}
                       </>
                     ) : null}
                   </Fragment>
