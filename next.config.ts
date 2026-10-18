@@ -16,8 +16,6 @@ const nextConfig: NextConfig = {
     ...DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
     // The Deck Editor became the Deck Builder: links already shared, saved decks included, keep working.
     { source: '/deck-editor/:path*', destination: '/deck-builder/:path*', permanent: true },
-    // The deck list is a dialog of the builder; `?decks` opens it.
-    { source: '/my-decks', destination: '/deck-builder?decks=mine', permanent: false },
     // The analytics pages became statistics: old links land on their replacement.
     { source: '/analytics/:path*', destination: '/statistics', permanent: true },
     { source: '/admin/analytics/:path*', destination: '/admin/statistics/:path*', permanent: true },
