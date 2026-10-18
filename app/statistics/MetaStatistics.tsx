@@ -208,18 +208,81 @@ const TurnBlock = ({ title, meta, split, player }: { title: string; meta: string
 const ARCH_COLS = '32px minmax(240px, 1.6fr) minmax(180px, 1.5fr) repeat(4, minmax(80px, 0.75fr))'
 const USED_COLS = '40px minmax(200px, 2fr) repeat(3, minmax(88px, 0.8fr))'
 
-/** A label over rows of `[label, rate]`; `null` reads "—". A bold row is the group's total. */
-const RateGroup = ({ title, rows }: { title: string; rows: [label: string, rate: number | null, bold?: boolean][] }) => (
-  <div className="flex flex-col gap-2">
-    <span className="text-ink-muted signal">{title}</span>
-    {rows.map(([label, rate, bold]) => (
-      <div key={label} className="flex justify-between gap-3 text-[13px] leading-5">
-        <span className={bold ? 'font-bold text-ink' : 'text-ink-dim'}>{label}</span>
-        <span className={twMerge('font-mono text-xs tabular-nums', bold ? 'font-bold text-ink' : 'text-ink-dim')}>{pct(rate)}</span>
+/**
+ * A titled block of `[label, rate, color]` bar rows over a hairline; `null` reads "—" on an empty track.
+ * `mark` ticks every track (0.5: even). `children` sit between the title and the rows.
+ */
+const Meter = ({ title, meta, rows, max = 1, mark, children }: {
+  title: string
+  meta?: React.ReactNode
+  rows: [label: string, rate: number | null, color?: string][]
+  max?: number
+  mark?: number
+  children?: React.ReactNode
+}) => (
+  <div className="flex flex-col gap-3 border-t border-line pt-4">
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-ink-muted signal">{title}</span>
+      {meta ? <span className="text-ink-muted signal-sm">{meta}</span> : null}
+    </div>
+    {children}
+    {rows.map(([label, rate, color]) => (
+      <div key={label} className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3 text-[13px] leading-5">
+        <span className={twMerge('truncate', rate ? 'font-semibold text-ink-dim' : 'text-ink-muted')}>{label}</span>
+        <Bar value={rate ?? 0} max={max} color={color} label={pct(rate)} w={48} mark={mark} />
       </div>
     ))}
   </div>
 )
+
+/** Responder categories, as the API names them. Shown largest first. */
+const RESPONDERS = [
+  ['dominus', 'Dominus'],
+  ['yokaiGirls', 'Yo-kai Girls'],
+  ['psyFrame', 'Psy-Frame'],
+  ['calledCrossout', 'Called / Crossout'],
+  ['impermanence', 'Impermanence'],
+  ['mulcharmy', 'Mulcharmy'],
+  ['solemn', 'Solemns'],
+  ['others', 'Others'],
+] as const
+
+/** The selected card: headline figures, then decklists, usage, win rate and who answered it. */
+const CardDetail = ({ card, searched }: { card: MostUsedCard; searched: boolean }) => {
+  const { decklists, usage, winRate, responded } = card.detail
+  const sources = RESPONDERS.map(([key, label]): [string, number | null, string] => [label, responded[key], 'series-2'])
+    .sort((a, b) => (b[1] ?? -1) - (a[1] ?? -1))
+  return (
+    <Panel title={cardName(card)} meta={[searched ? 'Searched' : null, card.handTrap ? 'Hand trap' : card.extra ? 'Extra deck' : 'Main deck'].filter(Boolean).join(' · ')}>
+      <Art card={card} size={400} className="aspect-[2/1] w-full [&_img]:object-[center_30%]" />
+      <dl className="mt-4 grid grid-cols-3 gap-px border border-line bg-line">
+        {([['Popularity', card.popularity], ['Usage rate', card.usageRate], ['WR used', card.winRateWhenUsed]] as const).map(([label, rate]) => (
+          <div key={label} className="flex min-w-0 flex-col gap-2 bg-surface-100 px-3 pt-3 pb-3.5">
+            <dt className="truncate text-ink-muted signal-sm">{label}</dt>
+            <dd className="stat text-ink">{pct(rate)}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-5 flex flex-col gap-5">
+        <Meter title="In decklists" rows={[['Main / Extra', decklists.mainExtra], ['Side', decklists.side, 'series-3']]} />
+        <Meter title="Usage rate" meta="When in deck" rows={[['Game 1', usage.game1], ['After side', usage.postSide, 'series-3']]} />
+        <Meter
+          title="Win rate"
+          meta="When used · tick 50%"
+          mark={0.5}
+          rows={[['Match', winRate.match, 'ink-dim'], ['Game 1', winRate.game1], ['After side', winRate.postSide, 'series-3']]}
+        />
+        <Meter title="Responded rate" meta={`${num(responded.activations)} activations`} rows={sources} max={responded.rate || 1}>
+          <div className="flex items-baseline gap-3">
+            <span className="stat-lg text-ink">{pct(responded.rate)}</span>
+            <span className="text-ink-muted signal">Answered by the opponent</span>
+          </div>
+        </Meter>
+      </div>
+      <p className={twMerge(NOTE, 'mt-5')}>Used: summoned or activated in the game. Win rates count games and matches where it was used, from the side that used it. Responded: activations the opponent answered with a chain link; each source is a share of activations, its bar a share of the answers. A side card only shows once it is used, so after-side usage leans high for side cards. — means not enough data: days swept before these counters.</p>
+    </Panel>
+  )
+}
 
 /** Both sides of a turn split as one rate: the duelist's own win rate. */
 const overall = ({ first, second }: TurnSplit) => {
@@ -616,8 +679,10 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
                   >
                     <span className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{c.rank}</span>
                     <Named card={c}>
-                      <span className="truncate font-bold text-ink">{cardName(c)}</span>
-                      {c.handTrap ? <Chip className="flex-none">Hand trap</Chip> : null}
+                      <span className="flex min-w-0 flex-col items-start gap-0.5">
+                        <span className="max-w-full truncate font-bold text-ink">{cardName(c)}</span>
+                        {c.handTrap ? <Chip tone="gold" className="h-4 px-1.5 text-[9px]">Hand trap</Chip> : null}
+                      </span>
                     </Named>
                     <span className={NUM}>{pct(c.popularity)}</span>
                     <span className={NUM}>{pct(c.usageRate)}</span>
@@ -626,29 +691,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
                 ))}
               </div>
             </div>
-            <Panel title={cardName(card)} meta={[searched ? 'Searched' : null, card.handTrap ? 'Hand trap' : card.extra ? 'Extra deck' : 'Main deck'].filter(Boolean).join(' · ')}>
-              <Art card={card} size={400} className="mb-5 aspect-[2/1] w-full [&_img]:object-[center_30%]" />
-              <div className="flex flex-col gap-5">
-                <RateGroup title="% in decklists" rows={[['Main/Extra', card.detail.decklists.mainExtra], ['Side', card.detail.decklists.side]]} />
-                <RateGroup title="Usage rate" rows={[['G1', card.detail.usage.game1], ['After side', card.detail.usage.postSide]]} />
-                <RateGroup title="Win rate" rows={[['Match', card.detail.winRate.match], ['G1', card.detail.winRate.game1], ['After side', card.detail.winRate.postSide]]} />
-                <RateGroup
-                  title="Responded rate"
-                  rows={[
-                    ['Total', card.detail.responded.rate, true],
-                    ['Dominus', card.detail.responded.dominus],
-                    ['Yo-kai Girls', card.detail.responded.yokaiGirls],
-                    ['Psy-Frame', card.detail.responded.psyFrame],
-                    ['Called / Crossout', card.detail.responded.calledCrossout],
-                    ['Infinite Impermanence', card.detail.responded.impermanence],
-                    ['Mulcharmy', card.detail.responded.mulcharmy],
-                    ['Solemns', card.detail.responded.solemn],
-                    ['Others', card.detail.responded.others],
-                  ]}
-                />
-              </div>
-              <p className={twMerge(NOTE, 'mt-4')}>Used: summoned or activated in the game. Win rates count games and matches where it was used, from the side that used it. Responded: activations the opponent answered with a chain link; each source is a share of activations. A side card only shows once it is used, so after-side usage leans high for side cards. — means not enough data: days swept before these counters.</p>
-            </Panel>
+            <CardDetail card={card} searched={!!searched} />
           </div>
         ) : (
           <Panel title={part === 'main' ? 'Main deck' : 'Extra deck'} meta="Nothing yet">

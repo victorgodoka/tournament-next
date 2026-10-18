@@ -30,11 +30,12 @@ export const SPLIT = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols
 export const THIRDS = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-3'
 const CARD_COLS = 'minmax(180px, 2fr) minmax(130px, 1.3fr) repeat(4, minmax(64px, 0.7fr))'
 
-/** 8px bar on a surface-200 track with the figure after it. */
-export const Bar = ({ value, max = 1, color = 'series-1', label, w = 56 }: { value: number; max?: number; color?: string; label: React.ReactNode; w?: number }) => (
+/** 8px bar on a surface-200 track with the figure after it. `mark`: a tick on the track at that value (0.5 = even). */
+export const Bar = ({ value, max = 1, color = 'series-1', label, w = 56, mark }: { value: number; max?: number; color?: string; label: React.ReactNode; w?: number; mark?: number }) => (
   <span className="grid items-center gap-3" style={{ gridTemplateColumns: `minmax(0, 1fr) ${w}px` }}>
-    <span className="block h-2 bg-surface-200">
+    <span className="relative block h-2 bg-surface-200">
       <span className="block h-2 rounded-r-xs" style={{ width: `${Math.min(100, (value / (max || 1)) * 100)}%`, background: `var(--color-${color})` }} />
+      {mark != null ? <span aria-hidden className="absolute -top-1 h-4 w-px bg-ink-muted" style={{ left: `${(mark / (max || 1)) * 100}%` }} /> : null}
     </span>
     <span className="text-right font-mono text-xs text-ink tabular-nums">{label}</span>
   </span>
