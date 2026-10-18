@@ -8,12 +8,14 @@ import { Button } from '@ui/button'
 import { Select, TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
+import { distinctCards } from '@utils/combo/deck-cards'
 import { rolesFromTags } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
 import { getDeck } from '@utils/decks'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { calculatorReducer, initialState } from './calculator.reducer'
+import { CardRoles } from './card-roles'
 import { DrawSettings, FocusPanel } from './results'
 import { useCalculation } from './use-calculation'
 
@@ -64,6 +66,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     [build.deck.main, build.deck.extra, build.deck.side, state.original.main],
   )
   const view = useCalculation(build, state.original, cards, state.calc.analysis, state.calc.draw, state.calc.focus)
+  /** Copies in the loaded deck by canonical id: what a what-if row is compared against. */
+  const originalCopies = useMemo(() => new Map(distinctCards(state.original.main, cards).map((r) => [r.id, r.copies])), [state.original.main, cards])
   const nameOf = (id: number) => {
     const row = view.rows.find((r) => r.id === id)
     return row?.card?.name ?? cards.get(id)?.name ?? String(row?.passcode ?? id)
@@ -209,7 +213,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               className={twMerge('min-w-44', TOUCH)}
             />
           </div>
-          {/* Deck column: the roles editor (Task 7) and the hand builder (Task 8) mount here. */}
+          <CardRoles
+            rows={view.rows}
+            roles={build.roles}
+            palette={view.palette}
+            originalCopies={originalCopies}
+            banlist={banlist}
+            notDrawn={build.deck.extra.length + build.deck.side.length}
+            onToggle={(id, role) => dispatch({ type: 'toggleRole', id, role })}
+            onCopies={(id, copies, passcode) => dispatch({ type: 'setCopies', id, copies, passcode, cards })}
+            onRestore={() => dispatch({ type: 'restoreDeck' })}
+          />
+          {/* The hand builder (Task 8) mounts here. */}
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />
