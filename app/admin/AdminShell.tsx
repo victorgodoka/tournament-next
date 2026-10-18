@@ -23,11 +23,11 @@ const NAV: { label: string; items: NavItem[] }[] = [
   },
   ...(ANALYTICS_ENABLED
     ? [{
-        label: 'Analytics',
+        label: 'Statistics',
         items: [
-          { href: '/admin/analytics/sweep', label: 'Season sweep' },
-          { href: '/admin/analytics/explorations', label: 'Explorations' },
-          { href: '/admin/analytics/periods', label: 'Periods' },
+          { href: '/admin/statistics/sweep', label: 'Season sweep' },
+          { href: '/admin/statistics/explorations', label: 'Explorations' },
+          { href: '/admin/statistics/periods', label: 'Periods' },
         ],
       }]
     : []),

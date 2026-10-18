@@ -84,7 +84,7 @@ const PeriodsPage = () => {
           edged
           tone="info"
           badge={<Chip tone="indigo">{backfill.backfill.status === 'started' ? 'Backfill started' : 'Sweep busy'}</Chip>}
-          action={<Link href="/admin/analytics/sweep" className="signal-strong">See progress</Link>}
+          action={<Link href="/admin/statistics/sweep" className="signal-strong">See progress</Link>}
           className="items-center"
         >
           <span className="text-sm text-ink">

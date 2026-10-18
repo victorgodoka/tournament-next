@@ -114,7 +114,6 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     ],
   },
   { item: "Leaderboard", to: "/leaderboard" },
-  ...(ANALYTICS_ENABLED ? [{ item: "Analytics", to: "/analytics", loggedIn: true }] : []),
   { item: "Wiki", to: "/wiki" },
   ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
   ...(SHOP_ENABLED ? [{ item: "Shop", to: "/shop", loggedIn: true }] : []),

@@ -7,6 +7,7 @@ import { API_URL } from '@utils/auth'
 import type {
   CalendarEntry,
   PlayerTournamentPage,
+  PlayerTournamentStats,
   ScheduledTournament,
   TournamentDetail,
   TournamentPage,
@@ -73,6 +74,10 @@ export const listPlayerTournaments = (
   query: { limit?: number; cursor?: string } = {},
   signal?: AbortSignal,
 ) => get<PlayerTournamentPage>(`/tournaments/players/${encodeURIComponent(id)}${search(query)}`, 15, signal)
+
+/** One duelist's finished tournaments, their side only. `format`: a `TournamentSummary.format`, or every format. */
+export const getPlayerTournamentStats = (id: string, format?: string) =>
+  get<PlayerTournamentStats>(`/tournaments/players/${encodeURIComponent(id)}/stats${search({ format })}`, 300)
 
 /**
  * Aggregates across finished tournaments. The first uncached call takes seconds, so this is

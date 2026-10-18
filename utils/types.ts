@@ -585,6 +585,19 @@ export type TournamentsStats = {
   cards: CardStats
 }
 
+/** `GET /tournaments/players/{id}/stats`: their finished tournaments, their side only. Matchups keep mirrors. */
+export type PlayerTournamentStats = TournamentStats & {
+  format: string | null
+  /** Every format they played, most first: the picker. */
+  formats: { format: string; tournaments: number }[]
+  tournaments: number
+  titles: number
+  /** Their played matches, byes out; unclassified decks in (unlike `archetypes`). */
+  record: { wins: number; loses: number; draws: number }
+  /** Their game 1s by who went first. */
+  turnOrder: Record<'first' | 'second', { games: number; wins: number }>
+}
+
 /** One tournament a duelist entered: the tournament, and their row of its standings. */
 export type PlayerEntry = { tournament: TournamentSummary; standing: Standing }
 

@@ -4,11 +4,8 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const DISABLED_ROUTES = [
   ...(ANALYTICS_ENABLED ? [] : [
-    '/analytics/:path*',
     '/statistics/:path*',
-    '/admin/analytics/:path*',
-    '/profile/:id/analytics/:path*',
-    '/profile/:id/explorations/:path*',
+    '/admin/statistics/:path*',
     '/profile/:id/statistics/:path*',
   ]),
   ...(SHOP_ENABLED ? [] : ['/shop/:path*', '/admin/shop/:path*']),
@@ -19,6 +16,13 @@ const nextConfig: NextConfig = {
     ...DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
     // The Deck Editor became the Deck Builder: links already shared, saved decks included, keep working.
     { source: '/deck-editor/:path*', destination: '/deck-builder/:path*', permanent: true },
+    // The deck list is a dialog of the builder; `?decks` opens it.
+    { source: '/my-decks', destination: '/deck-builder?decks=mine', permanent: false },
+    // The analytics pages became statistics: old links land on their replacement.
+    { source: '/analytics/:path*', destination: '/statistics', permanent: true },
+    { source: '/admin/analytics/:path*', destination: '/admin/statistics/:path*', permanent: true },
+    { source: '/profile/:id/analytics', destination: '/profile/:id/statistics', permanent: true },
+    { source: '/profile/:id/explorations/:path*', destination: '/profile/:id/statistics', permanent: true },
   ],
   output: "standalone",
   images: {
