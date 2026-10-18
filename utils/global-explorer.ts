@@ -87,9 +87,14 @@ export type TopDeck = {
   topCards: { id: number; name: string | null }[]
 }
 
-/** `GET /analytics/global/top-decks`: best archetypes of the format's open season. `null` with no open season. */
+/**
+ * `GET /analytics/global/top-decks`: best archetypes of the format's open season. `null` with no open season.
+ * The landing awaits this before its HTML streams, so a cold or hung API (its season build runs for minutes
+ * after a deploy) must not hold the page: past the timeout the caller falls back to its static picks. Next
+ * drops the signal when it revalidates a stale entry in the background, so a good answer keeps refreshing.
+ */
 export const getTopDecks = async (format: 'tcg' | 'genesys', decks = 10) =>
-  (await get<{ decks: TopDeck[] }>(`/analytics/global/top-decks?ladder=${format}&decks=${decks}`, { next: { revalidate: 300 } }))?.decks ?? null
+  (await get<{ decks: TopDeck[] }>(`/analytics/global/top-decks?ladder=${format}&decks=${decks}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(3_000) }))?.decks ?? null
 
 /* ---------------------------------------------------------------- *
  * Facts: one per tuple (two per hand-trap row, one from each deck's side)
