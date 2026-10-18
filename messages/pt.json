@@ -154,7 +154,8 @@
         "list": "Copiar lista de cartas",
         "wide": "Imagem 16:9",
         "tall": "Imagem 9:16",
-        "share": "Compartilhar imagem 9:16"
+        "share": "Compartilhar imagem 9:16",
+        "calculator": "Abrir no Combo Calculator"
       },
       "image": {
         "eyebrow": "Decklist",

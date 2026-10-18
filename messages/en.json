@@ -154,7 +154,8 @@
         "list": "Copy card list",
         "wide": "Image 16:9",
         "tall": "Image 9:16",
-        "share": "Share image 9:16"
+        "share": "Share image 9:16",
+        "calculator": "Open in Combo Calculator"
       },
       "image": {
         "eyebrow": "Deck list",

@@ -403,6 +403,13 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   const exportAs = async (kind: ExportKind) => {
     if (!allIds.length) return setToast({ tone: 'negative', text: t('io.empty') })
+    if (kind === 'calculator') {
+      // The calculator reads `?d=` like this editor does; `deck` lets it pull the saved deck's roles.
+      const params = new URLSearchParams({ d: toYdke(deckIn(deck, cards, false)), name: state.name })
+      if (state.deckId) params.set('deck', state.deckId)
+      window.open(`/calculator?${params}`, '_blank', 'noopener')
+      return
+    }
     if (kind === 'omega') return copy(omega.current ?? toOmega(deckIn(deck, cards, tcg)), kind)
     if (kind === 'ydke') return copy(toYdke(deckIn(deck, cards, false)), kind)
     if (kind === 'list') return copy(toText(deck, cards), kind)
