@@ -160,6 +160,17 @@ describe('useSave', () => {
   })
 
   it.each([
+    [12, 'save.rateLimited {"seconds":12}'],
+    [undefined, 'save.rateLimited {"seconds":60}'],
+  ])('a 429 says when to retry (retry-after %s)', async (retryAfter, message) => {
+    vi.mocked(updateDeck).mockRejectedValue(new DeckApiError(429, 'RATE_LIMITED', 'slow down', undefined, retryAfter))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { result } = setup(editor({ deckId: 'abc', revision: 3 }))
+    await act(() => result.current.save())
+    expect(result.current.error).toBe(message)
+  })
+
+  it.each([
     [{ unknown: [7, 8] }, 'save.unknownCards {"cards":"card7, card8"}'],
     [{ overLimit: [9] }, 'save.overLimit {"cards":"card9"}'],
     [{ unknownFormat: 44 }, 'save.unknownFormat'],

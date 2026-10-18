@@ -18,6 +18,8 @@ const variables: Variables = {
     metric('winRateInDeck', 'cards', ['card', 'archetype']),
     metric('winRateWhenUsed', 'cards', ['card', 'archetype']),
     metric('activations', 'handTraps', TRAP),
+    metric('ashedOrPurged', 'handTraps', TRAP),
+    metric('ashedOrPurgedRate', 'handTraps', TRAP),
     metric('groupSamples', 'groups', ['engine', 'tech', 'archetype']),
   ],
 }
@@ -43,7 +45,8 @@ const season: GlobalSeason = {
   cards: [[14558127, B, 7, 21, 5, 3, 1, 0, 4, 2, 0]],
   groups: [[1, B, 3, 1, 2, 0], [2, B, 9, 5, 4, 0]],
   // Ash: Branded activated it 3 times vs Yubel; once in a mirror.
-  handTraps: [[14558127, B, Y, 3, 1, 0, 0], [14558127, B, [349], 1, 0, 0, 0]],
+  // The one response (Branded's Ash vs Yubel) was Ash'd or Purged, counted while the counter existed.
+  handTraps: [[14558127, B, Y, 3, 1, 0, 0, 1, 1], [14558127, B, [349], 1, 0, 0, 0, 0, 0]],
   names: { archetypes: { 349: 'Branded', 7: 'Yubel' }, cards: { 14558127: 'Ash' }, groups: { 1: { name: 'Albaz', kind: 'engine', handTrap: false }, 2: { name: 'Hand traps', kind: 'tech', handTrap: true } } },
 }
 const seg = buildGlobalSegment('current:tcg', season)
@@ -87,6 +90,13 @@ describe('global pivot', () => {
       'Branded / Against the deck': [1],
       'Yubel / Against the deck': [3],
     })
+  })
+
+  it("rates Ash'd or Purged only when every response was counted", () => {
+    expect(byLabel({ values: ['ashedOrPurged', 'ashedOrPurgedRate'] })).toEqual({ 'All hand traps': [1, 1] })
+    // A day recorded before the counter: 2 more responses, none counted. The count stays, the rate goes.
+    const older = buildGlobalSegment('current:tcg', { ...season, handTraps: [...season.handTraps, [14558127, Y, B, 2, 2, 0, 0, 0, 0]] })
+    expect(byLabel({ values: ['ashedOrPurged', 'ashedOrPurgedRate'] }, older)).toEqual({ 'All hand traps': [1, null] })
   })
 
   it('hides cuts under minSamples and splits groups by kind', () => {

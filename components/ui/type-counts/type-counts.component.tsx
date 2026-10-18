@@ -2,7 +2,7 @@ import { twMerge } from 'tailwind-merge'
 
 export type CardType = 'normal' | 'effect' | 'ritual' | 'spell' | 'trap' | 'fusion' | 'synchro' | 'xyz' | 'link'
 
-const LABEL: Record<CardType, string> = {
+export const LABEL: Record<CardType, string> = {
   normal: 'Normal', effect: 'Effect', ritual: 'Ritual', spell: 'Spell', trap: 'Trap',
   fusion: 'Fusion', synchro: 'Synchro', xyz: 'Xyz', link: 'Link',
 }

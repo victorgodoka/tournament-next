@@ -36,8 +36,11 @@ export type GlobalSeason = {
   cards: [N, A, N, N, N, N, N, N, N, N, N][]
   /** [groupId, arch, samples, wins, losses, draws] */
   groups: [N, A, N, N, N, N][]
-  /** [cardId, activatorArch, otherArch, activations, responded, calledByTheGrave, crossoutDesignator] */
-  handTraps: [N, A, A, N, N, N, N][]
+  /**
+   * [cardId, activatorArch, otherArch, activations, responded, calledByTheGrave, crossoutDesignator,
+   *  ashedOrPurged, ashCounted] — `ashCounted` = responses counted while Ash'd or Purged existed (0 on older days).
+   */
+  handTraps: [N, A, A, N, N, N, N, N, N][]
   names: {
     archetypes: Record<string, string>
     cards: Record<string, string>
@@ -157,7 +160,7 @@ export const buildGlobalSegment = (id: string, season: GlobalSeason): GlobalSegm
         n: { samples: r[2], w: r[3], l: r[4], d: r[5] },
       })),
       handTraps: season.handTraps.flatMap((r) => {
-        const n = { activations: r[3], responded: r[4], called: r[5], crossout: r[6] }
+        const n = { activations: r[3], responded: r[4], called: r[5], crossout: r[6], ashed: r[7], ashCounted: r[8] }
         return [
           { row: r, mirror: false, n, dims: { handTrap: r[0], activatedBy: 'deck', archetype: r[1], opponentArchetype: r[2] } },
           { row: r, mirror: false, n, dims: { handTrap: r[0], activatedBy: 'opponent', archetype: r[2], opponentArchetype: r[1] } },
@@ -292,6 +295,12 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
   calledByTheGraveRate: (ctx) => ratio(S(traps(ctx), 'called'), S(traps(ctx), 'responded')),
   crossoutDesignator: (ctx) => S(traps(ctx), 'crossout'),
   crossoutDesignatorRate: (ctx) => ratio(S(traps(ctx), 'crossout'), S(traps(ctx), 'responded')),
+  ashedOrPurged: (ctx) => S(traps(ctx), 'ashed'),
+  // Only when every response in the cut was counted while Ash'd or Purged existed: never a blend.
+  ashedOrPurgedRate: (ctx) => {
+    const rows = traps(ctx)
+    return S(rows, 'ashCounted') === S(rows, 'responded') ? ratio(S(rows, 'ashed'), S(rows, 'responded')) : null
+  },
 }
 
 /** What a cut's sample is: deck-games, or activations for hand traps. Compared to `minSamples`. */

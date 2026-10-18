@@ -15,6 +15,7 @@ import { signIn } from "@utils/auth";
 import { archetypeCover, searchArchetypes, searchCards } from "@utils/cards";
 import { getProfile, ProfileApiError, updateProfile } from "@utils/profile";
 import type { ProfileIdentity, ProfileSettingsPatch, Region, ShopEnum, Visibility } from "@utils/types";
+import { BATTLEPASS_ENABLED, SHOP_ENABLED } from "@utils/const";
 import { TYPE_ICON, typesOf, useLoadout } from "@omega/inventory";
 import { Avatar, AvatarFrame } from "@ui/avatar";
 import { Icon } from "@ui/icon";
@@ -415,7 +416,11 @@ const LoadoutSection = ({ types }: { types: ShopEnum[] }) => {
             )
           })
         ) : (
-          <p className="text-ink-muted mono-note">Nothing to equip yet. Get items in the <Link href="/shop" className="text-cyan hover:underline">shop</Link> or on the <Link href="/battlepass" className="text-cyan hover:underline">battlepass</Link>.</p>
+          <p className="text-ink-muted mono-note">
+            Nothing to equip yet.
+            {SHOP_ENABLED ? <> Get items in the <Link href="/shop" className="text-cyan hover:underline">shop</Link>.</> : null}
+            {BATTLEPASS_ENABLED ? <> Earn them on the <Link href="/battlepass" className="text-cyan hover:underline">battlepass</Link>.</> : null}
+          </p>
         )}
 
         {loadout.error ? <p role="alert" className="text-loss caption">{loadout.error}</p> : null}

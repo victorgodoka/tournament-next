@@ -322,6 +322,9 @@ const responses = ({ cut, seg }: Ctx) => {
     responded: sum(splits, (s) => s.responded),
     called: sum(splits, (s) => s.calledByTheGrave),
     crossout: sum(splits, (s) => s.crossoutDesignator),
+    ashed: sum(splits, (s) => s.ashedOrPurged),
+    /** A split with responses recorded before Ash'd or Purged existed has no rate: none for the cut, never a blend. */
+    ashCovered: splits.every((s) => !s.responded || s.ashedOrPurgedRate !== null),
   }
 }
 
@@ -366,13 +369,18 @@ const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
     const r = responses(ctx)
     return ratio(r.crossout, r.responded)
   },
+  ashedOrPurged: (ctx) => responses(ctx).ashed,
+  ashedOrPurgedRate: (ctx) => {
+    const r = responses(ctx)
+    return r.ashCovered ? ratio(r.ashed, r.responded) : null
+  },
 
   /** The latest recorded day in the cut. */
   elo: ({ facts }) => facts.reduce<Fact | null>((last, f) => (!last || (f.day ?? 0) > (last.day ?? 0) ? f : last), null)?.elo ?? null,
 }
 
 /** Metrics read from the season aggregates: they name their own groups and never count facts. */
-const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'winRateInDeck', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate'])
+const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'winRateInDeck', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate', 'ashedOrPurged', 'ashedOrPurgedRate'])
 /** Win/loss rates: 50% is the line that matters. */
 export const WIN_LOSS = new Set(['winRate', 'winRateWhenUsed', 'winRateInDeck', 'dailyWinRate', 'winRateWithGroup'])
 /** Read from the per-game detail (§3.4): undercounts while `gamesWithoutDetail` > 0. */

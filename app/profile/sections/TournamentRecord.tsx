@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Panel } from '@ui/panel'
 import { StatGrid } from '@ui/stat-grid'
@@ -16,35 +17,34 @@ const PAGE_SIZE = 10
 const DATE: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }
 const LINK = 'self-start font-mono text-[11px] leading-3.5 font-bold tracking-[0.14em] text-cyan uppercase underline underline-offset-3 hover:decoration-2 disabled:cursor-wait'
 
-const ordinal = (n: number) => {
-  const tens = n % 100
-  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'
-  return `${n}${suffix}`
-}
-
-const Entry = ({ entry: { tournament, standing } }: { entry: PlayerEntry }) => (
-  <Link
-    href={`/tournament/${tournament.id}`}
-    className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 bg-surface-100 px-3.5 py-3 text-ink no-underline hover:bg-surface-300"
-  >
-    <span className={twMerge('text-center font-display text-[22px] leading-none', standing.rank === 1 ? 'text-gold' : 'text-ink-dim')}>
-      {ordinal(standing.rank)}
-    </span>
-    <span className="flex min-w-0 flex-col gap-0.5">
-      <b className="truncate text-sm">Tournament #{tournament.id}</b>
-      <span className="font-mono text-[10px] leading-3 tracking-[0.14em] text-ink-muted uppercase">
-        {tournament.format} · <LocalTime iso={tournament.endedAt ?? tournament.startedAt} options={DATE} />
+const Entry = ({ entry: { tournament, standing } }: { entry: PlayerEntry }) => {
+  const t = useTranslations('Tournaments.record')
+  return (
+    <Link
+      href={`/tournament/${tournament.id}`}
+      className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 bg-surface-100 px-3.5 py-3 text-ink no-underline hover:bg-surface-300"
+    >
+      <span className={twMerge('text-center font-display text-[22px] leading-none', standing.rank === 1 ? 'text-gold' : 'text-ink-dim')}>
+        {t('rank', { rank: standing.rank })}
       </span>
-    </span>
-    <span className="font-mono text-xs leading-none text-ink-dim tabular-nums">{formatRecord(standing)}</span>
-  </Link>
-)
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <b className="truncate text-sm">{t('tournament', { id: tournament.id })}</b>
+        <span className="font-mono text-[10px] leading-3 tracking-[0.14em] text-ink-muted uppercase">
+          {tournament.format} · <LocalTime iso={tournament.endedAt ?? tournament.startedAt} options={DATE} />
+        </span>
+      </span>
+      <span className="font-mono text-xs leading-none text-ink-dim tabular-nums">{formatRecord(standing)}</span>
+    </Link>
+  )
+}
 
 /**
  * Swiss-tournament record. The profile embeds the 3 latest entries; "see all" pages through
  * `GET /tournaments/players/{id}`, whose first page repeats those three, so it replaces the list.
  */
 export const TournamentRecord = ({ profileId, tournaments }: { profileId: string; tournaments: PlayerTournaments }) => {
+  const t = useTranslations('Tournaments.record')
+  const locale = useLocale()
   const [entries, setEntries] = useState(tournaments.recent)
   // `undefined` = still showing the embedded three; `null` = the history ran out.
   const [cursor, setCursor] = useState<string | null | undefined>(undefined)
@@ -67,15 +67,15 @@ export const TournamentRecord = ({ profileId, tournaments }: { profileId: string
 
   return (
     <>
-      <Rail num="04" label="Tournaments" stamp="Swiss" />
-      <Panel label="Tournaments" className="flex flex-col gap-5">
+      <Rail num="04" label={t('label')} stamp={t('stamp')} />
+      <Panel label={t('label')} className="flex flex-col gap-5">
         <StatGrid
           columns={2}
           items={[
-            { label: 'Entered', value: formatNumber(tournaments.played) },
-            { label: 'Titles', value: formatNumber(tournaments.titles), tone: 'gold' },
-            { label: 'Match record', value: formatRecord(tournaments) },
-            { label: 'Points', value: formatNumber(tournaments.points) },
+            { label: t('entered'), value: formatNumber(tournaments.played, locale) },
+            { label: t('titles'), value: formatNumber(tournaments.titles, locale), tone: 'gold' },
+            { label: t('matchRecord'), value: formatRecord(tournaments) },
+            { label: t('points'), value: formatNumber(tournaments.points, locale) },
           ]}
         />
         {entries.length ? (
@@ -85,10 +85,10 @@ export const TournamentRecord = ({ profileId, tournaments }: { profileId: string
         ) : null}
         {more ? (
           <button type="button" onClick={loadMore} disabled={status === 'loading'} className={LINK}>
-            {status === 'loading' ? 'Loading…' : cursor === undefined ? 'See all tournaments' : 'Load older'}
+            {status === 'loading' ? t('loading') : cursor === undefined ? t('seeAll') : t('loadOlder')}
           </button>
         ) : null}
-        {status === 'error' ? <p role="alert" className="text-sm text-loss">Couldn&apos;t load this duelist&apos;s tournaments. Try again.</p> : null}
+        {status === 'error' ? <p role="alert" className="text-sm text-loss">{t('error')}</p> : null}
       </Panel>
     </>
   )

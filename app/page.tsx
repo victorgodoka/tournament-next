@@ -1,12 +1,11 @@
 import HomePage from './home'
 import { pageMetadata } from '@utils/metadata'
-import { SITE_TITLE } from '@utils/config'
 
 export const metadata = pageMetadata({
-  title: SITE_TITLE,
+  title: 'YGO Omega: Free Yu-Gi-Oh! Simulator with Automatic Tournaments',
   path: '/',
   description:
-    'The competitive hub for Yu-Gi-Oh! tournaments, player rankings, deck tools, and live events on YGO Omega.',
+    'Free Yu-Gi-Oh! simulator with every card unlocked, Bo3 ranked with Elo, automatic Swiss tournaments, and TCG, OCG, GOAT and Edison formats.',
   absoluteTitle: true,
 })
 

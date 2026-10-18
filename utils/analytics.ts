@@ -149,6 +149,10 @@ export type ResponseSplit = {
   calledByTheGraveRate: number | null
   crossoutDesignator: number
   crossoutDesignatorRate: number | null
+  /** "Ash'd or Purged": responses that were Ash Blossom or Dominus Purge. */
+  ashedOrPurged: number
+  /** Of responses. `null` while part of the season predates the counter (fills in after a re-sweep). */
+  ashedOrPurgedRate: number | null
 }
 
 export type PlayerSeason = {

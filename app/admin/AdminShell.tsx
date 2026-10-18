@@ -7,6 +7,7 @@ import { useAuth, useResource } from '@hooks/index'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'
 import { listTournaments } from '@utils/panel'
+import { ANALYTICS_ENABLED, BATTLEPASS_ENABLED, SHOP_ENABLED } from '@utils/const'
 
 type NavItem = { href: string; label: string }
 
@@ -15,19 +16,21 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: 'Economy',
     items: [
-      { href: '/admin/shop', label: 'Shop catalog' },
+      ...(SHOP_ENABLED ? [{ href: '/admin/shop', label: 'Shop catalog' }] : []),
       { href: '/admin/rewards', label: 'Rewards' },
-      { href: '/admin/battlepass', label: 'Battlepass' },
+      ...(BATTLEPASS_ENABLED ? [{ href: '/admin/battlepass', label: 'Battlepass' }] : []),
     ],
   },
-  {
-    label: 'Analytics',
-    items: [
-      { href: '/admin/analytics/sweep', label: 'Season sweep' },
-      { href: '/admin/analytics/explorations', label: 'Explorations' },
-      { href: '/admin/analytics/periods', label: 'Periods' },
-    ],
-  },
+  ...(ANALYTICS_ENABLED
+    ? [{
+        label: 'Analytics',
+        items: [
+          { href: '/admin/analytics/sweep', label: 'Season sweep' },
+          { href: '/admin/analytics/explorations', label: 'Explorations' },
+          { href: '/admin/analytics/periods', label: 'Periods' },
+        ],
+      }]
+    : []),
   {
     label: 'Cards',
     items: [

@@ -35,23 +35,20 @@ const RANGES = [
 ] as const
 
 /**
- * Filters only the drawer shows, one per field or range; the quick chips (kind, Extra, attributes) are
- * on screen already. Pass the effective query so unsent filters don't count.
+ * The drawer's filters that are set, one per field or range; legal-only counts when it's off (it starts
+ * on). Pass the effective query so unsent filters don't count.
  */
 export const activeFilterCount = (q: PoolQuery): number =>
-  [q.archetype, q.types.length, q.race.length, q.linkMarkers.length, q.status.length].filter(Boolean).length +
+  [q.kind.length, q.extraDeck, q.attribute.length, !q.legalOnly, q.archetype, q.types.length, q.race.length, q.linkMarkers.length, q.status.length].filter(Boolean).length +
   RANGES.filter(([min, max]) => (min !== 'releasedAfter' || q.format) && (q[min] !== undefined || q[max] !== undefined)).length
 
-/** Clears the drawer, keeping the search, the quick chips, the sort and legal-only. */
+/** Clears the drawer, keeping the search and the sort, which sit beside the pool. */
 export const resetFilters = (q: PoolQuery): PoolQuery => ({
   ...EMPTY_POOL_QUERY,
   text: q.text,
   textMode: q.textMode,
-  kind: q.kind,
-  extraDeck: q.extraDeck,
   sort: q.sort,
   order: q.order,
-  legalOnly: q.legalOnly,
 })
 
 export const toggle = <T>(list: readonly T[], value: T): T[] => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value])

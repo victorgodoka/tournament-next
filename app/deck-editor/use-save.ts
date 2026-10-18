@@ -117,7 +117,12 @@ export const useSave = (
       else if (e instanceof DeckApiError && e.status === 401) await toLogin(latest.current, true)
       else {
         console.error(e) // a 400's server text is English and technical: it stays here
-        setError(e instanceof DeckApiError && e.status === 400 ? rejected(e) : t('save.failed'))
+        setError(
+          !(e instanceof DeckApiError) ? t('save.failed')
+            : e.status === 400 ? rejected(e)
+              : e.status === 429 ? t('save.rateLimited', { seconds: e.retryAfter ?? 60 })
+                : t('save.failed'),
+        )
       }
     } finally {
       busy.current = false

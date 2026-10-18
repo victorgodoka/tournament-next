@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => router }))
 vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))

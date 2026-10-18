@@ -97,7 +97,7 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
             }
             standings={<Standings tournament={tournament} standings={standings} rounds={rounds} />}
             rounds={<Rounds rounds={rounds} standings={standings} live={live} />}
-            stats={<Stats stats={stats} players={players} live={live} standings={standings} />}
+            stats={<Stats tournament={tournament} stats={stats} live={live} standings={standings} />}
           />
         </div>
       </main>

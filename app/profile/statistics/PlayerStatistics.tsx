@@ -192,7 +192,11 @@ const SignatureCards = ({ num, data }: { num: string; data: PlayerSeason }) => (
 const responseLine = (who: string, split: ResponseSplit) =>
   split.activations
     ? `${who}: ${split.activations} activation${split.activations === 1 ? '' : 's'}, ${split.responded} got a response (${pct(split.respondedRate)})` +
-      (split.responded ? ` · Called by the Grave ${split.calledByTheGrave} · Crossout ${split.crossoutDesignator}` : '')
+      (split.responded
+        ? ` · Called by the Grave ${split.calledByTheGrave} · Crossout ${split.crossoutDesignator}` +
+          // `null` rate = part of the season predates the counter: the count would undercount, so it's left out.
+          (split.ashedOrPurgedRate !== null ? ` · Ash'd or Purged ${split.ashedOrPurged}` : '')
+        : '')
     : `${who}: none`
 
 const HandTraps = ({ num, data }: { num: string; data: PlayerSeason }) => {

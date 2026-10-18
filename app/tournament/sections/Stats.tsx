@@ -5,10 +5,11 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { formatRate, formatRecord } from '@omega/tournament/labels'
 import { Conversion, RecordBar, ShareCell, ShareStack, TurnSplit, WinRateBars } from '@omega/tournament/stats-charts'
+import { TopCutCard } from '@omega/tournament/top-cut-card'
 import { DataTable } from '@ui/data-table'
 import { RailHead } from '@ui/rail-head/rail-head.component'
 import { StatGrid } from '@ui/stat-grid'
-import type { ArchetypeStat, CardStat, MatchupStat, Standing, TournamentStats } from '@utils/types'
+import type { ArchetypeStat, CardStat, MatchupStat, Standing, TournamentStats, TournamentSummary } from '@utils/types'
 
 /** Top 8 by final rank; Top 4 under 16 entrants, where a Top 8 is half the field. */
 const topCutOf = (players: number) => (players < 16 ? 4 : 8)
@@ -30,7 +31,8 @@ const gamesRecord = ({ wins, loses, draws }: CardStat) => `${wins}–${loses}${d
 const Scroll = ({ children }: { children: React.ReactNode }) => <div className="min-w-0 overflow-x-auto">{children}</div>
 
 /** `live`: the API holds back decklists until the end, so archetypes, matchups and cards are empty. */
-export const Stats = ({ stats, players, live, standings }: { stats: TournamentStats; players: number; live: boolean; standings: Standing[] }) => {
+export const Stats = ({ tournament, stats, live, standings }: { tournament: TournamentSummary; stats: TournamentStats; live: boolean; standings: Standing[] }) => {
+  const { players } = tournament
   const t = useTranslations('Tournaments')
   const locale = useLocale()
   const { matches, archetypes, matchups, cards } = stats
@@ -45,6 +47,9 @@ export const Stats = ({ stats, players, live, standings }: { stats: TournamentSt
 
   return (
     <>
+      {!live && standings.some((s) => s.rank <= top && s.deck) ? (
+        <TopCutCard tournament={tournament} standings={standings} archetypes={archetypes} top={top} />
+      ) : null}
       <StatGrid
         items={[
           {

@@ -4,26 +4,22 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
-import { FilterChip } from '@ui/chip'
-import { Segmented, Switch } from '@ui/choice'
+import { Segmented } from '@ui/choice'
 import { SearchField, Select } from '@ui/field'
 import { EMPTY_POOL_QUERY, type PoolQuery } from '@utils/cards'
 import { canonicalId, copyCounts } from '@utils/deck/model'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
-import { titleCase, type Banlist, type CardKind } from '@utils/wiki'
+import type { Banlist } from '@utils/wiki'
 import { CardTile } from './card-tile'
 import { DRAG_TYPE, type DragPayload } from './deck-zone'
 import { useLongPress } from './gestures'
 import { PoolFilters } from './pool-filters'
-import { activeFilterCount, ATTRIBUTES, effectiveQuery, tileStatus, toggle } from './pool-query'
+import { activeFilterCount, effectiveQuery, tileStatus } from './pool-query'
 import { useCardPool } from './use-card-pool'
 
-const KINDS: CardKind[] = ['monster', 'spell', 'trap']
 const SORTS = ['name-asc', 'name-desc', 'atk-desc', 'atk-asc', 'def-desc', 'level-desc', 'level-asc', 'released_tcg-desc', 'released_ocg-desc'] as const
 // Four columns in a ~38vw column on lg; four across the viewport from 600px, three below.
 const SIZES = '(min-width: 1024px) 10vw, (min-width: 600px) 25vw, 33vw'
-/** 34px chips grow to 44px tap targets below lg. */
-const CHIP = 'max-lg:py-1.25'
 
 /** The nearest ancestor that scrolls vertically, or null (the viewport). */
 const scrollParent = (el: HTMLElement): HTMLElement | null => {
@@ -73,7 +69,7 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Below lg the page scrolls the pool, so search and chips stay pinned; the chips scroll sideways in one row. */}
+      {/* Below lg the page scrolls the pool, so the search stays pinned. */}
       <div className="flex flex-col gap-3 max-lg:sticky max-lg:top-0 max-lg:z-(--z-sticky) max-lg:-mx-4 max-lg:border-b max-lg:border-line max-lg:bg-space-000 max-lg:px-4 max-lg:py-2">
         <div className="flex flex-wrap items-center gap-2">
           <SearchField
@@ -95,16 +91,6 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
             className="max-lg:*:h-11"
           />
         </div>
-
-        <div role="group" aria-label={t('pool.quick')} className="flex flex-wrap gap-x-1 max-lg:flex-nowrap max-lg:overflow-x-auto">
-          {KINDS.map((kind) => (
-            <FilterChip key={kind} pressed={query.kind.includes(kind)} label={t(`pool.${kind}`)} onClick={() => patch({ kind: toggle(query.kind, kind) })} className={CHIP} />
-          ))}
-          <FilterChip pressed={!!query.extraDeck} label={t('pool.extra')} onClick={() => patch({ extraDeck: query.extraDeck ? undefined : true })} className={CHIP} />
-          {ATTRIBUTES.map((a) => (
-            <FilterChip key={a} pressed={query.attribute.includes(a)} label={titleCase(a)} onClick={() => patch({ attribute: toggle(query.attribute, a) })} className={CHIP} />
-          ))}
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -118,7 +104,6 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
           }}
           className="min-w-0 max-lg:h-11"
         />
-        <Switch quiet checked={query.legalOnly} onChange={(legalOnly) => patch({ legalOnly })} label={t('pool.legalOnly')} disabled={!banlist} className="max-lg:min-h-11" />
         <Button variant="secondary" size="mono" aria-haspopup="dialog" onClick={() => setDrawer(true)} className="ml-auto max-lg:min-h-11">
           {filters ? t('pool.filtersCount', { count: filters }) : t('pool.filters')}
         </Button>

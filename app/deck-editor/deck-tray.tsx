@@ -7,6 +7,7 @@ import { twMerge } from 'tailwind-merge'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import type { Problem } from '@utils/deck/rules'
 import type { CardMap, Zone } from '@utils/deck/types'
+import type { Banlist } from '@utils/wiki'
 import { CARD_IMAGE_URL } from '@utils/const'
 import type { EditorState } from './deck-editor.reducer'
 import { DeckZone, type DragPayload } from './deck-zone'
@@ -20,6 +21,7 @@ const PEEK = '4rem + env(safe-area-inset-bottom)'
 type DeckTrayProps = {
   state: EditorState
   cards: CardMap
+  banlist: Banlist | null
   problems: Problem[]
   validity: Validity
   /** Passcodes in a validation problem: their rows get the crimson edge. */
@@ -179,6 +181,7 @@ export const DeckTray = (p: DeckTrayProps) => {
               zone={p.tab}
               ids={deck[p.tab]}
               cards={p.cards}
+              banlist={p.banlist}
               view="list"
               problems={p.flagged}
               onRemove={(id) => p.onRemove(p.tab, id)}

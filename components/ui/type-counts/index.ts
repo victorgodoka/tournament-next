@@ -1,1 +1,1 @@
-export { TypeCounts, type CardType } from './type-counts.component'
+export { TypeCounts, LABEL as TYPE_LABEL, type CardType } from './type-counts.component'

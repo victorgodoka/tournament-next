@@ -16,6 +16,7 @@
     "save": {
       "failed": "Não foi possível salvar o deck.",
       "rejected": "O servidor recusou este deck. Confira a quantidade de cartas e as cópias de cada uma.",
+      "rateLimited": "Muitas requisições. Tente salvar de novo em {seconds, plural, one {# segundo} other {# segundos}}.",
       "kept": "Suas alterações continuam salvas neste dispositivo.",
       "wait": "Ainda carregando. Tente de novo em instantes.",
       "loadFailed": "O deck salvo não carregou, então ainda não dá para salvar por cima. Tente carregar de novo primeiro.",
@@ -89,6 +90,50 @@
       "unsaved": "Alterações não salvas",
       "myDecks": "Meus decks"
     },
+    "io": {
+      "import": "Importar",
+      "export": "Exportar",
+      "code": "Código do deck",
+      "placeholder": "Cole um código Omega ou URL ydke://",
+      "importCode": "Importar código",
+      "importFile": "Abrir arquivo .ydk",
+      "pasteHint": "Ctrl+V em qualquer lugar do editor importa o código da área de transferência.",
+      "copyHint": "Ctrl+C copia o deck como código Omega.",
+      "as": {
+        "omega": "Copiar código Omega",
+        "ydke": "Copiar URL ydke://",
+        "ydk": "Baixar arquivo .ydk",
+        "pdf": "Decklist Konami (PDF)",
+        "list": "Copiar lista de cartas",
+        "wide": "Imagem 16:9",
+        "tall": "Imagem 9:16",
+        "share": "Compartilhar imagem 9:16"
+      },
+      "image": {
+        "eyebrow": "Decklist",
+        "builtBy": "Criado por {name}",
+        "totals": "Main {main} · Extra {extra} · Side {side}",
+        "cta": "Monte o seu no YGO Omega"
+      },
+      "format": {
+        "omega": "código Omega",
+        "ydke": "URL ydke://",
+        "ydk": "arquivo .ydk",
+        "list": "lista de cartas"
+      },
+      "imported": "Deck importado ({format}). Desfazer traz o anterior de volta.",
+      "invalid": "Isso não é um código Omega, URL ydke:// nem arquivo .ydk.",
+      "lookupFailed": "Não foi possível buscar as cartas desse código. Tente de novo.",
+      "copied": "Copiado: {format}.",
+      "copyFailed": "Não foi possível acessar a área de transferência.",
+      "empty": "O deck está vazio: adicione cartas primeiro.",
+      "building": "Gerando…",
+      "importing": "Importando…",
+      "downloaded": "{file} baixado.",
+      "shared": "Imagem compartilhada.",
+      "pdfOverflow": "{file} baixado, mas uma seção tem mais cartas do que linhas no formulário.",
+      "failed": "A exportação falhou. Tente de novo."
+    },
     "views": {
       "grid": "Grade",
       "list": "Lista",
@@ -153,7 +198,6 @@
       "searchBy": "Buscar por",
       "byName": "Nome",
       "byText": "Texto da carta",
-      "quick": "Filtros rápidos",
       "monster": "Monstro",
       "spell": "Magia",
       "trap": "Armadilha",
@@ -182,6 +226,7 @@
     },
     "filters": {
       "title": "Filtros",
+      "kind": "Tipo de carta",
       "close": "Fechar filtros",
       "archetype": "Arquétipo",
       "archetypeSearch": "Encontre um arquétipo",
@@ -239,6 +284,61 @@
       "inZone": "{count} no {zone}"
     }
   },
+  "Download": {
+    "meta": {
+      "title": "Baixe o YGO Omega para Windows, Mac, Linux, Android e iOS",
+      "description": "Baixe o YGO Omega, o simulador gratuito de Yu-Gi-Oh!, para Windows, Mac, Linux, Android e iOS. Requisitos de sistema e doações VIP."
+    },
+    "hero": {
+      "lead": "O simulador definitivo de Yu-Gi-Oh!.",
+      "github": "Ver projeto no GitHub",
+      "platforms": "Baixe para o seu sistema",
+      "latest": "Versão mais recente"
+    },
+    "specs": {
+      "heading": "Requisitos de sistema",
+      "count": "{count} plataformas",
+      "minimum": "Mínimo",
+      "recommended": "Recomendado",
+      "rows": {
+        "os": "Sistema",
+        "processor": "Processador",
+        "cpu": "CPU",
+        "memory": "Memória",
+        "graphics": "Placa de vídeo",
+        "directx": "DirectX",
+        "network": "Rede",
+        "storage": "Armazenamento",
+        "sound": "Placa de som",
+        "resolution": "Resolução"
+      },
+      "values": {
+        "latest": "{os}, revisão mais recente",
+        "dualCore": "CPU dual core",
+        "quadCore": "CPU quad core",
+        "version": "Versão {version}",
+        "broadband": "Conexão de banda larga",
+        "space": "{size} de espaço livre",
+        "onBoard": "Onboard"
+      }
+    },
+    "donations": {
+      "heading": "Doações",
+      "title": "Seja VIP",
+      "body": "Doando no mínimo <gold>5 USD</gold>, você ganha 1 de cada raridade, e seu tapete e suas capas ficam visíveis para os oponentes.",
+      "perks": {
+        "rarities": { "label": "Raridades", "value": "1 de cada" },
+        "mat": { "label": "Tapete", "value": "Visível aos oponentes" },
+        "sleeves": { "label": "Capas", "value": "Visíveis aos oponentes" }
+      },
+      "donate": "Doar"
+    },
+    "about": {
+      "heading": "Sobre",
+      "body": "YGO Omega é um simulador automático (e manual) do Yu-Gi-Oh Trading Card Game desenvolvido pela Duelists Unite (DU). Tem todas as cartas de graça, com sistema automático de torneios suíços e ranking. O Discord da DU organiza torneios semanais com prêmios, e até jogadores casuais com conhecimento básico de Yu-Gi-Oh encontram algo para curtir!",
+      "community": "Comunidade"
+    }
+  },
   "Welcome": {
     "header": {
       "eyebrow": "Omega Hub",
@@ -294,6 +394,129 @@
       }
     }
   },
+  "Banlist": {
+    "meta": {
+      "title": "Histórico da Banlist de Yu-Gi-Oh!: todas as listas Forbidden & Limited do TCG",
+      "description": "Todas as banlists do Yu-Gi-Oh! TCG desde 2002: {lists} listas Forbidden & Limited, {changes} mudanças, {cards} cartas. Lista atual: {current}, com {forbidden} cartas Forbidden.",
+      "listTitle": "Banlist Yu-Gi-Oh! {label}: lista Forbidden & Limited do TCG",
+      "listDescription": "A lista Forbidden & Limited do Yu-Gi-Oh! TCG de {label}, a partir de {start}: {changes, plural, one {# mudança} other {# mudanças}}, {forbidden} Forbidden, {limited} Limited e {semi} Semi-Limited.",
+      "cardTitle": "{card} está banida? Histórico na banlist de Yu-Gi-Oh!",
+      "cardDescription": "{card} está {status} na banlist do Yu-Gi-Oh! TCG de {label}. Entrou na lista em {first} e esteve em {count} de {total} listas Forbidden & Limited: quando foi banida e cada mudança."
+    },
+    "home": "Início",
+    "crumb": "Linha do tempo da banlist",
+    "eyebrow": "TCG · Forbidden & Limited",
+    "title": "Linha do tempo da banlist de Yu-Gi-Oh!",
+    "listTitle": "Banlist de Yu-Gi-Oh! {label}",
+    "lead": "Todas as listas Forbidden & Limited do Yu-Gi-Oh! TCG, de maio de 2002 a {latest}. Escolha uma lista para ver o que mudou ou consulte o histórico de qualquer carta.",
+    "listLead": "A lista Forbidden & Limited de {label} do Advanced Format do Yu-Gi-Oh! TCG: o que mudou em relação à lista anterior, a lista completa e o histórico de cada carta nas {lists} listas.",
+    "source": "Fonte: Yugipedia · Historic Forbidden/Limited Chart",
+    "status": {
+      "F": "Forbidden",
+      "L": "Limited",
+      "S": "Semi-Limited",
+      "U": "Unlimited",
+      "N": "Inédita"
+    },
+    "summary": {
+      "label": "Resumo",
+      "lists": "Listas",
+      "cards": "Cartas já listadas",
+      "cardsNote": "Em pelo menos uma lista",
+      "changes": "Mudanças",
+      "changesNote": "Entradas, saídas e trocas de status",
+      "current": "Em vigor · {label}",
+      "split": "{f} Forbidden · {l} Limited · {s} Semi-Limited"
+    },
+    "chart": {
+      "heading": "Tamanho de cada lista",
+      "hint": "Clique numa barra para abrir a lista",
+      "bar": "{label}: {f} Forbidden, {l} Limited, {s} Semi-Limited"
+    },
+    "timeline": {
+      "heading": "Linha do tempo",
+      "meta": "{count} listas · mais recente primeiro",
+      "nav": "Banlists",
+      "year": "{count, plural, one {# lista} other {# listas}}",
+      "changes": "{count, plural, one {# mudança} other {# mudanças}}",
+      "position": "Lista {num} de {count} · TCG",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "since": "A partir de {date}",
+      "inForce": "Em vigor",
+      "announced": "Anunciada",
+      "vsPrevious": "em relação à lista anterior",
+      "first": "Primeira lista do TCG: todas as cartas abaixo entraram na lista agora.",
+      "changed": "O que mudou · {count}",
+      "full": "Lista completa · {count}",
+      "group": {
+        "F": "Para Forbidden",
+        "L": "Para Limited",
+        "S": "Para Semi-Limited",
+        "U": "Liberadas · Unlimited"
+      },
+      "to": "para",
+      "none": "Nenhuma carta"
+    },
+    "history": {
+      "heading": "Histórico por carta",
+      "meta": "{count} cartas",
+      "search": "Buscar carta",
+      "placeholder": "Ex.: Pot of Greed, Maxx \"C\", Snake-Eye",
+      "noResults": "Nenhuma carta com esse nome passou por uma lista do TCG.",
+      "empty": "Busque uma carta para ver a trajetória dela em todas as listas, ou abra o nome de qualquer carta acima para ver a página dela.",
+      "listed": "Em {count} de {total} listas",
+      "now": "Hoje · {status}",
+      "start": "Mai 2002",
+      "offList": "Fora da lista = Unlimited",
+      "cell": "{label}: {status}",
+      "changes": "Mudanças"
+    },
+    "faq": {
+      "heading": "Perguntas sobre a banlist",
+      "currentQ": "Qual é a banlist atual do Yu-Gi-Oh! TCG?",
+      "currentA": "A lista Forbidden & Limited de {label}, em vigor desde {date}. Ela tem {f} cartas Forbidden, {l} Limited e {s} Semi-Limited.",
+      "nextQ": "Quando entra em vigor a próxima banlist de Yu-Gi-Oh!?",
+      "nextA": "A lista de {label} já foi anunciada e entra em vigor em {date}, com {count, plural, one {# mudança} other {# mudanças}} em relação à lista atual.",
+      "countQ": "Quantas banlists o Yu-Gi-Oh! TCG já teve?",
+      "countA": "{lists} listas Forbidden & Limited desde a primeira, em {first}. Juntas, elas fizeram {changes} mudanças em {cards} cartas diferentes.",
+      "firstQ": "Qual foi a primeira banlist do Yu-Gi-Oh! TCG?",
+      "firstA": "A lista de {date}, com {l} cartas Limited e {s} Semi-Limited. Nenhuma carta era Forbidden ainda.",
+      "biggestQ": "Qual foi a maior banlist de Yu-Gi-Oh!?",
+      "biggestA": "{label}, com {total} cartas: {f} Forbidden, {l} Limited e {s} Semi-Limited.",
+      "potQ": "Quando Pot of Greed foi banida?",
+      "potA": "Pot of Greed virou Forbidden na lista de {label} ({date}). Hoje ela está {status}.",
+      "startQ": "Quando a banlist de Yu-Gi-Oh! de {label} entrou em vigor?",
+      "startA": "Em {start}. {end, select, none {Ainda é a lista mais recente.} other {Ficou em vigor até {end}.}}",
+      "bannedQ": "O que foi banido na banlist de {label}?",
+      "bannedA": "{count, plural, =0 {Nenhuma carta foi para Forbidden nesta lista.} one {Uma carta foi para Forbidden: {names}.} other {# cartas foram para Forbidden: {names}.}}",
+      "freedQ": "O que foi liberado na banlist de {label}?",
+      "freedA": "{count, plural, =0 {Nenhuma carta saiu da lista.} one {Uma carta saiu da lista e voltou a Unlimited: {names}.} other {# cartas saíram da lista e voltaram a Unlimited: {names}.}}",
+      "sizeQ": "Quantas cartas tem a banlist de {label}?",
+      "sizeA": "{total}: {f} Forbidden, {l} Limited e {s} Semi-Limited."
+    },
+    "card": {
+      "lead": "{card} em todas as listas Forbidden & Limited do Yu-Gi-Oh! TCG: o status hoje, quando foi banida e cada mudança nas {lists} listas.",
+      "today": "Hoje · lista de {label}",
+      "next": "{status} a partir de {date}",
+      "since": "Lista em vigor desde {date}",
+      "lists": "Listas em que esteve",
+      "listsNote": "De {total}",
+      "first": "Primeira lista",
+      "changes": "Mudanças",
+      "historyMeta": "{count, plural, one {# mudança} other {# mudanças}}",
+      "faq": {
+        "bannedQ": "{card} está banida?",
+        "bannedA": "{now, select, F {Sim. {card} está Forbidden na lista atual do TCG ({label}): nenhuma cópia é permitida no deck.} L {Não está banida, mas está Limited: {card} fica limitada a 1 cópia na lista atual do TCG ({label}).} S {Não está banida, mas está Semi-Limited: {card} fica limitada a 2 cópias na lista atual do TCG ({label}).} other {Não. {card} está Unlimited na lista atual do TCG ({label}), então dá para jogar até 3 cópias.}}",
+        "upcoming": "A lista anunciada de {label} a deixa {status} a partir de {date}.",
+        "firstQ": "Quando {card} foi banida pela primeira vez?",
+        "firstA": "{when, select, past {{card} virou Forbidden pela primeira vez na lista de {label}, a partir de {date}.} soon {{card} vira Forbidden pela primeira vez com a lista anunciada de {label}, a partir de {date}.} other {{card} nunca foi Forbidden no TCG. Entrou na lista pela primeira vez em {label} ({date}), como {status}.}}",
+        "lastQ": "Quando {card} esteve na banlist pela última vez?",
+        "lastA": "{when, select, now {{card} está na lista agora: {status} na lista atual, de {label}.} past {{card} esteve na lista pela última vez em {label}, como {status}. Está Unlimited desde {date}.} other {{card} ainda não passou por uma lista do TCG. A lista anunciada de {label} a coloca como {status} a partir de {date}.}}"
+      }
+    },
+    "note": "Dados do TCG (Advanced Format) a partir do Historic Forbidden/Limited Chart da Yugipedia e das páginas de cada lista. Listas do OCG ficam de fora. Nomes de cartas como impressos no TCG."
+  },
   "Calendar": {
     "meta": {
       "title": "Calendário de torneios",
@@ -310,6 +533,20 @@
     "dayLabel": "{day}: {count, plural, =0 {nenhum torneio} one {# torneio} other {# torneios}}",
     "more": "+{count} mais",
     "dayEmpty": "Nenhum torneio neste dia.",
+    "filters": {
+      "label": "Filtros",
+      "format": "Formato",
+      "allFormats": "Todos",
+      "time": "Horário",
+      "anyTime": "Qualquer",
+      "slot": {
+        "morning": "Manhã (6–12)",
+        "afternoon": "Tarde (12–18)",
+        "evening": "Noite (18–24)",
+        "night": "Madrugada (0–6)"
+      },
+      "rotating": "Torneios rotativos"
+    },
     "failed": "Não deu para carregar o calendário. Tente de novo em instantes.",
     "fallbackFormat": "Torneio",
     "pass": "Battle pass",
@@ -580,7 +817,23 @@
       "conversionTitle": "Quem chegou ao Top {top}",
       "field": "Fatia do campo",
       "topCut": "Fatia do Top {top}",
-      "conversionNote": "Barra dourada maior que a cinza: o arquétipo pôs mais jogadores no Top {top} do que sua fatia do campo. Top {top} pela colocação final."
+      "conversionNote": "Barra dourada maior que a cinza: o arquétipo pôs mais jogadores no Top {top} do que sua fatia do campo. Top {top} pela colocação final.",
+      "topCutCard": {
+        "title": "Top cut",
+        "meta": "{count, plural, one {# arquétipo} other {# arquétipos}} · imagem para compartilhar",
+        "layout": "Formato da imagem",
+        "share": "Compartilhar",
+        "download": "Download",
+        "hint": "16:9 para feed e Discord, 9:16 para stories, Reels e TikTok.",
+        "alt": "Decks do Top {top}: {decks}",
+        "eyebrow": "Meta do torneio",
+        "duelists": "{count} duelistas",
+        "decks": "{count, plural, one {# deck} other {# decks}}",
+        "winner": "Campeão · {deck}",
+        "section": "Decks no top cut",
+        "archetypes": "{count, plural, one {# arquétipo} other {# arquétipos}}",
+        "topCut": "Top cut"
+      }
     },
     "cardPool": "cartas lançadas até {year}",
     "copyDeck": {

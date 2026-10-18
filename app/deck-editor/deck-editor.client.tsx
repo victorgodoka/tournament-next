@@ -2,32 +2,39 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
 import { useAuth } from '@hooks/index'
-import { fromYdke } from '@utils/deck/codecs/ydke'
+import { toOmega } from '@utils/deck/codecs/omega'
+import { toText } from '@utils/deck/codecs/text'
+import { toYdk } from '@utils/deck/codecs/ydk'
+import { fromYdke, toYdke } from '@utils/deck/codecs/ydke'
 import { addCard, canonicalId, printOf } from '@utils/deck/model'
 import { pointsUsed, validate, type Problem } from '@utils/deck/rules'
 import { DeckCodeError, EMPTY_DECK, type CardData, type CardMap, type Deck, type Zone } from '@utils/deck/types'
 import { getDeck, type SavedDeck } from '@utils/decks'
 import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
+import { BusyDialog } from './busy-dialog'
 import { CardDetail } from './card-detail'
 import { CardPool } from './card-pool'
 import { shakeTiles } from './card-tile'
 import { ConflictDialog } from './conflict-dialog'
 import { editorReducer, initialEditorState, type EditorState, type ViewMode } from './deck-editor.reducer'
 import { DeckTray } from './deck-tray'
+import { deckImage, type ImageInfo } from './deck-image'
+import { download, fileName, konamiPdf, readDeck, share } from './deck-io'
 import { DeckZone, type DragPayload } from './deck-zone'
+import { tileStatus } from './pool-query'
 import { canStore, clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
 import { HoverPreview } from './hover-preview'
 import { useEditorKeys } from './keyboard'
 import { MyDecks } from './my-decks'
-import { Toolbar } from './toolbar'
+import { Toolbar, type ExportKind } from './toolbar'
 import { useCardCache } from './use-card-cache'
 import { draftOf, loadAction, useSave } from './use-save'
 
@@ -45,6 +52,10 @@ const readView = (): ViewMode => {
 }
 
 type Notice = 'damagedLink' | 'deckMissing' | 'deckCarried'
+type Toast = { tone: 'positive' | 'negative' | 'warn'; text: string }
+
+/** A .ydk is a few KB; anything far bigger isn't one. */
+const MAX_IMPORT_BYTES = 64 * 1024
 
 /** Runs once (client only): `?d=` wins over the local draft; a damaged link opens an empty deck. */
 const boot = (deckId: string | null): { state: EditorState; notice: Notice | null; today: string } => {
@@ -115,6 +126,7 @@ const useWide = () => useSyncExternalStore(watchWide, () => matchMedia(WIDE).mat
 
 const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const t = useTranslations('DeckEditor')
+  const locale = useLocale()
   const router = useRouter()
   const { user } = useAuth()
   const [{ state: bootState, notice: bootNotice, today }] = useState(() => boot(deckId))
@@ -158,6 +170,32 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
   /** The draft the debounce hasn't written yet, flushed on unmount and pagehide so closing the tab keeps it. */
   const unsaved = useRef<{ key: string; draft: Draft } | null>(null)
+  const [toast, setToast] = useState<Toast | null>(null)
+  /** An import or export still working: the page is blocked until it settles. */
+  const [busy, setBusy] = useState<'importing' | 'building' | null>(null)
+  /** The deck's Omega code, ready before Ctrl+C: a copy event takes its data synchronously. */
+  const omega = useRef<string | null>(null)
+  const story = useRef<{ key: string; blob: Promise<Blob> } | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  useEffect(() => {
+    let live = true
+    omega.current = null
+    toOmega(deck).then(
+      (code) => {
+        if (live) omega.current = code
+      },
+      () => {},
+    )
+    return () => {
+      live = false
+    }
+  }, [deck])
 
   useEffect(() => {
     getBanlists().then(setBanlists)
@@ -310,7 +348,118 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     if (card) setDetail({ card, art: id })
   }
 
+  /** Replaces the deck as one undoable step; a .ydk's file name names a deck that has none. */
+  const importText = async (text: string, name?: string) => {
+    setBusy('importing') // an Omega code looks its cards up before it can split the extra deck
+    try {
+      const { deck: next, format } = await readDeck(text, ensure)
+      dispatch({ type: 'replace', deck: next })
+      if (name && !state.name.trim()) dispatch({ type: 'rename', name })
+      setToast({ tone: 'positive', text: t('io.imported', { format: t(`io.format.${format}`) }) })
+    } catch (error) {
+      if (!(error instanceof DeckCodeError)) console.error(error)
+      setToast({ tone: 'negative', text: t(error instanceof DeckCodeError ? 'io.invalid' : 'io.lookupFailed') })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const importFile = (file: File) => {
+    if (file.size > MAX_IMPORT_BYTES) return setToast({ tone: 'negative', text: t('io.invalid') })
+    file.text().then(
+      (text) => importText(text, file.name.replace(/\.[^.]*$/, '')),
+      () => setToast({ tone: 'negative', text: t('io.invalid') }),
+    )
+  }
+
+  const copy = (text: string | Promise<string>, format: 'omega' | 'ydke' | 'list') =>
+    Promise.resolve(text)
+      .then((s) => navigator.clipboard.writeText(s))
+      .then(
+        () => setToast({ tone: 'positive', text: t('io.copied', { format: t(`io.format.${format}`) }) }),
+        (error) => {
+          console.error(error)
+          setToast({ tone: 'negative', text: t('io.copyFailed') })
+        },
+      )
+
+  const exportAs = async (kind: ExportKind) => {
+    if (!allIds.length) return setToast({ tone: 'negative', text: t('io.empty') })
+    if (kind === 'omega') return copy(omega.current ?? toOmega(deck), kind)
+    if (kind === 'ydke') return copy(toYdke(deck), kind)
+    if (kind === 'list') return copy(toText(deck, cards), kind)
+    if (kind === 'ydk') {
+      const file = fileName(state.name, 'ydk')
+      download(new Blob([toYdk(deck)], { type: 'text/plain' }), file)
+      return setToast({ tone: 'positive', text: t('io.downloaded', { file }) })
+    }
+    setBusy('building')
+    try {
+      if (kind === 'pdf') {
+        const file = fileName(state.name, 'pdf')
+        const { blob, overflow } = await konamiPdf(deck, cards)
+        download(blob, file)
+        return setToast(overflow ? { tone: 'warn', text: t('io.pdfOverflow', { file }) } : { tone: 'positive', text: t('io.downloaded', { file }) })
+      }
+      const file = fileName(kind === 'wide' ? state.name : `${state.name.trim() || 'deck'}-story`, 'jpg')
+      const blob = await (kind === 'wide' ? deckImage(deck, cards, imageInfo(), 'wide') : storyImage())
+      if (kind !== 'share') {
+        download(blob, file)
+        return setToast({ tone: 'positive', text: t('io.downloaded', { file }) })
+      }
+      const how = await share(blob, file, imageInfo().title)
+      setToast(how === 'cancelled' ? null : { tone: 'positive', text: how === 'shared' ? t('io.shared') : t('io.downloaded', { file }) })
+    } catch (error) {
+      console.error(error)
+      story.current = null
+      setToast({ tone: 'negative', text: t('io.failed') })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const imageInfo = (): ImageInfo => {
+    const author = user?.profile.username
+    return {
+      title: state.name.trim() || t('newDeck'),
+      format: banlist && { name: banlist.name, format: banlist.format },
+      author: author ? t('io.image.builtBy', { name: author }) : null,
+      date: new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date()),
+      eyebrow: t('io.image.eyebrow'),
+      zones: { main: t('zones.main'), extra: t('zones.extra'), side: t('zones.side') },
+      totals: t('io.image.totals', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length }),
+      cta: t('io.image.cta'),
+      points: Object.fromEntries(
+        allIds.flatMap((id) => {
+          const card = cards.get(id)
+          const status = card && tileStatus(card, banlist)
+          return typeof status === 'object' ? [[id, status.points]] : []
+        }),
+      ),
+    }
+  }
+
+  /** The 9:16 image, drawn once per deck and wording: the share sheet needs the tap's activation, which a long draw outlives. */
+  const storyImage = () => {
+    const info = imageInfo()
+    const key = JSON.stringify([deck, info])
+    if (story.current?.key !== key) story.current = { key, blob: deckImage(deck, cards, info, 'tall') }
+    return story.current.blob
+  }
+
   useEditorKeys({
+    paste: (data) => {
+      const file = data.files[0]
+      if (file) return importFile(file)
+      const text = data.getData('text/plain')
+      if (text.trim()) void importText(text)
+    },
+    copy: (data) => {
+      if (!allIds.length) return setToast({ tone: 'negative', text: t('io.empty') })
+      if (!omega.current) return void copy(toOmega(deck), 'omega') // edited a moment ago: still encoding
+      data.setData('text/plain', omega.current)
+      setToast({ tone: 'positive', text: t('io.copied', { format: t('io.format.omega') }) })
+    },
     undo: () => dispatch({ type: 'undo' }),
     redo: () => dispatch({ type: 'redo' }),
     save: saveNow,
@@ -366,6 +515,12 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       saving={saving}
       onSave={saveNow}
       onMyDecks={() => setMyDecks(true)}
+      onImport={(text) => void importText(text)}
+      onImportFile={importFile}
+      onExport={(kind) => void exportAs(kind)}
+      onExportOpen={() => {
+        if (allIds.length && matchMedia('(pointer: coarse)').matches) storyImage().catch(() => {}) // a failure surfaces on the tap
+      }}
     />
   )
 
@@ -487,6 +642,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
               zone={zone}
               ids={deck[zone]}
               cards={cards}
+              banlist={banlist}
               view={view}
               problems={flagged}
               onRemove={(id) => dispatch({ type: 'remove', zone, id })}
@@ -510,6 +666,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         <DeckTray
           state={state}
           cards={cards}
+          banlist={banlist}
           problems={problems}
           validity={validity}
           flagged={flagged}
@@ -525,6 +682,12 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
+
+      {toast ? (
+        <div className="fixed inset-x-4 top-[calc(var(--header-h,64px)+12px)] z-(--z-toast) mx-auto max-w-120 drop-shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
+          <Alert tone={toast.tone} edged title={toast.text} action={<Button variant="ghost" size="sm" onClick={() => setToast(null)} className="max-lg:min-h-11">{t('dismiss')}</Button>} />
+        </div>
+      ) : null}
 
       {signInTab ? (
         <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-(--z-toast) mx-auto max-w-120 lg:bottom-6">
@@ -578,6 +741,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         onDeleted={deletedOpen}
         deleteReplacesNew={(id) => id === state.deckId && otherNewDraft()}
       />
+      <BusyDialog label={busy && t(`io.${busy}`)} />
       <HoverPreview cards={cards} />
       <CardDetail
         card={detail?.card ?? null}

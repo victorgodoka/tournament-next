@@ -2,13 +2,17 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
-import { MatchAnalytics } from "@omega/analytics/match-analytics";
 import type { Match, MatchSide } from "@utils/types";
+import { ANALYTICS_ENABLED } from "@utils/const";
 import { ResultPill } from "@ui/result";
 import { LocalTime } from "./local-time";
+
+/** Own chunk, fetched on the first open: never downloaded while analytics is off. */
+const MatchAnalytics = dynamic(() => import("@omega/analytics/match-analytics").then((m) => m.MatchAnalytics));
 
 /** Desktop column tracks, shared by the head and every row so they line up. The last one is the toggle. */
 const COLS =
@@ -75,6 +79,7 @@ export const MatchRow = ({ match }: { match: Match }) => {
   const [mounted, setMounted] = useState(false)
 
   const toggle = () => {
+    if (!ANALYTICS_ENABLED) return
     setMounted(true)
     setOpen((current) => !current)
   }
@@ -87,7 +92,8 @@ export const MatchRow = ({ match }: { match: Match }) => {
           if (!(event.target as HTMLElement).closest('a, button')) toggle()
         }}
         className={twMerge(
-          "grid cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3.5 transition-colors hover:bg-surface-300",
+          "grid grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3.5 transition-colors hover:bg-surface-300",
+          ANALYTICS_ENABLED && "cursor-pointer",
           open && "bg-surface-200 hover:bg-surface-200",
           COLS,
         )}
@@ -120,7 +126,7 @@ export const MatchRow = ({ match }: { match: Match }) => {
           {match.when ? <LocalTime iso={match.when} options={{ dateStyle: 'medium', timeStyle: 'short' }} /> : '—'}
         </p>
   
-        <button
+        {ANALYTICS_ENABLED ? <button
           type="button"
           aria-expanded={open}
           aria-controls={panelId}
@@ -134,7 +140,7 @@ export const MatchRow = ({ match }: { match: Match }) => {
           <span className="lg:sr-only">{open ? 'Hide' : 'Timeline & stats'}</span>
           <span className="sr-only max-lg:hidden"> for the duel against {match.opponent.name || 'Unknown duelist'}</span>
           <Icon icon="mdi:chevron-down" aria-hidden className={twMerge("size-5 motion-safe:transition-transform", open && "rotate-180")} />
-        </button>
+        </button> : null}
       </div>
   
       {mounted ? (

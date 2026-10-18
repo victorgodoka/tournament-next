@@ -16,6 +16,7 @@
     "save": {
       "failed": "Couldn't save the deck.",
       "rejected": "The server refused this deck. Check the card counts and the copies of each card.",
+      "rateLimited": "Too many requests. Try saving again in {seconds, plural, one {# second} other {# seconds}}.",
       "kept": "Your changes are kept on this device.",
       "wait": "Still loading. Try again in a moment.",
       "loadFailed": "The saved deck didn't load, so it can't be saved over yet. Retry loading first.",
@@ -89,6 +90,50 @@
       "unsaved": "Unsaved changes",
       "myDecks": "My decks"
     },
+    "io": {
+      "import": "Import",
+      "export": "Export",
+      "code": "Deck code",
+      "placeholder": "Paste an Omega code or ydke:// URL",
+      "importCode": "Import code",
+      "importFile": "Open .ydk file",
+      "pasteHint": "Ctrl+V anywhere in the editor imports the code on your clipboard.",
+      "copyHint": "Ctrl+C copies the deck as an Omega code.",
+      "as": {
+        "omega": "Copy Omega code",
+        "ydke": "Copy ydke:// URL",
+        "ydk": "Download .ydk file",
+        "pdf": "Konami decklist (PDF)",
+        "list": "Copy card list",
+        "wide": "Image 16:9",
+        "tall": "Image 9:16",
+        "share": "Share image 9:16"
+      },
+      "image": {
+        "eyebrow": "Deck list",
+        "builtBy": "Built by {name}",
+        "totals": "Main {main} · Extra {extra} · Side {side}",
+        "cta": "Build yours in YGO Omega"
+      },
+      "format": {
+        "omega": "Omega code",
+        "ydke": "ydke:// URL",
+        "ydk": ".ydk file",
+        "list": "Card list"
+      },
+      "imported": "Deck imported ({format}). Undo brings the previous one back.",
+      "invalid": "That isn't an Omega code, ydke:// URL or .ydk file.",
+      "lookupFailed": "Couldn't look up the cards in that code. Try again.",
+      "copied": "Copied: {format}.",
+      "copyFailed": "Couldn't reach the clipboard.",
+      "empty": "The deck is empty: add cards first.",
+      "building": "Building…",
+      "importing": "Importing…",
+      "downloaded": "{file} downloaded.",
+      "shared": "Image shared.",
+      "pdfOverflow": "{file} downloaded, but a section has more cards than the form has rows.",
+      "failed": "Export failed. Try again."
+    },
     "views": {
       "grid": "Grid",
       "list": "List",
@@ -153,7 +198,6 @@
       "searchBy": "Search by",
       "byName": "Name",
       "byText": "Card text",
-      "quick": "Quick filters",
       "monster": "Monster",
       "spell": "Spell",
       "trap": "Trap",
@@ -182,6 +226,7 @@
     },
     "filters": {
       "title": "Filters",
+      "kind": "Card kind",
       "close": "Close filters",
       "archetype": "Archetype",
       "archetypeSearch": "Find an archetype",
@@ -239,6 +284,61 @@
       "inZone": "{count} in the {zone}"
     }
   },
+  "Download": {
+    "meta": {
+      "title": "Download YGO Omega for Windows, Mac, Linux, Android and iOS",
+      "description": "Download YGO Omega, the free Yu-Gi-Oh! simulator, for Windows, Mac, Linux, Android and iOS. System requirements and VIP donations."
+    },
+    "hero": {
+      "lead": "The Ultimate Yu-Gi-Oh! Simulator.",
+      "github": "View project on GitHub",
+      "platforms": "Download for your system",
+      "latest": "Latest release"
+    },
+    "specs": {
+      "heading": "System requirements",
+      "count": "{count} platforms",
+      "minimum": "Minimum",
+      "recommended": "Recommended",
+      "rows": {
+        "os": "OS",
+        "processor": "Processor",
+        "cpu": "CPU",
+        "memory": "Memory",
+        "graphics": "Graphics",
+        "directx": "DirectX",
+        "network": "Network",
+        "storage": "Storage",
+        "sound": "Sound card",
+        "resolution": "Resolution"
+      },
+      "values": {
+        "latest": "{os} latest revision",
+        "dualCore": "Dual core CPU",
+        "quadCore": "Quad core CPU",
+        "version": "Version {version}",
+        "broadband": "Broadband internet connection",
+        "space": "{size} available space",
+        "onBoard": "On board"
+      }
+    },
+    "donations": {
+      "heading": "Donations",
+      "title": "Become VIP",
+      "body": "By donating a minimum of <gold>5 USD</gold>, you will get 1 of each rarity, and your mat and sleeves visible to your opponents.",
+      "perks": {
+        "rarities": { "label": "Rarities", "value": "1 of each" },
+        "mat": { "label": "Mat", "value": "Visible to opponents" },
+        "sleeves": { "label": "Sleeves", "value": "Visible to opponents" }
+      },
+      "donate": "Donate"
+    },
+    "about": {
+      "heading": "About",
+      "body": "YGO Omega is an automatic (and manual) Yu-Gi-Oh Trading Card Game simulator developed by Duelists Unite (DU). It has all of the cards for free with an automatic Swiss Tournament system and ranking. The DU discord hosts weekly tournaments with prizes and even casual players with beginner knowledge of Yu-Gi-Oh can find something to enjoy!",
+      "community": "Community"
+    }
+  },
   "Welcome": {
     "header": {
       "eyebrow": "Omega Hub",
@@ -294,6 +394,129 @@
       }
     }
   },
+  "Banlist": {
+    "meta": {
+      "title": "Yu-Gi-Oh! Banlist History: Every TCG Forbidden & Limited List",
+      "description": "Every Yu-Gi-Oh! TCG banlist since 2002: {lists} Forbidden & Limited Lists, {changes} changes, {cards} cards. Current list: {current}, with {forbidden} Forbidden cards.",
+      "listTitle": "Yu-Gi-Oh! Banlist {label}: TCG Forbidden & Limited List",
+      "listDescription": "The {label} Yu-Gi-Oh! TCG Forbidden & Limited List, from {start}: {changes, plural, one {# change} other {# changes}}, {forbidden} Forbidden, {limited} Limited and {semi} Semi-Limited cards.",
+      "cardTitle": "Is {card} Banned? Yu-Gi-Oh! Banlist History",
+      "cardDescription": "{card} is {status} on the {label} Yu-Gi-Oh! TCG banlist. First listed in {first}, on {count} of {total} Forbidden & Limited Lists: when it was banned and every change."
+    },
+    "home": "Home",
+    "crumb": "Banlist timeline",
+    "eyebrow": "TCG · Forbidden & Limited",
+    "title": "Yu-Gi-Oh! banlist timeline",
+    "listTitle": "Yu-Gi-Oh! banlist {label}",
+    "lead": "Every Yu-Gi-Oh! TCG Forbidden & Limited List, from May 2002 to {latest}. Pick a list to see what changed, or look up any card's history.",
+    "listLead": "The {label} Forbidden & Limited List of the Yu-Gi-Oh! TCG Advanced Format: what changed from the list before it, the whole list, and each card's history across all {lists} lists.",
+    "source": "Source: Yugipedia · Historic Forbidden/Limited Chart",
+    "status": {
+      "F": "Forbidden",
+      "L": "Limited",
+      "S": "Semi-Limited",
+      "U": "Unlimited",
+      "N": "New"
+    },
+    "summary": {
+      "label": "Summary",
+      "lists": "Lists",
+      "cards": "Cards ever listed",
+      "cardsNote": "On at least one list",
+      "changes": "Changes",
+      "changesNote": "Additions, releases and moves",
+      "current": "In force · {label}",
+      "split": "{f} Forbidden · {l} Limited · {s} Semi-Limited"
+    },
+    "chart": {
+      "heading": "Size of each list",
+      "hint": "Pick a bar to open that list",
+      "bar": "{label}: {f} Forbidden, {l} Limited, {s} Semi-Limited"
+    },
+    "timeline": {
+      "heading": "Timeline",
+      "meta": "{count} lists · newest first",
+      "nav": "Banlists",
+      "year": "{count, plural, one {# list} other {# lists}}",
+      "changes": "{count, plural, one {# change} other {# changes}}",
+      "position": "List {num} of {count} · TCG",
+      "previous": "Previous",
+      "next": "Next",
+      "since": "From {date}",
+      "inForce": "In force",
+      "announced": "Announced",
+      "vsPrevious": "against the list before",
+      "first": "The first TCG list: every card below went on it now.",
+      "changed": "What changed · {count}",
+      "full": "Full list · {count}",
+      "group": {
+        "F": "To Forbidden",
+        "L": "To Limited",
+        "S": "To Semi-Limited",
+        "U": "Released · Unlimited"
+      },
+      "to": "to",
+      "none": "No cards"
+    },
+    "history": {
+      "heading": "Card history",
+      "meta": "{count} cards",
+      "search": "Search a card",
+      "placeholder": "E.g. Pot of Greed, Maxx \"C\", Snake-Eye",
+      "noResults": "No card with that name has been on a TCG list.",
+      "empty": "Search a card to see its path through every list, or open any card name above for its own page.",
+      "listed": "On {count} of {total} lists",
+      "now": "Today · {status}",
+      "start": "May 2002",
+      "offList": "Off the list = Unlimited",
+      "cell": "{label}: {status}",
+      "changes": "Changes"
+    },
+    "faq": {
+      "heading": "Banlist questions",
+      "currentQ": "What is the current Yu-Gi-Oh! TCG banlist?",
+      "currentA": "The {label} Forbidden & Limited List, in force since {date}. It has {f} Forbidden, {l} Limited and {s} Semi-Limited cards.",
+      "nextQ": "When does the next Yu-Gi-Oh! banlist take effect?",
+      "nextA": "The {label} list is announced and takes effect on {date}, with {count, plural, one {# change} other {# changes}} to the current list.",
+      "countQ": "How many Yu-Gi-Oh! TCG banlists have there been?",
+      "countA": "{lists} Forbidden & Limited Lists since the first one on {first}. Together they made {changes} changes to {cards} different cards.",
+      "firstQ": "What was the first Yu-Gi-Oh! TCG banlist?",
+      "firstA": "The list of {date}, with {l} Limited and {s} Semi-Limited cards. Nothing was Forbidden yet.",
+      "biggestQ": "Which Yu-Gi-Oh! banlist was the biggest?",
+      "biggestA": "{label}, with {total} cards: {f} Forbidden, {l} Limited and {s} Semi-Limited.",
+      "potQ": "When was Pot of Greed banned?",
+      "potA": "Pot of Greed went Forbidden in the {label} list ({date}). Today it is {status}.",
+      "startQ": "When did the {label} Yu-Gi-Oh! banlist take effect?",
+      "startA": "On {start}. {end, select, none {It is still the latest list.} other {It stayed in force until {end}.}}",
+      "bannedQ": "What was banned in the {label} banlist?",
+      "bannedA": "{count, plural, =0 {No card went to Forbidden on this list.} one {One card went to Forbidden: {names}.} other {# cards went to Forbidden: {names}.}}",
+      "freedQ": "What was unbanned or released in the {label} banlist?",
+      "freedA": "{count, plural, =0 {No card left the list.} one {One card left the list and went back to Unlimited: {names}.} other {# cards left the list and went back to Unlimited: {names}.}}",
+      "sizeQ": "How many cards are on the {label} banlist?",
+      "sizeA": "{total}: {f} Forbidden, {l} Limited and {s} Semi-Limited."
+    },
+    "card": {
+      "lead": "{card} on every Yu-Gi-Oh! TCG Forbidden & Limited List: its status today, when it was banned and each change across all {lists} lists.",
+      "today": "Today · {label} list",
+      "next": "{status} from {date}",
+      "since": "List in force since {date}",
+      "lists": "Lists it was on",
+      "listsNote": "Out of {total}",
+      "first": "First listed",
+      "changes": "Changes",
+      "historyMeta": "{count, plural, one {# change} other {# changes}}",
+      "faq": {
+        "bannedQ": "Is {card} banned?",
+        "bannedA": "{now, select, F {Yes. {card} is Forbidden on the current TCG list ({label}): no copies are allowed in a deck.} L {Not banned, but Limited: {card} is held to 1 copy on the current TCG list ({label}).} S {Not banned, but Semi-Limited: {card} is held to 2 copies on the current TCG list ({label}).} other {No. {card} is Unlimited on the current TCG list ({label}), so you can play up to 3 copies.}}",
+        "upcoming": "The announced {label} list makes it {status} from {date}.",
+        "firstQ": "When was {card} first banned?",
+        "firstA": "{when, select, past {{card} first went Forbidden on the {label} list, from {date}.} soon {{card} goes Forbidden for the first time with the announced {label} list, from {date}.} other {{card} has never been Forbidden in the TCG. It first went on the list in {label} ({date}), as {status}.}}",
+        "lastQ": "When was {card} last on the banlist?",
+        "lastA": "{when, select, now {{card} is on the list right now: {status} on the current {label} list.} past {{card} was last on the {label} list, as {status}. It has been Unlimited since {date}.} other {{card} has not been on a TCG list yet. The announced {label} list adds it as {status} from {date}.}}"
+      }
+    },
+    "note": "TCG (Advanced Format) data from Yugipedia's Historic Forbidden/Limited Chart and each list's page. OCG lists are not included. Card names as printed in the TCG."
+  },
   "Calendar": {
     "meta": {
       "title": "Tournament calendar",
@@ -310,6 +533,20 @@
     "dayLabel": "{day}: {count, plural, =0 {no tournaments} one {# tournament} other {# tournaments}}",
     "more": "+{count} more",
     "dayEmpty": "No tournaments this day.",
+    "filters": {
+      "label": "Filters",
+      "format": "Format",
+      "allFormats": "All",
+      "time": "Time",
+      "anyTime": "Any",
+      "slot": {
+        "morning": "Morning (6–12)",
+        "afternoon": "Afternoon (12–18)",
+        "evening": "Evening (18–24)",
+        "night": "Night (0–6)"
+      },
+      "rotating": "Rotating tournaments"
+    },
     "failed": "Couldn't load the calendar. Try again in a moment.",
     "fallbackFormat": "Tournament",
     "pass": "Battle pass",
@@ -580,7 +817,23 @@
       "conversionTitle": "Who reached the Top {top}",
       "field": "Share of the field",
       "topCut": "Share of the Top {top}",
-      "conversionNote": "A gold bar longer than the grey one: the archetype put more players in the Top {top} than its share of the field. Top {top} by final rank."
+      "conversionNote": "A gold bar longer than the grey one: the archetype put more players in the Top {top} than its share of the field. Top {top} by final rank.",
+      "topCutCard": {
+        "title": "Top cut",
+        "meta": "{count, plural, one {# archetype} other {# archetypes}} · image to share",
+        "layout": "Image shape",
+        "share": "Share",
+        "download": "Download",
+        "hint": "16:9 for feeds and Discord, 9:16 for stories, Reels and TikTok.",
+        "alt": "Top {top} decks: {decks}",
+        "eyebrow": "Meta breakdown",
+        "duelists": "{count} duelists",
+        "decks": "{count, plural, one {# deck} other {# decks}}",
+        "winner": "Winner · {deck}",
+        "section": "Decks in top cut",
+        "archetypes": "{count, plural, one {# archetype} other {# archetypes}}",
+        "topCut": "Top cut"
+      }
     },
     "cardPool": "cards released until {year}",
     "copyDeck": {

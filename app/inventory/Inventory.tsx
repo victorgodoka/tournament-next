@@ -10,6 +10,7 @@ import { Icon } from '@ui/icon'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import type { ShopEnum } from '@utils/types'
+import { BATTLEPASS_ENABLED, SHOP_ENABLED } from '@utils/const'
 
 const LINK = 'inline-flex min-h-11 items-center gap-1.5 text-cyan signal-strong hover:underline'
 
@@ -67,8 +68,9 @@ export const Inventory = ({ types }: { types: ShopEnum[] }) => {
               </>
             ) : wallet ? (
               <p className="text-ink-muted body-sm">
-                Nothing here yet. Buy something in the <Link href="/shop" className="text-cyan hover:underline">shop</Link>, or earn it on the{' '}
-                <Link href="/battlepass" className="text-cyan hover:underline">battlepass</Link>.
+                Nothing here yet.
+                {SHOP_ENABLED ? <> Buy something in the <Link href="/shop" className="text-cyan hover:underline">shop</Link>.</> : null}
+                {BATTLEPASS_ENABLED ? <> Earn items on the <Link href="/battlepass" className="text-cyan hover:underline">battlepass</Link>.</> : null}
               </p>
             ) : (
               <p role="status" className="text-ink-muted signal-nav">Loading your items…</p>
@@ -78,10 +80,12 @@ export const Inventory = ({ types }: { types: ShopEnum[] }) => {
           <aside aria-label="Loadout" className="flex flex-col gap-6">
             <Panel tone="framed" title="Loadout" meta={`${t.slots.filter((s) => loadout.equipped[s.value]).length} of ${t.slots.length} slots`} className="pb-3 min-[720px]:pb-3">
               <LoadoutList loadout={loadout} types={types} />
-              <Link href="/shop" className={LINK}>
-                Get more in the shop
-                <Icon name="arrow" size={16} />
-              </Link>
+              {SHOP_ENABLED ? (
+                <Link href="/shop" className={LINK}>
+                  Get more in the shop
+                  <Icon name="arrow" size={16} />
+                </Link>
+              ) : null}
             </Panel>
           </aside>
         </div>

@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
   description: 'Server-wide ranked analytics — meta share, matchups, engines and hand traps.',
 })
 
-/** The staff-built server-wide explorations. Duelists' own published ones live on /statistics. */
+/** The staff-built server-wide explorations. Duelists' own published ones live on /analytics/explorations. */
 const AnalyticsPage = async () => {
   const [global, variables] = await Promise.all([listGlobalExplorations(), getGlobalVariables()])
 
@@ -23,7 +23,7 @@ const AnalyticsPage = async () => {
       aside={
         <p className="max-w-[46ch] text-ink-dim body-sm">
           Every ranked duel, one sample per deck per game: meta share, matchups, engines, techs and hand traps. Built by staff.
-          Duelists&apos; own explorations are on <Link href="/statistics" className="text-cyan hover:underline">Statistics</Link>.
+          Duelists&apos; own explorations are on <Link href="/analytics/explorations" className="text-cyan hover:underline">Explorations</Link>.
         </p>
       }
     >

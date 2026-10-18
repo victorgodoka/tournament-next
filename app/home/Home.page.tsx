@@ -8,6 +8,7 @@ import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { Icon } from "@ui/icon";
 import {
+  ANALYTICS_ENABLED,
   DECK_BUILDER_URL,
   DOWNLOAD_URL,
   FORMATS_SUPPORTED,
@@ -106,7 +107,7 @@ const Hero = ({ cards }: { cards: Card[] }) => (
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
       <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android">Free · every card unlocked</Eyebrow>
       <h1 className="font-display text-[clamp(52px,10.4vw,115px)] leading-[0.88] tracking-[-0.005em] uppercase text-balance">
-        The first Yu-Gi-Oh! simulator with a real <span className="text-cyan">automatic tournament</span> system
+        The first Yu-Gi-Oh! simulator with <span className="text-cyan">automatic tournaments</span>
       </h1>
       <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-10">
         <div className="flex max-w-155 flex-[1_1_380px] flex-col gap-7">
@@ -120,19 +121,66 @@ const Hero = ({ cards }: { cards: Card[] }) => (
         </div>
         <CardFan cards={cards} />
       </div>
-      <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-px border border-line bg-line">
-        {[
-          { value: "$0", label: "No currency, no crafting, no packs", tone: "text-gold" },
-          { value: "Elo", label: "A rating that moves with your results", tone: "text-cyan" },
-        ].map(({ value, label, tone }) => (
-          <div key={value} className="flex items-center gap-6 bg-surface-100 px-7 py-6">
-            <dt className={twMerge("font-display text-[clamp(56px,7vw,96px)] leading-[0.9]", tone)}>{value}</dt>
-            <dd className="text-ink-dim signal">{label}</dd>
-          </div>
-        ))}
-      </dl>
+      <ValueCards />
     </div>
   </section>
+)
+
+const VALUE_CARD = "group cut notch relative flex min-h-60 flex-col justify-between gap-8 overflow-hidden p-[clamp(24px,3vw,32px)] [--cut:var(--cut-lg)] motion-safe:transition-[translate] motion-safe:duration-200 motion-safe:ease-out hover:-translate-y-1"
+/** Glow in the card's corner, brighter while hovered. */
+const CardGlow = ({ tone }: { tone: string }) => (
+  <span aria-hidden className={twMerge("absolute -top-1/2 -right-1/4 aspect-square w-[80%] rounded-round opacity-40 group-hover:opacity-90 motion-safe:transition-opacity motion-safe:duration-300", tone)} />
+)
+
+/** One duelist's season, rising with dips: 13 results, ends top-right. */
+const ELO_WALK = "4,64 28,58 52,62 76,50 100,54 124,42 148,46 172,36 196,40 220,28 244,31 268,20 292,12"
+
+/** Hero's two promises. Each loop rests on its last frame, which is all reduced motion sees. */
+const ValueCards = () => (
+  <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-4">
+    <div className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-gold)]")}>
+      <CardGlow tone="bg-[radial-gradient(circle,rgba(239,209,126,0.22)_0%,rgba(0,0,0,0)_65%)]" />
+      <div className="relative flex items-end justify-between gap-6">
+        <dt className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-gold">$0</dt>
+        <ul aria-hidden className="flex flex-col items-end gap-2.5">
+          {["Currency", "Crafting", "Packs"].map((word, i) => (
+            <li key={word} className="relative font-display text-[clamp(24px,2.6vw,34px)] leading-none text-ink-muted uppercase">
+              {word}
+              <span className="absolute -inset-x-1.5 top-[calc(50%-1.5px)] h-0.75 origin-left animate-strike bg-gold" style={{ animationDelay: `${i * 0.4}s` }} />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <ul aria-hidden className="relative flex flex-col gap-2 font-mono text-sm leading-none text-ink-dim">
+        {["Every card", "Ranked queue", "Tournament entry"].map((item) => (
+          <li key={item} className="flex items-baseline gap-2">
+            {item}
+            <span className="flex-1 border-b border-dotted border-line-mid" />
+            <b className="text-gold">$0.00</b>
+          </li>
+        ))}
+      </ul>
+      <dd className="relative text-ink-dim signal">No currency, no crafting, no packs</dd>
+    </div>
+
+    <div className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
+      <CardGlow tone="bg-[radial-gradient(circle,rgba(0,253,255,0.18)_0%,rgba(0,0,0,0)_65%)]" />
+      <div className="relative flex items-end justify-between gap-6">
+        <dt className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-cyan">Elo</dt>
+        <span aria-hidden className="flex flex-col items-end gap-1.5">
+          <span className="text-ink-muted signal-sm">Rating</span>
+          <span className="elo-count animate-count font-mono text-[clamp(28px,3vw,40px)] leading-none font-bold text-ink" />
+          <span className="font-mono text-sm leading-none font-bold text-win">+148</span>
+        </span>
+      </div>
+      <svg aria-hidden viewBox="0 0 300 76" className="relative -my-2 w-full overflow-visible">
+        {[16, 40, 64].map((y) => <line key={y} x1="0" x2="300" y1={y} y2={y} className="stroke-line" strokeDasharray="2 6" />)}
+        <polyline points={ELO_WALK} pathLength={1} fill="none" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" className="animate-draw stroke-cyan [stroke-dasharray:1]" />
+        <circle cx="292" cy="12" r="5" className="origin-center animate-pop fill-cyan [transform-box:fill-box]" />
+      </svg>
+      <dd className="relative text-ink-dim signal">A rating that moves with your results</dd>
+    </div>
+  </dl>
 )
 
 /** Every supported format in outsized Anton, alternating solid and outline, on a 40s loop. */
@@ -190,16 +238,20 @@ const Tournaments = () => (
     <div className={twMerge(WRAP, SECTION_GAP)}>
       <Rail num="02">Yugioh automatic tournament</Rail>
       <div className="flex flex-wrap items-end gap-x-16 gap-y-8">
-        <h2 className={twMerge(BAND_TITLE, "max-w-[18ch] flex-[1_1_520px]")}>Decks lock at round one. The rule holds without anyone policing it.</h2>
+        <h2 className={twMerge(BAND_TITLE, "max-w-[18ch] flex-[1_1_520px]")}>Decks lock at round one and stay locked to the last round</h2>
         <div className="flex flex-[1_1_320px] flex-col gap-6">
-          <h3 className="font-display text-[28px] leading-none text-cyan uppercase">Automatic Swiss tournaments</h3>
+          <h3 className="font-display text-[28px] leading-none text-cyan uppercase">Automatic, rotating Swiss tournaments</h3>
           <p className="text-base leading-[1.6] text-ink-dim">
-            Sign up, submit a deck, and duel. Omega checks the list against the format&apos;s banlist, pairs the round, records the result and updates the standings. Decks lock the moment the tournament starts, so the rule holds without anyone policing it.
+            Sign up, submit a deck, and duel. Omega checks the list against the format&apos;s banlist, pairs the round, records the result and updates the standings. Decks lock the moment the tournament starts, so no judge has to check for swaps. Rotating tournaments open on the calendar by themselves, with no organizer behind them.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <Button href="/tournaments" variant="secondary">
               <Icon name="sword" />
               Start dueling
+            </Button>
+            <Button href="/calendar" variant="ghost">
+              <Icon name="calendar" />
+              See the calendar
             </Button>
             <span className={NOTE}>Free entry. Elo counted.</span>
           </div>
@@ -233,7 +285,7 @@ const SPLIT = {
 const Rulings = () => (
   <Band id="rullings">
     <Rail num="03">Yugioh TCG OCG rulings</Rail>
-    <h2 className={twMerge(BAND_TITLE, "max-w-[18ch]")}>The same card, scripted twice: one split for rulings, one for eras</h2>
+    <h2 className={twMerge(BAND_TITLE, "max-w-[18ch]")}>When two texts disagree, the card gets two scripts</h2>
     <p className="max-w-[72ch] text-[clamp(15px,1.4vw,18px)] leading-[1.6] text-ink-dim">
       Omega runs the official Fluorohydride core, ocgcore, with corrections to damage calculation and to TCG rulings. It&apos;s the first automatic simulator that scripts a card separately whenever its wording, ruling, or era diverges: TCG versus OCG, and current text versus pre-errata text. Pick a format and you get that format&apos;s card, resolved by a script instead of a server&apos;s interpretation.
     </p>
@@ -264,10 +316,10 @@ const Rulings = () => (
 
 const Formats = () => (
   <Band id="formats">
-    <Rail num="04">Yugioh all cards free</Rail>
+    <Rail num="04">Yugioh formats and banlists</Rail>
     <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
       <div className="flex flex-[1_1_560px] flex-col gap-5">
-        <h2 className={twMerge(BAND_TITLE, "max-w-[16ch]")}>Every format, and every banlist the game has ever had</h2>
+        <h2 className={twMerge(BAND_TITLE, "max-w-[16ch]")}>{FORMATS_SUPPORTED.length} formats, and every banlist the game has ever had</h2>
         <p className={twMerge(BAND_LEAD, "max-w-[56ch]")}>Switch era between duels. Nothing to buy, nothing to unlock, no second client to install.</p>
       </div>
       <Download variant="secondary" />
@@ -460,7 +512,7 @@ const ClosingCta = () => (
 /** Landing, rebuilt on the Omega Hub design system: hero, format ticker, eight numbered bands, closing call to action. */
 const HomePage = async () => {
   // TCG ranking; the landing falls back to the static picks if the API is down or has no open season.
-  const top = (await getTopDecks("tcg").catch(() => null)) ?? []
+  const top = (ANALYTICS_ENABLED ? await getTopDecks("tcg").catch(() => null) : null) ?? []
   const heroCards = top[0]?.topCards.length === 3 ? top[0].topCards : HERO_FALLBACK
   const live = top.flatMap(({ topCards: [card], name, metaShare }) =>
     card && name ? [{ id: card.id, name, note: `${(metaShare * 100).toFixed(1)}% of the meta` }] : [])

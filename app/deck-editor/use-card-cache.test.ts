@@ -26,7 +26,7 @@ describe('useCardCache', () => {
     cardsByIds.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const { result } = renderHook(() => useCardCache())
 
-    let a!: Promise<void>, b!: Promise<void>
+    let a!: Promise<unknown>, b!: Promise<unknown>
     act(() => {
       a = result.current.ensure([1, 2, 2])
       b = result.current.ensure([2, 3])

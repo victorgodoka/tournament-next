@@ -1,7 +1,21 @@
+import { ANALYTICS_ENABLED, SHOP_ENABLED, BATTLEPASS_ENABLED } from "@utils/const";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
+const DISABLED_ROUTES = [
+  ...(ANALYTICS_ENABLED ? [] : [
+    '/analytics/:path*',
+    '/statistics/:path*',
+    '/admin/analytics/:path*',
+    '/profile/:id/analytics/:path*',
+    '/profile/:id/explorations/:path*',
+    '/profile/:id/statistics/:path*',
+  ]),
+  ...(SHOP_ENABLED ? [] : ['/shop/:path*', '/admin/shop/:path*']),
+  ...(BATTLEPASS_ENABLED ? [] : ['/battlepass/:path*', '/admin/battlepass/:path*']),
+];
 const nextConfig: NextConfig = {
+  redirects: async () => DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
   output: "standalone",
   images: {
     /**

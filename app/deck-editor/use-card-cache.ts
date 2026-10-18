@@ -43,11 +43,14 @@ export const useCardCache = () => {
   /** An artwork picked in the detail sheet: `passcode` resolves to the API card, never to a `printOf` copy. */
   const rememberArt = useCallback((passcode: number, card: CardData) => store([[passcode, card]]), [store])
 
-  /** Looks up the ids not known, not known-absent and not already in flight. Failed ids are asked again. */
+  /**
+   * Looks up the ids not known, not known-absent and not already in flight. Failed ids are asked again.
+   * Resolves to every card known so far, for callers that can't wait for the next render.
+   */
   const ensure = useCallback(
-    async (ids: readonly number[]) => {
+    async (ids: readonly number[]): Promise<CardMap> => {
       const missing = [...new Set(ids)].filter((id) => !known.current.has(id) && !unknown.current.has(id) && !inflight.current.has(id))
-      if (!missing.length) return
+      if (!missing.length) return known.current
       for (const id of missing) inflight.current.add(id)
       try {
         const found = await cardsByIds(missing)
@@ -64,6 +67,7 @@ export const useCardCache = () => {
         for (const id of missing) inflight.current.delete(id)
         publish()
       }
+      return known.current
     },
     [publish],
   )

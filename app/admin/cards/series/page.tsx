@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
 import { Alert, Button, Chip, Field, Lookup, PageHeader, Panel, Segmented, Switch, Tag, TextArea, TextInput } from '@ui/index'
 import { useResource } from '@hooks/index'
 import { createSeries, deleteSeries, getSeries, listSeries, panelErrorText, updateSeries, type Series } from '@utils/panel'
+import { ANALYTICS_ENABLED } from '@utils/const'
+import { RulesRebuildNotice } from '@omega/analytics/rules-rebuild-notice'
 import { CardList, findCards, findSetcodes, pickedCard } from '../shared'
 
 type Draft = Omit<Series, 'id' | 'code' | 'updatedAt' | 'members'> & { id: number | null; code: number | null }
@@ -81,9 +82,7 @@ const SeriesPage = () => {
         lead="An archetype made of cards. It creates a new one, or overrides an existing setcode. Global analytics, duelist analytics and tournament decklists all read it."
         end={<Button size="mono-md" onClick={() => setDraft(blank())}>New Series</Button>}
       />
-      <Alert edged tone="warn" action={<Link href="/admin/analytics/sweep" className="signal-strong">Season sweep</Link>} className="items-center">
-        <span className="text-sm text-ink">Changes only reach days swept after you save. Re-run the sweep for past days that should change.</span>
-      </Alert>
+      {ANALYTICS_ENABLED ? <RulesRebuildNotice /> : null}
       {list.error ? <Alert tone="negative" title="Couldn't read the Series">{panelErrorText(list.error)}</Alert> : null}
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)_300px]">

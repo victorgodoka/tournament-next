@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { twMerge } from "tailwind-merge";
 import { Avatar } from "@ui/avatar";
 import { Button } from "@ui/button";
@@ -10,10 +11,13 @@ import { Icon } from "@ui/icon";
 import { ResultPill } from "@ui/result";
 import { TabBar, tabPanelProps } from "@ui/tab-bar";
 import { CardArt } from "@omega/card-art";
-import { MatchAnalytics } from "@omega/analytics/match-analytics";
 import { LocalTime } from "@omega/profile/local-time";
 import { getMatches, ProfileApiError } from "@utils/profile";
 import type { Match, MatchPage } from "@utils/types";
+import { ANALYTICS_ENABLED } from "@utils/const";
+
+/** Own chunk, fetched on the first open: never downloaded while analytics is off. */
+const MatchAnalytics = dynamic(() => import("@omega/analytics/match-analytics").then((m) => m.MatchAnalytics));
 
 /** `all` is the embedded page; the other two are one ranked ladder each. History is ranked only. */
 const TABS = [
@@ -38,6 +42,7 @@ const DuelRow = ({ match }: { match: Match }) => {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const toggle = () => {
+    if (!ANALYTICS_ENABLED) return
     setMounted(true)
     setOpen((current) => !current)
   }
@@ -47,7 +52,8 @@ const DuelRow = ({ match }: { match: Match }) => {
       <div
         onClick={(e) => !(e.target as HTMLElement).closest('a, button') && toggle()}
         className={twMerge(
-          "grid cursor-pointer grid-cols-[22px_56px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-sm text-ink-dim transition-colors hover:bg-surface-300 md:grid-cols-[22px_88px_minmax(0,1fr)_132px_124px] md:gap-5",
+          ANALYTICS_ENABLED && "cursor-pointer",
+          "grid grid-cols-[22px_56px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-sm text-ink-dim transition-colors hover:bg-surface-300 md:grid-cols-[22px_88px_minmax(0,1fr)_132px_124px] md:gap-5",
           open && "bg-surface-200",
         )}
       >
@@ -73,10 +79,14 @@ const DuelRow = ({ match }: { match: Match }) => {
         </div>
         <span className="flex items-center justify-end gap-2 font-mono text-[10px] leading-3 tracking-[0.14em] whitespace-nowrap text-ink-muted uppercase">
           {match.when ? <LocalTime iso={match.when} options={WHEN} /> : '—'}
-          <Icon name="down" className={twMerge("motion-safe:transition-transform", open ? "rotate-180 text-ink" : "")} />
-          <button type="button" aria-expanded={open} aria-controls={panelId} onClick={toggle} className="sr-only focus:not-sr-only focus:ml-2">
-            {open ? 'Hide duel' : 'Timeline & stats'}
-          </button>
+          {ANALYTICS_ENABLED ? (
+            <>
+              <Icon name="down" className={twMerge("motion-safe:transition-transform", open ? "rotate-180 text-ink" : "")} />
+              <button type="button" aria-expanded={open} aria-controls={panelId} onClick={toggle} className="sr-only focus:not-sr-only focus:ml-2">
+                {open ? 'Hide duel' : 'Timeline & stats'}
+              </button>
+            </>
+          ) : null}
         </span>
       </div>
       {mounted ? (

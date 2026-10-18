@@ -80,7 +80,7 @@ describe('deck row swipe', () => {
   const setup = () => {
     const onRemove = vi.fn()
     const { container } = render(
-      <DeckZone zone="main" ids={[1, 1]} cards={new Map([[1, ASH]])} view="list" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={() => {}} />,
+      <DeckZone zone="main" ids={[1, 1]} cards={new Map([[1, ASH]])} banlist={null} view="list" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={() => {}} />,
     )
     return { onRemove, row: container.querySelector('li[data-card="1"]')! }
   }
@@ -100,7 +100,7 @@ describe('deck row swipe', () => {
   it('a grid tile keeps its info button, which opens the sheet without removing a copy', () => {
     const onRemove = vi.fn()
     const onOpen = vi.fn()
-    render(<DeckZone zone="main" ids={[1]} cards={new Map([[1, ASH]])} view="grid" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={onOpen} />)
+    render(<DeckZone zone="main" ids={[1]} cards={new Map([[1, ASH]])} banlist={null} view="grid" problems={new Set()} onRemove={onRemove} onDropCard={() => {}} onOpen={onOpen} />)
     const info = screen.getByRole('button', { name: 'info' })
     fireEvent.pointerDown(info, { pointerType: 'touch' })
     fireEvent.pointerUp(info, { pointerType: 'touch' })
@@ -113,7 +113,7 @@ describe('deck row swipe', () => {
     const onRemove = vi.fn()
     const onOpen = vi.fn()
     render(
-      <DeckTray state={{ ...initialEditorState(), deck: { main: [1], extra: [], side: [] } }} cards={new Map([[1, ASH]])} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={onRemove} onDropCard={() => () => {}} onOpen={onOpen} toolbar={null} />,
+      <DeckTray state={{ ...initialEditorState(), deck: { main: [1], extra: [], side: [] } }} cards={new Map([[1, ASH]])} banlist={null} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={onRemove} onDropCard={() => () => {}} onOpen={onOpen} toolbar={null} />,
     )
     const info = screen.getByRole('button', { name: 'info', hidden: true }) // the tray body is inert while closed
     expect(info.className).toMatch(/pointer-coarse:size-11/)
@@ -135,7 +135,7 @@ describe('deck row swipe', () => {
 describe('deck tray scrim', () => {
   it('closing from the scrim returns focus from inside the tray to the handle', () => {
     const { container } = render(
-      <DeckTray state={initialEditorState()} cards={new Map()} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={() => {}} onDropCard={() => () => {}} onOpen={() => {}} toolbar={null} />,
+      <DeckTray state={initialEditorState()} cards={new Map()} banlist={null} problems={[]} validity="ready" flagged={new Set()} tab="main" onTab={() => {}} onRemove={() => {}} onDropCard={() => () => {}} onOpen={() => {}} toolbar={null} />,
     )
     const handle = screen.getByRole('button', { name: /tray\.counts/ })
     fireEvent.click(handle, { detail: 0 })
@@ -146,5 +146,19 @@ describe('deck tray scrim', () => {
     fireEvent.click(scrim)
     expect(handle.getAttribute('aria-expanded')).toBe('false')
     expect(document.activeElement).toBe(handle)
+  })
+})
+
+describe('deck points', () => {
+  const genesys = { id: 9, name: 'Genesys', format: 'genesys', pointCap: 100, bannedTypes: [], cards: 0 }
+  const costly = { ...card(5), banlists: [{ name: 'Genesys', limitation: 33 }] } as unknown as CardData
+  const cards = new Map([[5, costly], [1, ASH]])
+
+  it.each(['grid', 'list'] as const)('the %s view badges a card that costs points, and not one that is free', (view) => {
+    const { container } = render(
+      <DeckZone zone="main" ids={[5, 1]} cards={cards} banlist={genesys} view={view} problems={new Set()} onRemove={() => {}} onDropCard={() => {}} onOpen={() => {}} />,
+    )
+    expect(container.querySelectorAll('[title="points"]')).toHaveLength(1)
+    expect(container.querySelector('[data-card="5"] [title="points"]')?.textContent).toContain('33')
   })
 })

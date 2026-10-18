@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { LocalTime } from '@omega/profile/local-time'
@@ -180,6 +180,7 @@ const Row = ({ tournament, live }: { tournament: TournamentSummary; live: LiveSn
 /** The three strips beside the list, all from `/tournaments/stats`. */
 const Aside = ({ stats }: { stats: TournamentsStats | null }) => {
   const t = useTranslations('Tournaments')
+  const locale = useLocale()
 
   if (!stats) {
     return (
@@ -239,8 +240,8 @@ const Aside = ({ stats }: { stats: TournamentsStats | null }) => {
                 <Chip tone={formatTone(row.format)}>{row.format}</Chip>
                 {label === row.format ? null : <span className="truncate text-[13px] text-ink-dim">{label}</span>}
               </span>
-              <span className="text-right font-mono text-xs leading-none">{formatNumber(row.tournaments)}</span>
-              <span className="text-right font-mono text-xs leading-none text-ink-muted">{formatNumber(row.entries)}</span>
+              <span className="text-right font-mono text-xs leading-none">{formatNumber(row.tournaments, locale)}</span>
+              <span className="text-right font-mono text-xs leading-none text-ink-muted">{formatNumber(row.entries, locale)}</span>
             </li>
           )
         })}
@@ -260,6 +261,7 @@ type TournamentBrowserProps = {
 
 export const TournamentBrowser = ({ live, first }: TournamentBrowserProps) => {
   const t = useTranslations('Tournaments')
+  const locale = useLocale()
   const [filters, setFilters] = useState<Filters>({ status: 'all', banlist: '' })
   const [{ tournaments, nextCursor }, setPage] = useState(first)
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -323,10 +325,10 @@ export const TournamentBrowser = ({ live, first }: TournamentBrowserProps) => {
 
       <StatGrid
         items={[
-          { label: t('browser.totals.tournaments'), value: dash(formatNumber(stats?.tournaments ?? 0)), hint: t('browser.totals.tournamentsHint') },
-          { label: t('browser.totals.entries'), value: dash(formatNumber(stats?.entries ?? 0)) },
-          { label: t('browser.totals.uniqueDuelists'), value: dash(formatNumber(stats?.uniquePlayers ?? 0)) },
-          { label: t('browser.totals.averagePlayers'), value: dash(formatDecimal(Math.round((stats?.averagePlayers ?? 0) * 10) / 10)), hint: t('browser.totals.averageHint') },
+          { label: t('browser.totals.tournaments'), value: dash(formatNumber(stats?.tournaments ?? 0, locale)), hint: t('browser.totals.tournamentsHint') },
+          { label: t('browser.totals.entries'), value: dash(formatNumber(stats?.entries ?? 0, locale)) },
+          { label: t('browser.totals.uniqueDuelists'), value: dash(formatNumber(stats?.uniquePlayers ?? 0, locale)) },
+          { label: t('browser.totals.averagePlayers'), value: dash(formatDecimal(Math.round((stats?.averagePlayers ?? 0) * 10) / 10, locale)), hint: t('browser.totals.averageHint') },
         ]}
       />
 

@@ -44,8 +44,9 @@ describe('activeFilterCount', () => {
   it('counts each drawer field once, a range as one', () => {
     expect(activeFilterCount(EMPTY_POOL_QUERY)).toBe(0)
     expect(activeFilterCount({ ...EMPTY_POOL_QUERY, archetype: 'Sky Striker', types: ['xyz', 'effect'], levelMin: 4, levelMax: 4, atkMax: 2000 })).toBe(4)
-    // Quick chips and the search are on screen already.
-    expect(activeFilterCount({ ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster'], extraDeck: true, attribute: ['dark'] })).toBe(0)
+    // The search sits beside the pool; kind, Extra, attributes and legal-only off are drawer filters.
+    expect(activeFilterCount({ ...EMPTY_POOL_QUERY, text: 'ash' })).toBe(0)
+    expect(activeFilterCount({ ...EMPTY_POOL_QUERY, kind: ['monster', 'spell'], extraDeck: true, attribute: ['dark'], legalOnly: false })).toBe(4)
   })
 
   it('ignores a release window that is not sent', () => {
@@ -54,9 +55,9 @@ describe('activeFilterCount', () => {
   })
 })
 
-it('resetFilters keeps the search, quick chips, sort and legal-only', () => {
+it('resetFilters keeps only the search and the sort', () => {
   const q = { ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster' as const], sort: 'atk' as const, legalOnly: false, race: ['zombie'], atkMin: 100 }
-  expect(resetFilters(q)).toEqual({ ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster'], sort: 'atk', legalOnly: false })
+  expect(resetFilters(q)).toEqual({ ...EMPTY_POOL_QUERY, text: 'ash', sort: 'atk' })
 })
 
 describe('tileStatus', () => {

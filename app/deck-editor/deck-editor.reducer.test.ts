@@ -26,6 +26,14 @@ describe('editorReducer', () => {
     })
   })
 
+  it('replace is one undoable step; the same deck is a no-op', () => {
+    const deck: Deck = { main: [1, 2], extra: [900], side: [] }
+    const s = editorReducer({ ...initialEditorState(), name: 'Kept' }, { type: 'replace', deck })
+    expect([s.deck, s.name, s.dirty, s.past.length]).toEqual([deck, 'Kept', true, 1])
+    expect(editorReducer(s, { type: 'replace', deck: { ...deck } })).toBe(s)
+    expect(editorReducer(s, { type: 'undo' }).deck).toEqual(initialEditorState().deck)
+  })
+
   it('add pushes history, clears future, sets dirty, prepends lastAdded', () => {
     let s = add(initialEditorState(), cards.get(1)!)
     s = add(s, cards.get(2)!)

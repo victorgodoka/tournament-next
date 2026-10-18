@@ -8,9 +8,11 @@ import { SectionHead } from '@ui/section-head'
 import { TypeCounts, type CardType } from '@ui/type-counts'
 import { frameOf } from '@utils/deck/model'
 import type { CardMap, Zone } from '@utils/deck/types'
+import type { Banlist } from '@utils/wiki'
 import type { ViewMode } from './deck-editor.reducer'
 import { CardTile } from './card-tile'
 import { swipeCommits, swipeTravel } from './gestures'
+import { tileStatus } from './pool-query'
 
 export type DragPayload = { from: Zone | 'pool'; id: number; index?: number }
 
@@ -51,6 +53,8 @@ type DeckZoneProps = {
   zone: Zone
   ids: number[]
   cards: CardMap
+  /** The tiles' badges, as in the pool: a copy limit, or a Genesys points cost. */
+  banlist: Banlist | null
   view: ViewMode
   /** Passcodes that are part of a validation problem. */
   problems: ReadonlySet<number>
@@ -59,7 +63,7 @@ type DeckZoneProps = {
   onOpen(id: number): void
 }
 
-export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCard, onOpen }: DeckZoneProps) => {
+export const DeckZone = ({ zone, ids, cards, banlist, view, problems, onRemove, onDropCard, onOpen }: DeckZoneProps) => {
   const t = useTranslations('DeckEditor.zones')
   const tile = useTranslations('DeckEditor.tile')
   const [over, setOver] = useState(false)
@@ -157,6 +161,7 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
             const level = card?.level
             const levelKey = card?.monsterTypes.includes('xyz') ? 'rank' : card?.monsterTypes.includes('link') ? 'link' : 'level'
             const dx = swipe?.id === id ? swipe.dx : 0
+            const status = card && tileStatus(card, banlist)
             return (
               <li
                 key={id}
@@ -177,6 +182,12 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
                 <div style={dx ? { transform: `translateX(${dx}px)` } : undefined} className="flex items-center gap-3 px-2 py-1.5">
                   <span className="w-8 shrink-0 text-ink-muted mono-data">{t('copies', { count })}</span>
                   <span className="min-w-0 flex-1 truncate text-ink body-sm">{nameOf(id)}</span>
+                  {typeof status === 'object' ? (
+                    <span title={tile('points', { points: status.points })} className="shrink-0 bg-cyan px-1 font-mono text-[11px] leading-4 font-bold text-cyan-on tabular-nums">
+                      <span aria-hidden>{status.points}</span>
+                      <span className="sr-only">{tile('points', { points: status.points })}</span>
+                    </span>
+                  ) : null}
                   <span className="shrink-0 text-ink-muted signal-sm max-sm:hidden">{card?.humanReadableCardType}</span>
                   <span className="w-14 shrink-0 text-ink-muted signal-sm">{level != null ? t(levelKey, { level }) : null}</span>
                   {/* iOS Safari fires no contextmenu: the sheet needs a button of its own. */}
@@ -198,13 +209,15 @@ export const DeckZone = ({ zone, ids, cards, view, problems, onRemove, onDropCar
         <ul className={twMerge('grid gap-1', GRID[zone])}>
           {(view === 'stacked' ? unique : ids.map((id) => [id, 1] as const)).map(([id, count], i) => {
             const index = view === 'stacked' ? ids.indexOf(id) : i
+            const card = cards.get(id)
             return (
               <li key={`${id}-${i}`} data-card={id} data-index={index}>
                 <CardTile
                   id={id}
-                  card={cards.get(id)}
+                  card={card}
                   sizes={SIZES[zone]}
                   count={count}
+                  status={card && tileStatus(card, banlist)}
                   problem={problems.has(id)}
                   label={t('removeOne', { name: nameOf(id) })}
                   onClick={() => onRemove(id)}

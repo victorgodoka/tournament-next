@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { LocalTime } from '@omega/profile/local-time'
+import { calendarKey } from '@omega/tournament/calendar-row'
 import { playerName } from '@omega/tournament/player'
 import { DAY, TIME_ONLY, banlistLabel, formatNumber, formatRate, formatTone } from '@omega/tournament/labels'
 import { Avatar } from '@ui/avatar'
@@ -323,7 +324,7 @@ const Tournaments = ({ num, recent, upcoming }: { num: string; recent: WelcomeTo
           <SectionHead as="h3" compact>{t('upcoming')}</SectionHead>
           {upcoming.length ? (
             <ol className={LIST}>
-              {upcoming.map((event) => <Upcoming key={event.id} event={event} />)}
+              {upcoming.map((event) => <Upcoming key={calendarKey(event)} event={event} />)}
             </ol>
           ) : (
             <EmptyBox title={t('upcomingEmpty')} />

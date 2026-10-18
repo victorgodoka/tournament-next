@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { CopyButton } from '@omega/tournament/copy-deck'
@@ -51,7 +51,7 @@ const Winner = ({ champion, live }: { champion: Standing; live: boolean }) => {
           <Chip tone="gold">{t('detail.points', { points: champion.points })}</Chip>
           <Chip>{formatRecord(champion)}</Chip>
         </div>
-        <span className="text-[15px] text-ink-dim">{deckLine(champion.deck, t('standings.noArchetype'), t)}</span>
+        <span className="text-[15px] text-ink-dim">{deckLine(champion.deck, t(live ? 'standings.deckHidden' : 'standings.noArchetype'), t)}</span>
       </div>
     </Panel>
   )
@@ -134,6 +134,7 @@ type StandingsProps = { tournament: TournamentSummary; standings: Standing[]; ro
 /** Winner, how it ran, then the standings table. A row opens into the decklist it was registered with. */
 export const Standings = ({ tournament, standings, rounds }: StandingsProps) => {
   const t = useTranslations('Tournaments')
+  const locale = useLocale()
   const live = tournament.status === 'live'
   // A finished page opens on the winning deck; a live one on nothing, since rank 1 may still move.
   const [open, setOpen] = useState<string | null>(live ? null : (standings[0]?.player.id ?? null))
@@ -220,32 +221,37 @@ export const Standings = ({ tournament, standings, rounds }: StandingsProps) => 
                       <span className="h-10 w-7 shrink-0 rounded-xs border border-line-mid bg-surface-200" />
                     )}
                     <span className={twMerge('truncate text-sm', deck?.name ?? deck?.archetype ? 'text-ink-dim' : 'text-ink-muted')}>
-                      {deck?.name ?? deck?.archetype ?? t('standings.noArchetype')}
+                      {deck?.name ?? deck?.archetype ?? t(live ? 'standings.deckHidden' : 'standings.noArchetype')}
                     </span>
                   </span>
 
                   <span className="hidden text-right font-mono text-[13px] leading-none lg:block">{formatRecord(standing)}</span>
                   <span className="text-right font-display text-2xl leading-none">{points}</span>
                   <span className="hidden text-right font-mono text-xs leading-none text-ink-dim lg:block">
-                    {formatRate(tiebreakers.opponentsMatchWin)}
+                    {formatRate(tiebreakers.opponentsMatchWin, locale)}
                   </span>
                   <span className="hidden text-right font-mono text-xs leading-none text-ink-dim lg:block">
-                    {formatRate(tiebreakers.opponentsOpponentsMatchWin)}
+                    {formatRate(tiebreakers.opponentsOpponentsMatchWin, locale)}
                   </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setOpen(isOpen ? null : player.id)}
-                    aria-expanded={isOpen}
-                    aria-controls={panelId}
-                    aria-label={t(isOpen ? 'standings.hideDeck' : 'standings.showDeck', { name })}
-                    className={twMerge(
-                      'grid size-8 cursor-pointer place-items-center border',
-                      isOpen ? 'rotate-180 border-cyan text-cyan' : 'border-line-mid text-ink-dim hover:border-cyan hover:text-cyan',
-                    )}
-                  >
-                    <Icon name="down" />
-                  </button>
+                  {/* The API sends no decklist while live: nothing to open until it ends. */}
+                  {live ? (
+                    <span />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOpen(isOpen ? null : player.id)}
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      aria-label={t(isOpen ? 'standings.hideDeck' : 'standings.showDeck', { name })}
+                      className={twMerge(
+                        'grid size-8 cursor-pointer place-items-center border',
+                        isOpen ? 'rotate-180 border-cyan text-cyan' : 'border-line-mid text-ink-dim hover:border-cyan hover:text-cyan',
+                      )}
+                    >
+                      <Icon name="down" />
+                    </button>
+                  )}
                 </div>
 
                 {isOpen ? <DeckPanel id={panelId} deck={deck} /> : null}

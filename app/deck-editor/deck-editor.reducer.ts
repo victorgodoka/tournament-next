@@ -25,6 +25,8 @@ export type EditorAction =
   | { type: 'move'; from: Zone; id: number; to: Zone; cards: CardMap }
   | { type: 'reorder'; zone: Zone; from: number; to: number }
   | { type: 'sort'; cards: CardMap }
+  /** An imported deck: one undoable step, name and format kept. */
+  | { type: 'replace'; deck: Deck }
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'rename'; name: string }
@@ -78,6 +80,8 @@ export const editorReducer = (s: EditorState, a: EditorAction): EditorState => {
       }
       return commit(s, sameDeck(sorted, s.deck) ? s.deck : sorted)
     }
+    case 'replace':
+      return commit(s, sameDeck(a.deck, s.deck) ? s.deck : a.deck)
     case 'undo': {
       const deck = s.past[s.past.length - 1]
       if (!deck) return s

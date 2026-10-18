@@ -11,7 +11,11 @@ export const getWelcomeData = cache(async (): Promise<WelcomeData | null> => {
       console.error(`GET /welcome failed with ${res.status}`)
       return null
     }
-    return res.json()
+    const data: WelcomeData = await res.json()
+    // The first visit after a quiet spell gets the stale copy while it revalidates; the game's
+    // recurring tournaments come every few hours, so drop the ones that already started.
+    const now = Date.now()
+    return { ...data, tournaments: { ...data.tournaments, upcoming: data.tournaments.upcoming.filter((u) => Date.parse(u.startsAt) > now) } }
   } catch (error) {
     console.error(error)
     return null

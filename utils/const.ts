@@ -3,6 +3,7 @@ export const FORMATS_SUPPORTED = [
   { title: "OCG", text: "Japan's rulings, scripted separately whenever they diverge from the English text." },
   { title: "GOAT", text: "2005 Master Rules, pre-errata cards, the format's original power level intact." },
   { title: "EDISON", text: "2010 format on old rules and old text; Six Samurai and Blackwings as they broke the game." },
+  { title: "GENESYS", text: "Konami's points format: every card has a cost, and the whole deck stays under the cap." },
   { title: "SPEED DUEL", text: "4-card hands, 20 Life Points, a Skill Card in play; its own rulebook, its own scripts." },
   { title: "DUEL LINKS", text: "Konami's mobile ruleset: 3 Main Monster Zones, no Link Zones, EX cap enforced." },
   { title: "MASTER DUEL", text: "Konami's current digital ruleset, matched card for card, restriction for restriction." },
@@ -19,8 +20,8 @@ export const HOME_FAQ_ALTERNATIVE = [
     text: "One game, no side decking. The die roll settles matches that a Bo3 would settle with play. Omega runs Bo3 with side decks in ranked and in tournaments."
   },
   {
-    title: "Six-minute first turns",
-    text: "You watch a combo resolve for six minutes and never get a window to respond. Custom banlists let you build a format where turn one ends."
+    title: "Only today's banlist",
+    text: "Official clients play Konami's current list and nothing else. Edison, GOAT and Genesys run in Omega next to TCG and OCG, with every card for each."
   },
   {
     title: "The deck costs money to test",
@@ -123,6 +124,7 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     item: "Tools",
     children: [
       { item: "Deck builder", to: "/deck-editor" },
+      { item: "Banlist timeline", to: "/banlist-timeline" },
       { item: "Hypergeometric calculator", to: "/tools/hypergeometric" },
     ],
   },
@@ -179,7 +181,7 @@ export const FOOTER_MEDIA_NOTE =
   "Album covers, artwork and songs belong to their artists and labels. We show them under fair use and claim no rights to them. Shop items cost points earned by playing, never real money."
 
 /** Launcher download page, the target of every download call to action. */
-export const DOWNLOAD_URL = "https://omega.duelistsunite.org/"
+export const DOWNLOAD_URL = "/download"
 
 /** Browser deck builder and its companion tools, hosted on the tournament site. */
 export const DECK_BUILDER_URL = "https://tournament.duelistsunite.org/#/builder"

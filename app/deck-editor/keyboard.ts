@@ -54,6 +54,10 @@ type Handlers = {
   save(): void
   /** `add`, `remove`, `side` and `open` on the focused tile. */
   act(shortcut: 'add' | 'remove' | 'side' | 'open', tile: FocusedTile): void
+  /** Ctrl+V outside a field: the clipboard's deck code or .ydk file. */
+  paste(data: DataTransfer): void
+  /** Ctrl+C outside a field with nothing selected: the deck goes into `data`. */
+  copy(data: DataTransfer): void
 }
 
 /** Columns of a CSS grid: the tiles that share the first one's row. */
@@ -97,7 +101,20 @@ export const useEditorKeys = (handlers: Handlers) => {
       const tiles = list ? [...list.querySelectorAll<HTMLElement>('[data-tile]')] : []
       tiles[nextIndex(tiles.indexOf(tile), shortcut, columnsOf(tiles), tiles.length)]?.focus()
     }
+    // Clipboard events, not Ctrl+C/V keys: they carry the data without a permission prompt, and cover the Edit menu.
+    const onClipboard = (e: ClipboardEvent) => {
+      if (!e.clipboardData || ownsKeys(document.activeElement)) return
+      if (e.type === 'copy' && !getSelection()?.isCollapsed) return // copying selected text stays native
+      e.preventDefault()
+      ref.current[e.type === 'copy' ? 'copy' : 'paste'](e.clipboardData)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('paste', onClipboard)
+    window.addEventListener('copy', onClipboard)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('paste', onClipboard)
+      window.removeEventListener('copy', onClipboard)
+    }
   }, [])
 }

@@ -65,6 +65,8 @@ export class DeckApiError extends Error {
     public code?: string,
     message?: string,
     public details?: Record<string, unknown>,
+    /** `429 RATE_LIMITED` only: seconds from the `retry-after` header. */
+    public retryAfter?: number,
   ) {
     super(message ?? code ?? `Decks API ${status}`)
     this.name = 'DeckApiError'
@@ -89,7 +91,7 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     if (res.status === 409 && body.details?.latest) throw new DeckConflictError(body.details.latest, body.error, body.message, body.details)
-    throw new DeckApiError(res.status, body.error, body.message, body.details)
+    throw new DeckApiError(res.status, body.error, body.message, body.details, Number(res.headers.get('retry-after')) || undefined)
   }
   return res.status === 204 ? (undefined as T) : res.json()
 }

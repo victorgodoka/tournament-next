@@ -6,14 +6,16 @@ import { twMerge } from 'tailwind-merge'
 import { useLazyText } from '@hooks/index'
 import { Button } from '@ui/button'
 import { FilterChip, Tag } from '@ui/chip'
+import { Switch } from '@ui/choice'
 import { FIELD_LABEL, TextInput } from '@ui/field'
 import { Icon } from '@ui/icon'
 import { Lookup, type LookupOption } from '@ui/lookup'
 import { findArchetypes, type PoolQuery } from '@utils/cards'
 import { releaseRegion } from '@utils/deck/rules'
-import { titleCase, type Banlist } from '@utils/wiki'
+import { titleCase, type Banlist, type CardKind } from '@utils/wiki'
 import { ATTRIBUTES, resetFilters, toggle } from './pool-query'
 
+const KINDS: CardKind[] = ['monster', 'spell', 'trap']
 const TYPES = ['normal', 'effect', 'fusion', 'ritual', 'synchro', 'xyz', 'pendulum', 'link', 'tuner', 'flip', 'toon', 'spirit', 'union', 'gemini', 'token', 'special_summon']
 const RACES = [
   'warrior', 'spellcaster', 'fairy', 'fiend', 'zombie', 'machine', 'aqua', 'pyro', 'rock', 'winged_beast', 'plant', 'insect', 'thunder',
@@ -37,7 +39,8 @@ type RangeInputProps = { value: number | undefined; onCommit(value: number | und
 /** A number that reaches the query 250 ms after typing stops (or on blur), like the search text. */
 const RangeInput = ({ value, onCommit, ...props }: RangeInputProps) => {
   const lazy = useLazyText(value === undefined ? '' : String(value), (text) => onCommit(toInt(text)), 250)
-  return <TextInput type="number" inputMode="numeric" plateClassName="min-w-0 flex-1 max-lg:h-11" {...props} {...lazy} />
+  // `w-0`: a number input's intrinsic width would widen the two-column grid past the drawer; flex-1 fills the plate.
+  return <TextInput type="number" inputMode="numeric" plateClassName="min-w-0 flex-1 max-lg:h-11" className="w-0" {...props} {...lazy} />
 }
 
 type PoolFiltersProps = {
@@ -54,6 +57,7 @@ type PoolFiltersProps = {
  */
 export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFiltersProps) => {
   const t = useTranslations('DeckEditor.filters')
+  const tPool = useTranslations('DeckEditor.pool')
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const region = banlist && releaseRegion(banlist.format)
@@ -76,7 +80,8 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
   )
 
   const range = (key: RangeKey) => (
-    <fieldset className="flex flex-col">
+    // A fieldset is min-content wide by default: min-w-0 keeps it in its grid column.
+    <fieldset className="flex min-w-0 flex-col">
       <legend className={FIELD_LABEL}>{t(key)}</legend>
       <div className="flex gap-2">
         {(['Min', 'Max'] as const).map((end) => (
@@ -115,7 +120,19 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
         </Button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-5 py-5 [scrollbar-color:var(--color-line-mid)_transparent] [scrollbar-width:thin]">
+        <div className="flex flex-col gap-2">
+          {section(
+            t('kind'),
+            <div className="flex flex-wrap gap-x-1">
+              {KINDS.map((kind) => (
+                <FilterChip key={kind} pressed={query.kind.includes(kind)} label={tPool(kind)} onClick={() => patch({ kind: toggle(query.kind, kind) })} className="max-lg:py-1.25" />
+              ))}
+              <FilterChip pressed={!!query.extraDeck} label={tPool('extra')} onClick={() => patch({ extraDeck: query.extraDeck ? undefined : true })} className="max-lg:py-1.25" />
+            </div>,
+          )}
+          <Switch quiet checked={query.legalOnly} onChange={(legalOnly) => patch({ legalOnly })} label={tPool('legalOnly')} disabled={!banlist} className="max-lg:min-h-11" />
+        </div>
         {section(
           t('archetype'),
           query.archetype ? (
@@ -164,7 +181,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
           </div>,
         )}
 
-        <fieldset className="flex flex-col" disabled={!region}>
+        <fieldset className="flex min-w-0 flex-col" disabled={!region}>
           <legend className={FIELD_LABEL}>{t('release')}</legend>
           <div className="flex gap-2">
             {(['releasedAfter', 'releasedBefore'] as const).map((key) => (
@@ -175,6 +192,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
                 value={query[key] ?? ''}
                 onChange={(e) => patch({ [key]: e.target.value || undefined })}
                 plateClassName="min-w-0 flex-1 max-lg:h-11"
+                className="w-0"
               />
             ))}
           </div>
