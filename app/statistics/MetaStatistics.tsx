@@ -436,7 +436,7 @@ const Report = ({ data }: { data: Statistics }) => {
                         {sortBy(mixes, archSort, ARCH_GET).map((b) =>
                           archRow(b, { nested: true, dot: [...b.archetype].sort((x, y) => x - y), go: () => ask('combined', b) }),
                         )}
-                        {mixNote(a, <>The most played mixed decks led by {nameOf(a)}. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there. Find any other mix in the deep dive&apos;s Combined search.</>, general)}
+                        {mixNote(a, <>Every mixed deck led by {nameOf(a)} that clears the sample minimum. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there.</>, general)}
                       </>
                     ) : null}
                   </Fragment>
