@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toYdke } from '@utils/deck/codecs/ydke'
-import { getDeck, type SavedDeck } from '@utils/decks'
+import { DeckConflictError, getDeck, listMyDecks, updateDeck, type SavedDeck } from '@utils/decks'
 import Calculator from './calculator.client'
 
 const router = { push: vi.fn(), replace: vi.fn() }
@@ -13,7 +13,8 @@ vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
-  useFormatter: () => ({ number: (n: number, o?: { style?: string }) => (o?.style === 'percent' ? `${Math.round(n * 100)}%` : String(n)) }),
+  useFormatter: () => ({ number: (n: number, o?: { style?: string }) => (o?.style === 'percent' ? `${Math.round(n * 100)}%` : String(n)), relativeTime: () => 'now' }),
+  useNow: () => new Date(),
 }))
 vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
 vi.mock('@utils/wiki', () => ({ getBanlists: () => Promise.resolve([]) }))
@@ -57,6 +58,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
   auth.user = { id: 'u1' }
   vi.mocked(getDeck).mockResolvedValue(null)
+  vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
 })
 afterEach(() => {
   cleanup()
@@ -75,6 +77,22 @@ describe('Calculator', () => {
     expect((screen.getByLabelText('deckName') as HTMLInputElement).value).toBe('Snake-Eye')
     expect(getDeck).toHaveBeenCalledWith(ID)
     expect(screen.getByText('draw.total')).toBeTruthy()
+  })
+  it("saves roles to the owner's deck and surfaces a conflict", async () => {
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [1], tags: {}, revision: 2, ownerId: 'u1' }))
+    vi.mocked(updateDeck).mockRejectedValueOnce(new DeckConflictError(server({ revision: 3 })))
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!)) // Starter, first in the palette
+    await act(async () => fireEvent.click(screen.getByText('save.roles')))
+    expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 2) // three arguments: no explicit `force`
+    expect(screen.getByText('save.changed')).toBeTruthy()
+    expect(screen.getByText('openBuilder').closest('a')?.getAttribute('href')).toBe(`/deck-builder/${ID}`)
+  })
+  it('hides Save roles for a deck the user does not own', async () => {
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, ownerId: 'u2' }))
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
+    expect(screen.queryByText('save.roles')).toBeNull()
+    expect(screen.getByText('openBuilder').closest('a')?.getAttribute('href')).toMatch(/^\/deck-builder\?d=/)
   })
   it('a hand size above the deck shows tooFewCards and the URL carries ?c=', async () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3], extra: [], side: [] }))}`)

@@ -1,22 +1,27 @@
 'use client'
 
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
-import { Button } from '@ui/button'
+import { Button, buttonClasses } from '@ui/button'
 import { Select, TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
+import { useAuth } from '@hooks/index'
 import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
-import { rolesFromTags } from '@utils/combo/roles'
+import { rolesFromTags, tagsFromRoles } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
-import { getDeck } from '@utils/decks'
+import { toYdke } from '@utils/deck/codecs/ydke'
+import { DeckApiError, DeckConflictError, getDeck, updateDeck } from '@utils/decks'
+import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { calculatorReducer, initialState } from './calculator.reducer'
 import { CardRoles } from './card-roles'
+import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
 import { useCalculation } from './use-calculation'
@@ -24,6 +29,7 @@ import { useCalculation } from './use-calculation'
 const TOUCH = 'max-lg:min-h-11'
 
 type Toast = { tone: 'positive' | 'negative' | 'warn'; text: string }
+type SaveState = 'idle' | 'saving' | 'conflict' | 'rejected' | 'signIn' | 'failed'
 
 /** Boots from the URL once, client only, then hands over to the loaded calculator. */
 const Calculator = () => {
@@ -50,8 +56,12 @@ const Calculator = () => {
 
 const Loaded = ({ boot }: { boot: Boot }) => {
   const t = useTranslations('Calculator')
+  const { user } = useAuth()
   const [state, dispatch] = useReducer(calculatorReducer, boot.calc, (calc) => initialState(calc))
   const [notice, setNotice] = useState(boot.notice)
+  /** Nothing to compute yet: the picker opens by itself. */
+  const [picker, setPicker] = useState(boot.from === 'empty' && boot.calc.builds[0]!.deck.main.length === 0)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
   /** The saved deck named by the link: its roles, format and revision. */
@@ -132,6 +142,45 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     }
   }
 
+  /** The signed-in user owns the saved deck behind this build: roles can be written back to it. */
+  const owner = state.saved !== null && user?.id === state.saved.ownerId
+  const canSave = build.deckId !== null && owner
+
+  const saveRoles = async () => {
+    if (!build.deckId || !state.saved || saveState === 'saving') return
+    setSaveState('saving')
+    try {
+      const saved = await updateDeck(build.deckId, { tags: tagsFromRoles(build.roles, build.deck, cards) }, state.saved.revision)
+      // Only the revision moved: the local format and roles stay as they are.
+      dispatch({ type: 'deckMeta', deckId: saved.id, format: build.format, roles: new Map(), saved: { revision: saved.revision, ownerId: saved.ownerId } })
+      setSaveState('idle')
+      setToast({ tone: 'positive', text: t('save.saved') })
+    } catch (e) {
+      if (e instanceof DeckConflictError) setSaveState('conflict')
+      else if (e instanceof DeckApiError && e.status === 400) setSaveState('rejected')
+      else if (e instanceof DeckApiError && e.status === 401) setSaveState('signIn')
+      else {
+        console.error(e)
+        setSaveState('failed')
+      }
+    }
+  }
+
+  const reloadDeck = () => {
+    setSaveState('idle')
+    setMeta('loading')
+    setMetaAttempt((n) => n + 1)
+  }
+
+  const builderHref = (() => {
+    if (build.deckId && owner) return `/deck-builder/${build.deckId}`
+    try {
+      return `/deck-builder?d=${encodeURIComponent(toYdke(build.deck))}&name=${encodeURIComponent(build.name)}`
+    } catch {
+      return '/deck-builder'
+    }
+  })()
+
   const subjects = { roles: view.palette, cards: view.rows, nameOf }
   const error = 'error' in view.result ? view.result.error : null
   /** Roles a rule names that no card in the deck carries: the rule can never pass. */
@@ -149,7 +198,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         title={t('title')}
         end={
           <>
-            <Button variant="secondary" className={TOUCH}>
+            <Link href={builderHref} className={twMerge(buttonClasses({ variant: 'secondary' }), TOUCH)}>
+              {t('openBuilder')}
+            </Link>
+            <Button variant="secondary" onClick={() => setPicker(true)} className={TOUCH}>
               {t('pickDeck')}
             </Button>
             <Button onClick={() => void copyLink()} className={TOUCH}>
@@ -158,6 +210,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           </>
         }
       />
+      <DeckPicker open={picker} onClose={() => setPicker(false)} lookup={ensure} onPick={(b, saved) => dispatch({ type: 'load', build: b, saved, cards })} />
 
       {notice ? (
         <Alert
@@ -221,7 +274,37 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               disabled={!banlists?.length}
               className={twMerge('min-w-44', TOUCH)}
             />
+            {canSave ? (
+              <Button variant="secondary" aria-disabled={saveState === 'saving' || undefined} onClick={() => void saveRoles()} className={TOUCH}>
+                {saveState === 'saving' ? t('save.saving') : t('save.roles')}
+              </Button>
+            ) : null}
           </div>
+          {saveState === 'conflict' ? (
+            <Alert
+              tone="warn"
+              edged
+              title={t('save.changed')}
+              action={
+                <Button variant="secondary" size="sm" onClick={reloadDeck} className={TOUCH}>
+                  {t('save.reload')}
+                </Button>
+              }
+            />
+          ) : saveState === 'rejected' || saveState === 'failed' ? (
+            <Alert tone="negative" edged title={t(`save.${saveState}`)} action={<Button variant="ghost" size="sm" onClick={() => setSaveState('idle')} className={TOUCH}>{t('dismiss')}</Button>} />
+          ) : saveState === 'signIn' ? (
+            <Alert
+              tone="info"
+              edged
+              title={t('save.signIn')}
+              action={
+                <Link href="/login" onClick={() => setReturnTo(location.pathname + location.search)} className={twMerge(buttonClasses({ size: 'sm' }), TOUCH)}>
+                  {t('picker.signIn')}
+                </Link>
+              }
+            />
+          ) : null}
           <CardRoles
             rows={view.rows}
             roles={build.roles}
