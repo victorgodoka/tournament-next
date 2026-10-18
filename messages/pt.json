@@ -437,7 +437,7 @@
       "heading": "Linha do tempo",
       "meta": "{count} listas · mais recente primeiro",
       "nav": "Banlists",
-      "year": "{count, plural, one {# lista} other {# listas}}",
+      "pick": "Escolher lista",
       "changes": "{count, plural, one {# mudança} other {# mudanças}}",
       "position": "Lista {num} de {count} · TCG",
       "previous": "Anterior",
@@ -455,6 +455,9 @@
         "S": "Para Semi-Limited",
         "U": "Liberadas · Unlimited"
       },
+      "view": "Visualização",
+      "grid": "Grade",
+      "text": "Texto",
       "to": "para",
       "none": "Nenhuma carta"
     },
@@ -467,9 +470,9 @@
       "empty": "Busque uma carta para ver a trajetória dela em todas as listas, ou abra o nome de qualquer carta acima para ver a página dela.",
       "listed": "Em {count} de {total} listas",
       "now": "Hoje · {status}",
-      "start": "Mai 2002",
       "offList": "Fora da lista = Unlimited",
       "cell": "{label}: {status}",
+      "wiki": "Abrir na wiki",
       "changes": "Mudanças"
     },
     "faq": {

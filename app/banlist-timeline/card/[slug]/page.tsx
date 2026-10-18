@@ -1,10 +1,13 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { useFormatter, useTranslations } from 'next-intl'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { twMerge } from 'tailwind-merge'
 import { Breadcrumbs } from '@ui/breadcrumbs'
+import { buttonClasses } from '@ui/button'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { Icon } from '@ui/icon'
 import { PageHeader } from '@ui/page-header'
 import { SectionHead } from '@ui/section-head'
 import {
@@ -16,15 +19,16 @@ import {
   currentBanlist,
   LATEST_BANLIST,
   listDate,
+  SOURCE,
   STATUS_TONE,
   statusOn,
   type Banlist,
   type BanStatus,
+  wikiPath,
 } from '@utils/banlist'
 import { SITE_NAME, SITE_URL } from '@utils/config'
 import { jsonLd, metaDescription, pageMetadata } from '@utils/metadata'
 import { CardStrip } from '../../card-strip'
-import { SOURCE } from '../../timeline'
 
 type CardRouteProps = { params: Promise<{ slug: string }> }
 
@@ -138,6 +142,9 @@ const CardBanlist = ({ card, current }: { card: number; current: Banlist }) => {
           <div className="flex flex-col gap-2">
             <Breadcrumbs items={crumbs} className="pt-8" />
             <PageHeader eyebrow={t('eyebrow')} title={name} lead={t('card.lead', { card: name, lists: BANLISTS.length })} />
+            <Link href={wikiPath(card)} target="_blank" rel="noopener" className={twMerge(buttonClasses({ size: 'sm' }), 'self-start')}>
+              {t('history.wiki')} <Icon name="right" size={14} />
+            </Link>
           </div>
 
           <section aria-label={t('summary.label')}>

@@ -437,7 +437,7 @@
       "heading": "Timeline",
       "meta": "{count} lists · newest first",
       "nav": "Banlists",
-      "year": "{count, plural, one {# list} other {# lists}}",
+      "pick": "Pick a list",
       "changes": "{count, plural, one {# change} other {# changes}}",
       "position": "List {num} of {count} · TCG",
       "previous": "Previous",
@@ -455,6 +455,9 @@
         "S": "To Semi-Limited",
         "U": "Released · Unlimited"
       },
+      "view": "View",
+      "grid": "Grid",
+      "text": "Text",
       "to": "to",
       "none": "No cards"
     },
@@ -467,9 +470,9 @@
       "empty": "Search a card to see its path through every list, or open any card name above for its own page.",
       "listed": "On {count} of {total} lists",
       "now": "Today · {status}",
-      "start": "May 2002",
       "offList": "Off the list = Unlimited",
       "cell": "{label}: {status}",
+      "wiki": "Open on the wiki",
       "changes": "Changes"
     },
     "faq": {

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
+import { CardStrip } from '@app/banlist-timeline/card-strip'
 import {
   AsideBlock,
   Callout,
@@ -23,6 +24,7 @@ import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
 import { Chip } from '@ui/chip'
+import { BANLISTS, cardByPasscode, cardPath, currentBanlist, STATUS_TONE, statusOn, type BanStatus } from '@utils/banlist'
 import { SITE_URL } from '@utils/config'
 import { CARD_ART_URL } from '@utils/const'
 import { jsonLd, metaDescription, pageMetadata } from '@utils/metadata'
@@ -42,6 +44,8 @@ import {
 type CardRouteProps = { params: Promise<{ id: string }> }
 
 const EXTRA_DECK = ['fusion', 'synchro', 'xyz', 'link']
+
+const BAN_LABEL: Record<BanStatus, string> = { F: 'Forbidden', L: 'Limited', S: 'Semi-Limited', U: 'Unlimited', N: 'Unlimited' }
 
 const isExtraDeck = (card: WikiCard) => card.monsterTypes.some((type) => EXTRA_DECK.includes(type))
 
@@ -117,6 +121,9 @@ const CardRoute = async ({ params }: CardRouteProps) => {
   const legality = legalityRows(card, banlists)
   const genesys = banlists.find((list) => list.pointCap !== null)
   const debut = tcgDebut(card)
+  // The F&L history is keyed by the original print: an alternate artwork shares it.
+  const banned = cardByPasscode(card.alias || card.id)
+  const current = currentBanlist().index
   const translations = [
     { label: 'Português', value: card.i18n.pt },
     { label: '日本語', value: card.i18n.jp },
@@ -225,7 +232,30 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               )}
             </WikiSection>
 
-            <WikiSection index="04" title="Errata history">
+            <WikiSection index="04" title="Banlist history">
+              {banned >= 0 ? (
+                <div className="mt-4 flex flex-col gap-5">
+                  <Prose className="mt-0">
+                    On {BANLISTS.filter((list) => statusOn(banned, list.index) !== 'U').length} of {BANLISTS.length}{' '}
+                    TCG Forbidden &amp; Limited Lists since 2002. Today:{' '}
+                    <b className={STATUS_TONE[statusOn(banned, current)].text}>{BAN_LABEL[statusOn(banned, current)]}</b>.
+                    Each cell is one list; open it to see everything that list changed.
+                  </Prose>
+                  <CardStrip card={banned} selected={current} />
+                  <div className="flex flex-wrap gap-2.25">
+                    <Link href={cardPath(banned)} className={twMerge(GHOST_ACTION, 'w-auto')}>Full banlist history</Link>
+                    <Link href="/banlist-timeline" className={twMerge(GHOST_ACTION, 'w-auto')}>Every banlist</Link>
+                  </div>
+                </div>
+              ) : (
+                <Prose>
+                  This card has never been on a TCG Forbidden &amp; Limited List.{' '}
+                  <Link href="/banlist-timeline" className={LINK}>See every list since 2002</Link>.
+                </Prose>
+              )}
+            </WikiSection>
+
+            <WikiSection index="05" title="Errata history">
               {card.erratas.length ? (
                 <div className="mt-4 flex flex-col gap-3">
                   {card.erratas.map((errata) => (
@@ -245,7 +275,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               )}
             </WikiSection>
 
-            <WikiSection index="05" title="Releases">
+            <WikiSection index="06" title="Releases">
               <TileGrid className="sm:grid-cols-2">
                 <Tile label="OCG debut">
                   <p className="mt-2 text-ink display-6">{releaseDate(card.released.ocg)}</p>
@@ -262,7 +292,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               ) : null}
             </WikiSection>
 
-            <WikiSection index="06" title="Archetypes and support" className="border-b-0">
+            <WikiSection index="07" title="Archetypes and support" className="border-b-0">
               {card.archetypes.length || card.supports.length ? (
                 <>
                   <div className="mt-4 flex flex-wrap gap-2.5">
@@ -308,7 +338,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
             <AsideBlock label="Play it">
               <div className="mt-2.75 flex flex-col gap-2.25">
                 <Link
-                  href="/deck-editor"
+                  href="/deck-builder"
                   className={twMerge(buttonClasses({ size: 'sm' }), 'min-h-10.5 w-full')}
                 >
                   Add to deck

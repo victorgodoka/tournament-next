@@ -1,7 +1,12 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
+import { useEffect, useSyncExternalStore, type MouseEvent, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Breadcrumbs } from '@ui/breadcrumbs'
+import { Segmented } from '@ui/choice'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
@@ -12,49 +17,94 @@ import {
   BANLIST_CHANGES,
   BANLIST_MAX,
   BANLISTS,
+  banlistByDate,
   banlistPath,
   cardChanges,
   cardName,
-  cardPath,
   FIRST_BANLIST,
   LATEST_BANLIST,
   listDate,
   RESTRICTED,
+  SOURCE,
   STATUS_TONE,
   statusOn,
   type Banlist,
   type BanStatus,
+  wikiPath,
+  YEAR_TICKS,
 } from '@utils/banlist'
 import { SITE_NAME, SITE_URL } from '@utils/config'
 import { jsonLd } from '@utils/metadata'
 import { CardHistory } from './card-history'
+import { CardGrid, CardTile, StatusShift } from './status-shift'
 
-export const SOURCE ='https://yugipedia.com/wiki/Historic_Forbidden/Limited_Chart'
 const TICKS = [0, 50, 100, 150, 200].filter((v) => v <= BANLIST_MAX)
 const pct = (n: number) => `${(n / BANLIST_MAX) * 100}%`
 const counts = (list: Banlist) => ({ f: list.cards.F.length, l: list.cards.L.length, s: list.cards.S.length })
-/** Under the first bar of each even year. */
-const YEAR_TICKS = BANLISTS.map(({ date }, i) => {
-  const year = date.slice(0, 4)
-  return year !== BANLISTS[i - 1]?.date.slice(0, 4) && Number(year) % 2 === 0 ? year : ''
-})
 const YEARS = Map.groupBy(BANLISTS.toReversed(), (l) => l.date.slice(0, 4))
 
-type BanlistTimelineProps = {
-  /** The list on show. */
-  list: Banlist
-  /** The list in force today. */
-  current: Banlist
-  /** `/banlist-timeline` itself, rather than one list's page. */
-  hub?: boolean
+type View = 'grid' | 'text'
+const VIEW_KEY = 'banlist-view'
+
+/** Grid or text, remembered per browser. With storage blocked the choice still works, for this page only. */
+let picked: View = 'grid'
+const readView = (): View => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'text' ? 'text' : 'grid'
+  } catch {
+    return picked
+  }
+}
+
+const viewListeners = new Set<() => void>()
+const subscribeView = (onChange: () => void) => {
+  viewListeners.add(onChange)
+  window.addEventListener('storage', onChange)
+  return () => {
+    viewListeners.delete(onChange)
+    window.removeEventListener('storage', onChange)
+  }
+}
+
+const saveView = (view: View) => {
+  picked = view
+  try {
+    localStorage.setItem(VIEW_KEY, view)
+  } catch {}
+  viewListeners.forEach((onChange) => onChange())
+}
+
+/**
+ * Shows a list. Every list is already in the bundle, so this only swaps the URL (`pushState`, which Next
+ * syncs into `usePathname`) instead of a server round trip per list, then brings the list into view.
+ */
+const showList = (list: Banlist) => {
+  window.history.pushState(null, '', `${banlistPath(list)}#list`)
+  document.getElementById('list')?.scrollIntoView()
+}
+
+/** A list's link. The href stays real: crawlers, new tabs and a reload still get that list's own page. */
+const ListLink = ({ list, className, children, ...rest }: { list: Banlist; className?: string; children: ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  const go = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    showList(list)
+  }
+  return <a href={`${banlistPath(list)}#list`} onClick={go} className={className} {...rest}>{children}</a>
 }
 
 /**
  * The whole page, server-rendered so every list, change and answer is in the HTML a crawler reads.
- * Only the card search runs in the browser. Lists are pages of their own (`/banlist-timeline/<date>`), picked by link.
+ * The list on show follows the URL: `/banlist-timeline` is the hub (the list in force), `/banlist-timeline/<date>` one list.
  */
-export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) => {
+export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
+  const date = usePathname().split('/')[2]
+  const current = BANLISTS[currentIndex]!
+  const list = (date && banlistByDate(date)) || current
+  const hub = !date
   const t = useTranslations('Banlist')
+  const view = useSyncExternalStore(subscribeView, readView, (): View => 'grid')
+  const grid = view === 'grid'
   const format = useFormatter()
   const conjunction = new Intl.ListFormat(useLocale(), { type: 'conjunction' })
   const month = (l: Banlist) => format.dateTime(listDate(l.date), { month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -68,6 +118,11 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
   const label = month(list)
   const title = hub ? t('title') : t('listTitle', { label })
   const pageUrl = `${SITE_URL}${hub ? '/banlist-timeline' : banlistPath(list)}`
+
+  // A list picked in the page changes the URL, not the route: the tab title follows it here.
+  useEffect(() => {
+    document.title = `${hub ? t('meta.title') : t('meta.listTitle', { label })} | ${SITE_NAME}`
+  }, [hub, label, t])
 
   const badge = (l: Banlist) =>
     l.index > current.index ? (
@@ -184,14 +239,14 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
           </div>
 
           <section aria-label={t('summary.label')}>
-            <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-px border border-line bg-line">
+            <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-px border border-line bg-line">
               {[
                 { term: t('summary.lists'), value: BANLISTS.length, note: `${day(FIRST_BANLIST.date)} → ${day(latest.date)}` },
                 { term: t('summary.cards'), value: format.number(BANLIST_CARDS.length), note: t('summary.cardsNote') },
                 { term: t('summary.changes'), value: format.number(BANLIST_CHANGES), note: t('summary.changesNote') },
                 { term: t('summary.current', { label: month(current) }), value: current.total, note: t('summary.split', counts(current)), steel: true },
               ].map(({ term, value, note, steel }) => (
-                <div key={term} className={twMerge('flex flex-col gap-2 bg-surface-100 p-5', steel && 'bg-steel')}>
+                <div key={term} className={twMerge('flex flex-col gap-2 bg-surface-100 p-4 sm:p-5', steel && 'bg-steel')}>
                   <dt className={twMerge('signal', steel ? 'text-ink-dim' : 'text-ink-muted')}>{term}</dt>
                   <dd className="text-ink display-2">{value}</dd>
                   <dd className="text-ink-dim body-sm">{note}</dd>
@@ -225,8 +280,8 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                     <ol className="relative flex h-full items-end gap-0.5">
                       {BANLISTS.map((l) => (
                         <li key={l.date} className="flex h-full min-w-0 flex-1">
-                          <Link
-                            href={`${banlistPath(l)}#list`}
+                          <ListLink
+                            list={l}
                             aria-label={t('chart.bar', { label: month(l), ...counts(l) })}
                             title={t('chart.bar', { label: month(l), ...counts(l) })}
                             aria-current={l === list ? 'true' : undefined}
@@ -235,7 +290,7 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                             <span className="block rounded-t-xs bg-gold" style={{ height: pct(l.cards.S.length) }} />
                             <span className="block bg-tier-bronze" style={{ height: pct(l.cards.L.length) }} />
                             <span className="block bg-crimson" style={{ height: pct(l.cards.F.length) }} />
-                          </Link>
+                          </ListLink>
                         </li>
                       ))}
                     </ol>
@@ -255,47 +310,43 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
 
           <section id="list" aria-labelledby="bl-timeline" className="flex scroll-mt-20 flex-col gap-5">
             <SectionHead ruled num="02" id="bl-timeline" end={t('timeline.meta', { count: BANLISTS.length })}>{t('timeline.heading')}</SectionHead>
-            <div className="flex flex-wrap items-start gap-6">
-              <nav aria-label={t('timeline.nav')} className="max-h-220 min-w-0 flex-[1_1_320px] overflow-y-auto border border-line bg-surface-100">
-                <ol>
-                  {[...YEARS].map(([year, lists]) => (
-                    <li key={year}>
-                      <div className="sticky top-0 z-1 flex items-center justify-between border-b border-line bg-surface-200 px-5 py-3">
-                        <h3 className="text-ink display-3">{year}</h3>
-                        <span className="text-ink-muted signal-sm">{t('timeline.year', { count: lists.length })}</span>
-                      </div>
-                      <ol>
-                        {lists.map((l) => (
-                          <li key={l.date}>
-                            <Link
-                              href={`${banlistPath(l)}#list`}
-                              aria-current={l === list ? 'true' : undefined}
-                              className="flex items-center gap-3 border-b border-line px-5 py-3 hover:bg-surface-300 aria-[current=true]:bg-ground-cyan aria-[current=true]:shadow-[inset_0_0_0_2px_var(--color-cyan)]"
-                            >
-                              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                <span className="flex flex-wrap items-center gap-2">
-                                  <span className="text-ink body-strong">{month(l)}</span>
-                                  {badge(l)}
-                                </span>
-                                <span className="text-ink-dim body-sm">
-                                  <time dateTime={l.date}>{day(l.date)}</time> · {t('timeline.changes', { count: l.changes.length })}
-                                </span>
-                              </span>
-                              <span className="flex shrink-0 gap-2 signal-sm">
-                                <span className="text-crimson-lift">{l.cards.F.length}F</span>
-                                <span className="text-tier-bronze">{l.cards.L.length}L</span>
-                                <span className="text-gold">{l.cards.S.length}S</span>
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ol>
-                    </li>
-                  ))}
-                </ol>
-              </nav>
+            <nav
+              aria-label={t('timeline.nav')}
+              className="sticky top-0 z-20 flex items-center gap-2 border border-line bg-surface-200/95 p-2 backdrop-blur-sm xl:top-15"
+            >
+              {prev ? (
+                <ListLink list={prev} rel="prev" aria-label={t('timeline.previous')} className="flex h-10 shrink-0 items-center gap-1.5 px-2.5 text-ink-muted signal-strong hover:text-ink">
+                  <Icon name="right" className="rotate-180" /> <span className="max-sm:hidden">{t('timeline.previous')}</span>
+                </ListLink>
+              ) : null}
+              <label htmlFor="bl-pick" className="sr-only">{t('timeline.pick')}</label>
+              <select
+                id="bl-pick"
+                value={list.date}
+                onChange={(e) => showList(banlistByDate(e.target.value)!)}
+                className="h-10 min-w-0 flex-1 cursor-pointer border border-line-strong bg-surface-100 px-3 text-ink body-strong"
+              >
+                {[...YEARS].map(([year, lists]) => (
+                  <optgroup key={year} label={year}>
+                    {lists.map((l) => (
+                      <option key={l.date} value={l.date}>
+                        {[
+                          month(l),
+                          ...(l === current ? [t('timeline.inForce')] : l.index > current.index ? [t('timeline.announced')] : []),
+                        ].join(' · ')}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {next ? (
+                <ListLink list={next} rel="next" aria-label={t('timeline.next')} className="flex h-10 shrink-0 items-center gap-1.5 px-2.5 text-ink-muted signal-strong hover:text-ink">
+                  <span className="max-sm:hidden">{t('timeline.next')}</span> <Icon name="right" />
+                </ListLink>
+              ) : null}
+            </nav>
 
-              <article aria-labelledby="bl-list" className="cut notch flex min-w-0 flex-[999_1_560px] flex-col gap-6 p-4 [--cut:var(--cut-lg)] min-[720px]:p-6">
+              <article aria-labelledby="bl-list" className="cut notch flex min-w-0 flex-col gap-6 p-4 [--cut:var(--cut-lg)] min-[720px]:p-6">
                 <header className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex flex-col gap-2">
                     <span className="text-ink-muted signal">{t('timeline.position', { num: list.index + 1, count: BANLISTS.length })}</span>
@@ -313,18 +364,6 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                       )}
                     </p>
                   </div>
-                  <nav aria-label={t('timeline.nav')} className="flex items-center gap-5">
-                    {prev ? (
-                      <Link href={`${banlistPath(prev)}#list`} rel="prev" className="flex items-center gap-1.5 text-ink-muted signal-strong hover:text-ink">
-                        <Icon name="right" className="rotate-180" /> {t('timeline.previous')}
-                      </Link>
-                    ) : null}
-                    {next ? (
-                      <Link href={`${banlistPath(next)}#list`} rel="next" className="flex items-center gap-1.5 text-ink-muted signal-strong hover:text-ink">
-                        {t('timeline.next')} <Icon name="right" />
-                      </Link>
-                    ) : null}
-                  </nav>
                 </header>
 
                 <dl className="grid grid-cols-3 gap-px border border-line bg-line">
@@ -332,10 +371,10 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                     const n = list.cards[code].length
                     const delta = prev ? n - prev.cards[code].length : n
                     return (
-                      <div key={code} className="flex flex-col gap-1.5 bg-surface-200 px-5 py-4">
-                        <dt className="flex items-center gap-2 text-ink-dim signal">
-                          <span aria-hidden className={twMerge('size-2.5 rounded-xs', STATUS_TONE[code].fill)} />
-                          {status(code)}
+                      <div key={code} className="flex min-w-0 flex-col gap-1.5 bg-surface-200 px-3 py-3 sm:px-5 sm:py-4">
+                        <dt className="flex min-w-0 items-center gap-2 text-ink-dim signal max-sm:signal-sm">
+                          <span aria-hidden className={twMerge('size-2.5 shrink-0 rounded-xs', STATUS_TONE[code].fill)} />
+                          <span className="truncate">{status(code)}</span>
                         </dt>
                         <dd className="flex items-baseline gap-2.5">
                           <span className="text-ink display-2">{n}</span>
@@ -352,7 +391,19 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                 </dl>
 
                 <section aria-labelledby="bl-changed" className="flex flex-col gap-6">
-                  <h3 id="bl-changed" className="text-ink display-3">{t('timeline.changed', { count: list.changes.length })}</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 id="bl-changed" className="text-ink display-3">{t('timeline.changed', { count: list.changes.length })}</h3>
+                    <Segmented
+                      size="sm"
+                      label={t('timeline.view')}
+                      value={view}
+                      onChange={saveView}
+                      options={[
+                        { value: 'grid', label: <span className="flex items-center gap-2"><Icon name="cards" size={14} />{t('timeline.grid')}</span> },
+                        { value: 'text', label: <span className="flex items-center gap-2"><Icon name="menu" size={14} />{t('timeline.text')}</span> },
+                      ]}
+                    />
+                  </div>
                   {list.index === 0 ? <p className="text-ink-dim body">{t('timeline.first')}</p> : null}
                   {(['F', 'L', 'S', 'U'] as const).map((to) => {
                     const rows = list.changes
@@ -366,19 +417,20 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                           <b className={STATUS_TONE[to].text}>{t(`timeline.group.${to}`)}</b>
                           <span className="text-ink-muted">{rows.length}</span>
                         </h4>
-                        <ul className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-x-6">
-                          {rows.map(({ card, from }) => (
-                            <li key={card} className="flex min-w-0 items-center gap-3 border-b border-line py-2">
-                              <Link href={cardPath(card)} className="min-w-0 flex-1 text-ink body hover:text-cyan">{cardName(card)}</Link>
-                              <span className="flex shrink-0 items-center gap-1.5 signal-sm">
-                                <span className={STATUS_TONE[from].text}>{status(from)}</span>
-                                <Icon name="right" size={12} className="text-ink-muted" />
-                                <span className="sr-only">{t('timeline.to')}</span>
-                                <b className={STATUS_TONE[to].text}>{status(to)}</b>
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                        {grid ? (
+                          <CardGrid>
+                            {rows.map(({ card, from }) => <CardTile key={card} card={card} from={from} to={to} />)}
+                          </CardGrid>
+                        ) : (
+                          <ul className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-6">
+                            {rows.map(({ card, from }) => (
+                              <li key={card} className="flex min-w-0 items-center gap-3 border-b border-line py-2">
+                                <Link href={wikiPath(card)} target="_blank" rel="noopener" className="min-w-0 flex-1 text-ink body hover:text-cyan">{cardName(card)}</Link>
+                                <StatusShift from={from} to={to} />
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     )
                   })}
@@ -394,11 +446,15 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                           <b className={STATUS_TONE[code].text}>{status(code)}</b>
                           <span className="text-ink-muted">{list.cards[code].length}</span>
                         </h4>
-                        {list.cards[code].length ? (
+                        {list.cards[code].length && grid ? (
+                          <CardGrid>
+                            {list.cards[code].map((card) => <CardTile key={card} card={card} />)}
+                          </CardGrid>
+                        ) : list.cards[code].length ? (
                           <ul className="columns-[13rem] gap-6">
                             {list.cards[code].map((card) => (
                               <li key={card}>
-                                <Link href={cardPath(card)} className="block py-1 text-ink-dim body-sm hover:text-cyan">{cardName(card)}</Link>
+                                <Link href={wikiPath(card)} target="_blank" rel="noopener" className="block py-1 text-ink-dim body-sm hover:text-cyan">{cardName(card)}</Link>
                               </li>
                             ))}
                           </ul>
@@ -410,7 +466,6 @@ export const BanlistTimeline = ({ list, current, hub }: BanlistTimelineProps) =>
                   </div>
                 </section>
               </article>
-            </div>
           </section>
 
           <CardHistory selected={list.index} current={current.index} />
