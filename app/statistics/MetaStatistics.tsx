@@ -50,16 +50,16 @@ const isSmall = (a: { winRate: number | null; wilsonLower: number | null }) =>
 
 /**
  * `snap`: from 720px the section is one screen tall (under the header, fixed from xl), scrolls inside itself, and
- * the page snaps to it (app/styles.css).
+ * the page snaps to it: `[:root:has(&)]` turns snapping on for the page only while such a section is on it.
  */
 export const Section = ({ num: n, label, stamp, id, snap, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; snap?: boolean; children: React.ReactNode }) => (
   <section
     id={id}
     aria-label={label}
-    data-snap={snap || undefined}
     className={twMerge(
       'mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16',
-      snap && 'min-[720px]:h-dvh min-[720px]:snap-start min-[720px]:scroll-mt-0 min-[720px]:overflow-y-auto min-[720px]:pt-8 min-[720px]:pb-8 xl:h-[calc(100dvh-60px)]',
+      snap &&
+        'min-[720px]:h-dvh min-[720px]:*:shrink-0 min-[720px]:snap-start min-[720px]:scroll-mt-0 min-[720px]:overflow-y-auto min-[720px]:py-8 xl:h-[calc(100dvh-60px)] min-[720px]:[:root:has(&)]:snap-y min-[720px]:[:root:has(&)]:snap-proximity xl:[:root:has(&)]:scroll-pt-15',
     )}
   >
     {/* The stamp is provenance, not content: it gives way on a phone. */}
