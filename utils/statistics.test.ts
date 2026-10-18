@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getArchetypeIndex, getDeepDive, requestDeepDive } from '@utils/statistics'
+import { getArchetypeIndex, getDeepDive, requestDeepDive, subRows, type LeanArchetype } from '@utils/statistics'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -31,5 +31,14 @@ describe('deep dive API client', () => {
     await requestDeepDive('tcg-2', 'combined', [451, 207])
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
     expect(body).toEqual({ season: 'tcg-2', mode: 'combined', key: '451-207' })
+  })
+})
+
+describe('section 03 rows', () => {
+  it('subRows: pure first candidate, only mixes the archetype leads', () => {
+    const r = (archetype: number[], games: number) => ({ archetype, games }) as LeanArchetype
+    const views = { general: [r([9], 7)], generalCount: 1, pure: [r([9], 4)], combined: [r([9, 7], 3), r([7, 9], 2)] }
+    expect(subRows(9, views)).toEqual({ pure: r([9], 4), mixes: [r([9, 7], 3)] })
+    expect(subRows(7, views)).toEqual({ pure: null, mixes: [r([7, 9], 2)] })
   })
 })

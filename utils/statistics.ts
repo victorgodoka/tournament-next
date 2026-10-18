@@ -44,6 +44,9 @@ export type StatArchetype = {
   techs: CardGroup[]
 }
 
+/** A section 03 row: no engines or techs, `cards` cut to the face card. */
+export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs'>
+
 export type Matchup = {
   archetype: ArchetypeKey
   opponent: ArchetypeKey
@@ -94,6 +97,12 @@ export type Statistics = {
   mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
+  /**
+   * Section 03 rows, by games. `general` `[A]`: pure A plus every mix A leads (`generalCount` before the cut);
+   * `pure` `[A]`: a listed General key's pure decks, when the build has them; `combined` `[lead, second]`.
+   * `null` for a season frozen before modes.
+   */
+  views: { general: LeanArchetype[]; generalCount: number; pure: LeanArchetype[]; combined: LeanArchetype[] } | null
 }
 
 export type StatisticsResult = { ok: true; data: Statistics } | { ok: false; status: number }
@@ -114,6 +123,12 @@ export const getStatistics = async ({ ladder, season }: { ladder: RankedLadderId
 }
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
+
+/** What opens under General A in section 03: pure A, and the mixes A leads (unsorted; the table sorts them). */
+export const subRows = (lead: number, views: NonNullable<Statistics['views']>) => ({
+  pure: views.pure.find((a) => a.archetype.length === 1 && a.archetype[0] === lead) ?? null,
+  mixes: views.combined.filter((a) => a.archetype[0] === lead),
+})
 
 /** `general`: all decks; `pure`: single-archetype decks; `combined`: mixed decks, key `[lead, second]` in that order. */
 export type DeepDiveMode = 'general' | 'pure' | 'combined'
