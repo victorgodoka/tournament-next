@@ -30,7 +30,8 @@ export type EditorAction =
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'rename'; name: string }
-  | { type: 'format'; format: number | null }
+  /** `deck`: the same deck with double-script cards as the new format's prints. */
+  | { type: 'format'; format: number | null; deck?: Deck }
   | { type: 'load'; deck: Deck; name: string; format: number | null; deckId: string | null; revision: number | null; dirty?: boolean }
   /** `dirty`: the deck changed while the save was in flight. `name` / `format`: as saved (placeholder name, effective list). */
   | { type: 'saved'; deckId: string; revision: number; dirty?: boolean; name?: string; format?: number | null }
@@ -95,7 +96,7 @@ export const editorReducer = (s: EditorState, a: EditorAction): EditorState => {
     case 'rename':
       return { ...s, name: a.name, dirty: true }
     case 'format':
-      return { ...s, format: a.format, dirty: true }
+      return { ...s, format: a.format, deck: a.deck ?? s.deck, dirty: true }
     case 'load':
       return {
         ...initialEditorState(),

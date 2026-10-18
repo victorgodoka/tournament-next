@@ -17,7 +17,33 @@ export const frameOf = (card: CardData): CardFrame => {
 
 export const isExtraDeckCard = (card: CardData): boolean => card.monsterTypes.some((t) => EXTRA_TYPES.includes(t))
 
-export const canonicalId = (card: CardData): number => card.alias ?? card.ruleId ?? card.id
+export const canonicalId = (card: CardData): number => card.alias ?? card.ruleId ?? card.idOriginal ?? card.id
+
+/** Banlist formats whose Omega code carries a double-script card's TCG passcode; the rest carry the OCG one. */
+const TCG_FORMATS = ['tcg', 'wcs', 'genesys']
+export const usesTcgPasscodes = (banlistFormat: string): boolean => TCG_FORMATS.includes(banlistFormat)
+
+/**
+ * `id` as the double-script print for the format: TCG passcode when `tcg`, OCG otherwise. `card` is
+ * what the cache holds for `id`, either print. Every other passcode, alternate artworks included,
+ * comes back unchanged.
+ */
+export const passcodeIn = (id: number, card: CardData | undefined, tcg: boolean): number => {
+  if (!card?.idTcg) return id
+  if (tcg) return id === card.idOriginal ? card.idTcg : id
+  return id === card.idTcg ? card.idOriginal : id
+}
+
+export const deckIn = (deck: Deck, cards: CardMap, tcg: boolean): Deck => {
+  const zone = (ids: readonly number[]) => ids.map((id) => passcodeIn(id, cards.get(id), tcg))
+  return { main: zone(deck.main), extra: zone(deck.extra), side: zone(deck.side) }
+}
+
+/** The card as the print the deck stores for the format (see `passcodeIn`). */
+export const inFormat = (card: CardData, tcg: boolean): CardData => {
+  const id = passcodeIn(card.id, card, tcg)
+  return id === card.id ? card : { ...card, id }
+}
 
 /**
  * The card as one of its artworks. The cache keys an alternate artwork's passcode to the original

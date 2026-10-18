@@ -20,9 +20,6 @@ export async function generateMetadata() {
   })
 }
 
-const BanlistTimelinePage = () => {
-  const current = currentBanlist()
-  return <BanlistTimeline list={current} current={current} hub />
-}
+const BanlistTimelinePage = () => <BanlistTimeline currentIndex={currentBanlist().index} />
 
 export default BanlistTimelinePage

@@ -13,7 +13,8 @@ import { Panel } from '@ui/panel'
 import { getArchetypeIndex, getDeepDive, requestDeepDive, type DeepDiveState, type IndexEntry, type Statistics } from '@utils/statistics'
 import { DeepDive, NOTE, nameOf, num } from './DeepDive'
 
-const POLL_MS = 3000
+/* Cheap read of a job's state: the sooner it comes back `ready`, the sooner the card shows. */
+const POLL_MS = 1000
 const SUFFIX = ['th', 'st', 'nd', 'rd']
 const ordinal = (n: number) => n + (SUFFIX[((n % 100) - 20) % 10] ?? SUFFIX[n % 100] ?? 'th')
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -26,14 +27,30 @@ const option = (e: IndexEntry): LookupOption => ({
 
 type Picked = { archetype: number[]; name: string }
 
+/** Covers the page while a pick loads or calculates. `Cancel` only stops waiting: a running job still finishes server-side. */
+const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => (
+  <div role="status" aria-live="polite" className="fixed inset-0 z-(--z-overlay) flex flex-col items-center justify-center gap-6 bg-scrim px-gutter text-center">
+    <span className="equalizer-bars scale-200" aria-hidden>
+      <span className="equalizer-bars__bar" />
+      <span className="equalizer-bars__bar" />
+      <span className="equalizer-bars__bar" />
+      <span className="equalizer-bars__bar" />
+    </span>
+    <p className="mt-4 text-ink display-3">{title}</p>
+    {detail ? <p className="max-w-[52ch] text-ink-dim body">{detail}</p> : null}
+    <Button size="sm" variant="secondary" onClick={onCancel}>Cancel</Button>
+  </div>
+)
+
 /** What the pick shows below the field. `signedIn`: `undefined` while auth loads, `false` for a guest. */
-const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
+const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }: {
   name: string
   state: DeepDiveState | null
   failed: number | null
   signedIn: boolean | undefined
   onLoad: () => void
   onCalculate: () => void
+  onCancel: () => void
 }) => {
   if (failed !== null)
     return (
@@ -55,7 +72,7 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
         </div>
       </Panel>
     )
-  if (!state) return <p className={NOTE} role="status">Loading {name}…</p>
+  if (!state) return <Overlay title={`Loading ${name}`} onCancel={onCancel} />
   switch (state.status) {
     case 'ready':
       return <DeepDive archetype={state.archetype} rank={state.archetype.rank} />
@@ -79,11 +96,11 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
     case 'queued':
     case 'running':
       return (
-        <Panel title={name} meta={state.status === 'queued' ? `${ordinal(state.position)} in line` : 'Calculating'}>
-          <p className="text-ink-dim body" role="status">
-            Calculating {name}. This adds up the whole season and can take up to a minute. Keep this page open.
-          </p>
-        </Panel>
+        <Overlay
+          title={state.status === 'queued' ? `${name}: ${ordinal(state.position)} in line` : `Calculating ${name}`}
+          detail="This adds up the whole season and can take up to a minute. Cancel stops waiting; the calculation still finishes and is ready next time."
+          onCancel={onCancel}
+        />
       )
     case 'failed':
       return (
@@ -105,11 +122,15 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate }: {
   }
 }
 
-/** `onRemote(true)` while a pick outside the page's data is shown (the page hides its own deep dive then). */
-export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
+/**
+ * `onRemote(true)` while a pick outside the page's data is shown (the page hides its own deep dive then);
+ * `onBusy(true)` while that pick loads or calculates (the page hides its archetype chips then).
+ */
+export const DeepDiveSearch = ({ season, onLocal, onRemote, onBusy }: {
   season: Statistics['season']
   onLocal: (key: string) => boolean
   onRemote: (active: boolean) => void
+  onBusy: (busy: boolean) => void
 }) => {
   const { user } = useAuth()
   const code = season.code
@@ -131,8 +152,10 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
 
   /* The latest `onRemote`, for the unmount below: a season switch remounts this search empty, so the page's deep dive must come back. */
   const remote = useRef(onRemote)
+  const busyRef = useRef(onBusy)
   useEffect(() => {
     remote.current = onRemote
+    busyRef.current = onBusy
   })
 
   useEffect(
@@ -140,12 +163,15 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
       controller.current?.abort()
       clearTimeout(timer.current)
       remote.current(false)
+      busyRef.current(false)
     },
     [],
   )
 
   /* Leaving mid-calculation loses the poll, not the job; still, ask first. */
   const active = failed === null && isActive(state)
+  const busy = picked !== null && failed === null && (state === null || active)
+  useEffect(() => busyRef.current(busy), [busy])
   useEffect(() => {
     if (!active) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
@@ -194,15 +220,16 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
   const load = (p: Picked) => run(p.archetype, (signal) => getDeepDive(code, p.archetype, signal), null)
   const calculate = (p: Picked) => run(p.archetype, () => requestDeepDive(code, p.archetype), { status: 'running' })
 
+  const cancel = () => {
+    restart()
+    setPicked(null)
+    setState(null)
+    setFailed(null)
+    onRemote(false)
+  }
+
   const onPick = ({ key, label }: LookupOption) => {
-    if (onLocal(String(key))) {
-      restart()
-      setPicked(null)
-      setState(null)
-      setFailed(null)
-      onRemote(false)
-      return
-    }
+    if (onLocal(String(key))) return cancel()
     const next = { archetype: String(key).split('-').map(Number), name: String(label) }
     setPicked(next)
     onRemote(true)
@@ -223,6 +250,7 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote }: {
           signedIn={user === undefined ? undefined : user !== null}
           onLoad={() => load(picked)}
           onCalculate={() => calculate(picked)}
+          onCancel={cancel}
         />
       ) : null}
     </div>

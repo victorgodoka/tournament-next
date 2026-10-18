@@ -3,7 +3,7 @@
  * Rates are 0–1 fractions, `null` when their denominator is 0; `games` are always deck-games.
  */
 import { API_URL } from '@utils/auth'
-import type { RankedLadderId } from '@utils/types'
+import type { RankedLadderId, Tier } from '@utils/types'
 
 /** One entry, or two for a mixed deck. Use it as the key; `name` is only the label. */
 export type ArchetypeKey = number[]
@@ -55,35 +55,32 @@ export type Matchup = {
   wilsonLower: number | null
 }
 
-export type Staple = { id: number; name: string | null; inclusion: number; archetypes: number; playRate: number | null; winRateWhenUsed: number | null }
-
-export type HandTrap = {
+/** Rates are 0–1; `null` is "not enough data" (days swept before the counters, or no denominator). */
+export type MostUsedCard = {
   id: number
   name: string | null
-  inclusion: number
-  activations: number
-  respondedRate: number | null
-  calledRate: number | null
-  crossoutRate: number | null
-  /**
-   * "Ash'd or Purged": responses that were Ash Blossom or Dominus Purge ÷ responses (not activations).
-   * `null` while part of the season predates the counter; it fills in once staff re-sweep the season.
-   */
-  ashedOrPurgedRate: number | null
-  /** Games where it was activated at least once, from the side that activated it. `null` on a partly old season. */
-  whenUsed: WhenUsed | null
-  targets: {
-    archetype: ArchetypeKey
-    name: string | null
-    activations: number
-    respondedRate: number | null
-    /** Games where it was used against this deck: the user's win rate in that matchup. */
-    whenUsed: WhenUsed | null
-  }[]
+  handTrap: boolean
+  popularity: number
+  usageRate: number | null
+  winRateWhenUsed: number | null
+  detail: {
+    decklists: { mainExtra: number | null; side: number | null }
+    usage: { game1: number | null; postSide: number | null }
+    winRate: { match: number | null; game1: number | null; postSide: number | null }
+    responded: {
+      activations: number
+      rate: number | null
+      dominus: number | null
+      yokaiGirls: number | null
+      psyFrame: number | null
+      calledCrossout: number | null
+      impermanence: number | null
+      mulcharmy: number | null
+      solemn: number | null
+      others: number | null
+    }
+  }
 }
-
-/** Mirrors count in `games`, not in wins/losses. */
-export type WhenUsed = { games: number; wins: number; losses: number; draws: number; winRate: number | null; wilsonLower: number | null }
 
 export type Statistics = {
   season: { id: number; code: string; label: string; ladder: RankedLadderId; startsAt: string; endsAt: string | null }
@@ -93,8 +90,8 @@ export type Statistics = {
   turnOrder: { all: TurnSplit; game1: TurnSplit; postSide: TurnSplit }
   archetypes: StatArchetype[]
   matchups: Matchup[]
-  staples: Staple[]
-  handTraps: HandTrap[]
+  /** Generic cards in 2+ archetypes, 30 a part, most popular first. */
+  mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
 }
@@ -155,4 +152,33 @@ export const requestDeepDive = async (season: string, key: ArchetypeKey): Promis
   /* The IP limiter answers 429 too, without a `retryAt`. */
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
   return ok(res)
+}
+
+/** GET /statistics/omega: logins and ranked activity of the whole game (STATISTICS_API.md §5). */
+export type OmegaCard = { current: number; previous: number | null }
+export type TierCell = { games: number; players: number }
+export type OmegaRange = 7 | 14 | 30
+export type OmegaLadder = {
+  population: { tier: Tier; players: number }[]
+  daily: { day: string; tiers: Partial<Record<Tier, TierCell>> }[]
+  totals: Record<OmegaRange, Partial<Record<Tier, TierCell>>>
+}
+export type OmegaActivity = {
+  updatedAt: string
+  today: string
+  cards: Record<'logins' | 'weekLogins' | 'duels' | 'weekDuels', OmegaCard>
+  daily: { day: string; logins: number | null; duels: number; players: number }[]
+  totals: Record<OmegaRange, TierCell>
+  ladders: Record<RankedLadderId, OmegaLadder>
+}
+
+/** null when the server can't answer: the page goes on without the section. */
+export const getOmegaActivity = async (): Promise<OmegaActivity | null> => {
+  try {
+    const res = await fetch(`${API_URL}/statistics/omega`, { next: { revalidate: 600 } })
+    return res.ok ? ((await res.json()) as OmegaActivity) : null
+  } catch (error) {
+    console.error(error)
+    return null
+  }
 }

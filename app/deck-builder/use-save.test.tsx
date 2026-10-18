@@ -59,7 +59,7 @@ beforeEach(() => {
   auth.refresh = vi.fn(() => Promise.resolve())
   vi.stubGlobal('localStorage', memoryStorage())
   vi.stubGlobal('sessionStorage', memoryStorage())
-  window.history.replaceState(null, '', '/deck-editor')
+  window.history.replaceState(null, '', '/deck-builder')
 })
 afterEach(() => {
   vi.clearAllMocks()
@@ -77,7 +77,7 @@ describe('useSave', () => {
     // The editor takes the name and format as saved, so later drafts compare like for like.
     expect(dispatch).toHaveBeenCalledWith({ type: 'saved', deckId: NEW_ID, revision: 1, name: 'newDeck', format: 44 })
     expect(localStorage.getItem(draftKey(null))).toBeNull()
-    expect(window.location.pathname).toBe(`/deck-editor/${NEW_ID}`)
+    expect(window.location.pathname).toBe(`/deck-builder/${NEW_ID}`)
     expect(result.current.saving).toBe(false)
   })
 
@@ -225,12 +225,12 @@ describe('useSave', () => {
 
   it('signed out: writes the draft, remembers the page and goes to /login', async () => {
     auth.user = null
-    window.history.replaceState(null, '', '/deck-editor?x=1')
+    window.history.replaceState(null, '', '/deck-builder?x=1')
     const { result } = setup(editor({ name: 'Mine' }))
     await act(() => result.current.save())
     expect(createDeck).not.toHaveBeenCalled()
     expect(readDraft(draftKey(null))).toMatchObject({ deck, name: 'Mine' })
-    expect(sessionStorage.getItem('return-to')).toBe('/deck-editor?x=1')
+    expect(sessionStorage.getItem('return-to')).toBe('/deck-builder?x=1')
     expect(router.push).toHaveBeenCalledWith('/login')
     expect(auth.refresh).not.toHaveBeenCalled()
   })

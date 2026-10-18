@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: BanlistRouteProps) {
 const BanlistPage = async ({ params }: BanlistRouteProps) => {
   const list = banlistByDate((await params).date)
   if (!list) notFound()
-  return <BanlistTimeline list={list} current={currentBanlist()} />
+  return <BanlistTimeline currentIndex={currentBanlist().index} />
 }
 
 export default BanlistPage

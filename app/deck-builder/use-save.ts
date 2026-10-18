@@ -110,7 +110,7 @@ export const useSave = (
         const stored = readDraft(draftKey(null))
         if (mounted.current || (stored && sameDraft(stored, now))) clearDraft(draftKey(null))
         // Not router.replace: the [id] page would remount the editor, dropping undo history and the card cache.
-        if (mounted.current) window.history.replaceState(null, '', `/deck-editor/${saved.id}`)
+        if (mounted.current) window.history.replaceState(null, '', `/deck-builder/${saved.id}`)
       } else if (!changed) clearDraft(draftKey(deckId))
     } catch (e) {
       if (e instanceof DeckConflictError) setConflict(e.latest)

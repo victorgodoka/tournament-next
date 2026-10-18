@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start -p 5173",
     "lint": "eslint",
-    "gc": "node scripts/gc.mjs"
+    "gc": "node scripts/gc.mjs",
+    "docker:build": "docker build . --build-arg NEXT_PUBLIC_API_URL=\"https://godokaapi.duelistsunite.org\" --build-arg NEXT_PUBLIC_DISCORD_URL=\"https://discord.com/oauth2/authorize?client_id=875973118512988180&response_type=code&redirect_uri=https%3A%2F%2Fnext.duelistsunite.org%2F%23%2F%3Fdiscord&scope=identify\" -t victorgodoka/omega-hub-next:latest",
+    "docker:deploy": "docker push victorgodoka/omega-hub-next:latest",
+    "deploy": "pnpm docker:build && pnpm docker:deploy"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",

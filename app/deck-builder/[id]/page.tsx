@@ -8,7 +8,7 @@ type Props = { params: Promise<{ id: string }> }
 // Decks are private by default: never indexed.
 export async function generateMetadata({ params }: Props) {
   const [{ id }, t] = await Promise.all([params, getTranslations('DeckEditor')])
-  return pageMetadata({ title: t('title'), path: `/deck-editor/${encodeURIComponent(id)}`, description: t('meta'), noIndex: true })
+  return pageMetadata({ title: t('title'), path: `/deck-builder/${encodeURIComponent(id)}`, description: t('meta'), noIndex: true })
 }
 
 const DeckEditorDeckPage = async ({ params }: Props) => {

@@ -85,7 +85,7 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
           <p className={PANEL_RULE}>{name}</p>
           <Link href={`/profile/${user.id}`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My profile</Link>
           {ANALYTICS_ENABLED ? <Link href={`/profile/${user.id}/analytics`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My analytics</Link> : null}
-          <Link href="/deck-editor" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My decks</Link>
+          <Link href="/deck-builder" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My decks</Link>
           <Link href="/messenger" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Messenger</Link>
           <p className={PANEL_RULE}>Account</p>
           <Link href="/profile/edit" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Edit profile</Link>

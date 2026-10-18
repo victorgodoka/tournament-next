@@ -15,7 +15,11 @@ const DISABLED_ROUTES = [
   ...(BATTLEPASS_ENABLED ? [] : ['/battlepass/:path*', '/admin/battlepass/:path*']),
 ];
 const nextConfig: NextConfig = {
-  redirects: async () => DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
+  redirects: async () => [
+    ...DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
+    // The Deck Editor became the Deck Builder: links already shared, saved decks included, keep working.
+    { source: '/deck-editor/:path*', destination: '/deck-builder/:path*', permanent: true },
+  ],
   output: "standalone",
   images: {
     /**

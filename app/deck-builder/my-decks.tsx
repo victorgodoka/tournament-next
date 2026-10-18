@@ -128,7 +128,7 @@ const DeckList = ({ currentId, onClose, onDeleted, deleteReplacesNew }: Pick<MyD
 
   const open = (id: string) => {
     onClose()
-    if (id !== currentId) router.push(`/deck-editor/${id}`)
+    if (id !== currentId) router.push(`/deck-builder/${id}`)
   }
 
   const remove = (deck: DeckSummary) => {

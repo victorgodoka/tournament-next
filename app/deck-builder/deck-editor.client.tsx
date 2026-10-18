@@ -13,7 +13,7 @@ import { toOmega } from '@utils/deck/codecs/omega'
 import { toText } from '@utils/deck/codecs/text'
 import { toYdk } from '@utils/deck/codecs/ydk'
 import { fromYdke, toYdke } from '@utils/deck/codecs/ydke'
-import { addCard, canonicalId, printOf } from '@utils/deck/model'
+import { addCard, canonicalId, deckIn, inFormat, printOf, usesTcgPasscodes } from '@utils/deck/model'
 import { pointsUsed, validate, type Problem } from '@utils/deck/rules'
 import { DeckCodeError, EMPTY_DECK, type CardData, type CardMap, type Deck, type Zone } from '@utils/deck/types'
 import { getDeck, type SavedDeck } from '@utils/decks'
@@ -110,7 +110,7 @@ const carryAway = (deckId: string, local: EditorState, unsaved: Unsaved, router:
   unsaved.current = null // or the unmount flush would write the orphan back
   writeDraft(draftKey(null), { ...draftOf(local), revision: null })
   clearDraft(draftKey(deckId))
-  router.replace('/deck-editor?missing=carried')
+  router.replace('/deck-builder?missing=carried')
 }
 
 const ZONE_OF: Partial<Record<Problem['code'], Zone>> = { 'main-size': 'main', 'extra-size': 'extra', 'side-size': 'side' }
@@ -147,6 +147,8 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
   // No format chosen yet: the TCG list. It is also the list a save records.
   const banlist = banlists?.find((b) => (state.format === null ? b.format === 'tcg' : b.id === state.format)) ?? null
+  /** Double-script cards: the deck and its Omega code hold the TCG print here, the OCG one otherwise. ydk/ydke always OCG. */
+  const tcg = !banlist || usesTcgPasscodes(banlist.format)
   const wait =
     loadState === 'loading' || banlists === null ? t('save.wait')
     : loadState === 'failed' ? t('save.loadFailed')
@@ -186,7 +188,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   useEffect(() => {
     let live = true
     omega.current = null
-    toOmega(deck).then(
+    toOmega(deckIn(deck, cards, tcg)).then(
       (code) => {
         if (live) omega.current = code
       },
@@ -195,7 +197,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     return () => {
       live = false
     }
-  }, [deck])
+  }, [deck, cards, tcg])
 
   useEffect(() => {
     getBanlists().then(setBanlists)
@@ -221,7 +223,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         if (!saved || saved.ownerId !== userId) {
           // Signed out it may still be theirs: the draft stays put for after sign-in.
           if (userId === null) setGone('signin')
-          else if (!local.dirty) router.replace('/deck-editor?missing')
+          else if (!local.dirty) router.replace('/deck-builder?missing')
           else {
             const other = readDraft(draftKey(null))
             if (other && !sameDraft(other, local)) setGone('collision')
@@ -301,7 +303,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     flushDraft(unsaved)
     clearDraft(draftKey(null)) // My decks asked first if there was one
     dispatch({ type: 'load', deck: EMPTY_DECK, name: '', format: null, deckId: null, revision: null })
-    router.push('/deck-editor')
+    router.push('/deck-builder')
   }
 
   /** Deleting the open deck turns its content into the unsaved new deck; this other one would be replaced. */
@@ -317,7 +319,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     clearDraft(draftKey(id))
     writeDraft(draftKey(null), { ...draftOf(state), revision: null })
     dispatch({ type: 'load', deck, name: state.name, format: state.format, deckId: null, revision: null, dirty: true })
-    window.history.replaceState(null, '', '/deck-editor')
+    window.history.replaceState(null, '', '/deck-builder')
   }
 
   const changeView = (next: ViewMode) => {
@@ -338,8 +340,10 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   }
 
   /** A refused add shakes the card's tiles; the live region below says why. */
-  const add = (card: CardData, zone?: Zone) => {
-    if (addCard(deck, card, cards, zone).rejected) shakeTiles(card.id)
+  const add = (shown: CardData, zone?: Zone) => {
+    const card = inFormat(shown, tcg)
+    // Pool tiles carry the shown print's passcode, deck tiles the format's: they differ on a double-script card.
+    if (addCard(deck, card, cards, zone).rejected) for (const id of new Set([shown.id, card.id])) shakeTiles(id)
     dispatch({ type: 'add', card, cards, zone })
   }
 
@@ -353,7 +357,9 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     setBusy('importing') // an Omega code looks its cards up before it can split the extra deck
     try {
       const { deck: next, format } = await readDeck(text, ensure)
-      dispatch({ type: 'replace', deck: next })
+      // ydk/ydke carry OCG passcodes; the deck holds the format's print.
+      const known = await ensure([...next.main, ...next.extra, ...next.side])
+      dispatch({ type: 'replace', deck: deckIn(next, known, tcg) })
       if (name && !state.name.trim()) dispatch({ type: 'rename', name })
       setToast({ tone: 'positive', text: t('io.imported', { format: t(`io.format.${format}`) }) })
     } catch (error) {
@@ -385,12 +391,12 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   const exportAs = async (kind: ExportKind) => {
     if (!allIds.length) return setToast({ tone: 'negative', text: t('io.empty') })
-    if (kind === 'omega') return copy(omega.current ?? toOmega(deck), kind)
-    if (kind === 'ydke') return copy(toYdke(deck), kind)
+    if (kind === 'omega') return copy(omega.current ?? toOmega(deckIn(deck, cards, tcg)), kind)
+    if (kind === 'ydke') return copy(toYdke(deckIn(deck, cards, false)), kind)
     if (kind === 'list') return copy(toText(deck, cards), kind)
     if (kind === 'ydk') {
       const file = fileName(state.name, 'ydk')
-      download(new Blob([toYdk(deck)], { type: 'text/plain' }), file)
+      download(new Blob([toYdk(deckIn(deck, cards, false))], { type: 'text/plain' }), file)
       return setToast({ tone: 'positive', text: t('io.downloaded', { file }) })
     }
     setBusy('building')
@@ -456,7 +462,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     },
     copy: (data) => {
       if (!allIds.length) return setToast({ tone: 'negative', text: t('io.empty') })
-      if (!omega.current) return void copy(toOmega(deck), 'omega') // edited a moment ago: still encoding
+      if (!omega.current) return void copy(toOmega(deckIn(deck, cards, tcg)), 'omega') // edited a moment ago: still encoding
       data.setData('text/plain', omega.current)
       setToast({ tone: 'positive', text: t('io.copied', { format: t('io.format.omega') }) })
     },
@@ -498,7 +504,10 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       onRename={(name) => dispatch({ type: 'rename', name })}
       banlists={banlists ?? []}
       banlist={banlist}
-      onFormat={(format) => dispatch({ type: 'format', format })}
+      onFormat={(format) => {
+        const list = banlists?.find((b) => b.id === format)
+        dispatch({ type: 'format', format, deck: deckIn(deck, cards, !list || usesTcgPasscodes(list.format)) })
+      }}
       validity={validity}
       problems={problems}
       nameOf={nameOf}
@@ -606,7 +615,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
                 onClick={() => {
                   unsaved.current = null
                   clearDraft(draftKey(deckId))
-                  router.replace('/deck-editor?missing')
+                  router.replace('/deck-builder?missing')
                 }}
                 className="max-lg:min-h-11"
               >
