@@ -1,17 +1,17 @@
 {
   "DeckEditor": {
-    "title": "Editor de decks",
+    "title": "Deck Builder",
     "meta": "Monte e confira decks de Yu-Gi-Oh! nas listas TCG, OCG e Genesys.",
     "newDeck": "Novo deck",
     "legal": "Legal",
     "problems": "{count, plural, one {# problema} other {# problemas}}",
-    "damagedLink": "O link deste deck está corrompido, então o editor abriu um deck vazio.",
+    "damagedLink": "O link deste deck está corrompido, então o Deck Builder abriu um deck vazio.",
     "dismiss": "Fechar",
     "checking": "Verificando…",
     "rulesUnavailable": "Regras do formato indisponíveis",
     "lookupFailed": "Algumas cartas não carregaram, então ainda não foram verificadas.",
     "retry": "Tentar de novo",
-    "deckMissing": "Esse deck não está disponível: foi excluído ou não é seu. O editor abriu um deck novo.",
+    "deckMissing": "Esse deck não está disponível: foi excluído ou não é seu. O Deck Builder abriu um deck novo.",
     "deckCarried": "Esse deck foi excluído ou não é seu. Suas alterações não salvas nele estão abertas aqui como um deck novo.",
     "save": {
       "failed": "Não foi possível salvar o deck.",
@@ -68,7 +68,7 @@
       "deleteTitle": "Excluir deck",
       "deleteBody": "Excluir “{name}” e o histórico dele? Não dá para desfazer.",
       "deleteFailed": "Não foi possível excluir o deck.",
-      "deleteReplacesNew": "Este deck está aberto: o conteúdo dele fica no editor como um deck novo, substituindo o seu outro deck novo não salvo.",
+      "deleteReplacesNew": "Este deck está aberto: o conteúdo dele fica no Deck Builder como um deck novo, substituindo o seu outro deck novo não salvo.",
       "visibility": {
         "private": "Privado",
         "unlisted": "Não listado",
@@ -97,7 +97,7 @@
       "placeholder": "Cole um código Omega ou URL ydke://",
       "importCode": "Importar código",
       "importFile": "Abrir arquivo .ydk",
-      "pasteHint": "Ctrl+V em qualquer lugar do editor importa o código da área de transferência.",
+      "pasteHint": "Ctrl+V em qualquer lugar do Deck Builder importa o código da área de transferência.",
       "copyHint": "Ctrl+C copia o deck como código Omega.",
       "as": {
         "omega": "Copiar código Omega",

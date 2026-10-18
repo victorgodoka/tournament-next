@@ -23,24 +23,24 @@ afterEach(() => {
 const mount = () => render(<StrictMode><ReturnAfterSignIn /></StrictMode>)
 
 it('goes back to the stored page once signed in, even with effects run twice', () => {
-  store.set('return-to', '/deck-editor')
+  store.set('return-to', '/deck-builder')
   auth.user = undefined
   const view = mount()
   expect(router.replace).not.toHaveBeenCalled() // session still loading: nothing taken
-  expect(store.get('return-to')).toBe('/deck-editor')
+  expect(store.get('return-to')).toBe('/deck-builder')
   auth.user = { id: 'u1' }
   act(() => view.rerender(<StrictMode><ReturnAfterSignIn /></StrictMode>))
   expect(router.replace).toHaveBeenCalled()
-  for (const [path] of router.replace.mock.calls) expect(path).toBe('/deck-editor')
+  for (const [path] of router.replace.mock.calls) expect(path).toBe('/deck-builder')
   expect(store.has('return-to')).toBe(false)
 })
 
 it('signed out, leaves the stored page for later', () => {
-  store.set('return-to', '/deck-editor')
+  store.set('return-to', '/deck-builder')
   auth.user = null
   mount()
   expect(router.replace).not.toHaveBeenCalled()
-  expect(store.get('return-to')).toBe('/deck-editor')
+  expect(store.get('return-to')).toBe('/deck-builder')
 })
 
 it('stays on /welcome when nothing was stored', () => {

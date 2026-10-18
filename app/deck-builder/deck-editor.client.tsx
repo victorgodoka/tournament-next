@@ -110,7 +110,7 @@ const carryAway = (deckId: string, local: EditorState, unsaved: Unsaved, router:
   unsaved.current = null // or the unmount flush would write the orphan back
   writeDraft(draftKey(null), { ...draftOf(local), revision: null })
   clearDraft(draftKey(deckId))
-  router.replace('/deck-editor?missing=carried')
+  router.replace('/deck-builder?missing=carried')
 }
 
 const ZONE_OF: Partial<Record<Problem['code'], Zone>> = { 'main-size': 'main', 'extra-size': 'extra', 'side-size': 'side' }
@@ -221,7 +221,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         if (!saved || saved.ownerId !== userId) {
           // Signed out it may still be theirs: the draft stays put for after sign-in.
           if (userId === null) setGone('signin')
-          else if (!local.dirty) router.replace('/deck-editor?missing')
+          else if (!local.dirty) router.replace('/deck-builder?missing')
           else {
             const other = readDraft(draftKey(null))
             if (other && !sameDraft(other, local)) setGone('collision')
@@ -301,7 +301,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     flushDraft(unsaved)
     clearDraft(draftKey(null)) // My decks asked first if there was one
     dispatch({ type: 'load', deck: EMPTY_DECK, name: '', format: null, deckId: null, revision: null })
-    router.push('/deck-editor')
+    router.push('/deck-builder')
   }
 
   /** Deleting the open deck turns its content into the unsaved new deck; this other one would be replaced. */
@@ -317,7 +317,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     clearDraft(draftKey(id))
     writeDraft(draftKey(null), { ...draftOf(state), revision: null })
     dispatch({ type: 'load', deck, name: state.name, format: state.format, deckId: null, revision: null, dirty: true })
-    window.history.replaceState(null, '', '/deck-editor')
+    window.history.replaceState(null, '', '/deck-builder')
   }
 
   const changeView = (next: ViewMode) => {
@@ -606,7 +606,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
                 onClick={() => {
                   unsaved.current = null
                   clearDraft(draftKey(deckId))
-                  router.replace('/deck-editor?missing')
+                  router.replace('/deck-builder?missing')
                 }}
                 className="max-lg:min-h-11"
               >

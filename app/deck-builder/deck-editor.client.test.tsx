@@ -66,7 +66,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
   auth.user = { id: 'u1' }
   cardsByIds.mockResolvedValue(new Map())
-  window.history.replaceState(null, '', '/deck-editor')
+  window.history.replaceState(null, '', '/deck-builder')
 })
 afterEach(() => {
   cleanup()
@@ -105,14 +105,14 @@ it('a create that resolves after unmount keeps the edits made meanwhile, under t
   await act(async () => finish(server({ id: NEW_ID, name: 'A', revision: 1 })))
   expect(stored(draftKey(NEW_ID))).toMatchObject({ name: 'A, edited', revision: 1 })
   expect(stored(draftKey(null))).toBeUndefined()
-  expect(window.location.pathname).toBe('/deck-editor') // the page that unmounted doesn't own the URL any more
+  expect(window.location.pathname).toBe('/deck-builder') // the page that unmounted doesn't own the URL any more
 })
 
 describe('opening a saved deck', () => {
   it("someone else's deck sends the user back to a new deck with a notice", async () => {
     vi.mocked(getDeck).mockResolvedValue(server({ ownerId: 'u2' }))
     await open(ID)
-    expect(router.replace).toHaveBeenCalledWith('/deck-editor?missing')
+    expect(router.replace).toHaveBeenCalledWith('/deck-builder?missing')
   })
 
   it.each([
@@ -160,7 +160,7 @@ describe('opening a saved deck', () => {
     const view = await open(ID)
     expect(stored(draftKey(null))).toMatchObject({ name: 'Local', deck: { main: [2] }, revision: null })
     expect(stored(draftKey(ID))).toBeUndefined()
-    expect(router.replace).toHaveBeenCalledWith('/deck-editor?missing=carried')
+    expect(router.replace).toHaveBeenCalledWith('/deck-builder?missing=carried')
     view.unmount()
     expect(stored(draftKey(ID))).toBeUndefined() // the unmount flush doesn't strand it again
   })
@@ -175,7 +175,7 @@ describe('opening a saved deck', () => {
     expect(screen.getByText('load.goneTitle')).toBeTruthy()
     fireEvent.click(screen.getByText('load.goneCarry'))
     expect(stored(draftKey(null))).toMatchObject({ name: 'Local' })
-    expect(router.replace).toHaveBeenCalledWith('/deck-editor?missing=carried')
+    expect(router.replace).toHaveBeenCalledWith('/deck-builder?missing=carried')
   })
 
   it('signed out: asks to sign in and leaves the draft where it is', async () => {
@@ -197,14 +197,14 @@ it('deleting the open deck over another unsaved new deck warns first, then carri
     nextCursor: null,
   })
   vi.mocked(deleteDeck).mockResolvedValue(undefined)
-  window.history.replaceState(null, '', `/deck-editor/${ID}`)
+  window.history.replaceState(null, '', `/deck-builder/${ID}`)
   await open(ID)
   await act(async () => fireEvent.click(screen.getByText('toolbar.myDecks')))
   fireEvent.click(screen.getByLabelText('myDecks.deleteNamed'))
   expect(screen.getByText('myDecks.deleteReplacesNew')).toBeTruthy()
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'myDecks.delete' })))
   expect(stored(draftKey(null))).toMatchObject({ name: 'Saved', deck: { main: [1] } })
-  expect(window.location.pathname).toBe('/deck-editor')
+  expect(window.location.pathname).toBe('/deck-builder')
 })
 
 describe('storage unavailable', () => {

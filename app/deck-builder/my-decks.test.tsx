@@ -62,7 +62,7 @@ describe('MyDecks', () => {
     vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary('b', 'Snake-Eye')], nextCursor: null })
     await setup()
     fireEvent.click(screen.getByLabelText('myDecks.openNamed:Snake-Eye'))
-    expect(router.push).toHaveBeenCalledWith('/deck-editor/b')
+    expect(router.push).toHaveBeenCalledWith('/deck-builder/b')
   })
 
   it('warns in the confirm when deleting the open deck replaces another unsaved new deck', async () => {

@@ -15,9 +15,9 @@ afterEach(() => {
 })
 
 it('a signed-in visitor goes to the stored page, never falling through to /welcome on the second effect run', () => {
-  const store = new Map([['return-to', '/deck-editor']])
+  const store = new Map([['return-to', '/deck-builder']])
   vi.stubGlobal('sessionStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) })
   render(<StrictMode><SignIn redirectIfSignedIn /></StrictMode>)
   expect(router.replace).toHaveBeenCalled()
-  for (const [path] of router.replace.mock.calls) expect(path).toBe('/deck-editor')
+  for (const [path] of router.replace.mock.calls) expect(path).toBe('/deck-builder')
 })

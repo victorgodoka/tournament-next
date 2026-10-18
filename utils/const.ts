@@ -111,7 +111,6 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     children: [
       { item: "Live", to: "/tournaments" },
       { item: "Calendar", to: "/calendar" },
-      { item: "Past tournaments", to: "https://tournament.duelistsunite.org/" },
     ],
   },
   { item: "Leaderboard", to: "/leaderboard" },
@@ -123,9 +122,8 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
   {
     item: "Tools",
     children: [
-      { item: "Deck builder", to: "/deck-editor" },
+      { item: "Deck Builder", to: "/deck-builder" },
       { item: "Banlist timeline", to: "/banlist-timeline" },
-      { item: "Hypergeometric calculator", to: "/tools/hypergeometric" },
     ],
   },
 ]
@@ -162,7 +160,7 @@ export const GENERIC_ERROR = { code: undefined, image: "https://ygopro.online/as
 export const GO_NEXT = [
   { title: "Home Page", text: "start over", to: "/" },
   { title: "Tournaments", text: "automatic registration", to: "/tournaments" },
-  { title: "Deck Editor", text: "most updated database", to: "/deck-editor" },
+  { title: "Deck Builder", text: "most updated database", to: "/deck-builder" },
   { title: "Discord", text: "find community", to: "https://discord.gg/duelistsunite" },
 ]
 
@@ -173,7 +171,7 @@ export const CARD_IMAGE_URL = (id: string | number) => `https://ygopro.online/as
 export const FOOTER_LINKS = [
   { item: "Home", to: "https://omega.duelistsunite.org/" },
   { item: "Discord", to: "https://discord.gg/duelistsunite" },
-  { item: "Deck Builder", to: "/deck-editor" },
+  { item: "Deck Builder", to: "/deck-builder" },
 ]
 
 export const FOOTER_DISCLAIMER = "Duelists Unite. A fan project, unaffiliated with Konami."
@@ -184,7 +182,7 @@ export const FOOTER_MEDIA_NOTE =
 export const DOWNLOAD_URL = "/download"
 
 /** Browser deck builder and its companion tools, hosted on the tournament site. */
-export const DECK_BUILDER_URL = "https://tournament.duelistsunite.org/#/builder"
+export const DECK_BUILDER_URL = "/deck-builder"
 
 export const HOME_META_DECKS = [
   { id: 13332685, name: "Mitsurugi", style: "Ritual control" },

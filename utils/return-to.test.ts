@@ -41,14 +41,14 @@ describe('return-to', () => {
 
   it('keeps query strings intact', () => {
     vi.stubGlobal('sessionStorage', mapStorage())
-    setReturnTo('/deck-editor?d=ydke%3A%2F%2Fabc')
-    expect(takeReturnTo()).toBe('/deck-editor?d=ydke%3A%2F%2Fabc')
+    setReturnTo('/deck-builder?d=ydke%3A%2F%2Fabc')
+    expect(takeReturnTo()).toBe('/deck-builder?d=ydke%3A%2F%2Fabc')
   })
 
   it('returns the path once', () => {
     vi.stubGlobal('sessionStorage', mapStorage())
-    setReturnTo('/deck-editor')
-    expect(takeReturnTo()).toBe('/deck-editor')
+    setReturnTo('/deck-builder')
+    expect(takeReturnTo()).toBe('/deck-builder')
     expect(takeReturnTo()).toBeNull()
   })
 
