@@ -3,7 +3,12 @@
  */
 import { API_URL } from '@utils/auth'
 
-export type Visibility = 'private' | 'unlisted' | 'public'
+export type Visibility = 'public' | 'friends' | 'private'
+export const VISIBILITIES: Visibility[] = ['public', 'friends', 'private']
+
+/** The deck's style. Not `tags`, which label single cards. */
+export type DeckTag = 'competitive' | 'rogue' | 'casual'
+export const DECK_TAGS: DeckTag[] = ['competitive', 'rogue', 'casual']
 
 export type DeckLabel = { name: string; artCardId: number | null }
 export type DeckCounts = { main: number; extra: number; side: number }
@@ -21,6 +26,11 @@ export type SavedDeck = {
   tags: Record<string, string[]>
   visibility: Visibility
   coverCardId: number | null
+  /** Up to 300 characters, plain text. */
+  description: string
+  /** Up to 5 http(s) URLs. */
+  links: string[]
+  deckTags: DeckTag[]
   /** Starts at 1, +1 on every successful write. */
   revision: number
   createdAt: string
@@ -29,9 +39,10 @@ export type SavedDeck = {
   label: DeckLabel | null
 }
 
-/** What `GET /decks/mine` lists: no cards, no notes. */
+/** What the listings return: no cards, no notes. */
 export type DeckSummary = {
   id: string
+  owner: { id: string; name: string | null }
   name: string
   format: number | null
   visibility: Visibility
@@ -39,8 +50,19 @@ export type DeckSummary = {
   updatedAt: string
   counts: DeckCounts
   coverCardId: number | null
+  description: string
+  links: string[]
+  deckTags: DeckTag[]
   label: DeckLabel | null
 }
+
+/** The deck's showcase: written by the save dialog, not part of a revision. */
+export type DeckMeta = Pick<SavedDeck, 'visibility' | 'coverCardId' | 'description' | 'links' | 'deckTags'>
+
+/** Listing filters, ANDed. Empty values are left out. */
+export type DeckFilters = { q?: string; archetype?: string; format?: number | null; tag?: DeckTag | null; cards?: number[] }
+
+export type DeckPage = { decks: DeckSummary[]; nextCursor: string | null }
 
 export type DeckInput = {
   name: string
@@ -52,6 +74,9 @@ export type DeckInput = {
   tags?: Record<string, string[]>
   visibility?: Visibility
   coverCardId?: number | null
+  description?: string
+  links?: string[]
+  deckTags?: DeckTag[]
 }
 
 export type RevisionSummary = { revision: number; createdAt: string; counts: DeckCounts }
@@ -103,7 +128,26 @@ const path = (id: string) => `/decks/${encodeURIComponent(id)}`
 
 /** `GET /decks/mine`: newest first, 24 a page. Pass `nextCursor` back as `cursor`. */
 export const listMyDecks = (cursor?: string) =>
-  request<{ decks: DeckSummary[]; nextCursor: string | null }>(`/decks/mine${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
+  request<DeckPage>(`/decks/mine${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
+
+export const filterParams = (filters: DeckFilters, cursor?: string): string => {
+  const params = new URLSearchParams()
+  if (filters.q?.trim()) params.set('q', filters.q.trim())
+  if (filters.archetype?.trim()) params.set('archetype', filters.archetype.trim())
+  if (filters.format != null) params.set('format', String(filters.format))
+  if (filters.tag) params.set('tag', filters.tag)
+  if (filters.cards?.length) params.set('cards', filters.cards.join(','))
+  if (cursor) params.set('cursor', cursor)
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+/** `GET /decks/public`: every public deck, newest first. */
+export const listPublicDecks = (filters: DeckFilters, cursor?: string) => request<DeckPage>(`/decks/public${filterParams(filters, cursor)}`)
+
+/** `GET /decks/user/:id`: what the viewer may see of that duelist's decks (the owner sees all). */
+export const listUserDecks = (userId: string, filters: DeckFilters, cursor?: string) =>
+  request<DeckPage>(`/decks/user/${encodeURIComponent(userId)}${filterParams(filters, cursor)}`)
 
 /** `GET /decks/:id`. On the server, pass the incoming `cookie` so the owner reads a `private` deck. `null` for 404. */
 export const getDeck = async (id: string, cookie?: string | null): Promise<SavedDeck | null> => {

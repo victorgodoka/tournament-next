@@ -36,7 +36,8 @@ import { useEditorKeys } from './keyboard'
 import { MyDecks } from './my-decks'
 import { Toolbar, type ExportKind } from './toolbar'
 import { useCardCache } from './use-card-cache'
-import { draftOf, loadAction, useSave } from './use-save'
+import { SaveDialog } from './save-dialog'
+import { draftOf, loadAction, metaOf, NEW_META, useSave } from './use-save'
 
 const ZONES: Zone[] = ['main', 'extra', 'side']
 const VIEW_KEY = 'deck-view'
@@ -51,7 +52,7 @@ const readView = (): ViewMode => {
   }
 }
 
-type Notice = 'damagedLink' | 'deckMissing' | 'deckCarried'
+type Notice = 'damagedLink' | 'deckMissing' | 'deckCarried' | 'deckCopied'
 type Toast = { tone: 'positive' | 'negative' | 'warn'; text: string }
 
 /** A .ydk is a few KB; anything far bigger isn't one. */
@@ -72,7 +73,8 @@ const boot = (deckId: string | null): { state: EditorState; notice: Notice | nul
   const code = params.get('d')?.replaceAll(' ', '+')
   if (code !== undefined) {
     try {
-      return { state: load(fromYdke(code)), notice: missing, today }
+      // `copy`: someone else's deck opened from its page, as the viewer's unsaved copy.
+      return { state: load(fromYdke(code), params.get('name') ?? ''), notice: params.has('copy') ? 'deckCopied' : missing, today }
     } catch (error) {
       if (!(error instanceof DeckCodeError)) throw error
       return { state: { ...initialEditorState(), deckId }, notice: 'damagedLink', today }
@@ -158,7 +160,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const { deck } = state
   /** A canonical card's name, as the deck prints it. */
   const nameOf = (cardId: number) => cards.get(deckIdsOf(deck, cards, cardId)[0] ?? cardId)?.name ?? String(cardId)
-  const { save, saving, conflict, resolveConflict, error: saveError, dismissError, signInTab, dismissSignInTab, latest } = useSave(
+  const { save, saving, conflict, resolveConflict, error: saveError, dismissError, signInTab, dismissSignInTab, latest, meta, setMeta, retry } = useSave(
     state,
     dispatch,
     banlist?.id ?? state.format,
@@ -204,8 +206,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     // `?d=` is read once; left in the URL it would beat the draft on reload and drop the edits made since.
     const url = new URL(window.location.href)
     if (url.searchParams.has('d') || url.searchParams.has('missing')) {
-      url.searchParams.delete('d')
-      url.searchParams.delete('missing')
+      for (const key of ['d', 'missing', 'name', 'copy']) url.searchParams.delete(key)
       window.history.replaceState(null, '', url)
     }
   }, [])
@@ -220,6 +221,12 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         if (!live) return
         const local = latest.current
         setLoadState('ready')
+        if (saved && saved.ownerId !== userId && !local.dirty) {
+          // Someone else's public or friends deck: it opens as an unsaved copy, the way a shared ydke link does.
+          const copy = new URLSearchParams({ d: toYdke({ main: saved.main, extra: saved.extra, side: saved.side }), name: saved.name, copy: '' })
+          router.replace(`/deck-builder?${copy}`)
+          return
+        }
         if (!saved || saved.ownerId !== userId) {
           // Signed out it may still be theirs: the draft stays put for after sign-in.
           if (userId === null) setGone('signin')
@@ -232,6 +239,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
           return
         }
         setGone(null)
+        setMeta(metaOf(saved))
         if (local.dirty && differs(local, saved)) {
           // The editor keeps showing the local draft; nothing is cleared until the user picks Discard.
           // Edits made while loading have no base revision: they sit on the one just read.
@@ -251,7 +259,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     return () => {
       live = false
     }
-  }, [deckId, userId, loadAttempt, router, latest])
+  }, [deckId, userId, loadAttempt, router, latest, setMeta])
 
   useEffect(() => {
     ensure(allIds).catch(console.error)
@@ -297,12 +305,16 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const flagged = useMemo(() => new Set(problems.flatMap((p) => (p.cardId === undefined ? [] : deckIdsOf(deck, cards, p.cardId)))), [problems, deck, cards])
   const points = banlist && banlist.pointCap !== null ? { used: pointsUsed(deck, cards, banlist), cap: banlist.pointCap } : null
   const saveNow = () => void save()
+  const [saveDialog, setSaveDialog] = useState(false)
+  /** The Save button confirms name and showcase first; signed out it goes straight to sign-in, as a save would. */
+  const askSave = () => (user ? setSaveDialog(true) : saveNow())
 
   /** Keeps the current deck's pending edits, then opens an empty one. */
   const startNew = () => {
     flushDraft(unsaved)
     clearDraft(draftKey(null)) // My decks asked first if there was one
     dispatch({ type: 'load', deck: EMPTY_DECK, name: '', format: null, deckId: null, revision: null })
+    setMeta(NEW_META)
     router.push('/deck-builder')
   }
 
@@ -522,7 +534,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       onView={changeView}
       dirty={state.dirty}
       saving={saving}
-      onSave={saveNow}
+      onSave={askSave}
       onMyDecks={() => setMyDecks(true)}
       onImport={(text) => void importText(text)}
       onImportFile={importFile}
@@ -574,6 +586,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
                 size="sm"
                 onClick={() => {
                   dispatch(loadAction(pending))
+                  setMeta(metaOf(pending))
                   clearDraft(draftKey(pending.id))
                   setPending(null)
                 }}
@@ -726,7 +739,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
             title={saveError}
             action={
               <div className="flex shrink-0 flex-wrap gap-2">
-                <Button variant="secondary" size="sm" onClick={saveNow} className="max-lg:min-h-11">
+                <Button variant="secondary" size="sm" onClick={retry} className="max-lg:min-h-11">
                   {t('retry')}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={dismissError} className="max-lg:min-h-11">
@@ -741,6 +754,18 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
       ) : null}
 
       <ConflictDialog latest={conflict} onResolve={resolveConflict} />
+      <SaveDialog
+        open={saveDialog}
+        onClose={() => setSaveDialog(false)}
+        name={state.name}
+        meta={meta}
+        cards={allIds}
+        nameOf={(id) => cards.get(id)?.name ?? String(id)}
+        onSave={(details) => {
+          setSaveDialog(false)
+          void save(false, details)
+        }}
+      />
       <MyDecks
         open={myDecks}
         onClose={() => setMyDecks(false)}
