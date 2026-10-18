@@ -115,6 +115,38 @@ export const getStatistics = async ({ ladder, season }: { ladder: RankedLadderId
   }
 }
 
+/**
+ * GET /statistics/players/:id (STATISTICS_API.md §6): the same report over one duelist's side.
+ * `season: null` = every season of `formats`. Only the newest 1000 matches are read (`matches`).
+ */
+export type PlayerStatisticsData = Omit<Statistics, 'season' | 'syncedDays' | 'minSamples'> & {
+  season: Statistics['season'] | null
+  formats: ('TCG' | 'Genesys')[]
+  matches: { analyzed: number; total: number }
+}
+
+/**
+ * `season` wins over `ladder`; neither = every season of both ladders. Live from the duels (a few
+ * seconds cold), behind the profile's visibility gate: on the server, pass the incoming `cookie`.
+ */
+export const getPlayerStatistics = async (
+  id: string,
+  query: { season?: string; ladder?: RankedLadderId },
+  cookie: string | null,
+): Promise<{ ok: true; data: PlayerStatisticsData } | { ok: false; status: number }> => {
+  const params = new URLSearchParams(query.season ? { season: query.season } : query.ladder ? { ladder: query.ladder } : {})
+  try {
+    const res = await fetch(`${API_URL}/statistics/players/${encodeURIComponent(id)}?${params}`, {
+      cache: 'no-store',
+      headers: cookie ? { cookie } : undefined,
+    })
+    return res.ok ? { ok: true, data: await res.json() } : { ok: false, status: res.status }
+  } catch (error) {
+    console.error(error)
+    return { ok: false, status: 0 }
+  }
+}
+
 export const archKey = (a: ArchetypeKey) => a.join('-')
 
 /** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */

@@ -83,7 +83,7 @@ export const Builder = ({ id }: { id: string | null }) => {
     ;(id ? updatePanelExploration(id, body) : createPanelExploration(body))
       .then((stored) => {
         setDirty(false)
-        if (!id) router.replace(`/admin/analytics/explorations/${stored.id}`)
+        if (!id) router.replace(`/admin/statistics/explorations/${stored.id}`)
         setFlash({ tone: 'positive', text: stored.published ? `Saved and public at ${globalPath(stored.id)}.` : 'Saved as a draft. Only the panel sees it.' })
       })
       .catch((e) => setFlash({ tone: 'negative', text: panelErrorText(e) }))
@@ -106,7 +106,7 @@ export const Builder = ({ id }: { id: string | null }) => {
         end={
           <>
             {!id ? <Chip>Not saved</Chip> : dirty ? <Chip tone="gold">Unsaved changes</Chip> : d.published ? <Chip tone="positive">Published</Chip> : <Chip>Draft</Chip>}
-            <Button href="/admin/analytics/explorations" variant="secondary" size="mono-md">Back to the list</Button>
+            <Button href="/admin/statistics/explorations" variant="secondary" size="mono-md">Back to the list</Button>
             <Button size="mono-md" onClick={save} disabled={busy || !!problem || !d.name.trim() || (!!id && !dirty)} title={problem?.title}>
               {id ? 'Save changes' : 'Save'}
             </Button>

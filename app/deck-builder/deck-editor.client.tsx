@@ -142,7 +142,8 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
    * theirs, with local changes to carry into a new deck, but another unsaved new deck is in the way.
    */
   const [gone, setGone] = useState<'signin' | 'collision' | null>(null)
-  const [myDecks, setMyDecks] = useState(false)
+  /** `?decks` (the /my-decks redirect) opens the list on arrival. */
+  const [myDecks, setMyDecks] = useState(() => new URLSearchParams(window.location.search).has('decks'))
   /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
   // No format chosen yet: the TCG list. It is also the list a save records.
@@ -203,9 +204,10 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
     getBanlists().then(setBanlists)
     // `?d=` is read once; left in the URL it would beat the draft on reload and drop the edits made since.
     const url = new URL(window.location.href)
-    if (url.searchParams.has('d') || url.searchParams.has('missing')) {
+    if (url.searchParams.has('d') || url.searchParams.has('missing') || url.searchParams.has('decks')) {
       url.searchParams.delete('d')
       url.searchParams.delete('missing')
+      url.searchParams.delete('decks')
       window.history.replaceState(null, '', url)
     }
   }, [])

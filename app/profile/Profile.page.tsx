@@ -1,5 +1,8 @@
+import { Button } from "@ui/button";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
+import { Icon } from "@ui/icon";
+import { ANALYTICS_ENABLED } from "@utils/const";
 import { Chip } from "@ui/chip";
 import { Panel } from "@ui/panel";
 import { ProfileHeader } from "@ui/profile-header";
@@ -149,7 +152,15 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
           </>
         ) : null
       }
-      actions={<RelationActions id={profile.id} isOwner={isOwner} relation={profile.relation} />}
+      actions={
+        <>
+          {ANALYTICS_ENABLED && !profile.isPrivate ? (
+            <Button variant="secondary" href={`/profile/${profile.id}/statistics`}><Icon name="chart" />Statistics</Button>
+          ) : null}
+          {isOwner ? <Button variant="secondary" href="/my-decks"><Icon name="deck" />My decks</Button> : null}
+          <RelationActions id={profile.id} isOwner={isOwner} relation={profile.relation} />
+        </>
+      }
       stats={profile.isPrivate ? undefined : headerStats(profile)}
     />
   )

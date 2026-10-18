@@ -73,7 +73,7 @@ const ExplorationsPage = () => {
         eyebrow={`Analytics · ${published} published · ${list.length - published} drafts`}
         title="Global explorations"
         lead="Explorations of the whole server, built with the same builder duelists use. A draft stays here. A published one is public to anyone, no link needed."
-        end={<Button href="/admin/analytics/explorations/new" size="mono-md">New exploration</Button>}
+        end={<Button href="/admin/statistics/explorations/new" size="mono-md">New exploration</Button>}
       />
       {loadError ? <Alert tone="negative" title="Couldn't read the explorations">{panelErrorText(loadError)}</Alert> : null}
 
@@ -169,7 +169,7 @@ const ExplorationsPage = () => {
                 ))}
               </dl>
               <div>
-                <Button href={`/admin/analytics/explorations/${picked.id}`} variant="secondary" size="mono">Edit in the builder</Button>
+                <Button href={`/admin/statistics/explorations/${picked.id}`} variant="secondary" size="mono">Edit in the builder</Button>
               </div>
             </Field>
             <Switch
