@@ -23,13 +23,14 @@ import { Panel } from '@ui/panel'
 import { RailHead } from '@ui/rail-head'
 import { StatGrid } from '@ui/stat-grid'
 import { TabBar } from '@ui/tab-bar'
-import { archKey, type HandTrap, type StatArchetype, type Statistics, type StatisticsResult, type Staple, type TurnSplit } from '@utils/statistics'
+import { archKey, type OmegaActivity as OmegaActivityData, type HandTrap, type StatArchetype, type Statistics, type StatisticsResult, type Staple, type TurnSplit } from '@utils/statistics'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import {
   Art, ariaSort, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortButton, type SortState, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
 import { DeepDiveSearch } from './DeepDiveSearch'
+import { OmegaActivity } from './OmegaActivity'
 
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 /** Rows the archetype table shows before "Show all". */
@@ -48,7 +49,7 @@ const day = (iso: string, plus = 0) => {
 const isSmall = (a: { winRate: number | null; wilsonLower: number | null }) =>
   a.winRate != null && a.wilsonLower != null && a.winRate - a.wilsonLower > 0.012
 
-const Section = ({ num: n, label, stamp, id, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; children: React.ReactNode }) => (
+export const Section = ({ num: n, label, stamp, id, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; children: React.ReactNode }) => (
   <section id={id} aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
     {/* The stamp is provenance, not content: it gives way on a phone. */}
     <RailHead num={n} label={label} stamp={stamp ? <span className="max-[720px]:hidden">{stamp}</span> : undefined} as="h2" className="px-0" />
@@ -92,9 +93,9 @@ const STAPLE_GET: Getters<StapleRow, StapleSortKey> = {
  * Page shell: header, ladder and season, then the report or a state
  * ---------------------------------------------------------------- */
 
-type MetaStatisticsProps = { ladder: RankedLadderId; season?: string; past: PastSeason[]; result: StatisticsResult }
+type MetaStatisticsProps = { ladder: RankedLadderId; season?: string; past: PastSeason[]; result: StatisticsResult; omega: OmegaActivityData | null }
 
-export const MetaStatistics = ({ ladder, season, past, result }: MetaStatisticsProps) => {
+export const MetaStatistics = ({ ladder, season, past, result, omega }: MetaStatisticsProps) => {
   const router = useRouter()
   const [pending, start] = useTransition()
   const go = (l: RankedLadderId, s?: string) =>
@@ -144,6 +145,8 @@ export const MetaStatistics = ({ ladder, season, past, result }: MetaStatisticsP
           />
         </div>
       </div>
+
+      {omega ? <OmegaActivity data={omega} ladder={ladder} /> : null}
 
       {data ? <Report data={data} /> : <Failure status={result.ok ? 0 : result.status} format={format} season={season} past={past} onPast={(code) => go(ladder, code)} onRetry={() => start(() => router.refresh())} />}
     </div>

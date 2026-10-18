@@ -3,7 +3,7 @@
  * Rates are 0–1 fractions, `null` when their denominator is 0; `games` are always deck-games.
  */
 import { API_URL } from '@utils/auth'
-import type { RankedLadderId } from '@utils/types'
+import type { RankedLadderId, Tier } from '@utils/types'
 
 /** One entry, or two for a mixed deck. Use it as the key; `name` is only the label. */
 export type ArchetypeKey = number[]
@@ -155,4 +155,33 @@ export const requestDeepDive = async (season: string, key: ArchetypeKey): Promis
   /* The IP limiter answers 429 too, without a `retryAt`. */
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
   return ok(res)
+}
+
+/** GET /statistics/omega: logins and ranked activity of the whole game (STATISTICS_API.md §5). */
+export type OmegaCard = { current: number; previous: number | null }
+export type TierCell = { games: number; players: number }
+export type OmegaRange = 7 | 14 | 30
+export type OmegaLadder = {
+  population: { tier: Tier; players: number }[]
+  daily: { day: string; tiers: Partial<Record<Tier, TierCell>> }[]
+  totals: Record<OmegaRange, Partial<Record<Tier, TierCell>>>
+}
+export type OmegaActivity = {
+  updatedAt: string
+  today: string
+  cards: Record<'logins' | 'weekLogins' | 'duels' | 'weekDuels', OmegaCard>
+  daily: { day: string; logins: number | null; duels: number; players: number }[]
+  totals: Record<OmegaRange, TierCell>
+  ladders: Record<RankedLadderId, OmegaLadder>
+}
+
+/** null when the server can't answer: the page goes on without the section. */
+export const getOmegaActivity = async (): Promise<OmegaActivity | null> => {
+  try {
+    const res = await fetch(`${API_URL}/statistics/omega`, { next: { revalidate: 600 } })
+    return res.ok ? ((await res.json()) as OmegaActivity) : null
+  } catch (error) {
+    console.error(error)
+    return null
+  }
 }

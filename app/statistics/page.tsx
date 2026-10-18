@@ -2,7 +2,7 @@ import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
 import { getPastSeasons } from '@utils/ranked'
-import { getStatistics } from '@utils/statistics'
+import { getOmegaActivity, getStatistics } from '@utils/statistics'
 import { MetaStatistics } from './MetaStatistics'
 
 type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }> }
@@ -18,9 +18,10 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
   const q = await searchParams
   const ladder = q.ladder === 'genesys' ? 'genesys' : 'tcg'
   const season = typeof q.season === 'string' && q.season ? q.season : undefined
-  const [result, past] = await Promise.all([
+  const [result, past, omega] = await Promise.all([
     getStatistics({ ladder, season }),
     getPastSeasons(ladder).then((p) => p.seasons, () => []),
+    getOmegaActivity(),
   ])
 
   return (
@@ -29,7 +30,7 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
       <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
         {/* 64px clears the fixed header. */}
         <main style={{ width: 'min(1280px, calc(100% - 32px))', margin: '0 auto', padding: '104px 0 96px' }}>
-          <MetaStatistics ladder={ladder} season={season} past={past} result={result} />
+          <MetaStatistics ladder={ladder} season={season} past={past} result={result} omega={omega} />
         </main>
       </div>
       <Footer />
