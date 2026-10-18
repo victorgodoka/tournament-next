@@ -1,11 +1,12 @@
-image: docker:20.10.6-dind
+image: docker:27
 
 services:
-  - docker:20.10.6-dind
+  - docker:27-dind
 
 variables:
   DOCKER_TLS_CERTDIR: "/certs"
   DOCKER_DRIVER: overlay2
+  IMAGE: victorgodoka/omega-hub-next
 
 stages:
   - build
@@ -13,19 +14,19 @@ stages:
 build:
   stage: build
   tags:
-    - kaiba
+    - runner
   before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin
   script:
     - |
       docker build \
         --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
         --build-arg NEXT_PUBLIC_DISCORD_URL="$NEXT_PUBLIC_DISCORD_URL" \
-        -t "$CI_REGISTRY_IMAGE:latest" \
-        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        -t "$IMAGE:latest" \
+        -t "$IMAGE:$CI_COMMIT_SHORT_SHA" \
         .
-    - docker push "$CI_REGISTRY_IMAGE:latest"
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$IMAGE:latest"
+    - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
