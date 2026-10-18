@@ -22,21 +22,20 @@ import { Panel } from '@ui/panel'
 import { RailHead } from '@ui/rail-head'
 import { StatGrid } from '@ui/stat-grid'
 import { TabBar } from '@ui/tab-bar'
-import { archKey, type OmegaActivity as OmegaActivityData, type MostUsedCard, type StatArchetype, type Statistics, type StatisticsResult, type TurnSplit } from '@utils/statistics'
+import { archKey, subRows, type DeepDiveMode, type LeanArchetype, type OmegaActivity as OmegaActivityData, type MostUsedCard, type Statistics, type StatisticsResult, type TurnSplit } from '@utils/statistics'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import {
   Art, Bar, cardName, DeepDive, faceOf, type Getters, nameOf, Named, NOTE, num, NUM, pct, ROW, SortHeads,
   sortBy, SPLIT, THIRDS, useSort,
 } from './DeepDive'
 import { CardSearch } from './CardSearch'
-import { DeepDiveSearch } from './DeepDiveSearch'
+import { DeepDiveSearch, PICKS, type DeepDiveRequest } from './DeepDiveSearch'
 import { OmegaActivity } from './OmegaActivity'
 
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 /** Rows the archetype table shows before "Show all". */
 const FOLD = 12
 const TREND_DECKS = 5
-const PICKS = 8
 const PALETTE = [1, 2, 3, 4, 5, 6].map((n) => `var(--color-series-${n})`)
 
 /** "14 Aug" of a `YYYY-MM-DD` or ISO date, `plus` days later. UTC, so server and client agree. */
@@ -58,7 +57,7 @@ export const Section = ({ num: n, label, stamp, id, children }: { num: string; l
 )
 
 type ArchSortKey = 'name' | 'metaShare' | 'winRate' | 'games' | 'players' | 'mirrorShare'
-const ARCH_GET: Getters<StatArchetype, ArchSortKey> = {
+const ARCH_GET: Getters<LeanArchetype, ArchSortKey> = {
   name: nameOf,
   metaShare: (a) => a.metaShare,
   winRate: (a) => a.winRate,
@@ -238,6 +237,9 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
   const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
   const [searchRound, setSearchRound] = useState(0)
   const [searchBusy, setSearchBusy] = useState(false) // a searched pick is loading or calculating
+  const [ddMode, setDdMode] = useState<DeepDiveMode>(data.views ? 'general' : 'pure') // section 05's mode, here so a remount of the search keeps it; a season frozen before modes starts on Pure
+  const [request, setRequest] = useState<DeepDiveRequest | null>(null) // section 03's last click on a General row
+  const [ddSeason, setDdSeason] = useState(data.season.code)
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [metric, setMetric] = useState<'share' | 'wr'>('share')
   const [part, setPart] = useState<'main' | 'extra'>('main')
@@ -246,8 +248,13 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
   const [archSort, sortArch] = useSort<ArchSortKey>()
   const [usedSort, sortUsed] = useSort<UsedSortKey>()
 
-  const { season, totals, turnOrder, archetypes: arch, minSamples } = data
+  const { season, totals, turnOrder, archetypes: arch, minSamples, views } = data
   const pctAxis = (v: number) => (v * 100).toFixed(1) + '%'
+  /* A new season starts section 05 over in General (Pure when frozen before modes), as its search starts over. */
+  if (ddSeason !== season.code) {
+    setDdSeason(season.code)
+    setDdMode(views ? 'general' : 'pure')
+  }
 
   const glance = (
     <Section num="01" label={player ? 'At a glance' : 'Season at a glance'} stamp={player ? undefined : `${data.syncedDays.count} days synced`}>
@@ -292,45 +299,63 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
       </>
     )
 
-  /* 03 · archetypes: one duelist has no "unique duelists" column */
+  /* 03 · archetypes: General rows; a season frozen before modes (`views` null) keeps the main ones */
+  /* One duelist has no "unique duelists" column. */
   const archCols = player ? ARCH_COLS.replace('repeat(4,', 'repeat(3,') : ARCH_COLS
-  const maxShare = arch[0]?.metaShare || 1
-  /* Sorted across all listed decks first, then folded: "best win rate" means of all of them. */
-  const rankOf = new Map(arch.map((a, i) => [a, i + 1]))
-  /* The table lists pure archetypes; a mixed deck shows under each of its setcodes' rows. */
+  const top: readonly LeanArchetype[] = views?.general ?? arch
+  const maxShare = top[0]?.metaShare || 1
+  /* The dot color: a main key's place in `arch`, the order trends (04) colors. */
+  const rankOf = new Map(arch.map((a, i) => [archKey(a.archetype), i + 1]))
+  /* Without views the table lists pure archetypes; a mixed deck shows under each of its setcodes' rows. */
   const pure = arch.filter((a) => a.archetype.length === 1)
-  const pureRank = new Map(pure.map((a, i) => [a, i + 1]))
-  const sortedArch = sortBy(pure, archSort, ARCH_GET)
+  const listed: readonly LeanArchetype[] = views?.general ?? pure
+  const listRank = new Map(listed.map((a, i) => [a, i + 1]))
+  /* Sorted across all listed decks first, then folded: "best win rate" means of all of them. */
+  const sortedArch = sortBy(listed, archSort, ARCH_GET)
   const rows = showAll ? sortedArch : sortedArch.slice(0, FOLD)
+  /* The page's own row, mix or pure, opens in Pure; the search remounts so a pick of its own goes away. */
   const pick = (key: string) => {
     setFocusKey(key)
+    setDdMode('pure')
+    setRemoteSeason(null)
+    setSearchRound((n) => n + 1)
+    document.getElementById('deep-dive')?.scrollIntoView({ behavior: 'smooth' })
+  }
+  /** A General row's click: the mounted search opens it in `mode`. No remount, or the request would count as handled. */
+  const ask = (mode: DeepDiveMode, a: LeanArchetype) => {
+    setRequest((r) => ({ mode, archetype: a.archetype, name: nameOf(a), nonce: (r?.nonce ?? 0) + 1 }))
     document.getElementById('deep-dive')?.scrollIntoView({ behavior: 'smooth' })
   }
   /** A pure deck's mixes in the list: `[451]` → `[451, 207]`, `[90, 451]`. A mixed deck has none. */
-  const combosOf = (a: StatArchetype) =>
+  const combosOf = (a: LeanArchetype) =>
     a.archetype.length === 1 ? arch.filter((b) => b.archetype.length > 1 && b.archetype.includes(a.archetype[0]!)) : []
-  /** `combos` > 0: the name opens the mixes under the row; otherwise it goes to the deep dive. */
-  const archRow = (a: StatArchetype, nested: boolean, combos = 0, open = false) => {
+  /**
+   * `combos` > 0: the name opens the mixes under the row; otherwise it calls `go`. `tag` labels a row without mixes.
+   * `dot`: the main key whose trend color the dot takes, the row's own key by default.
+   */
+  const archRow = (
+    a: LeanArchetype,
+    { nested = false, combos = 0, open = false, go, tag, dot = a.archetype }: { nested?: boolean; combos?: number; open?: boolean; go: () => void; tag?: string; dot?: number[] },
+  ) => {
     const key = archKey(a.archetype)
-    const rank = rankOf.get(a) ?? 0
+    const rank = rankOf.get(archKey(dot)) ?? 0
+    const label = combos ? `${open ? '▾' : '▸'} ${combos} mixed` : tag
     return (
       <div key={key} role="row" className={twMerge(ROW, nested && 'bg-surface-200')} style={{ gridTemplateColumns: archCols }}>
-        <span role="cell" className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{pureRank.get(a)}</span>
+        <span role="cell" className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{listRank.get(a)}</span>
         <span role="cell" className={twMerge('flex min-w-0 items-center gap-2.5', nested && 'pl-5')}>
-          <span className="size-2 flex-none" style={{ background: rank <= TREND_DECKS ? PALETTE[rank - 1] : 'var(--color-line-mid)' }} />
+          <span className="size-2 flex-none" style={{ background: rank && rank <= TREND_DECKS ? PALETTE[rank - 1] : 'var(--color-line-mid)' }} />
           <Art card={faceOf(a)} size={32} className="size-8" />
           <button
             type="button"
-            onClick={() => (combos ? setOpenKey(open ? null : key) : pick(key))}
+            onClick={() => (combos ? setOpenKey(open ? null : key) : go())}
             aria-expanded={combos ? open : undefined}
             title={combos ? `Show the decks mixed with ${nameOf(a)}` : 'Open in the deep dive'}
             className="flex min-w-0 cursor-pointer items-center gap-2 font-bold text-ink hover:text-cyan"
           >
             <span className="truncate">{nameOf(a)}</span>
-            {combos ? (
-              <span className="flex-none font-mono text-[10px] font-normal tracking-[0.08em] text-ink-muted uppercase">
-                {open ? '▾' : '▸'} {combos} mixed
-              </span>
+            {label ? (
+              <span className="flex-none font-mono text-[10px] font-normal tracking-[0.08em] text-ink-muted uppercase">{label}</span>
             ) : null}
           </button>
           {isSmall(a) ? <span title="Small sample" className="flex-none text-gold"><Icon icon="fa7-solid:warning" role="img" aria-label="Small sample" /></span> : null}
@@ -343,9 +368,16 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
       </div>
     )
   }
+  /** The last row under an open one: what the mixes are, and the deep dive of the whole archetype. */
+  const mixNote = (a: LeanArchetype, text: React.ReactNode, go: () => void) => (
+    <div role="row" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-surface-200 py-2 pr-4 pl-15">
+      <span role="cell" className={NOTE}>{text}</span>
+      <span role="cell"><Button size="sm" variant="secondary" onClick={go}>Deep dive {nameOf(a)}</Button></span>
+    </div>
+  )
 
   /* share vs win rate scatter */
-  const wrs = arch.flatMap((a) => (a.winRate == null ? [] : [a.winRate]))
+  const wrs = top.flatMap((a) => (a.winRate == null ? [] : [a.winRate]))
   const yMin = Math.min(0.49, Math.floor((Math.min(...wrs, 0.5) - 0.01) * 100) / 100)
   const yMax = Math.max(0.51, Math.ceil((Math.max(...wrs, 0.5) + 0.01) * 100) / 100)
   const xMax = Math.ceil(maxShare * 100 + 1) / 100
@@ -362,10 +394,10 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
     return { name: nameOf(t), data: t.points.map(([, share, wr]) => (metric === 'share' ? share : (last = wr ?? last))) }
   })
 
-  /* 05 · deep dive */
-  const focus = (focusKey && byKey.get(focusKey)) || arch[0]!
+  /* 05 · deep dive: Pure shows the page's own rows; the chips are pure decks, plus the focus when it isn't one of them */
+  const focus = (focusKey && byKey.get(focusKey)) || pure[0] || arch[0]!
   const fKey = archKey(focus.archetype)
-  const picks = arch.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? arch.slice(0, PICKS) : [...arch.slice(0, PICKS), focus]
+  const picks = pure.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? pure.slice(0, PICKS) : [...pure.slice(0, PICKS), focus]
   const rank = arch.indexOf(focus) + 1
 
   /* 06 · most used cards */
@@ -394,7 +426,11 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
         </div>
       </Section>
 
-      <Section num="03" label={player ? 'Decks' : 'Archetypes'} stamp={`${pure.length} archetypes + ${arch.length - pure.length} mixes${player ? '' : ` of the top ${arch.length}`} · by deck-games`}>
+      <Section
+        num="03"
+        label={player ? 'Decks' : 'Archetypes'}
+        stamp={views ? `${views.generalCount} archetypes · general: pure + the mixes each one leads · by deck-games` : `${pure.length} archetypes + ${arch.length - pure.length} mixes${player ? '' : ` of the top ${arch.length}`} · by deck-games`}
+      >
         <div className="overflow-x-auto">
           <div role="table" aria-label="Archetypes by deck-games" className="min-w-240 border border-line">
             <SortHeads
@@ -407,20 +443,35 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
             />
             {rows.map((a) => {
               const key = archKey(a.archetype)
+              if (views) {
+                /* Pure A first whatever the sort, then the mixes A leads: all their games are inside A's row. */
+                const { pure: only, mixes } = subRows(a.archetype[0]!, views)
+                const open = openKey === key && mixes.length > 0
+                const general = () => ask('general', a)
+                return (
+                  <Fragment key={key}>
+                    {archRow(a, { combos: mixes.length, open, go: general })}
+                    {open ? (
+                      <>
+                        {only ? archRow(only, { nested: true, tag: 'Pure', go: () => ask('pure', only) }) : null}
+                        {sortBy(mixes, archSort, ARCH_GET).map((b) =>
+                          archRow(b, { nested: true, dot: [...b.archetype].sort((x, y) => x - y), go: () => ask('combined', b) }),
+                        )}
+                        {mixNote(a, <>Every mixed deck led by {nameOf(a)} that clears the sample minimum. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there.</>, general)}
+                      </>
+                    ) : null}
+                  </Fragment>
+                )
+              }
               const combos = combosOf(a)
               const open = openKey === key && combos.length > 0
               return (
                 <Fragment key={key}>
-                  {archRow(a, false, combos.length, open)}
+                  {archRow(a, { combos: combos.length, open, go: () => pick(key) })}
                   {open ? (
                     <>
-                      {sortBy(combos, archSort, ARCH_GET).map((b) => archRow(b, true))}
-                      <div role="row" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-surface-200 py-2 pr-4 pl-15">
-                        <span role="cell" className={NOTE}>
-                          Mixed decks with {nameOf(a)} in the list. Each is its own archetype: its games are not in {nameOf(a)}&apos;s row.
-                        </span>
-                        <span role="cell"><Button size="sm" variant="secondary" onClick={() => pick(key)}>Deep dive {nameOf(a)}</Button></span>
-                      </div>
+                      {sortBy(combos, archSort, ARCH_GET).map((b) => archRow(b, { nested: true, go: () => pick(archKey(b.archetype)) }))}
+                      {mixNote(a, <>Mixed decks with {nameOf(a)} in the list. Each is its own archetype: its games are not in {nameOf(a)}&apos;s row.</>, () => pick(key))}
                     </>
                   ) : null}
                 </Fragment>
@@ -430,9 +481,9 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className={NOTE}>Win rate leaves mirrors out. <Icon icon="fa7-solid:warning" aria-hidden className="inline align-[-2px] text-gold" /> Small sample: the 95% Wilson interval reaches more than 1.2 points below the rate.</span>
-          {pure.length > FOLD ? (
+          {listed.length > FOLD ? (
             <Button size="sm" variant="secondary" onClick={() => setShowAll(!showAll)}>
-              {showAll ? `Show top ${FOLD}` : `Show all ${pure.length}`}
+              {showAll ? `Show top ${FOLD}` : `Show all ${listed.length}`}
             </Button>
           ) : null}
         </div>
@@ -445,9 +496,9 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
                 <span className="absolute right-2 translate-y-1/2" style={{ bottom: `${yPos(0.5)}%` }}>50%</span>
                 <span className="absolute right-2 bottom-0">{tick(yMin)}</span>
               </div>
-              <div role="img" aria-label={`Scatter of meta share against win rate for ${arch.length} archetypes`} className="relative border-b border-l border-line-mid bg-space-000">
+              <div role="img" aria-label={`Scatter of meta share against win rate for ${top.length} archetypes`} className="relative border-b border-l border-line-mid bg-space-000">
                 <span className="absolute inset-x-0 border-t border-dashed border-line-mid" style={{ bottom: `${yPos(0.5)}%` }} />
-                {arch.map((a, k) =>
+                {top.map((a, k) =>
                   a.winRate == null ? null : (
                     <span
                       key={archKey(a.archetype)}
@@ -471,12 +522,12 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
             <p className={twMerge(NOTE, 'mt-4')}>Hollow dots are small samples. Above the dashed line the deck wins more than it loses.</p>
           </Panel>
           {player ? (
-            <BarList title="Deck-games" subtitle="Most played decks" items={arch.slice(0, 8).map((a) => ({ label: nameOf(a), value: a.games }))} format={num} />
+            <BarList title="Deck-games" subtitle="Most played decks" items={top.slice(0, 8).map((a) => ({ label: nameOf(a), value: a.games }))} format={num} />
           ) : (
             <BarList
               title="Unique Duelists"
               subtitle="Players per deck"
-              items={[...arch].sort((a, b) => b.players - a.players).slice(0, 8).map((a) => ({ label: nameOf(a), value: a.players }))}
+              items={[...top].sort((a, b) => b.players - a.players).slice(0, 8).map((a) => ({ label: nameOf(a), value: a.players }))}
               format={num}
             />
           )}
@@ -506,8 +557,19 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
 
       <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
-        {player ? null : <DeepDiveSearch key={`${season.code}:${searchRound}`} season={season} onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)} onRemote={(on) => setRemoteSeason(on ? season.code : null)} onBusy={setSearchBusy} />}
-        {searchBusy ? null : <Segmented
+        {player ? null : (
+          <DeepDiveSearch
+            key={`${season.code}:${searchRound}`}
+            season={season}
+            mode={ddMode}
+            onMode={setDdMode}
+            request={request}
+            onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)}
+            onRemote={(on) => setRemoteSeason(on ? season.code : null)}
+            onBusy={setSearchBusy}
+          />
+        )}
+        {searchBusy || ddMode !== 'pure' ? null : <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
           value={fKey}
@@ -518,7 +580,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
           }}
         />}
 
-        {remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} player={player} />}
+        {ddMode !== 'pure' || remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} player={player} />}
       </Section>
 
       <Section num="06" label="Most used cards" stamp={player ? 'Generic cards · all deck-games' : 'Generic cards in 2+ archetypes · all deck-games'}>
