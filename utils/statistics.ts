@@ -44,6 +44,9 @@ export type StatArchetype = {
   techs: CardGroup[]
 }
 
+/** A section 03 row: no engines or techs, `cards` cut to the face card. */
+export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs'>
+
 export type Matchup = {
   archetype: ArchetypeKey
   opponent: ArchetypeKey
@@ -96,6 +99,12 @@ export type Statistics = {
   mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
+  /**
+   * Section 03 rows, by games. `general` `[A]`: pure A plus every mix A leads (`generalCount` before the cut);
+   * `pure` `[A]`: a listed General key's pure decks, when the build has them; `combined` `[lead, second]`.
+   * `null` for a season frozen before modes.
+   */
+  views: { general: LeanArchetype[]; generalCount: number; pure: LeanArchetype[]; combined: LeanArchetype[] } | null
 }
 
 export type StatisticsResult = { ok: true; data: Statistics } | { ok: false; status: number }
@@ -149,6 +158,15 @@ export const getPlayerStatistics = async (
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
 
+/** What opens under General A in section 03: pure A, and the mixes A leads (unsorted; the table sorts them). */
+export const subRows = (lead: number, views: NonNullable<Statistics['views']>) => ({
+  pure: views.pure.find((a) => a.archetype.length === 1 && a.archetype[0] === lead) ?? null,
+  mixes: views.combined.filter((a) => a.archetype[0] === lead),
+})
+
+/** `general`: all decks; `pure`: single-archetype decks; `combined`: mixed decks, key `[lead, second]` in that order. */
+export type DeepDiveMode = 'general' | 'pure' | 'combined'
+
 /** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */
 export type IndexEntry = { archetype: ArchetypeKey; name: string | null; games: number; ready: boolean }
 export type DeepDiveRow = StatArchetype & { rank: number }
@@ -166,22 +184,22 @@ const ok = async (res: Response) => {
   return res.json()
 }
 
-/** Every searchable archetype, most played first. */
-export const getArchetypeIndex = async (season: string, signal?: AbortSignal): Promise<IndexEntry[]> =>
-  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season })}`, { signal }))).archetypes
+/** Every searchable archetype of the mode, most played first. */
+export const getArchetypeIndex = async (season: string, mode: DeepDiveMode, signal?: AbortSignal): Promise<IndexEntry[]> =>
+  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season, mode })}`, { signal }))).archetypes
 
 /** Always a state, never cached: poll it while `queued` or `running`. */
-export const getDeepDive = async (season: string, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
-  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, key: archKey(key) })}`, { cache: 'no-store', signal }))
+export const getDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
+  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, mode, key: archKey(key) })}`, { cache: 'no-store', signal }))
 
 /** Signed in only (`omega_session`). 429 is the account's hourly limit, not an error. */
-export const requestDeepDive = async (season: string, key: ArchetypeKey): Promise<DeepDiveState> => {
+export const requestDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey): Promise<DeepDiveState> => {
   const res = await fetch(`${API_URL}/statistics/archetype`, {
     method: 'POST',
     credentials: 'include',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ season, key: archKey(key) }),
+    body: JSON.stringify({ season, mode, key: archKey(key) }),
   })
   /* The IP limiter answers 429 too, without a `retryAt`. */
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }

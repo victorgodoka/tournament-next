@@ -60,6 +60,7 @@ const asReport = (data: PlayerStatisticsData, label: string): Statistics => ({
   season: data.season ?? { id: 0, code: 'all', label, ladder: data.formats[0] === 'Genesys' ? 'genesys' : 'tcg', startsAt: '', endsAt: null },
   syncedDays: { count: 0, first: null, last: null },
   minSamples: 1,
+  views: null, // the old one-table 03 and a Pure deep dive: a duelist's side has no General/Combined views
 })
 
 /** The slow part (a few seconds cold): streamed behind a skeleton so the head and the pickers paint at once. */
