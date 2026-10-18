@@ -182,7 +182,7 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote, onBusy }: {
   /* The index loads on the first search and stays for the season; a failed load is forgotten so the next search retries. */
   const search = useCallback(
     async (text: string) => {
-      if (index.current?.code !== code) index.current = { code, promise: getArchetypeIndex(code) }
+      if (index.current?.code !== code) index.current = { code, promise: getArchetypeIndex(code, 'pure') }
       const { promise } = index.current
       try {
         const entries = await promise
@@ -208,7 +208,7 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote, onBusy }: {
         (s) => {
           if (signal.aborted) return
           setState(s)
-          if (s.status === 'queued' || s.status === 'running') timer.current = setTimeout(() => step(getDeepDive(code, archetype, signal)), POLL_MS)
+          if (s.status === 'queued' || s.status === 'running') timer.current = setTimeout(() => step(getDeepDive(code, 'pure', archetype, signal)), POLL_MS)
         },
         (e: { status?: number }) => {
           if (!signal.aborted) setFailed(e?.status ?? 0)
@@ -217,8 +217,8 @@ export const DeepDiveSearch = ({ season, onLocal, onRemote, onBusy }: {
     step(first(signal))
   }
 
-  const load = (p: Picked) => run(p.archetype, (signal) => getDeepDive(code, p.archetype, signal), null)
-  const calculate = (p: Picked) => run(p.archetype, () => requestDeepDive(code, p.archetype), { status: 'running' })
+  const load = (p: Picked) => run(p.archetype, (signal) => getDeepDive(code, 'pure', p.archetype, signal), null)
+  const calculate = (p: Picked) => run(p.archetype, () => requestDeepDive(code, 'pure', p.archetype), { status: 'running' })
 
   const cancel = () => {
     restart()

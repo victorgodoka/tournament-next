@@ -115,6 +115,9 @@ export const getStatistics = async ({ ladder, season }: { ladder: RankedLadderId
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
 
+/** `general`: all decks; `pure`: single-archetype decks; `combined`: mixed decks, key `[lead, second]` in that order. */
+export type DeepDiveMode = 'general' | 'pure' | 'combined'
+
 /** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */
 export type IndexEntry = { archetype: ArchetypeKey; name: string | null; games: number; ready: boolean }
 export type DeepDiveRow = StatArchetype & { rank: number }
@@ -132,22 +135,22 @@ const ok = async (res: Response) => {
   return res.json()
 }
 
-/** Every searchable archetype, most played first. */
-export const getArchetypeIndex = async (season: string, signal?: AbortSignal): Promise<IndexEntry[]> =>
-  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season })}`, { signal }))).archetypes
+/** Every searchable archetype of the mode, most played first. */
+export const getArchetypeIndex = async (season: string, mode: DeepDiveMode, signal?: AbortSignal): Promise<IndexEntry[]> =>
+  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season, mode })}`, { signal }))).archetypes
 
 /** Always a state, never cached: poll it while `queued` or `running`. */
-export const getDeepDive = async (season: string, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
-  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, key: archKey(key) })}`, { cache: 'no-store', signal }))
+export const getDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
+  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, mode, key: archKey(key) })}`, { cache: 'no-store', signal }))
 
 /** Signed in only (`omega_session`). 429 is the account's hourly limit, not an error. */
-export const requestDeepDive = async (season: string, key: ArchetypeKey): Promise<DeepDiveState> => {
+export const requestDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey): Promise<DeepDiveState> => {
   const res = await fetch(`${API_URL}/statistics/archetype`, {
     method: 'POST',
     credentials: 'include',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ season, key: archKey(key) }),
+    body: JSON.stringify({ season, mode, key: archKey(key) }),
   })
   /* The IP limiter answers 429 too, without a `retryAt`. */
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }
