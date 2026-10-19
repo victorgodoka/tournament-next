@@ -85,22 +85,25 @@ const Stack = ({ ids, p }: { ids: number[]; p: BoardViewProps }) => {
   )
 }
 
-/** One card: its scan (the back when set), DEF turned sideways, and its negated and counter markers. */
+/** One card: its scan (the back when set), DEF turned sideways, and its negated and counter markers, which stay upright. */
 const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; className?: string }) => {
   const t = useTranslations('Simulator')
   const card = p.board.cards[id]!
   return (
-    <div className={twMerge('relative', card.pos === 'def' && 'scale-[0.686] rotate-90', className)}>
-      <CardTile
-        id={card.code}
-        card={p.cards.get(card.code)}
-        sizes={SIZES}
-        data-card={id}
-        onClick={(e) => p.onCard(id, e)}
-        onContextMenu={(e) => p.onMenu(id, e)}
-        className={twMerge(card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
-      />
-      {card.face === 'down' ? <Back /> : null}
+    <div className={twMerge('relative', className)}>
+      {/* DEF: turned and scaled by 59/86 so the sideways card fits its cell. */}
+      <div className={twMerge('relative', card.pos === 'def' && 'scale-[calc(59/86)] rotate-90')}>
+        <CardTile
+          id={card.code}
+          card={p.cards.get(card.code)}
+          sizes={SIZES}
+          data-card={id}
+          onClick={(e) => p.onCard(id, e)}
+          onContextMenu={(e) => p.onMenu(id, e)}
+          className={twMerge(card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
+        />
+        {card.face === 'down' ? <Back /> : null}
+      </div>
       {card.negated ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-crimson-lift')}>
           <Icon name="close" size={14} label={t('negated')} />
