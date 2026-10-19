@@ -2,10 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { isSlot, locate } from '@utils/simulator/board'
+import { isMonsterSlot, isSlot, locate } from '@utils/simulator/board'
 import { moveOptions } from '@utils/simulator/drop'
 import { LIMITS } from '@utils/simulator/types'
-import type { Action, Board } from '@utils/simulator/types'
+import type { Action, Board, ZoneId } from '@utils/simulator/types'
 
 export type CardMenuProps = {
   board: Board
@@ -18,7 +18,8 @@ export type CardMenuProps = {
   onClose(): void
 }
 
-type Entry = { key: string; label: string; run(): void }
+/** One item: it swaps the list (`go`), runs a callback, or performs actions; the last two close the menu. */
+type Entry = { key: string; label: string } & ({ go: 'main' | 'move' } | { run(): void } | { actions: Action[] })
 
 /** Space kept between the menu and the viewport edge. */
 const MARGIN = 8
@@ -35,11 +36,18 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose
   const [view, setView] = useState<'main' | 'move'>('main')
   const root = useRef<HTMLDivElement>(null)
 
+  /** Where a move chosen here sends the card: its pile has no `[data-card]` on the board, so the pile's own button takes the focus. */
+  const landing = useRef<ZoneId | null>(null)
+
   // Declared first so its cleanup returns the focus after the list is gone, even when the card has moved elsewhere on the board.
   useEffect(() => {
     const active = document.activeElement
     const opener = active instanceof HTMLElement && active.matches(`[data-card="${card}"]`) ? active : null
-    return () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>(`[data-card="${card}"]`))?.focus()
+    return () => {
+      const pile = landing.current && document.querySelector<HTMLElement>(`[data-zone="${landing.current}"] button`)
+      const target = opener?.isConnected ? opener : (document.querySelector<HTMLElement>(`[data-card="${card}"]`) ?? pile)
+      target?.focus()
+    }
   }, [card])
 
   useEffect(() => {
@@ -76,40 +84,43 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose
   const where = locate(board, card)
   if (!state || !where) return null
 
-  /** Runs the choice, then closes. */
-  const pick = (run: () => void) => () => {
-    run()
+  const choose = (entry: Entry) => {
+    if ('go' in entry) return setView(entry.go)
+    if ('actions' in entry) {
+      for (const a of entry.actions) if (a.t === 'move') landing.current = a.to
+      onAct(entry.actions)
+    } else entry.run()
     onClose()
   }
-  const act = (...actions: Action[]) => pick(() => onAct(actions))
-  /** Only the card on top of a slot carries a face, a position, a negation and counters. */
+  /** Only the card on top of a slot carries a face, a negation and counters; only a monster there has a battle position. */
   const field = isSlot(where.zone) && where.index === 0
+  const monster = field && isMonsterSlot(where.zone)
 
   const main: Entry[] = [
-    { key: 'activate', label: t('menu.activate'), run: act({ t: 'activate', card, targets: [] }) },
-    { key: 'activateTargets', label: t('menu.activateTargets'), run: pick(() => onTargets(card)) },
+    { key: 'activate', label: t('menu.activate'), actions: [{ t: 'activate', card, targets: [] }] },
+    { key: 'activateTargets', label: t('menu.activateTargets'), run: () => onTargets(card) },
     ...(field
       ? [
-          { key: 'flip', label: t('menu.flip'), run: act({ t: 'flip', card, face: state.face === 'up' ? 'down' : 'up', pos: state.pos }) },
-          { key: 'position', label: t('menu.position'), run: act({ t: 'flip', card, face: state.face, pos: state.pos === 'atk' ? 'def' : 'atk' }) },
-          { key: 'negate', label: t('menu.negate'), run: act({ t: 'negate', card, on: !state.negated }) },
-          ...(state.counters < LIMITS.counters ? [{ key: 'counterUp', label: t('menu.counterUp'), run: act({ t: 'counter', card, delta: 1 }) }] : []),
-          ...(state.counters > 0 ? [{ key: 'counterDown', label: t('menu.counterDown'), run: act({ t: 'counter', card, delta: -1 }) }] : []),
+          { key: 'flip', label: t('menu.flip'), actions: [{ t: 'flip', card, face: state.face === 'up' ? 'down' : 'up', pos: state.pos } as const] },
+          ...(monster ? [{ key: 'position', label: t('menu.position'), actions: [{ t: 'flip', card, face: state.face, pos: state.pos === 'atk' ? 'def' : 'atk' } as const] }] : []),
+          { key: 'negate', label: t('menu.negate'), actions: [{ t: 'negate', card, on: !state.negated } as const] },
+          ...(state.counters < LIMITS.counters ? [{ key: 'counterUp', label: t('menu.counterUp'), actions: [{ t: 'counter', card, delta: 1 } as const] }] : []),
+          ...(state.counters > 0 ? [{ key: 'counterDown', label: t('menu.counterDown'), actions: [{ t: 'counter', card, delta: -1 } as const] }] : []),
         ]
       : []),
-    { key: 'moveTo', label: t('menu.moveTo'), run: () => setView('move') },
-    { key: 'details', label: t('menu.details'), run: pick(() => onDetails(card)) },
+    { key: 'moveTo', label: t('menu.moveTo'), go: 'move' },
+    { key: 'details', label: t('menu.details'), run: () => onDetails(card) },
   ]
 
   const move: Entry[] = [
-    { key: 'back', label: t('menu.back'), run: () => setView('main') },
+    { key: 'back', label: t('menu.back'), go: 'main' },
     ...moveOptions(board, card)
       // A plain move to the card's own pile moves nothing; the deck's top and bottom, and the other variants, reposition it.
       .filter(({ zone, variant }) => variant !== 'plain' || zone !== where.zone)
       .map(({ zone, variant, action }) => ({
         key: `${zone}:${variant}`,
         label: variant === 'plain' ? t(`zones.${zone}`) : `${t(`zones.${zone}`)} — ${t(`move.${variant}`)}`,
-        run: act(action),
+        actions: [action],
       })),
   ]
 
@@ -140,9 +151,9 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose
       style={{ left: at.x, top: at.y }}
       className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-52 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift"
     >
-      {(view === 'main' ? main : move).map(({ key, label, run }) => (
-        <button key={key} type="button" role="menuitem" tabIndex={-1} onClick={run} className={ITEM}>
-          {label}
+      {(view === 'main' ? main : move).map((entry) => (
+        <button key={entry.key} type="button" role="menuitem" tabIndex={-1} onClick={() => choose(entry)} className={ITEM}>
+          {entry.label}
         </button>
       ))}
     </div>

@@ -191,6 +191,29 @@ describe('Simulator card menu', () => {
     expect(names()).toContain('menu.counterDown')
   })
 
+  it('a spell or trap slot card gets flip but no ATK/DEF position', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.s0')
+    await rightClick(cardsIn('s0')[0]!)
+    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.flip', 'menu.negate', 'menu.counterUp', 'menu.moveTo', 'menu.details'])
+  })
+
+  it('focus goes to the pile button when the keyboard moved the card into a pile', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    // Pile cards have no [data-card] on the board, so the card itself is not there to take the focus back.
+    for (const [item, pile] of [['zones.gy', 'gy'], ['zones.banished', 'banished'], ['zones.deck — move.top', 'deck'], ['zones.extra', 'extra']] as const) {
+      const card = hand()[0]!
+      card.focus()
+      await act(async () => void fireEvent.click(card)) // detail 0: Enter on the focused card
+      await choose('menu.moveTo')
+      await choose(item)
+      expect(screen.queryByRole('menu')).toBeNull()
+      expect(document.activeElement).toBe(within(zone(pile)).getByRole('button', { name: `zones.${pile}` }))
+    }
+  })
+
   it('position and negate show on the card, and flip is one step of its own', async () => {
     await open(DECK)
     await click('toolbar.newHand')
