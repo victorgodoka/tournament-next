@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useAuth } from '@hooks/index'
 import { cardsByIds } from '@utils/cards'
+import { ComboApiError, ComboConflictError, deleteCombo, getCombo, listMyCombos, saveCombo, updateCombo, type ComboSummary, type SharedCombo } from '@utils/combos'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import type { CardData } from '@utils/deck/types'
 import { listMyDecks } from '@utils/decks'
@@ -16,11 +18,20 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
+vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
 // Iconify fetches its icons from the network: here each one is a span that names its icon.
 vi.mock('@iconify/react', () => ({ Icon: ({ icon, className }: { icon: string; className?: string }) => <span data-icon={icon} className={className} /> }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), listMyDecks: vi.fn() }))
+// The errors and `comboUrl` stay real: the client tells them apart and builds the link with them.
+vi.mock('@utils/combos', async (original) => ({
+  ...(await original<typeof import('@utils/combos')>()),
+  saveCombo: vi.fn(),
+  updateCombo: vi.fn(),
+  getCombo: vi.fn(),
+  listMyCombos: vi.fn(),
+  deleteCombo: vi.fn(),
+}))
 
 const DECK = `/simulator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3, 4, 5, 6], extra: [7], side: [] }))}`
 
@@ -84,6 +95,9 @@ beforeEach(() => {
   // Reduced motion: nothing animates unless a test asks (happy-dom says no-preference but has no `Element.animate`).
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'u1' } } as ReturnType<typeof useAuth>)
+  vi.mocked(saveCombo).mockResolvedValue({ id: 'c1', revision: 1 })
+  vi.mocked(updateCombo).mockResolvedValue({ id: 'c1', revision: 2 })
 })
 afterEach(() => {
   cleanup()
@@ -1150,5 +1164,672 @@ describe('Simulator board details', () => {
     expect(screen.getByText('Normal Summon', { selector: 'p' })).toBeTruthy()
     await act(async () => void vi.advanceTimersByTime(1200)) // the end of turn, and the end of the replay
     expect(screen.queryByText('Normal Summon', { selector: 'p' })).toBeNull()
+  })
+})
+
+describe('Simulator save and share', () => {
+  const DECK_ID = '0123456789abcdef'
+  /** A deck with a name and a saved deck id, as the deck picker hands it over. */
+  const NAMED = `${DECK}&name=Line&deck=${DECK_ID}`
+  const LINK = (id: string) => `${location.origin}/simulator/c/${id}`
+  const saveDialog = () => screen.queryByText('combos.dialogTitle')
+  const titleField = () => screen.getByRole<HTMLInputElement>('textbox', { name: 'combos.titleLabel' })
+  const retitle = (title: string) => act(async () => void fireEvent.change(titleField(), { target: { value: title } }))
+  /** The unsaved dot: Save says so in its description. */
+  const unsaved = () => button('toolbar.save').title === 'toolbar.unsaved'
+  /** New hand, then the first Save through the title dialog: the session is tied to `c1`, revision 1. */
+  const saved = async (url = NAMED) => {
+    await open(url)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save')
+  }
+  const clipboard = (writeText: () => Promise<void>) => {
+    const spy = vi.fn(writeText)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: spy }, configurable: true })
+    return spy
+  }
+
+  it('signed out, Save asks to sign in with a link back here and saves nothing', async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    expect(screen.getByText('combos.signIn')).toBeTruthy()
+    const link = screen.getByRole('link', { name: 'combos.signInAction' })
+    expect(link.getAttribute('href')).toBe('/login')
+    expect(saveDialog()).toBeNull()
+    expect(saveCombo).not.toHaveBeenCalled()
+    expect(hand()).toHaveLength(5) // the line stays
+    await act(async () => void fireEvent.click(link))
+    expect(sessionStorage.getItem('return-to')).toBe('/simulator') // back here after signing in
+  })
+
+  it('the first Save asks the title with the deck name filled in, then a Save after a step updates it without asking', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    expect(unsaved()).toBe(true)
+    await click('toolbar.save')
+    expect(titleField().value).toBe('Line')
+    await retitle('  Opening  ')
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }) })
+    expect(saveDialog()).toBeNull()
+    expect(unsaved()).toBe(false)
+
+    await click('toolbar.draw')
+    expect(unsaved()).toBe(true)
+    await click('toolbar.save')
+    expect(saveDialog()).toBeNull()
+    expect(updateCombo).toHaveBeenCalledWith('c1', { title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line' }) }, 1)
+    expect(vi.mocked(updateCombo).mock.calls[0]![1].payload.actions).toHaveLength(3)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+  })
+
+  it('an empty title cannot be saved', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await retitle('   ')
+    expect(button('combos.save').disabled).toBe(true)
+    expect(button('combos.saveAsNew').disabled).toBe(true)
+  })
+
+  it('Save as new always posts: from the first save, and from a tied session through Save as', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // nothing to save as yet
+    await click('toolbar.save')
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('toolbar.draw')
+    await click('toolbar.saveAs')
+    expect(titleField().value).toBe('Line') // the combo's title
+    await retitle('Line, again')
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line, again' }))
+    expect(updateCombo).not.toHaveBeenCalled()
+
+    await play('zones.m2') // tied to the new one now
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Line, again' }), 1)
+  })
+
+  it('Save in the Save as dialog renames the tied combo', async () => {
+    await saved()
+    await click('toolbar.saveAs')
+    await retitle('Renamed')
+    await click('combos.save')
+    expect(updateCombo).toHaveBeenCalledWith('c1', expect.objectContaining({ title: 'Renamed' }), 1)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('a combo saved elsewhere since: the conflict dialog, and Reload loads the saved one', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    // As the server sends it: jsonb reorders the keys, so its hash is not the session's.
+    vi.mocked(getCombo).mockResolvedValue({
+      id: 'c1',
+      title: 'Line',
+      deckId: DECK_ID,
+      owner: { id: 'u1', name: 'Me' },
+      revision: 2,
+      updatedAt: '2026-10-19T00:00:00Z',
+      payload: { start: 0, name: 'Line', actions: [{ n: 2, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,
+    })
+    await click('toolbar.save')
+    expect(screen.getByText('combos.conflict.title')).toBeTruthy()
+    expect(hand()).toHaveLength(6) // nothing changed yet
+
+    await click('combos.conflict.reload')
+    expect(getCombo).toHaveBeenCalledWith('c1')
+    expect(screen.queryByText('combos.conflict.title')).toBeNull()
+    expect(hand()).toHaveLength(2)
+    expect(unsaved()).toBe(false)
+
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenLastCalledWith('c1', expect.anything(), 2) // the revision just loaded
+  })
+
+  it('Save as new in the conflict dialog posts the line as a new combo', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    await click('toolbar.save')
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line' }))
+    expect(screen.queryByText('combos.conflict.title')).toBeNull()
+    expect(unsaved()).toBe(false)
+    expect(hand()).toHaveLength(6) // the line is the one just saved
+  })
+
+  it('a rename that meets a conflict keeps its title: Save as new posts it', async () => {
+    await saved()
+    await click('toolbar.saveAs')
+    await retitle('Renamed')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    await click('combos.save')
+    expect(screen.getByText('combos.conflict.title')).toBeTruthy()
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Renamed' }))
+  })
+
+  it('a combo deleted elsewhere: the update answers 404, and the title dialog posts a new one', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboApiError(404, 'NOT_FOUND'))
+    await click('toolbar.save')
+    expect(saveDialog()).toBeTruthy()
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+    await play('zones.m2')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenLastCalledWith('c2', expect.anything(), 1)
+  })
+
+  it('Save on a tied line that has not changed sends nothing; after a step it updates', async () => {
+    await saved()
+    await click('toolbar.save')
+    expect(updateCombo).not.toHaveBeenCalled()
+    expect(saveDialog()).toBeNull()
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Share on a tied line that has not changed copies its link in the click and sends nothing', async () => {
+    const writeText = clipboard(async () => {})
+    await saved()
+    await act(async () => {
+      fireEvent.click(button('toolbar.share'))
+      expect(writeText).toHaveBeenCalledWith(LINK('c1')) // before anything is awaited: still inside the user's gesture
+    })
+    expect(screen.getByText('combos.copied')).toBeTruthy()
+    expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('Share on a tied line that has not changed shows the link when the clipboard refuses', async () => {
+    clipboard(async () => {
+      throw new Error('denied')
+    })
+    await saved()
+    await click('toolbar.share')
+    expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
+    expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('a saved line survives a reload with no unsaved dot, and still tied', async () => {
+    // A draft keeps only a tie with a real id, as the server's.
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'fedcba9876543210', revision: 1 })
+    vi.mocked(updateCombo).mockResolvedValue({ id: 'fedcba9876543210', revision: 2 })
+    await saved()
+    await play('zones.m2')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+
+    cleanup() // the draft is written as the simulator unmounts
+    await open('/simulator')
+    expect(cardsIn('m2')).toHaveLength(1)
+    expect(button('toolbar.saveAs')).toBeTruthy() // tied
+    expect(unsaved()).toBe(false)
+  })
+
+  it('Share saves an unsaved session first, then copies its link; a saved one is copied at once', async () => {
+    const writeText = clipboard(async () => {})
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    expect(writeText).not.toHaveBeenCalled() // the title first
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledWith(LINK('c1'))
+    expect(screen.getByText('combos.copied')).toBeTruthy()
+
+    await click('toolbar.share')
+    expect(writeText).toHaveBeenCalledTimes(2)
+    expect(updateCombo).not.toHaveBeenCalled()
+
+    await click('toolbar.draw')
+    await click('toolbar.share')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledTimes(3)
+  })
+
+  it('a plain Save copies nothing, and closing the title dialog drops the share', async () => {
+    const writeText = clipboard(async () => {})
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    await click('Close')
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).not.toHaveBeenCalled()
+  })
+
+  it('a clipboard that refuses shows the link in a read-only field', async () => {
+    clipboard(async () => {
+      throw new Error('denied')
+    })
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    await click('combos.save')
+    expect(screen.getByText('combos.copyFailed')).toBeTruthy()
+    expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
+  })
+
+  it('the combo limit and a refused combo each say so, and nothing is tied', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new ComboApiError(409, 'LIMIT'))
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(screen.getByText('combos.limit')).toBeTruthy()
+    expect(saveDialog()).toBeNull()
+
+    vi.mocked(saveCombo).mockRejectedValueOnce(new ComboApiError(400, 'BAD_REQUEST'))
+    await click('toolbar.save') // still a first save: the title again
+    await click('combos.save')
+    expect(screen.getByText('combos.saveFailed')).toBeTruthy()
+    expect(screen.queryByText('combos.limit')).toBeNull()
+    expect(unsaved()).toBe(true)
+  })
+
+  it('a network failure shows Retry and changes nothing; Retry saves the line as it is then', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    expect(unsaved()).toBe(true)
+    expect(hand()).toHaveLength(5)
+    await click('toolbar.draw')
+    await act(async () => void fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'retry' })))
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line' }))
+    expect(vi.mocked(saveCombo).mock.lastCall![0].payload.actions).toHaveLength(3) // the draw played after the failure
+    expect(screen.queryByText('combos.failed')).toBeNull()
+    expect(unsaved()).toBe(false)
+  })
+
+  it('a failed save is retried only on its own session: a new deck or a new hand takes the Retry away', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    await pickDeck(toYdke({ main: [11, 12, 13, 14, 15, 16, 17], extra: [], side: [] }))
+    await click('confirm.discard')
+    expect(screen.queryByText('combos.failed')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull() // no Retry left
+
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await retitle('Second') // a pasted deck has no name to start from
+    await click('combos.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    await click('toolbar.newHand')
+    expect(screen.queryByRole('alert')).toBeNull()
+    // the first save, the failed update, the failed first save: nothing since
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Retry is off while a replay plays', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    const retry = () => within(screen.getByRole('alert')).getByRole<HTMLButtonElement>('button', { name: 'retry' })
+    expect(retry().disabled).toBe(false)
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(retry().disabled).toBe(true)
+  })
+
+  it('a Retry of the reload takes its alert away while it runs, so it cannot run twice', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    vi.mocked(getCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await click('combos.conflict.reload')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    vi.mocked(getCombo).mockReturnValue(new Promise(() => {})) // still on its way
+    await act(async () => void fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'retry' })))
+    expect(getCombo).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('Save, Save as and Share are off while a replay plays', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(button('toolbar.save').disabled).toBe(true)
+    expect(button('toolbar.saveAs').disabled).toBe(true)
+    expect(button('toolbar.share').disabled).toBe(true)
+  })
+})
+
+describe('Simulator my combos', () => {
+  const DECK_ID = '0123456789abcdef'
+  const NAMED = `${DECK}&name=Line&deck=${DECK_ID}`
+  const summary = (id: string, title: string): ComboSummary => ({ id, title, deckName: 'Line', steps: 3, updatedAt: '2026-10-19T00:00:00Z' })
+  /** As the server sends it: jsonb reorders the keys, so the hash of this payload is not the session's. */
+  const stored = (id: string): SharedCombo => ({
+    id,
+    title: `Combo ${id}`,
+    deckId: DECK_ID,
+    owner: { id: 'u1', name: 'Me' },
+    revision: 3,
+    updatedAt: '2026-10-19T00:00:00Z',
+    payload: { start: 1, name: 'Line', actions: [{ n: 3, t: 'draw' }, { n: 1, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,
+  })
+  /** The next first page: one combo per title, `c1`, `c2`… */
+  const listing = (...titles: string[]) =>
+    vi.mocked(listMyCombos).mockResolvedValueOnce({ combos: titles.map((title, i) => summary(`c${i + 1}`, title)), nextCursor: null })
+  const showList = async () => {
+    await click('toolbar.myCombos')
+    await wait(10)
+  }
+  const list = () => within(screen.getByRole('list', { name: 'myCombos.title' }))
+  const listShown = () => screen.queryByRole('list', { name: 'myCombos.title' }) !== null
+  const rowButton = (row: number, name: string) => within(list().getAllByRole('listitem')[row]!).getByRole('button', { name })
+  const openRow = (row: number) => act(async () => void fireEvent.click(rowButton(row, 'myCombos.openNamed')))
+  /** Delete on the row, then Delete in the confirm. */
+  const removeRow = async (row: number) => {
+    await act(async () => void fireEvent.click(rowButton(row, 'myCombos.deleteNamed')))
+    await click('myCombos.delete')
+  }
+  const unsaved = () => button('toolbar.save').title === 'toolbar.unsaved'
+
+  beforeEach(() => {
+    // `clearAllMocks` keeps implementations: a promise left hanging by one test must not reach the next.
+    vi.mocked(getCombo).mockReset()
+    vi.mocked(listMyCombos).mockReset()
+    vi.mocked(deleteCombo).mockReset()
+  })
+
+  it('lists title, deck, steps and date, and Load more asks for the next page', async () => {
+    vi.mocked(listMyCombos)
+      .mockResolvedValueOnce({ combos: [summary('c1', 'Opening'), summary('c2', 'Backrow')], nextCursor: 'n1' })
+      .mockResolvedValueOnce({ combos: [summary('c3', 'Floodgate')], nextCursor: null })
+    await open(DECK)
+    await showList()
+    const items = list().getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]!.textContent).toContain('Opening')
+    expect(items[0]!.textContent).toContain('Line · myCombos.steps · now')
+    expect(items[1]!.textContent).toContain('Backrow')
+    await click('myCombos.more')
+    expect(listMyCombos).toHaveBeenLastCalledWith('n1')
+    expect(list().getAllByRole('listitem')).toHaveLength(3)
+    expect(screen.queryByText('myCombos.more')).toBeNull() // the last page
+  })
+
+  it('Open loads the combo: hand and history match, nothing is unsaved, and Save updates it', async () => {
+    listing('Opening')
+    vi.mocked(getCombo).mockResolvedValue(stored('c1'))
+    await open(DECK)
+    await showList()
+    await openRow(0)
+    expect(getCombo).toHaveBeenCalledWith('c1')
+    expect(listShown()).toBe(false)
+    expect(hand()).toHaveLength(4)
+    expect(steps()).toEqual(['history.start', 'history.draw', 'history.draw'])
+    expect(unsaved()).toBe(false) // the hash is of the session as parsed, not of the payload as the server ordered it
+
+    await click('toolbar.draw')
+    expect(unsaved()).toBe(true)
+    await click('toolbar.save')
+    expect(screen.queryByText('combos.dialogTitle')).toBeNull()
+    expect(updateCombo).toHaveBeenCalledWith('c1', { title: 'Combo c1', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 1 }) }, 3)
+    expect(vi.mocked(updateCombo).mock.calls[0]![1].payload.actions).toHaveLength(3)
+    expect(saveCombo).not.toHaveBeenCalled()
+  })
+
+  it('Open while the session has actions asks to discard it first', async () => {
+    listing('Opening')
+    vi.mocked(getCombo).mockResolvedValue(stored('c1'))
+    await open(DECK)
+    await click('toolbar.newHand')
+    await showList()
+    await openRow(0)
+    expect(screen.getByText('confirm.title')).toBeTruthy()
+    expect(hand()).toHaveLength(5)
+    await click('confirm.cancel')
+    expect(hand()).toHaveLength(5)
+    expect(listShown()).toBe(true) // Keep playing leaves the list as it was
+
+    await openRow(0)
+    await click('confirm.discard')
+    expect(hand()).toHaveLength(4)
+    expect(listShown()).toBe(false)
+  })
+
+  it('opening a combo takes the alert of a failed save, and its Retry, away', async () => {
+    vi.mocked(saveCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    listing('Opening')
+    vi.mocked(getCombo).mockResolvedValue(stored('c1'))
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    await showList()
+    await openRow(0)
+    await click('confirm.discard')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('deleting the tied combo lets go of it: Save asks for a title and posts a new one', async () => {
+    listing('Opening', 'Backrow')
+    vi.mocked(deleteCombo).mockResolvedValue(undefined)
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save') // tied to c1, revision 1
+    await showList()
+
+    await removeRow(1) // c2 is not the tied one
+    expect(deleteCombo).toHaveBeenLastCalledWith('c2')
+    expect(list().getAllByRole('listitem')).toHaveLength(1)
+    expect(button('toolbar.saveAs')).toBeTruthy()
+
+    await removeRow(0)
+    expect(deleteCombo).toHaveBeenLastCalledWith('c1')
+    expect(list().queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull()
+    expect(unsaved()).toBe(true)
+    await click('Close')
+
+    await click('toolbar.save')
+    expect(screen.getByText('combos.dialogTitle')).toBeTruthy()
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('a combo already deleted elsewhere (404) counts as deleted: the row goes and the tie with it', async () => {
+    listing('Opening')
+    vi.mocked(deleteCombo).mockRejectedValue(new ComboApiError(404, 'NOT_FOUND'))
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save') // tied to c1
+    await showList()
+    await removeRow(0)
+    expect(screen.queryByText('myCombos.deleteFailed')).toBeNull()
+    expect(list().queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // untied
+    expect(unsaved()).toBe(true)
+  })
+
+  it('a delete that lands after another combo was opened leaves that tie alone, so Save updates the one opened', async () => {
+    listing('Opening', 'Backrow')
+    let landed: () => void = () => {}
+    vi.mocked(deleteCombo).mockReturnValue(new Promise<void>((resolve) => void (landed = resolve)))
+    vi.mocked(getCombo).mockResolvedValue(stored('c2'))
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save') // tied to c1
+    await showList()
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    await click('myCombos.delete') // the DELETE of c1 is on its way
+    await click('Close') // the list goes, the delete does not
+
+    vi.mocked(listMyCombos).mockResolvedValueOnce({ combos: [summary('c2', 'Backrow')], nextCursor: null })
+    await showList()
+    await openRow(0)
+    await click('confirm.discard')
+    expect(hand()).toHaveLength(4)
+    await act(async () => landed()) // c1 is gone, and the session is tied to c2
+
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(screen.queryByText('combos.dialogTitle')).toBeNull()
+    expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Combo c2' }), 3)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Open does nothing while a delete is on its way', async () => {
+    listing('Opening', 'Backrow')
+    let landed: () => void = () => {}
+    vi.mocked(deleteCombo).mockReturnValue(new Promise<void>((resolve) => void (landed = resolve)))
+    vi.mocked(getCombo).mockResolvedValue(stored('c2'))
+    await open(DECK)
+    await showList()
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    await click('myCombos.delete')
+    await openRow(1)
+    expect(getCombo).not.toHaveBeenCalled()
+    await act(async () => landed())
+    expect(list().getAllByRole('listitem')).toHaveLength(1)
+    await openRow(0) // the delete is over: Open works again
+    expect(getCombo).toHaveBeenCalledWith('c2')
+    expect(hand()).toHaveLength(4)
+  })
+
+  it('Delete does nothing while an open is on its way', async () => {
+    listing('Opening')
+    vi.mocked(getCombo).mockReturnValue(new Promise(() => {}))
+    await open(DECK)
+    await showList()
+    await openRow(0)
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    expect(screen.queryByText('myCombos.deleteBody')).toBeNull() // no confirm to answer
+    expect(deleteCombo).not.toHaveBeenCalled()
+  })
+
+  it('Delete asks first: Cancel leaves the combo alone', async () => {
+    listing('Opening')
+    await open(DECK)
+    await showList()
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    expect(screen.getByText('myCombos.deleteBody')).toBeTruthy()
+    expect(deleteCombo).not.toHaveBeenCalled()
+    await click('myCombos.cancel')
+    expect(deleteCombo).not.toHaveBeenCalled()
+    expect(rowButton(0, 'myCombos.deleteNamed')).toBeTruthy()
+  })
+
+  it('a combo that cannot be deleted stays in the list and says so', async () => {
+    listing('Opening')
+    vi.mocked(deleteCombo).mockRejectedValue(new TypeError('Failed to fetch'))
+    await open(DECK)
+    await showList()
+    await removeRow(0)
+    expect(screen.getByText('myCombos.deleteFailed')).toBeTruthy()
+    expect(list().getAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('a damaged combo says so and loads nothing', async () => {
+    listing('Opening')
+    vi.mocked(getCombo).mockResolvedValue({ ...stored('c1'), payload: { ...stored('c1').payload, actions: [{ t: 'move', card: 99, to: 'hand' }] } })
+    await open(DECK)
+    await click('toolbar.newHand')
+    await showList()
+    await openRow(0)
+    expect(screen.getByText('combos.damaged')).toBeTruthy()
+    expect(screen.queryByText('confirm.title')).toBeNull() // nothing to discard for: nothing is loaded
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('a combo that is gone or cannot be reached says so in the list, and the session stays', async () => {
+    listing('Opening', 'Backrow')
+    await open(DECK)
+    await showList()
+    vi.mocked(getCombo).mockResolvedValueOnce(null)
+    await openRow(0)
+    expect(screen.getByText('myCombos.gone')).toBeTruthy()
+    expect(list().getAllByRole('listitem')).toHaveLength(1) // c1 left the list
+
+    vi.mocked(getCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await openRow(0)
+    expect(screen.getByText('myCombos.openFailed')).toBeTruthy()
+    expect(screen.queryByText('myCombos.gone')).toBeNull()
+    expect(listShown()).toBe(true)
+    expect(hand()).toHaveLength(0)
+  })
+
+  it('a list that fails to load shows Retry', async () => {
+    vi.mocked(listMyCombos).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    listing('Opening')
+    await open(DECK)
+    await showList()
+    expect(screen.getByText('myCombos.failed')).toBeTruthy()
+    await click('retry')
+    await wait(10)
+    expect(list().getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.queryByText('myCombos.failed')).toBeNull()
+  })
+
+  it('closing the list while a combo loads cancels the open', async () => {
+    listing('Opening')
+    let arrive: (combo: SharedCombo) => void = () => {}
+    vi.mocked(getCombo).mockReturnValue(new Promise((resolve) => void (arrive = resolve)))
+    await open(DECK)
+    await showList()
+    await openRow(0)
+    await click('Close')
+    await act(async () => arrive(stored('c1')))
+    expect(hand()).toHaveLength(0)
+    expect(steps()).toEqual(['history.start'])
+  })
+
+  it('signed out, My combos asks to sign in and lists nothing', async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
+    await open(DECK)
+    await click('toolbar.myCombos')
+    expect(screen.getByText('combos.signIn')).toBeTruthy()
+    expect(listShown()).toBe(false)
+    expect(listMyCombos).not.toHaveBeenCalled()
+  })
+
+  it('My combos is off while a replay plays', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.draw')
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(button('toolbar.myCombos').disabled).toBe(true)
   })
 })

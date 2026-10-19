@@ -12,10 +12,12 @@ const draft: Session = {
   actions: [{ t: 'draw', n: 2 }, { t: 'move', card: 0, to: 'm0' }],
   cursor: 2,
   start: 0,
+  deckId: null,
+  combo: null,
 }
 
 /** A storage holding `draft` (or `text`) under the draft key, whose reads are counted. */
-const stored = (text: string | null = JSON.stringify({ v: 1, ...draft })) => ({ getItem: vi.fn((key: string) => (key === DRAFT_KEY ? text : null)) })
+const stored = (text: string | null = JSON.stringify({ v: 2, ...draft })) => ({ getItem: vi.fn((key: string) => (key === DRAFT_KEY ? text : null)) })
 
 describe('bootSession', () => {
   it('?d= boots that deck, restoring + and trimming the name', () => {
@@ -35,6 +37,23 @@ describe('bootSession', () => {
     expect(storage.getItem).not.toHaveBeenCalled() // ?d= wins over a saved draft
   })
 
+  it('?deck= with a valid id ties the session to that saved deck, and anything else leaves it null', () => {
+    const d = encodeURIComponent(toYdke(draft.deck))
+    const deckOf = (search: string) => bootSession(search, null).session.deckId
+    expect(deckOf(`?d=${d}&deck=0123456789abcdef`)).toBe('0123456789abcdef')
+    expect(deckOf(`?d=${d}&name=Mine&deck=0123456789abcdef`)).toBe('0123456789abcdef')
+    for (const bad of ['bad', '', '0123456789ABCDEF', '0123456789abcde', '0123456789abcdef0']) expect(deckOf(`?d=${d}&deck=${bad}`), bad).toBeNull()
+    expect(deckOf(`?d=${d}`)).toBeNull()
+    expect(bootSession(`?d=${d}&deck=0123456789abcdef`, null).session.combo).toBeNull()
+    // a damaged link opens empty, so it carries no deck id
+    expect(deckOf('?d=ydke://!&deck=0123456789abcdef')).toBeNull()
+  })
+
+  it('a v1 draft written before the saved combos still boots', () => {
+    const old = { v: 1, deck: draft.deck, name: draft.name, actions: draft.actions, cursor: draft.cursor, start: draft.start }
+    expect(bootSession('', stored(JSON.stringify(old)))).toEqual({ session: draft, notice: null })
+  })
+
   it('a damaged ?d= opens empty with damagedLink and ignores the draft', () => {
     const storage = stored()
     for (const search of ['?d=ydke://!', '?d=', '?d=not-a-deck', `?d=${encodeURIComponent('ydke://!!!!')}`]) {
@@ -50,7 +69,7 @@ describe('bootSession', () => {
     const empty = { session: emptySession(), notice: null }
     expect(bootSession('', stored(null))).toEqual(empty)
     expect(bootSession('', stored('{broken'))).toEqual(empty)
-    expect(bootSession('', stored(JSON.stringify({ v: 1, ...draft, cursor: 99 })))).toEqual(empty)
+    expect(bootSession('', stored(JSON.stringify({ v: 2, ...draft, cursor: 99 })))).toEqual(empty)
     expect(bootSession('', null)).toEqual(empty)
   })
 })

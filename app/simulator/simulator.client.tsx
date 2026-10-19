@@ -10,7 +10,9 @@ import { PageHeader } from '@ui/page-header'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
+import type { SharedCombo } from '@utils/combos'
 import { initial, isMonsterSlot, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
+import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
@@ -22,14 +24,16 @@ import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
 import { History } from './history'
+import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
-import { ReplayBar, type Speed } from './replay-bar'
+import { ReplayBar } from './replay-bar'
+import { SaveFlowView } from './save-dialog'
 import { Toolbar, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
+import { useReplay } from './use-replay'
+import { useSave } from './use-save'
 
 const DRAFT_DELAY_MS = 300
-/** How long a step stays on screen at 1x: a move or a draw has a card to follow, the rest only changes in place. */
-const stepMs = (a: Action | undefined) => (a?.t === 'move' || a?.t === 'draw' ? 1200 : 700)
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -74,6 +78,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [pending, setPending] = useState<(() => void) | null>(null)
   /** The opening hand picker is open. */
   const [choosing, setChoosing] = useState(false)
+  /** The My combos list is open. */
+  const [listing, setListing] = useState(false)
   /** The card the card panel shows: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
@@ -81,9 +87,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
   const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
-  /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar are off. */
-  const [playing, setPlaying] = useState(false)
-  const [speed, setSpeed] = useState<Speed>(1)
   /** Below `lg` the card panel and the history share the space under the board as two tabs. */
   const [tab, setTab] = useState<'card' | 'history'>('card')
   const [lookupAttempt, setLookupAttempt] = useState(0)
@@ -115,34 +118,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   const { cursor } = session
   const end = session.actions.length
-  /**
-   * Shows step `to` as the replay and its controls do: the card panel follows the card that step played (a step with
-   * none, a shuffle or an end of turn, leaves it). Acting by hand is not this: a draw or a drag leaves the panel alone.
-   */
-  const go = (to: number) => {
-    const at = Math.max(0, Math.min(to, end))
-    const card = at > 0 ? stepCards(session.actions[at - 1]!, boards[at - 1]!)[0] : undefined
-    if (card !== undefined) setSelected(card)
-    dispatch({ type: 'seek', cursor: at })
-  }
-  /** The bar's buttons, its timeline, the arrows and the history: they pause a replay, then show that step. */
-  const step = (to: number) => {
-    setPlaying(false)
-    go(to)
-  }
-
-  // One timer per step, as long as the step on screen asks at this speed: a pause, the unmount or any move of the cursor
-  // clears it; the step that reaches the end stops the replay.
-  const delay = stepMs(shown) / speed
-  const advance = useEffectEvent(() => {
-    go(cursor + 1)
-    if (cursor + 1 >= end) setPlaying(false)
-  })
-  useEffect(() => {
-    if (!playing) return
-    const timer = setTimeout(advance, delay)
-    return () => clearTimeout(timer)
-  }, [playing, cursor, end, delay])
+  /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar are off. */
+  const { playing, speed, setSpeed, toggle, step } = useReplay({ session, boards, dispatch, onShow: setSelected })
 
   // The session still waiting on the debounce: the unmount and `pagehide` write it at once, so a reload keeps the last step.
   const unsaved = useRef<Session | null>(null)
@@ -175,11 +152,35 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
   const discard = (ask: boolean, run: () => void) => (ask ? setPending(() => run) : run())
   const hasActions = session.actions.length > 0
-  /** A new board: the card the panel shows and a pick in progress mean nothing on it. */
-  const forget = () => {
+  /** The card the panel shows and a pick in progress mean nothing on a new board. */
+  const unpick = () => {
     setSelected(null)
     setTargeting(null)
   }
+  // A reload clears the save alert itself before it opens the combo.
+  const saves = useSave(session, dispatch, unpick)
+  /** A new board: nothing picked, and the last save's alert (its Retry included) was about the old one. */
+  const forget = () => {
+    unpick()
+    saves.dismiss()
+  }
+
+  /** A combo from the list replaces the session, tied to it. A damaged one loads nothing and says so; no question for that. */
+  const openCombo = (combo: SharedCombo) => {
+    const opened = comboSession(combo)
+    if (!opened) {
+      setListing(false)
+      return saves.damaged()
+    }
+    discard(hasActions, () => {
+      dispatch({ type: 'open', session: opened })
+      setNotice(null) // a damaged link says nothing about the combo just opened
+      forget()
+      setListing(false)
+    })
+  }
+  /** Deleting the combo the session is tied to leaves its line as an unsaved one. The reducer judges the tie: the delete may land long after the click. */
+  const comboDeleted = (id: string) => dispatch({ type: 'unlink', id })
 
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
@@ -211,11 +212,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   /** Play from `start` (or from where a pause left off), or pause. Not while picking targets, nor with no step after `start`. */
   const togglePlay = () => {
-    if (playing) return setPlaying(false)
+    if (playing) return toggle()
     if (targeting || session.start >= end) return
-    if (cursor === end || cursor < session.start) go(session.start)
     setMenu(null)
-    setPlaying(true)
+    toggle()
   }
 
   /** An Xyz monster, by its looked-up card: summoned over cards, it comes in on top of them. */
@@ -315,7 +315,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         lookup={ensure}
         onPick={(build) =>
           discard(hasActions, () => {
-            dispatch({ type: 'load', deck: build.deck, name: build.name })
+            dispatch({ type: 'load', deck: build.deck, name: build.name, deckId: build.deckId })
             setNotice(null) // a damaged link says nothing about the deck just loaded
             forget()
           })
@@ -346,11 +346,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           }
         />
       ) : null}
+      <SaveFlowView flow={saves} playing={playing} />
 
+      {/* A save on its way holds the toolbar too: a deck or hand loaded before it lands would be tied to that combo. */}
       <Toolbar
         board={board}
         session={session}
-        playing={playing}
+        playing={playing || saves.busy}
         picking={targetMode}
         onDeck={() => setPicker(true)}
         onNewHand={newHand}
@@ -359,7 +361,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onUndo={() => step(cursor - 1)}
         onRedo={() => step(cursor + 1)}
         onReset={reset}
+        unsaved={saves.unsaved}
+        onSave={saves.save}
+        onSaveAs={saves.saveAs}
+        onMyCombos={() => saves.gate(() => setListing(true))}
+        onShare={saves.share}
       />
+      <MyCombos open={listing} onClose={() => setListing(false)} onOpen={openCombo} onDeleted={comboDeleted} />
       <ReplayBar
         cursor={cursor}
         end={end}
