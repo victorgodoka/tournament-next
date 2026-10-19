@@ -978,6 +978,47 @@
       "noHands": "Add a playable hand to sweep.",
       "noPoints": "Nothing to sweep with these settings."
     },
+    "simulator": {
+      "title": "Simulator",
+      "effects": "Draw effects",
+      "resolve": "Resolve {name} when drawn",
+      "effect": {
+        "extravagance": "Banish 3 or 6 from the Extra Deck, draw 1 per 3. No effect draws afterwards.",
+        "prosperity": "Banish 3 or 6 from the Extra Deck, excavate as many, add 1. Once per turn; no effect draws this turn.",
+        "duality": "Excavate 3, add 1, shuffle the rest back. Once per turn.",
+        "desires": "Banish 10, draw 2. Once per turn.",
+        "upstart": "Draw 1."
+      },
+      "banish": "Extra Deck cards banished",
+      "noEffects": "No draw effects in this deck. Supported: {cards}.",
+      "policy": "Excavated card added: the first that completes a hand, in hand order; else the first that advances a rule; else the first excavated.",
+      "deal": "Deal a hand",
+      "dealAgain": "Deal again",
+      "drawNext": "Draw next",
+      "cardsInHand": "{count} in hand",
+      "deckLeft": "{count} left in deck",
+      "passes": "Passes",
+      "fails": "Fails",
+      "drew": "{name}: drew {cards}",
+      "excavated": "{name}: excavated {cards}, added {card}",
+      "skipped": {
+        "lock": "{name}: not resolved, effect draws are locked this turn",
+        "once": "{name}: not resolved, once per turn",
+        "extraDeck": "{name}: not resolved, too few Extra Deck cards",
+        "deck": "{name}: not resolved, too few cards in the Deck"
+      },
+      "simulate": "Simulate",
+      "stop": "Stop",
+      "runs": "Hands",
+      "progress": "{done} of {total} hands",
+      "estimateLabel": "Estimate (Monte Carlo, {n} hands)",
+      "hand": "Hand",
+      "estimate": "Estimate",
+      "halfWidth": "±95 %",
+      "exact": "Exact, no effects",
+      "diff": "Difference",
+      "stale": "The deck, hands or settings changed since this run."
+    },
     "draw": {
       "title": "Draw",
       "going": "Going",

@@ -27,6 +27,7 @@ import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
+import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
 import { useCalculations } from './use-calculation'
 
@@ -376,6 +377,20 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
           {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
           <Sweeps rows={view.rows} roles={build.roles} analysis={state.calc.analysis} draw={state.calc.draw} banlist={banlist} focus={state.calc.focus} nameOf={nameOf} />
+          <Simulator
+            rows={view.rows}
+            roles={build.roles}
+            analysis={state.calc.analysis}
+            draw={state.calc.draw}
+            effects={state.calc.effects}
+            extraSize={build.deck.extra.length}
+            seed={state.calc.seed}
+            result={view.result}
+            nameOf={nameOf}
+            onSeed={(seed) => dispatch({ type: 'setSeed', seed })}
+            onToggleEffect={(id) => dispatch({ type: 'toggleEffect', id })}
+            onBanish={(card, count) => dispatch({ type: 'setBanish', card, count })}
+          />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />

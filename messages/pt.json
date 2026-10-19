@@ -978,6 +978,47 @@
       "noHands": "Adicione uma mão jogável para varrer.",
       "noPoints": "Nada para varrer com esses ajustes."
     },
+    "simulator": {
+      "title": "Simulador",
+      "effects": "Efeitos de compra",
+      "resolve": "Resolver {name} ao comprar",
+      "effect": {
+        "extravagance": "Bane 3 ou 6 do Extra Deck, compra 1 a cada 3. Sem compras por efeito depois.",
+        "prosperity": "Bane 3 ou 6 do Extra Deck, escava a mesma quantidade, adiciona 1. Uma vez por turno; sem compras por efeito neste turno.",
+        "duality": "Escava 3, adiciona 1, embaralha o resto de volta. Uma vez por turno.",
+        "desires": "Bane 10, compra 2. Uma vez por turno.",
+        "upstart": "Compra 1."
+      },
+      "banish": "Cartas banidas do Extra Deck",
+      "noEffects": "Nenhum efeito de compra neste deck. Suportados: {cards}.",
+      "policy": "Carta escavada adicionada: a primeira que completa uma mão, na ordem das mãos; senão a primeira que avança uma regra; senão a primeira escavada.",
+      "deal": "Abrir uma mão",
+      "dealAgain": "Abrir de novo",
+      "drawNext": "Comprar a próxima",
+      "cardsInHand": "{count} na mão",
+      "deckLeft": "{count} no deck",
+      "passes": "Passa",
+      "fails": "Não passa",
+      "drew": "{name}: comprou {cards}",
+      "excavated": "{name}: escavou {cards}, adicionou {card}",
+      "skipped": {
+        "lock": "{name}: não resolvido, compras por efeito travadas neste turno",
+        "once": "{name}: não resolvido, uma vez por turno",
+        "extraDeck": "{name}: não resolvido, poucas cartas no Extra Deck",
+        "deck": "{name}: não resolvido, poucas cartas no Deck"
+      },
+      "simulate": "Simular",
+      "stop": "Parar",
+      "runs": "Mãos",
+      "progress": "{done} de {total} mãos",
+      "estimateLabel": "Estimativa (Monte Carlo, {n} mãos)",
+      "hand": "Mão",
+      "estimate": "Estimativa",
+      "halfWidth": "±95 %",
+      "exact": "Exato, sem efeitos",
+      "diff": "Diferença",
+      "stale": "O deck, as mãos ou os ajustes mudaram desde esta simulação."
+    },
     "draw": {
       "title": "Compra",
       "going": "Ordem",

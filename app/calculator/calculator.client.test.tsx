@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextSeed } from '@utils/combo/rng'
 import { decodeShare, encodeShare } from '@utils/combo/share'
 import { DEFAULT_DRAW, DEFAULT_EFFECTS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
@@ -220,5 +221,17 @@ describe('Calculator', () => {
     await act(async () => fireEvent.click(screen.getByText('builds.remove')))
     expect(screen.getAllByRole('tab')).toHaveLength(1)
     expect(screen.queryByText('builds.remove')).toBeNull()
+  })
+  it('mounts the simulator; Deal again changes the seed the link carries', async () => {
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: Array.from({ length: 40 }, (_, i) => 100 + i), extra: [], side: [] }))}&name=Sim`)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    const seed = (await decodeShare(new URLSearchParams(location.search).get('c')!)).seed
+    await act(async () => fireEvent.click(screen.getByText('simulator.dealAgain')))
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    expect((await decodeShare(new URLSearchParams(location.search).get('c')!)).seed).toBe(nextSeed(seed))
   })
 })
