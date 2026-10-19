@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { decodeShare, encodeShare } from '@utils/combo/share'
-import { DEFAULT_DRAW } from '@utils/combo/types'
+import { DEFAULT_DRAW, DEFAULT_EFFECTS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { DeckApiError, DeckConflictError, getDeck, listMyDecks, updateDeck, type DeckSummary, type SavedDeck } from '@utils/decks'
 import Calculator from './calculator.client'
@@ -128,6 +128,8 @@ describe('Calculator', () => {
       analysis: { hands: [] },
       draw: DEFAULT_DRAW,
       focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
     const chips = screen.getAllByRole('button', { name: 'deck.roleOf' })
@@ -144,6 +146,8 @@ describe('Calculator', () => {
       analysis: { hands: [] },
       draw: DEFAULT_DRAW,
       focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
     expect(screen.queryByText('deckRolesUnavailable')).toBeNull()

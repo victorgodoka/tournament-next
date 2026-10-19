@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DRAW, type Build, type Roles } from '@utils/combo/types'
+import { DEFAULT_DRAW, DRAW_EFFECTS, type Build, type Roles } from '@utils/combo/types'
 import type { Deck } from '@utils/deck/types'
 import { calculatorReducer, emptyCalculation, initialState, type CalcState } from './calculator.reducer'
 
@@ -115,5 +115,17 @@ describe('calculator reducer', () => {
     expect(s2.calc.builds[0]!.format).toBeNull()
     expect(s2.saved).toEqual([null, { revision: 3, ownerId: 'u1' }])
     expect(calculatorReducer(s2, { type: 'setSaved', deckId: 'bbbbbbbbbbbbbbbb', saved: null })).toBe(s2)
+  })
+  it('setSeed stores a 32-bit seed, toggleEffect knows only the five cards, setBanish takes 3 or 6', () => {
+    const s0 = initialState(emptyCalculation(9))
+    expect(s0.calc.seed).toBe(9)
+    expect(s0.calc.effects).toEqual({ resolve: [], prosperity: 6, extravagance: 6 })
+    const s1 = calculatorReducer(s0, { type: 'setSeed', seed: 77 })
+    expect(s1.calc.seed).toBe(77)
+    const s2 = calculatorReducer(s1, { type: 'toggleEffect', id: DRAW_EFFECTS.desires })
+    expect(s2.calc.effects.resolve).toEqual([DRAW_EFFECTS.desires])
+    expect(calculatorReducer(s2, { type: 'toggleEffect', id: DRAW_EFFECTS.desires }).calc.effects.resolve).toEqual([])
+    expect(calculatorReducer(s2, { type: 'toggleEffect', id: 12345 })).toBe(s2)
+    expect(calculatorReducer(s2, { type: 'setBanish', card: 'prosperity', count: 3 }).calc.effects).toEqual({ resolve: [DRAW_EFFECTS.desires], prosperity: 3, extravagance: 6 })
   })
 })

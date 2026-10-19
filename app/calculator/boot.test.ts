@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { encodeShare } from '@utils/combo/share'
-import type { Calculation } from '@utils/combo/types'
+import { DEFAULT_EFFECTS, type Calculation } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { bootState } from './boot'
 
@@ -9,6 +9,8 @@ const calc = (): Calculation => ({
   analysis: { hands: [{ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }] },
   draw: { going: 'first', handSize: null, extraDraws: 0, turn: 1 },
   focus: null,
+  seed: 1,
+  effects: DEFAULT_EFFECTS,
 })
 
 describe('bootState', () => {

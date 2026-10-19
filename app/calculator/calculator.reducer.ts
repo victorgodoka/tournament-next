@@ -1,6 +1,7 @@
 import { canonicalOf, withCopies } from '@utils/combo/deck-cards'
+import { randomSeed } from '@utils/combo/rng'
 import { addRole, toggleRole } from '@utils/combo/roles'
-import { DEFAULT_DRAW, LIMITS, type Build, type Calculation, type Draw, type Hand, type Roles, type Rule, type Subject } from '@utils/combo/types'
+import { DEFAULT_DRAW, DEFAULT_EFFECTS, EFFECT_IDS, LIMITS, type Banish, type Build, type Calculation, type Draw, type Hand, type Roles, type Rule, type Subject } from '@utils/combo/types'
 import { EMPTY_DECK, MAX_COPIES, type CardMap, type Deck } from '@utils/deck/types'
 
 /** The saved deck behind a build: what a roles save needs. Never part of the share link. */
@@ -43,12 +44,20 @@ export type CalcAction =
   | { type: 'removeRule'; hand: number; index: number }
   | { type: 'setDraw'; draw: Partial<Draw> }
   | { type: 'setFocus'; focus: Subject | null }
+  /** The simulator's seed: Deal again moves it. */
+  | { type: 'setSeed'; seed: number }
+  /** Resolve this draw-effect card when it is drawn. Ignored for a card the simulator has no script for. */
+  | { type: 'toggleEffect'; id: number }
+  | { type: 'setBanish'; card: 'prosperity' | 'extravagance'; count: Banish }
 
-export const emptyCalculation = (): Calculation => ({
+/** A fresh calculation deals from a random seed; tests pass one. */
+export const emptyCalculation = (seed: number = randomSeed()): Calculation => ({
   builds: [{ name: '', deck: EMPTY_DECK, roles: new Map(), format: null, deckId: null }],
   analysis: { hands: [] },
   draw: DEFAULT_DRAW,
   focus: null,
+  seed,
+  effects: DEFAULT_EFFECTS,
 })
 
 export const initialState = (calc: Calculation, saved: Saved | null = null): CalcState => ({
@@ -179,5 +188,15 @@ export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
     }
     case 'setFocus':
       return { ...s, calc: { ...s.calc, focus: a.focus } }
+    case 'setSeed':
+      return { ...s, calc: { ...s.calc, seed: a.seed >>> 0 } }
+    case 'toggleEffect': {
+      if (!EFFECT_IDS.includes(a.id)) return s
+      const { resolve } = s.calc.effects
+      const next = resolve.includes(a.id) ? resolve.filter((id) => id !== a.id) : [...resolve, a.id]
+      return { ...s, calc: { ...s.calc, effects: { ...s.calc.effects, resolve: next } } }
+    }
+    case 'setBanish':
+      return { ...s, calc: { ...s.calc, effects: { ...s.calc.effects, [a.card]: a.count } } }
   }
 }

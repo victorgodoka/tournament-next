@@ -1,8 +1,9 @@
 import { pipe } from '@utils/deck/codecs/omega'
 import { assertDeck } from '@utils/deck/codecs/ydk'
 import type { Deck } from '@utils/deck/types'
+import { MAX_SEED, randomSeed } from './rng'
 import { addRole, normalizeRole } from './roles'
-import { LIMITS, type Analysis, type Build, type Calculation, type Draw, type Hand, type Roles, type Rule, type Subject } from './types'
+import { DEFAULT_EFFECTS, EFFECT_IDS, LIMITS, type Analysis, type Banish, type Build, type Calculation, type Draw, type Effects, type Hand, type Roles, type Rule, type Subject } from './types'
 
 export class ShareError extends Error {
   constructor(message?: string) {
@@ -17,9 +18,9 @@ const DECK_ID = /^[0-9a-f]{16}$/
 const toBase64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
 const fromBase64url = (text: string) => Uint8Array.from(atob(text.replaceAll('-', '+').replaceAll('_', '/')), (c) => c.charCodeAt(0))
 
-/** The calculation as `?c=`: JSON → UTF-8 → raw DEFLATE → base64url. Roles travel as `[id, labels]` pairs. */
+/** The calculation as `?c=`: JSON → UTF-8 → raw DEFLATE → base64url. Roles travel as `[id, labels]` pairs. `v: 1` had no seed or effects. */
 export const encodeShare = async (calc: Calculation): Promise<string> => {
-  const json = JSON.stringify({ v: 1, ...calc, builds: calc.builds.map((b) => ({ ...b, roles: [...b.roles] })) })
+  const json = JSON.stringify({ v: 2, ...calc, builds: calc.builds.map((b) => ({ ...b, roles: [...b.roles] })) })
   return toBase64url(await pipe(new TextEncoder().encode(json), new CompressionStream('deflate-raw')))
 }
 
@@ -100,6 +101,15 @@ const build = (v: unknown): Build => {
   }
 }
 
+const banish = (v: unknown, what: string): Banish => (v === 3 || v === 6 ? v : fail(what))
+
+const effects = (v: unknown): Effects => {
+  const e = obj(v, 'effects')
+  const resolve = arr(e.resolve, EFFECT_IDS.length, 'effects.resolve').map((id) => (typeof id === 'number' && EFFECT_IDS.includes(id) ? id : fail('effects.resolve')))
+  if (new Set(resolve).size !== resolve.length) fail('effects.resolve')
+  return { resolve, prosperity: banish(e.prosperity, 'effects.prosperity'), extravagance: banish(e.extravagance, 'effects.extravagance') }
+}
+
 /** `?c=` back to a calculation. The URL is untrusted: anything off throws `ShareError`. */
 export const decodeShare = async (text: string): Promise<Calculation> => {
   if (text.length > LIMITS.share) fail('too long')
@@ -111,7 +121,7 @@ export const decodeShare = async (text: string): Promise<Calculation> => {
     fail('unreadable')
   }
   const r = obj(raw, 'payload')
-  if (r.v !== 1) fail('version')
+  if (r.v !== 1 && r.v !== 2) fail('version')
   const builds = arr(r.builds, LIMITS.builds, 'builds')
   if (!builds.length) fail('builds')
   return {
@@ -119,5 +129,8 @@ export const decodeShare = async (text: string): Promise<Calculation> => {
     analysis: analysis(r.analysis),
     draw: draw(r.draw),
     focus: r.focus === null ? null : subject(r.focus),
+    // A v1 link predates the simulator: it gets a fresh seed and no effects, the one non-deterministic path in here.
+    seed: r.v === 1 ? randomSeed() : int(r.seed, 0, MAX_SEED, 'seed'),
+    effects: r.v === 1 ? DEFAULT_EFFECTS : effects(r.effects),
   }
 }
