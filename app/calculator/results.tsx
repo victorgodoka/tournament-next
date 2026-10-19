@@ -56,6 +56,7 @@ export const DrawSettings = ({ draw, deckSize, onChange }: DrawSettingsProps) =>
               { value: 'first', label: t('draw.first') },
               { value: 'second', label: t('draw.second') },
             ]}
+            className="max-lg:[&>button]:min-h-11"
           />
         </Field>
         <div className="grid grid-cols-3 gap-3">

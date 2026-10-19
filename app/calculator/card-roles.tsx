@@ -99,6 +99,8 @@ export const CardRoles = (p: CardRolesProps) => {
                     label={role}
                     aria-label={t('deck.roleOf', { role, name })}
                     onClick={() => p.onToggle(row.id, role)}
+                    // The chip is 42px by design; a phone wants 44.
+                    className="max-lg:py-1.25"
                   />
                 ))}
                 <TextInput
