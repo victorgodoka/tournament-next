@@ -68,7 +68,7 @@ roles are computed exactly, never by multiplying probabilities as if cards or ro
 | `share.ts` | `encode(calc): Promise<string>` / `decode(text): Promise<Calculation>` for `?c=`; strict validation; throws `ShareError` |
 | `roles.ts` | `rolesFromTags(tags, cards, deck)` (passcode keys → canonical), `tagsFromRoles(roles, deck, cards)` (canonical → first passcode in deck), `DEFAULT_ROLES` |
 | `sweep.ts` (phase 2) | `sweepCopies(build, cardId, range, …)`, `sweepDeckSize(build, 40..60, …)`, `copiesFor(target)` |
-| `simulate.ts` (phase 3) | `dealHand(build, draw, rng)`, `monteCarlo(build, analysis, draw, effects, runs, rng)`, draw-effect scripts, `standardError` |
+| `simulate.ts` (phase 3) | `rng(seed)` (xorshift128+), `randomSeed`, `nextSeed`; `dealHand(cards, roles, analysis, draw, effects, extraSize, seed, extra)`; `monteCarlo(…, runs, rng)` → counts, `estimate(counts, exact)`, `standardError`; the draw-effect scripts and the excavation policy |
 
 **Types**
 
@@ -80,8 +80,12 @@ type Analysis = { hands: Hand[] }                                              /
 type Draw = { going: 'first' | 'second'; handSize: number | null; extraDraws: number; turn: number }
 type Roles = Map<number, string[]>                                             // canonical id → roles
 type Build = { name: string; deck: Deck; roles: Roles; format: number | null; deckId: string | null }
-type Calculation = { builds: Build[]; analysis: Analysis; draw: Draw; focus: Subject | null }
+type Effects = { resolve: number[]; prosperity: 3 | 6; extravagance: 3 | 6 }               // phase 3; resolve: canonical ids
+type Calculation = { builds: Build[]; analysis: Analysis; draw: Draw; focus: Subject | null; seed: number; effects: Effects }
 ```
+
+`seed` (phase 3) is a 32-bit unsigned integer that seeds the hand simulator; `effects` holds which draw-effect
+cards resolve when drawn and how many Extra Deck cards Prosperity and Extravagance banish (default none, 6, 6).
 
 `drawCount(draw) = (draw.handSize ?? (draw.going === 'first' ? 5 : 6)) + draw.extraDraws + (draw.turn - 1)`.
 Going second is the 6-card opening; `handSize` overrides it when set (1–20). `turn` 1–10; each later turn
@@ -118,10 +122,12 @@ estimated compositions and returns `{ tooComplex: true }`; the UI says so and su
 roles. `// ponytail: full enumeration; DP over capped per-subject counts if players hit the ceiling`.
 
 **Share payload** (`?c=`). JSON of `Calculation` with `roles` as `[id, string[]][]`, encoded as
-UTF-8 → raw DEFLATE → base64url (`-`/`_`, no padding). Versioned: `{ v: 1, ... }`. A 40-card deck with
-ten roles and three hands is ~600–900 characters. `decode` validates every field (types, ranges, zone
-sizes via `assertDeck`, ≤ 8 roles per card, ≤ 24 chars per role, ≤ 12 hands, ≤ 12 rules per hand,
-≤ 6 builds) and throws `ShareError` on anything else: the URL is a trust boundary.
+UTF-8 → raw DEFLATE → base64url (`-`/`_`, no padding). Versioned: `{ v: 2, ... }` since phase 3 (`v: 1`
+had no `seed` or `effects`; the decoder still accepts it, giving a fresh random seed and the default
+effects). A 40-card deck with ten roles and three hands is ~600–900 characters. `decode` validates every
+field (types, ranges, zone sizes via `assertDeck`, ≤ 8 roles per card, ≤ 24 chars per role, ≤ 12 hands,
+≤ 12 rules per hand, ≤ 6 builds, `seed` a 32-bit integer, `effects.resolve` ≤ 5 distinct known effect ids,
+banish counts 3 or 6) and throws `ShareError` on anything else: the URL is a trust boundary.
 
 ### `app/calculator/`
 
@@ -221,29 +227,61 @@ with a `deckId` and the user as owner, `/deck-builder/<id>` instead.
 
 ## Phase 3 — simulator and draw effects
 
-- **Deal a hand**: `dealHand` takes `drawCount` cards from the main deck with a partial Fisher–Yates
-  shuffle seeded by a `seed` kept in the state and URL (`xorshift128+`), so a shared link reproduces the
-  hand. Cards render with their role chips highlighted and which hands pass. "Deal again" advances the
-  seed; "Draw next" adds one card.
-- **Simulate**: `runs` (10 000 default, up to 200 000) hands; per hand and for "Any": observed rate,
-  the exact `p` beside it, the difference, and the 95 % half-width `1.96 · √(p̂(1−p̂)/runs)`. Runs in
-  chunks of 5 000 between animation frames so the page stays responsive;
+Decided with Victor on 2026-10-19 (the three open items of the first draft): the excavation policy below
+stands as the default; Prosperity **and** Extravagance each get a 3 / 6 banish control saved in the link;
+short links are not part of this phase.
+
+- **Random numbers**: `rng(seed)` is xorshift128+ in 32-bit halves, its 128-bit state expanded from a
+  32-bit `seed` with splitmix32; `randomSeed()` draws one from `crypto.getRandomValues`; `nextSeed(seed)`
+  is one splitmix32 step, what "Deal again" dispatches. `emptyCalculation()` and a `v: 1` link get a
+  random seed; otherwise the seed travels in the link, so a shared link reproduces the hand and the
+  simulation.
+- **Pile**: the main deck's canonical ids; `draw()` is one Fisher–Yates step (swap a random undrawn card
+  into the next position), so a hand of `n` cards costs `n` swaps; `bottom(ids)` takes cards out of the
+  pool (Prosperity's leftovers), `shuffleBack(ids)` returns them to it (Duality's).
+- **Deal a hand**: `dealHand(cards, roles, analysis, draw, effects, extraSize, seed, extra)` is pure:
+  the opening `drawCount` cards, then the toggled effects, then `extra` more cards. It returns the hand
+  (ids), which hands pass and whether any does, and a log of what each effect did. Cards render with
+  their role chips, the referenced roles highlighted, and a pass/fail line per hand and for "Any". "Deal
+  again" advances the seed; "Draw next" is `extra + 1` on the same seed (the same hand plus one card);
+  `extra` is UI state, not part of the link.
+- **Simulate**: `runs` (10 000 default, 1 000 to 200 000) hands; `monteCarlo(…, runs, rng)` returns raw
+  counts (`runs`, hits per hand, any) so the page sums chunks of 5 000 run between animation frames;
+  `estimate(counts, exact)` gives per hand and for "Any" the observed rate, the exact `p` without effects
+  beside it ("—" when `evaluate` is `tooComplex`, the case the simulator exists for), the difference in
+  percentage points, and the 95 % half-width `1.96 · √(p̂(1−p̂)/runs)`. Results carry the inputs they were
+  computed for and render as stale once the deck, roles, hands, draw or effects change.
   `// ponytail: main thread; a worker if runs above 200k are wanted`.
-- **Draw effects**, Monte Carlo only, each a scripted step applied after the opening hand when the card
-  is in hand and the player toggles "resolve when drawn". Cards are matched by canonical id (passcodes
-  below from memory; confirmed against `GET /cards?id=` when phase 3 starts):
-  - Pot of Desires (35261759): banish the top 10 face-down, draw 2.
-  - Pot of Prosperity (84211599): excavate 3 (or 6, a toggle), add one by the policy below. Its "skip the
-    normal draw" costs one of the normal draws `turn` / going second already added; going first on turn 1
-    there is none to skip.
-  - Pot of Duality (98645731): excavate 3, add one by the policy.
-  - Pot of Extravagance (49238328) and Upstart Goblin (70368879): draw 2 / draw 1. (Exact users should
-    prefer `extraDraws`; the toggle exists so one simulation can mix effects.)
-  - Policy for "add one of the excavated": the first card that makes an unsatisfied hand pass; else the
-    first card with any referenced role whose `max` is not yet reached; else the first excavated card.
-    Deterministic and documented in the UI tooltip.
+- **Draw effects**, each a scripted step applied after the opening hand when the card is in hand and the
+  player toggled "resolve when drawn" (`effects.resolve`, by canonical id; off by default). Passcodes
+  confirmed against `GET /cards?id=` on 2026-10-19; Extravagance's alternate art 49238329 canonicalizes to it.
+  - Pot of Desires (35261759): banish the top 10 face-down, draw 2. Once per turn.
+  - Pot of Prosperity (84211599): banish `effects.prosperity` (3 or 6) from the Extra Deck, excavate as
+    many, add one by the policy, the rest to the bottom. Once per turn; cannot be activated after an
+    effect draw this turn; locks effect draws for the rest of the turn. (Its text has no "skip the normal
+    draw" clause; the first draft was wrong.)
+  - Pot of Duality (98645731): excavate 3, add one by the policy, shuffle the rest back. Once per turn.
+  - Pot of Extravagance (49238328): banish `effects.extravagance` (3 or 6) from the Extra Deck, draw 1 per
+    3. Locks effect draws for the rest of the turn (so a second copy is dead).
+  - Upstart Goblin (70368879): draw 1. No once-per-turn clause: every copy resolves until a lock.
+  - A banish is capped by the build's Extra Deck size (6 → 3 when it holds 3 to 5 cards; fewer than 3: the
+    card cannot resolve, and the log says so). Resolution order is fixed: Extravagance, Prosperity, Duality,
+    Desires, Upstart; the loop repeats while a toggled, resolvable effect sits in hand, so an effect drawn
+    by an effect resolves too. A resolved card leaves the hand before the rules are checked. (Exact users
+    of Upstart and Extravagance should prefer `extraDraws`; the toggles exist so one simulation can mix
+    effects.)
+  - Policy for "add one of the excavated": for each hand in its listed order, the first excavated card
+    that completes it given the current hand; else the first excavated card that advances any rule (it
+    satisfies a referenced subject whose count is still below that rule's `max`); else the first excavated
+    card. Deterministic and documented in the UI tooltip.
   - Results are labelled "Estimate (Monte Carlo, N hands)" and never shown next to an exact figure
-    for the same question, only below it.
+    for the same question, only below it: the simulator panel closes the left column, under the exact
+    panels, the compare table and the sweeps.
+- **UI** (`simulator.tsx`, one `Panel`): a Draw effects block with one row per effect card in the active
+  build's main deck (art, name, a `Switch` "Resolve when drawn", a 3 / 6 `Segmented` on Prosperity and
+  Extravagance; a muted line naming the supported cards when the deck has none); the Deal a hand block;
+  the Simulate block (runs field, Simulate / Stop, progress, the estimates table). Reducer actions
+  `setSeed`, `toggleEffect` (known ids only), `setBanish`. Strings under `Calculator.simulator`.
 
 ## Error handling
 
@@ -275,8 +313,11 @@ with a `deckId` and the user as owner, `/deck-builder/<id>` instead.
 - `roles`: tags → roles with alt-art keys merging into one canonical id; roles → tags keyed by a passcode
   present in the deck.
 - Phase 2: sweep endpoints match `evaluate` called directly; `copiesFor` returns `null` when the target
-  is unreachable. Phase 3: seeded `dealHand` is reproducible; `monteCarlo` on a deck with no effects
-  lands within 3 standard errors of `evaluate` at 50k runs; each effect script on a fixed deck.
+  is unreachable. Phase 3: `rng` is reproducible from a seed and uniform enough; seeded `dealHand` is
+  reproducible and "Draw next" keeps the first cards; `monteCarlo` on a deck with no effects lands within
+  3 standard errors of `evaluate` at 50k runs; each effect script on a fixed deck, the once-per-turn and
+  lock rules, chaining, the Extra Deck cap, the excavation policy, a resolved card leaving the hand;
+  `share` round-trips `seed` and `effects`, decodes a `v: 1` payload, refuses bad `effects`.
 
 Component tests (happy-dom): the toolbar export menu lists "Combo Calculator" and `exportAs` opens the
 URL with `d`, `name` and `deck`; the deck picker's Paste tab turns a ydke into a build; the loader with a
@@ -299,11 +340,8 @@ Each phase gets its own implementation plan and ships on its own.
 
 ## Open items
 
-- The "add one of the excavated" policy (phase 3) is a documented default; Victor may want a different
-  one, or a per-hand priority.
-- Whether Prosperity's "excavate 6" should be inferred from the extra deck's card types or stay a toggle.
 - Short links (`/c/<id>`) if `?c=` URLs prove too long for Discord embeds; would need one table and two
-  routes on `omega-server-v3`.
+  routes on `omega-server-v3`. Not part of phase 3 (decided 2026-10-19).
 
 ## Out of scope
 
