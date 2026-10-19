@@ -11,7 +11,9 @@ export async function generateMetadata() {
 const SimulatorPage = () => (
   <>
     <Header />
-    <main className="min-h-dvh pt-16">
+    {/* Clipped sideways at the viewport edge, not the board's: a card sliding in from a pile would widen the page for a
+        moment, and the edge cards' focus rings still fit in the gutter. `clip` scrolls nothing and keeps `sticky` working. */}
+    <main className="min-h-dvh overflow-x-clip pt-16">
       <SimulatorLoader />
     </main>
   </>

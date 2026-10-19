@@ -169,9 +169,7 @@ export const BoardView = (p: BoardViewProps) => {
   }, [board])
 
   return (
-    // Clipped sideways: a card sliding in from a pile would widen the page for a moment. `clip`, not `hidden`, so nothing
-    // scrolls here and `sticky` still works. The menu, the ghost and the pile panel are rendered outside it.
-    <div ref={root} className="@container relative overflow-x-clip [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
+    <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
       <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
         {LAYOUT.map(([zone, column, row]) => (
           <div
