@@ -1094,5 +1094,111 @@
       "failed": "Não foi possível salvar as funções.",
       "signIn": "Entre para salvar funções no seu deck."
     }
+  },
+  "Simulator": {
+    "title": "Combo Simulator",
+    "meta": "Um campo manual de Yu-Gi-Oh! para testar mãos e treinar combos: carregue seu deck, compre, mova cartas, desfaça e reveja a linha.",
+    "eyebrow": "Treino de combos",
+    "loading": "Carregando…",
+    "turn": "Turno {n}",
+    "toolbar": {
+      "deck": "Escolher deck",
+      "newHand": "Nova mão",
+      "draw": "Comprar 1",
+      "endTurn": "Encerrar turno",
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "reset": "Recomeçar"
+    },
+    "confirm": {
+      "title": "Descartar esta linha?",
+      "body": "O campo e o histórico serão apagados. Isso não pode ser desfeito.",
+      "discard": "Descartar",
+      "cancel": "Continuar jogando"
+    },
+    "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
+    "dismiss": "Fechar",
+    "lookupFailed": "Algumas cartas não carregaram; elas aparecem pelo passcode.",
+    "retry": "Tentar de novo",
+    "zones": {
+      "deck": "Deck",
+      "hand": "Mão",
+      "extra": "Extra Deck",
+      "gy": "Cemitério",
+      "banished": "Banidas",
+      "field": "Zona de Campo",
+      "m0": "Zona de Monstro 1",
+      "m1": "Zona de Monstro 2",
+      "m2": "Zona de Monstro 3",
+      "m3": "Zona de Monstro 4",
+      "m4": "Zona de Monstro 5",
+      "s0": "Zona de Magia e Armadilha 1",
+      "s1": "Zona de Magia e Armadilha 2",
+      "s2": "Zona de Magia e Armadilha 3",
+      "s3": "Zona de Magia e Armadilha 4",
+      "s4": "Zona de Magia e Armadilha 5",
+      "emz0": "Zona de Monstro Extra (esquerda)",
+      "emz1": "Zona de Monstro Extra (direita)"
+    },
+    "negated": "Negada",
+    "faceDown": "Com a face para baixo",
+    "menu": {
+      "label": "Ações da carta",
+      "activate": "Ativar",
+      "activateTargets": "Ativar com alvos…",
+      "flip": "Virar",
+      "position": "ATK / DEF",
+      "negate": "Negar",
+      "counterUp": "Adicionar contador",
+      "counterDown": "Remover contador",
+      "materials": "Matérias",
+      "moveTo": "Mover para…",
+      "details": "Detalhes",
+      "back": "Voltar"
+    },
+    "move": {
+      "set": "Baixada",
+      "top": "Por cima",
+      "bottom": "No fundo",
+      "faceDown": "Com a face para baixo",
+      "faceUp": "Com a face para cima"
+    },
+    "pile": {
+      "close": "Fechar pilha",
+      "empty": "Sem cartas aqui.",
+      "materials": "Matérias ×{count}"
+    },
+    "targets": {
+      "prompt": "Escolha os alvos no tabuleiro e confirme. Escolhidos: {count}",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    },
+    "cardPanel": {
+      "title": "Carta",
+      "empty": "Selecione uma carta para lê-la."
+    },
+    "tabs": {
+      "label": "Carta e histórico",
+      "card": "Carta",
+      "history": "Histórico"
+    },
+    "history": {
+      "title": "Histórico",
+      "start": "Início",
+      "move": "{card}: {from} → {to}",
+      "draw": "Comprou {n}",
+      "shuffle": "Embaralhou o deck",
+      "activate": "{n, plural, =0 {Ativou {card}} other {Ativou {card} → {targets}}}",
+      "flip": "{to, select, up {Virou {card} para cima} down {Virou {card} para baixo} atk {{card} em posição de ataque} other {{card} em posição de defesa}}",
+      "negate": "{to, select, on {Negou {card}} other {{card} deixou de ser negada}}",
+      "counter": "Marcadores em {card}: {delta}",
+      "endTurn": "Fim do turno {turn}",
+      "replayFromHere": "O replay começa aqui",
+      "startMark": "Início do replay"
+    },
+    "replay": {
+      "play": "Reproduzir",
+      "pause": "Pausar"
+    }
   }
 }

@@ -1,0 +1,63 @@
+import { isMonsterSlot, isSlot, isValid, locate } from './board'
+import { ZONES } from './types'
+import type { Action, Board, Pile, ZoneId } from './types'
+
+export type MoveVariant = 'plain' | 'set' | 'top' | 'bottom' | 'faceDown' | 'faceUp'
+
+/** What each pile offers besides a plain move; hand and GY have nothing, so Shift does nothing there. */
+const PILE_VARIANTS: Record<Pile, MoveVariant[]> = {
+  deck: ['top', 'bottom'],
+  hand: ['plain'],
+  extra: ['plain', 'faceUp'],
+  gy: ['plain'],
+  banished: ['plain', 'faceDown'],
+}
+/** The variant Shift picks on a pile (decision 5). */
+const SHIFT: Partial<Record<ZoneId, MoveVariant>> = { deck: 'bottom', banished: 'faceDown', extra: 'faceUp' }
+
+function variantAction(card: number, to: ZoneId, variant: MoveVariant): Action {
+  const move = { t: 'move', card, to } as const
+  switch (variant) {
+    case 'set':
+      return { ...move, face: 'down', ...(isMonsterSlot(to) && { pos: 'def' as const }) }
+    case 'top':
+      return { ...move, at: 'top' }
+    case 'bottom':
+      return { ...move, at: 'bottom' }
+    case 'faceDown':
+      return { ...move, face: 'down' }
+    case 'faceUp':
+      return { ...move, face: 'up' }
+    case 'plain':
+      return move
+  }
+}
+
+/** Shift on a slot sets the card, or stacks it over an occupied monster; on a pile it picks that pile's variant. */
+function shifted(board: Board, zone: ZoneId): MoveVariant {
+  if (isMonsterSlot(zone)) return board.zones[zone].length ? 'top' : 'set'
+  return isSlot(zone) ? 'set' : (SHIFT[zone] ?? 'plain')
+}
+
+/** The move a drop on `zone` means, or null when it would do nothing or the reducer would refuse it. */
+export function dropAction(board: Board, card: number, zone: ZoneId | null, shift: boolean): Action | null {
+  if (!zone) return null
+  const variant = shift ? shifted(board, zone) : 'plain'
+  // a plain drop on the card's own pile is a no-op; only a pile variant (deck bottom, face-down, face-up) repositions it
+  if (variant === 'plain' && locate(board, card)?.zone === zone) return null
+  const action = variantAction(card, zone, variant)
+  return isValid(board, action) ? action : null
+}
+
+/** Every valid destination for the card's menu, in `ZONES` order. An occupied slot or the card's own slot offers nothing. */
+export function moveOptions(board: Board, card: number): { zone: ZoneId; variant: MoveVariant; action: Action }[] {
+  const out: { zone: ZoneId; variant: MoveVariant; action: Action }[] = []
+  for (const zone of ZONES) {
+    const variants: MoveVariant[] = isSlot(zone) ? ['plain', isMonsterSlot(zone) && board.zones[zone].length ? 'top' : 'set'] : PILE_VARIANTS[zone]
+    for (const variant of variants) {
+      const action = variantAction(card, zone, variant)
+      if (isValid(board, action)) out.push({ zone, variant, action })
+    }
+  }
+  return out
+}

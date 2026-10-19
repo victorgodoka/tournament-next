@@ -1094,5 +1094,111 @@
       "failed": "Could not save the roles.",
       "signIn": "Sign in to save roles to your deck."
     }
+  },
+  "Simulator": {
+    "title": "Combo Simulator",
+    "meta": "A manual Yu-Gi-Oh! board to test hands and practice combos: load your deck, draw, move cards, undo and replay the line.",
+    "eyebrow": "Combo practice",
+    "loading": "Loading…",
+    "turn": "Turn {n}",
+    "toolbar": {
+      "deck": "Choose deck",
+      "newHand": "New hand",
+      "draw": "Draw 1",
+      "endTurn": "End turn",
+      "undo": "Undo",
+      "redo": "Redo",
+      "reset": "Reset"
+    },
+    "confirm": {
+      "title": "Discard this line?",
+      "body": "The board and its history will be cleared. This can't be undone.",
+      "discard": "Discard",
+      "cancel": "Keep playing"
+    },
+    "damagedLink": "This deck link is damaged, so the simulator opened empty.",
+    "dismiss": "Dismiss",
+    "lookupFailed": "Some cards did not load; they show their passcode.",
+    "retry": "Retry",
+    "zones": {
+      "deck": "Deck",
+      "hand": "Hand",
+      "extra": "Extra Deck",
+      "gy": "Graveyard",
+      "banished": "Banished",
+      "field": "Field Zone",
+      "m0": "Monster Zone 1",
+      "m1": "Monster Zone 2",
+      "m2": "Monster Zone 3",
+      "m3": "Monster Zone 4",
+      "m4": "Monster Zone 5",
+      "s0": "Spell & Trap Zone 1",
+      "s1": "Spell & Trap Zone 2",
+      "s2": "Spell & Trap Zone 3",
+      "s3": "Spell & Trap Zone 4",
+      "s4": "Spell & Trap Zone 5",
+      "emz0": "Extra Monster Zone (left)",
+      "emz1": "Extra Monster Zone (right)"
+    },
+    "negated": "Negated",
+    "faceDown": "Face-down",
+    "menu": {
+      "label": "Card actions",
+      "activate": "Activate",
+      "activateTargets": "Activate with targets…",
+      "flip": "Flip",
+      "position": "ATK / DEF",
+      "negate": "Negate",
+      "counterUp": "Add counter",
+      "counterDown": "Remove counter",
+      "materials": "Materials",
+      "moveTo": "Move to…",
+      "details": "Details",
+      "back": "Back"
+    },
+    "move": {
+      "set": "Set",
+      "top": "On top",
+      "bottom": "At the bottom",
+      "faceDown": "Face-down",
+      "faceUp": "Face-up"
+    },
+    "pile": {
+      "close": "Close pile",
+      "empty": "No cards here.",
+      "materials": "Materials ×{count}"
+    },
+    "targets": {
+      "prompt": "Pick the targets on the board, then confirm. Picked: {count}",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "cardPanel": {
+      "title": "Card",
+      "empty": "Select a card to read it."
+    },
+    "tabs": {
+      "label": "Card and history",
+      "card": "Card",
+      "history": "History"
+    },
+    "history": {
+      "title": "History",
+      "start": "Start",
+      "move": "{card}: {from} → {to}",
+      "draw": "Drew {n}",
+      "shuffle": "Shuffled the deck",
+      "activate": "{n, plural, =0 {Activated {card}} other {Activated {card} → {targets}}}",
+      "flip": "{to, select, up {Flipped {card} face-up} down {Flipped {card} face-down} atk {{card} to Attack Position} other {{card} to Defense Position}}",
+      "negate": "{to, select, on {Negated {card}} other {{card} no longer negated}}",
+      "counter": "Counters on {card}: {delta}",
+      "endTurn": "End of turn {turn}",
+      "replayFromHere": "Replay starts here",
+      "startMark": "Replay start"
+    },
+    "replay": {
+      "play": "Play",
+      "pause": "Pause"
+    }
   }
 }
