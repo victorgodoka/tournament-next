@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import type { SharedCombo } from '@utils/combos'
 import type { Deck } from '@utils/deck/types'
-import { hashPayload, operateFrom, payloadOf, sessionOf } from './combo'
+import { comboSession, hashPayload, operateFrom, payloadOf, sessionOf } from './combo'
 import type { Action, ComboPayload, SavedRef, Session } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202], side: [] }
@@ -76,6 +77,25 @@ describe('sessionOf', () => {
     expect(sessionOf(payload, { ...ref, saved: 'xyz' }, null)).toBeNull()
     expect(sessionOf(payload, null, 'nope')).toBeNull()
     expect(sessionOf({ ...payload, actions: undefined } as unknown as ComboPayload, null, null)).toBeNull()
+  })
+})
+
+describe('comboSession', () => {
+  const shared = (p: ComboPayload): SharedCombo => ({ id: ref.id, title: 'Dragão line', deckId: 'abcdefabcdefabcd', owner: { id: 'u1', name: 'Me' }, payload: p, revision: 2, updatedAt: '2026-10-19T00:00:00Z' })
+
+  it('opens the combo tied to itself, with the hash of the session as parsed', () => {
+    const s = comboSession(shared(payload))!
+    expect(s).toMatchObject({ deck, actions, cursor: 4, start: 3, deckId: 'abcdefabcdefabcd' })
+    expect(s.combo).toEqual({ id: ref.id, title: 'Dragão line', revision: 2, saved: hashPayload(payloadOf(s)) })
+  })
+
+  it('hashes the same whatever order the server returned the keys in (jsonb reorders them)', () => {
+    const reordered = JSON.parse(JSON.stringify({ start: 3, actions, name: 'Dragão', deck: { side: [], extra: deck.extra, main: deck.main } })) as ComboPayload
+    expect(comboSession(shared(reordered))!.combo!.saved).toBe(comboSession(shared(payload))!.combo!.saved)
+  })
+
+  it('is null when the payload is damaged', () => {
+    expect(comboSession(shared({ ...payload, start: 9 }))).toBeNull()
   })
 })
 

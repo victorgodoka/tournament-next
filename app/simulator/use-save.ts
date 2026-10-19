@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '@hooks/index'
 import { ComboApiError, ComboConflictError, comboUrl, getCombo, saveCombo, updateCombo } from '@utils/combos'
-import { hashPayload, payloadOf, sessionOf } from '@utils/simulator/combo'
+import { comboSession, hashPayload, payloadOf } from '@utils/simulator/combo'
 import type { SessionEvent } from '@utils/simulator/session'
 import type { Session } from '@utils/simulator/types'
 
@@ -93,11 +93,9 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
         setAsking({ title: tied.title, share: false })
         return
       }
-      const opened = sessionOf(combo.payload, null, combo.deckId)
+      const opened = comboSession(combo)
       if (!opened) return setOutcome({ kind: 'damaged' })
-      // The hash of the session as parsed, never of the payload as sent: jsonb reorders its keys.
-      const saved = hashPayload(payloadOf(opened))
-      dispatch({ type: 'open', session: { ...opened, combo: { id: combo.id, title: combo.title, revision: combo.revision, saved } } })
+      dispatch({ type: 'open', session: opened })
       onOpen()
     } catch (error) {
       setOutcome(failure(error, null))
@@ -138,6 +136,10 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
       if (outcome?.kind === 'failed') void (outcome.again ? write(outcome.again) : reload())
     },
     dismiss: () => setOutcome(null),
+    /** For what needs an account besides Save: `run` for a signed-in user, else the sign-in alert in its place. */
+    gate: (run: () => void) => (user === null ? setOutcome({ kind: 'signIn' }) : run()),
+    /** A saved combo that could not be rebuilt was not loaded. */
+    damaged: () => setOutcome({ kind: 'damaged' }),
   }
 }
 

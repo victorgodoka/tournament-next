@@ -10,7 +10,9 @@ import { PageHeader } from '@ui/page-header'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
+import type { SharedCombo } from '@utils/combos'
 import { initial, isMonsterSlot, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
+import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
@@ -22,6 +24,7 @@ import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
 import { History } from './history'
+import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar, type Speed } from './replay-bar'
 import { SaveFlowView } from './save-dialog'
@@ -76,6 +79,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [pending, setPending] = useState<(() => void) | null>(null)
   /** The opening hand picker is open. */
   const [choosing, setChoosing] = useState(false)
+  /** The My combos list is open. */
+  const [listing, setListing] = useState(false)
   /** The card the card panel shows: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
@@ -188,6 +193,25 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const forget = () => {
     unpick()
     saves.dismiss()
+  }
+
+  /** A combo from the list replaces the session, tied to it. A damaged one loads nothing and says so; no question for that. */
+  const openCombo = (combo: SharedCombo) => {
+    const opened = comboSession(combo)
+    if (!opened) {
+      setListing(false)
+      return saves.damaged()
+    }
+    discard(hasActions, () => {
+      dispatch({ type: 'open', session: opened })
+      setNotice(null) // a damaged link says nothing about the combo just opened
+      forget()
+      setListing(false)
+    })
+  }
+  /** Deleting the combo the session is tied to leaves its line as an unsaved one. */
+  const comboDeleted = (id: string) => {
+    if (session.combo?.id === id) dispatch({ type: 'saved', combo: null })
   }
 
   /**
@@ -373,8 +397,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         unsaved={saves.unsaved}
         onSave={saves.save}
         onSaveAs={saves.saveAs}
+        onMyCombos={() => saves.gate(() => setListing(true))}
         onShare={saves.share}
       />
+      <MyCombos open={listing} onClose={() => setListing(false)} onOpen={openCombo} onDeleted={comboDeleted} />
       <ReplayBar
         cursor={cursor}
         end={end}

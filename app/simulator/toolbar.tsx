@@ -29,14 +29,15 @@ type ToolbarProps = {
   onSave(): void
   /** Shown only for a session tied to a saved combo. */
   onSaveAs(): void
+  onMyCombos(): void
   onShare(): void
 }
 
 /**
- * Deck, New hand, Choose hand, Draw 1, End turn, Undo, Redo, Reset, Save, Save as and Share, then the turn. Every
+ * Deck, New hand, Choose hand, Draw 1, End turn, Undo, Redo, Reset, Save, Save as, My combos and Share, then the turn. Every
  * decision is the client's: the buttons only ask.
  */
-export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onChooseHand, onAct, onUndo, onRedo, onReset, unsaved, onSave, onSaveAs, onShare }: ToolbarProps) => {
+export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onChooseHand, onAct, onUndo, onRedo, onReset, unsaved, onSave, onSaveAs, onMyCombos, onShare }: ToolbarProps) => {
   const t = useTranslations('Simulator')
   const still = playing || picking
   const noDeck = session.deck.main.length === 0
@@ -75,6 +76,9 @@ export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, o
           {t('toolbar.saveAs')}
         </Button>
       ) : null}
+      <Button variant="secondary" size="sm" disabled={playing} onClick={onMyCombos} className={TOUCH}>
+        {t('toolbar.myCombos')}
+      </Button>
       <Button variant="secondary" size="sm" disabled={playing || noDeck} onClick={onShare} className={TOUCH}>
         {t('toolbar.share')}
       </Button>

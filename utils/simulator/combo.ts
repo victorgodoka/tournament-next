@@ -1,3 +1,4 @@
+import type { SharedCombo } from '@utils/combos'
 import { DRAFT_VERSION, parseSession } from './draft'
 import type { ComboPayload, SavedRef, Session } from './types'
 
@@ -15,6 +16,15 @@ export function hashPayload(p: ComboPayload): string {
 /** The session a saved payload opens as, with the cursor at the end of the log; null when the payload is damaged (it is replayed like a draft). */
 export function sessionOf(p: ComboPayload, combo: SavedRef | null, deckId: string | null): Session | null {
   return parseSession({ ...p, v: DRAFT_VERSION, cursor: Array.isArray(p.actions) ? p.actions.length : 0, deckId, combo })
+}
+
+/**
+ * The session a saved combo opens as, tied to it; null when the payload is damaged. `saved` is the hash of the session as
+ * parsed, never of the payload as the server sent it: jsonb reorders keys, and Save would show a change that is not one.
+ */
+export function comboSession(c: SharedCombo): Session | null {
+  const opened = sessionOf(c.payload, null, c.deckId)
+  return opened && { ...opened, combo: { id: c.id, title: c.title, revision: c.revision, saved: hashPayload(payloadOf(opened)) } }
 }
 
 /** "Operate from here": a new session of the first `k` steps (`k` in 0..actions.length), tied to nothing. */

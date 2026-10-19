@@ -1112,6 +1112,7 @@
       "reset": "Reset",
       "save": "Save",
       "saveAs": "Save as…",
+      "myCombos": "My combos",
       "share": "Share",
       "unsaved": "Unsaved changes"
     },
@@ -1140,6 +1141,23 @@
         "body": "It was saved from another tab or device after you loaded it. Reload the saved one, which discards your changes here, or save yours as a new combo.",
         "reload": "Reload the saved one"
       }
+    },
+    "myCombos": {
+      "title": "My combos",
+      "steps": "{count, plural, one {# step} other {# steps}}",
+      "loading": "Loading combos…",
+      "empty": "No saved combos yet.",
+      "failed": "Couldn't load your combos.",
+      "more": "Load more",
+      "open": "Open",
+      "openNamed": "Open {name}",
+      "gone": "This combo no longer exists.",
+      "openFailed": "Couldn't open the combo. Nothing was changed.",
+      "delete": "Delete",
+      "deleteNamed": "Delete {name}",
+      "deleteBody": "Delete “{name}”? Its share link stops working. This can't be undone.",
+      "deleteFailed": "Couldn't delete the combo.",
+      "cancel": "Cancel"
     },
     "damagedLink": "This deck link is damaged, so the simulator opened empty.",
     "dismiss": "Dismiss",
