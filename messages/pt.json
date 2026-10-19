@@ -1197,8 +1197,14 @@
       "startMark": "Início do replay"
     },
     "replay": {
+      "label": "Replay",
       "play": "Reproduzir",
-      "pause": "Pausar"
+      "pause": "Pausar",
+      "prev": "Passo anterior",
+      "next": "Próximo passo",
+      "stop": "Parar e ir para o último passo",
+      "timeline": "Passo",
+      "speed": "Velocidade do replay"
     }
   }
 }
