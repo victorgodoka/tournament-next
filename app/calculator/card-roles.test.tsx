@@ -53,4 +53,10 @@ describe('CardRoles', () => {
     expect(onToggle).toHaveBeenCalledWith(1, ' Engine ')
     expect(field.value).toBe('')
   })
+  it('badges once-per-turn cards from their text', () => {
+    const hopt = { ...magician, description: 'You can only use this effect of "X" once per turn.' } as unknown as CardData
+    render(<CardRoles rows={[row(1, 1, hopt)]} roles={new Map()} palette={[]} originalCopies={new Map([[1, 1]])} banlist={null} notDrawn={0} onToggle={noop} onCopies={noop} onRestore={noop} />)
+    expect(screen.getByText('deck.hopt')).toBeTruthy()
+    expect(screen.queryByText('deck.opt')).toBeNull()
+  })
 })
