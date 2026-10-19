@@ -946,6 +946,15 @@
       "hopt": "HOPT",
       "optHint": "Once per turn: extra copies in hand are dead. Consider max 1 in the hand's rule."
     },
+    "builds": {
+      "title": "Builds",
+      "untitled": "Deck {n}",
+      "add": "Add build",
+      "duplicate": "Duplicate",
+      "remove": "Remove build",
+      "copyOf": "{name} copy",
+      "full": "Up to 6 builds"
+    },
     "draw": {
       "title": "Draw",
       "going": "Going",

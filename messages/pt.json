@@ -946,6 +946,15 @@
       "hopt": "HOPT",
       "optHint": "Uma vez por turno: cópias extras na mão são mortas. Considere máx 1 na regra da mão."
     },
+    "builds": {
+      "title": "Builds",
+      "untitled": "Deck {n}",
+      "add": "Adicionar build",
+      "duplicate": "Duplicar",
+      "remove": "Remover build",
+      "copyOf": "{name} (cópia)",
+      "full": "Até 6 builds"
+    },
     "draw": {
       "title": "Compra",
       "going": "Ordem",

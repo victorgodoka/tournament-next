@@ -16,18 +16,21 @@ export type CalculationView = {
   focusCopies: number
 }
 
-export const useCalculation = (build: Build, original: Deck, cards: CardMap, analysis: Analysis, draw: Draw, focus: Subject | null): CalculationView =>
-  useMemo(() => {
-    const rows = distinctCards([...build.deck.main, ...original.main], cards)
-    const counts = new Map<number, number>()
-    for (const passcode of build.deck.main) {
-      const id = canonicalOf(passcode, cards)
-      counts.set(id, (counts.get(id) ?? 0) + 1)
-    }
-    for (const row of rows) row.copies = counts.get(row.id) ?? 0
-    const result = evaluate(rows, build.roles, analysis, draw)
-    const deckSize = build.deck.main.length
-    const focusCopies = focus ? subjectCopies(rows, build.roles, focus) : 0
-    const focusDist = focus && !('error' in result) ? distribution(deckSize, focusCopies, drawCount(draw)) : null
-    return { rows, result, palette: palette(build.roles), focusDist, focusCopies }
-  }, [build, original, cards, analysis, draw, focus])
+const compute = (build: Build, original: Deck, cards: CardMap, analysis: Analysis, draw: Draw, focus: Subject | null): CalculationView => {
+  const rows = distinctCards([...build.deck.main, ...original.main], cards)
+  const counts = new Map<number, number>()
+  for (const passcode of build.deck.main) {
+    const id = canonicalOf(passcode, cards)
+    counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  for (const row of rows) row.copies = counts.get(row.id) ?? 0
+  const result = evaluate(rows, build.roles, analysis, draw)
+  const deckSize = build.deck.main.length
+  const focusCopies = focus ? subjectCopies(rows, build.roles, focus) : 0
+  const focusDist = focus && !('error' in result) ? distribution(deckSize, focusCopies, drawCount(draw)) : null
+  return { rows, result, palette: palette(build.roles), focusDist, focusCopies }
+}
+
+/** One view per build, in order: the analysis and draw are shared, each build brings its own deck and roles. */
+export const useCalculations = (builds: Build[], originals: Deck[], cards: CardMap, analysis: Analysis, draw: Draw, focus: Subject | null): CalculationView[] =>
+  useMemo(() => builds.map((build, i) => compute(build, originals[i] ?? build.deck, cards, analysis, draw, focus)), [builds, originals, cards, analysis, draw, focus])

@@ -8,6 +8,7 @@ import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
 import { Select, TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
+import { tabPanelProps } from '@ui/tab-bar/tab-bar.component'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { useAuth } from '@hooks/index'
 import { subjectCopies } from '@utils/combo/atoms'
@@ -19,17 +20,20 @@ import { DeckApiError, DeckConflictError, getDeck, updateDeck } from '@utils/dec
 import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
+import { BuildTabs } from './build-tabs'
 import { calculatorReducer, initialState } from './calculator.reducer'
 import { CardRoles } from './card-roles'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
-import { useCalculation } from './use-calculation'
+import { useCalculations } from './use-calculation'
 
 const TOUCH = 'max-lg:min-h-11'
 
 type Toast = { tone: 'positive' | 'negative' | 'warn'; text: string }
 type SaveState = 'idle' | 'saving' | 'conflict' | 'rejected' | 'signIn' | 'failed'
+/** What the picked deck becomes: the active build, or a new one. */
+type Picker = 'replace' | 'add' | null
 
 /** Boots from the URL once, client only, then hands over to the loaded calculator. */
 const Calculator = () => {
@@ -60,7 +64,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [state, dispatch] = useReducer(calculatorReducer, boot.calc, (calc) => initialState(calc))
   const [notice, setNotice] = useState(boot.notice)
   /** Nothing to compute yet: the picker opens by itself. */
-  const [picker, setPicker] = useState(boot.from === 'empty' && boot.calc.builds[0]!.deck.main.length === 0)
+  const [picker, setPicker] = useState<Picker>(boot.from === 'empty' && boot.calc.builds[0]!.deck.main.length === 0 ? 'replace' : null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
@@ -71,15 +75,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** The clipboard refused: the link shows in a field to copy by hand. */
   const [copyFallback, setCopyFallback] = useState<string | null>(null)
   const { cards, failed, ensure } = useCardCache()
-  const build = state.calc.builds[0]!
+  const build = state.calc.builds[state.active]!
+  const original = state.originals[state.active]!
+  const saved = state.saved[state.active] ?? null
   const banlist = banlists?.find((b) => (build.format === null ? b.format === 'tcg' : b.id === build.format)) ?? null
   const allIds = useMemo(
-    () => [...build.deck.main, ...build.deck.extra, ...build.deck.side, ...state.original.main],
-    [build.deck.main, build.deck.extra, build.deck.side, state.original.main],
+    () => [...state.calc.builds.flatMap((b) => [...b.deck.main, ...b.deck.extra, ...b.deck.side]), ...state.originals.flatMap((o) => o.main)],
+    [state.calc.builds, state.originals],
   )
-  const view = useCalculation(build, state.original, cards, state.calc.analysis, state.calc.draw, state.calc.focus)
+  const views = useCalculations(state.calc.builds, state.originals, cards, state.calc.analysis, state.calc.draw, state.calc.focus)
+  const view = views[state.active]!
   /** Copies in the loaded deck by canonical id: what a what-if row is compared against. */
-  const originalCopies = useMemo(() => new Map(distinctCards(state.original.main, cards).map((r) => [r.id, r.copies])), [state.original.main, cards])
+  const originalCopies = useMemo(() => new Map(distinctCards(original.main, cards).map((r) => [r.id, r.copies])), [original.main, cards])
   const nameOf = (id: number) => {
     const row = view.rows.find((r) => r.id === id)
     return row?.card?.name ?? cards.get(id)?.name ?? String(row?.passcode ?? id)
@@ -97,21 +104,20 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /**
    * Reads the saved deck behind `id`. `adopt`: take its format and roles too (a builder link, or Reload after a
    * conflict) and report a failure; otherwise only its revision and owner, silently (a share link is complete
-   * on its own, and the viewer may not be allowed to read the deck). The reducer drops a reply for a deck the
-   * build has since left.
+   * on its own, and the viewer may not be allowed to read the deck). The reducer drops a reply no build points at.
    */
   const readSaved = useCallback(
     (id: string, adopt: boolean) =>
       getDeck(id).then(
-        async (saved) => {
-          if (!saved) {
+        async (result) => {
+          if (!result) {
             if (adopt) setMeta('failed')
             return
           }
-          const info = { revision: saved.revision, ownerId: saved.ownerId }
-          if (!adopt) return dispatch({ type: 'setSaved', deckId: saved.id, saved: info })
-          const known = await ensure([...saved.main, ...saved.extra, ...saved.side]).catch(() => new Map())
-          dispatch({ type: 'deckMeta', deckId: saved.id, format: saved.format, roles: rolesFromTags(saved.tags, known), saved: info })
+          const info = { revision: result.revision, ownerId: result.ownerId }
+          if (!adopt) return dispatch({ type: 'setSaved', deckId: result.id, saved: info })
+          const known = await ensure([...result.main, ...result.extra, ...result.side]).catch(() => new Map())
+          dispatch({ type: 'deckMeta', deckId: result.id, format: result.format, roles: rolesFromTags(result.tags, known), saved: info })
           setMeta('idle')
         },
         (error: unknown) => {
@@ -123,12 +129,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     [ensure],
   )
 
+  /** Every saved deck a share link's builds point at. */
+  const bootDeckIds = useMemo(() => [...new Set(boot.calc.builds.flatMap((b) => (b.deckId ? [b.deckId] : [])))], [boot.calc.builds])
+
   useEffect(() => {
-    if (!boot.deckId) return
-    // A share link's deck is read only for a signed-in viewer (the owner is the one who can save roles).
-    if (boot.from !== 'builder' && !user) return
-    void readSaved(boot.deckId, boot.from === 'builder')
-  }, [boot.deckId, boot.from, metaAttempt, readSaved, user])
+    if (boot.from === 'builder') {
+      if (boot.deckId) void readSaved(boot.deckId, true)
+      return
+    }
+    // A share link's decks are read only for a signed-in viewer (the owner is the one who can save roles).
+    if (!user) return
+    for (const id of bootDeckIds) void readSaved(id, false)
+  }, [boot.deckId, boot.from, bootDeckIds, metaAttempt, readSaved, user])
 
   // The address bar is always the share link.
   useEffect(() => {
@@ -158,17 +170,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     }
   }
 
-  /** The signed-in user owns the saved deck behind this build: roles can be written back to it. */
-  const owner = state.saved !== null && user?.id === state.saved.ownerId
+  /** The signed-in user owns the saved deck behind the active build: roles can be written back to it. */
+  const owner = saved !== null && user?.id === saved.ownerId
   const canSave = build.deckId !== null && owner
 
   const saveRoles = async () => {
-    if (!build.deckId || !state.saved || saveState === 'saving') return
+    if (!build.deckId || !saved || saveState === 'saving') return
     setSaveState('saving')
     try {
       // Tags are keyed by the saved deck's own prints: the what-if copies never decide what is written.
-      const saved = await updateDeck(build.deckId, { tags: tagsFromRoles(build.roles, state.original, cards) }, state.saved.revision)
-      dispatch({ type: 'setSaved', deckId: saved.id, saved: { revision: saved.revision, ownerId: saved.ownerId } })
+      const result = await updateDeck(build.deckId, { tags: tagsFromRoles(build.roles, original, cards) }, saved.revision)
+      dispatch({ type: 'setSaved', deckId: result.id, saved: { revision: result.revision, ownerId: result.ownerId } })
       setSaveState('idle')
       setToast({ tone: 'positive', text: t('save.saved') })
     } catch (e) {
@@ -201,7 +213,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   const subjects = { roles: view.palette, cards: view.rows, nameOf }
   const error = 'error' in view.result ? view.result.error : null
-  /** Roles a rule names that no card in the deck carries: the rule can never pass. */
+  /** Roles a rule names that no card in the active build carries: the rule can never pass there. */
   const unusedRoles = useMemo(() => {
     const unused = new Set<string>()
     for (const hand of state.calc.analysis.hands)
@@ -219,7 +231,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             <Link href={builderHref} className={twMerge(buttonClasses({ variant: 'secondary' }), TOUCH)}>
               {t('openBuilder')}
             </Link>
-            <Button variant="secondary" onClick={() => setPicker(true)} className={TOUCH}>
+            <Button variant="secondary" onClick={() => setPicker('replace')} className={TOUCH}>
               {t('pickDeck')}
             </Button>
             <Button onClick={() => void copyLink()} className={TOUCH}>
@@ -228,7 +240,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           </>
         }
       />
-      <DeckPicker open={picker} onClose={() => setPicker(false)} lookup={ensure} onPick={(b, saved) => dispatch({ type: 'load', build: b, saved, cards })} />
+      <DeckPicker
+        open={picker !== null}
+        onClose={() => setPicker(null)}
+        lookup={ensure}
+        onPick={(b, s) => dispatch(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })}
+      />
 
       {notice ? (
         <Alert
@@ -272,8 +289,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         </Alert>
       ) : null}
 
+      <BuildTabs
+        builds={state.calc.builds}
+        active={state.active}
+        onSelect={(index) => dispatch({ type: 'setActive', index })}
+        onAdd={() => setPicker('add')}
+        onDuplicate={() => dispatch({ type: 'duplicateBuild', name: t('builds.copyOf', { name: build.name || t('builds.untitled', { n: state.active + 1 }) }) })}
+        onRemove={() => dispatch({ type: 'removeBuild', index: state.active })}
+      />
+
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-        <div className="order-2 flex flex-col gap-6 lg:order-1">
+        <div {...tabPanelProps('calc-build', String(state.active))} className="order-2 flex flex-col gap-6 lg:order-1">
           <div className="flex flex-wrap items-center gap-2">
             <TextInput
               value={build.name}
