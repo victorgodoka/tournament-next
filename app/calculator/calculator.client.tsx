@@ -27,6 +27,7 @@ import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
+import { Sweeps } from './sweeps'
 import { useCalculations } from './use-calculation'
 
 const TOUCH = 'max-lg:min-h-11'
@@ -374,6 +375,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
           />
           {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
+          <Sweeps rows={view.rows} roles={build.roles} analysis={state.calc.analysis} draw={state.calc.draw} banlist={banlist} focus={state.calc.focus} nameOf={nameOf} />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />

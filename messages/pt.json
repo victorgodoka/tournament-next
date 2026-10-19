@@ -961,6 +961,23 @@
       "deckSize": "Tamanho do deck",
       "delta": "{pp} pp"
     },
+    "sweeps": {
+      "title": "Varreduras",
+      "copies": "Cópias",
+      "deckSize": "Tamanho do deck",
+      "turn": "Turno",
+      "card": "Carta",
+      "target": "Meta",
+      "copiesOf": "Cópias de {name}",
+      "reached": {
+        "copies": "{x} cópias",
+        "deckSize": "{x} cartas",
+        "turn": "Turno {x}"
+      },
+      "notReached": "Não atinge",
+      "noHands": "Adicione uma mão jogável para varrer.",
+      "noPoints": "Nada para varrer com esses ajustes."
+    },
     "draw": {
       "title": "Compra",
       "going": "Ordem",

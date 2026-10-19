@@ -74,6 +74,14 @@ const open = async (url: string) => {
 
 beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+  // The sweep chart measures its width.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
   auth.user = { id: 'u1' }
   vi.mocked(getDeck).mockResolvedValue(null)
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
