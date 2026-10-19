@@ -23,6 +23,7 @@ import { bootState, type Boot } from './boot'
 import { BuildTabs } from './build-tabs'
 import { calculatorReducer, initialState } from './calculator.reducer'
 import { CardRoles } from './card-roles'
+import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
@@ -372,6 +373,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
             onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
           />
+          {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />

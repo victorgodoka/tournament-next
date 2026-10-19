@@ -955,6 +955,12 @@
       "copyOf": "{name} (cópia)",
       "full": "Até 6 builds"
     },
+    "compare": {
+      "title": "Comparar",
+      "caption": "Diferença em pontos percentuais contra {name}",
+      "deckSize": "Tamanho do deck",
+      "delta": "{pp} pp"
+    },
     "draw": {
       "title": "Compra",
       "going": "Ordem",

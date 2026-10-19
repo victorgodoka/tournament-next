@@ -955,6 +955,12 @@
       "copyOf": "{name} copy",
       "full": "Up to 6 builds"
     },
+    "compare": {
+      "title": "Compare",
+      "caption": "Change in percentage points against {name}",
+      "deckSize": "Deck size",
+      "delta": "{pp} pp"
+    },
     "draw": {
       "title": "Draw",
       "going": "Going",
