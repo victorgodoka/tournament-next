@@ -1104,6 +1104,7 @@
     "toolbar": {
       "deck": "Choose deck",
       "newHand": "New hand",
+      "chooseHand": "Choose hand",
       "draw": "Draw 1",
       "endTurn": "End turn",
       "undo": "Undo",
@@ -1161,7 +1162,19 @@
       "top": "On top",
       "bottom": "At the bottom",
       "faceDown": "Face-down",
-      "faceUp": "Face-up"
+      "faceUp": "Face-up",
+      "material": "As material"
+    },
+    "handPicker": {
+      "title": "Choose your opening hand",
+      "hint": "Tap the cards to start with. The rest of the deck is shuffled, and the replay starts with this hand.",
+      "count": "{count, plural, =0 {No cards picked} one {1 card picked} other {# cards picked}}",
+      "cancel": "Cancel",
+      "confirm": "Start with this hand"
+    },
+    "caption": {
+      "label": "Caption for this step",
+      "placeholder": "What happens in this step (optional, up to 100 characters)"
     },
     "pile": {
       "close": "Close pile",

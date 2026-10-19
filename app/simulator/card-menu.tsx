@@ -18,6 +18,8 @@ export type CardMenuProps = {
   /** Opens the Xyz materials under the monster on top of `zone`: on a phone the ×N badge is too small to be the only way in. */
   onPile(zone: MonsterSlot): void
   onClose(): void
+  /** The card is an Xyz monster: over an occupied monster zone it is offered the top first. */
+  xyz?: boolean
 }
 
 /** One item: it swaps the list (`go`), runs a callback, or performs actions; the last two close the menu. */
@@ -33,7 +35,7 @@ const ITEM =
  * focused; arrows move between items; Escape, a pointer down outside or choosing an item closes it and the focus
  * goes back to the card. "Move to…" swaps the list for every zone the card can go to.
  */
-export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile, onClose }: CardMenuProps) => {
+export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile, onClose, xyz = false }: CardMenuProps) => {
   const t = useTranslations('Simulator')
   const [view, setView] = useState<'main' | 'move'>('main')
   const root = useRef<HTMLDivElement>(null)
@@ -118,7 +120,7 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile,
 
   const move: Entry[] = [
     { key: 'back', label: t('menu.back'), go: 'main' },
-    ...moveOptions(board, card)
+    ...moveOptions(board, card, xyz)
       // A plain move to the card's own pile moves nothing; the deck's top and bottom, and the other variants, reposition it.
       .filter(({ zone, variant }) => variant !== 'plain' || zone !== where.zone)
       .map(({ zone, variant, action }) => ({

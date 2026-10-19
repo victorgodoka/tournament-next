@@ -19,14 +19,15 @@ type ToolbarProps = {
   picking: boolean
   onDeck(): void
   onNewHand(): void
+  onChooseHand(): void
   onAct(actions: Action[]): void
   onUndo(): void
   onRedo(): void
   onReset(): void
 }
 
-/** Deck, New hand, Draw 1, End turn, Undo, Redo and Reset, then the turn. Every decision is the client's: the buttons only ask. */
-export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onAct, onUndo, onRedo, onReset }: ToolbarProps) => {
+/** Deck, New hand, Choose hand, Draw 1, End turn, Undo, Redo and Reset, then the turn. Every decision is the client's: the buttons only ask. */
+export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onChooseHand, onAct, onUndo, onRedo, onReset }: ToolbarProps) => {
   const t = useTranslations('Simulator')
   const still = playing || picking
   return (
@@ -36,6 +37,9 @@ export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, o
       </Button>
       <Button size="sm" disabled={playing || session.deck.main.length === 0} onClick={onNewHand} className={TOUCH}>
         {t('toolbar.newHand')}
+      </Button>
+      <Button variant="secondary" size="sm" disabled={playing || session.deck.main.length === 0} onClick={onChooseHand} className={TOUCH}>
+        {t('toolbar.chooseHand')}
       </Button>
       <Button variant="secondary" size="sm" disabled={playing || !isValid(board, DRAW)} onClick={() => onAct([DRAW])} className={TOUCH}>
         {t('toolbar.draw')}

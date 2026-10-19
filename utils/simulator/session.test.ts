@@ -19,6 +19,17 @@ describe('simulator session', () => {
     expect(next.cursor).toBe(2)
   })
 
+  it('note sets the caption of one step, capped at 100, and an empty one clears it', () => {
+    const s = session({ actions: [a, b], cursor: 2 })
+    const noted = sessionReducer(s, { type: 'note', index: 1, note: 'Ash on this' })
+    expect(noted.actions[1]).toEqual({ ...b, note: 'Ash on this' })
+    expect(noted.actions[0]).toBe(a)
+    expect(sessionReducer(s, { type: 'note', index: 0, note: 'x'.repeat(150) }).actions[0]!.note).toHaveLength(LIMITS.note)
+    expect(sessionReducer(noted, { type: 'note', index: 1, note: '' }).actions[1]!.note).toBeUndefined()
+    expect(sessionReducer(s, { type: 'note', index: 5, note: 'nowhere' })).toBe(s)
+    expect(sessionReducer(noted, { type: 'note', index: 1, note: 'Ash on this' })).toBe(noted)
+  })
+
   it('act appends several actions at once', () => {
     const next = sessionReducer(session({ actions: [a], cursor: 1 }), { type: 'act', actions: [b, c] })
     expect(next.actions).toEqual([a, b, c])

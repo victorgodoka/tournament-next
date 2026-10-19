@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cardsByIds } from '@utils/cards'
 import { toYdke } from '@utils/deck/codecs/ydke'
+import type { CardData } from '@utils/deck/types'
 import { listMyDecks } from '@utils/decks'
 import { DRAFT_KEY } from '@utils/simulator/draft'
 import Simulator from './simulator.client'
@@ -16,6 +18,8 @@ vi.mock('next-intl', () => ({
 }))
 vi.mock('@hooks/index', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
+// Iconify fetches its icons from the network: here each one is a span that names its icon.
+vi.mock('@iconify/react', () => ({ Icon: ({ icon, className }: { icon: string; className?: string }) => <span data-icon={icon} className={className} /> }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), listMyDecks: vi.fn() }))
 
 const DECK = `/simulator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3, 4, 5, 6], extra: [7], side: [] }))}`
@@ -792,7 +796,7 @@ describe('Simulator history and replay', () => {
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
     expect(rows().map((row) => row.querySelector('[data-step-number]')?.textContent ?? null)).toEqual([null, '#1', '#2'])
     expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
-    expect(within(rows()[0]!).getByText('history.startMark')).toBeTruthy()
+    expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy() // the hand is dealt before the replay starts
     await click('history.shuffle')
     expect(hand()).toHaveLength(0)
     expect(button('history.shuffle').getAttribute('aria-current')).toBe('step')
@@ -811,7 +815,8 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await click('toolbar.draw')
-    await replayFrom(2) // the draw of 5
+    await replayFrom(1) // the shuffle
+    await replayFrom(2) // back to the draw of 5
     expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy()
     vi.useFakeTimers()
     await click('replay.play')
@@ -826,7 +831,6 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await click('toolbar.draw')
-    await replayFrom(2)
     vi.useFakeTimers()
     await click('replay.play')
     await rightClick(hand()[0]!)
@@ -1043,12 +1047,108 @@ describe('Simulator replay bar', () => {
     await rightClick(moved)
     await choose('menu.moveTo')
     await choose('zones.m0')
-    await click('replay.prev') // the draw of 5: its cards are marked, the panel shows the first of them
-    expect(hand().every((card) => card.dataset.step === 'true')).toBe(true)
+    await click('replay.prev') // the draw of 5: the panel shows the first of its cards; cards in the hand carry no brackets
+    expect(hand().some((card) => card.dataset.step)).toBe(false)
     expect(screen.getByRole('heading', { name: hand()[0]!.title })).toBeTruthy()
     await click('replay.next')
     expect(cardsIn('m0')[0]!.dataset.step).toBe('true')
     expect(hand().some((card) => card.dataset.step)).toBe(false)
     expect(screen.getByRole('heading', { name: moved.title })).toBeTruthy()
+  })
+})
+
+/** The deck's Extra card (passcode 7), looked up as an Xyz monster. */
+const UTOPIA = {
+  id: 7, idOriginal: 7, idTcg: null, name: 'Utopia', description: '', kind: 'monster', humanReadableCardType: 'Xyz Monster',
+  monsterTypes: ['xyz', 'effect'], spellTrapType: null, race: 'Warrior', attribute: 'light', level: 4, scale: null, atk: 2500, def: 2000,
+  linkMarkers: [], archetypes: [], supports: [], ruleId: null, alias: null, alternateArts: [], erratas: [], released: { ocg: null, tcg: null },
+  banlists: null, i18n: { pt: null, jp: null },
+} as unknown as CardData
+
+describe('Simulator board details', () => {
+  const ptr = (el: HTMLElement, type: 'pointerDown' | 'pointerMove' | 'pointerUp', x: number) =>
+    act(async () => void fireEvent[type](el, { clientX: x, clientY: x, pointerId: 1, pointerType: 'mouse' }))
+  const dragTo = async (el: HTMLElement, to: Element) => {
+    vi.spyOn(document, 'elementFromPoint').mockReturnValue(to)
+    await ptr(el, 'pointerDown', 0)
+    await ptr(el, 'pointerMove', 50)
+    await ptr(el, 'pointerUp', 50)
+  }
+  const icon = (key: string) => zone(key).querySelector('[data-icon]')?.getAttribute('data-icon') ?? null
+  afterEach(() => void vi.restoreAllMocks())
+
+  it('empty zones show their mark: a gravestone, an X, a blue and a red gem; a card covers it', async () => {
+    await open(DECK)
+    expect(icon('gy')).toBe('mdi:grave-stone')
+    expect(icon('banished')).toBe('foundation:x')
+    expect(icon('s0')).toBe('mage:gem-b-fill')
+    expect(icon('s4')).toBe('mage:gem-b-fill')
+    expect(zone('s0').querySelector('[data-icon]')!.className).toContain('text-azure')
+    expect(zone('s4').querySelector('[data-icon]')!.className).toContain('text-crimson')
+    expect(icon('s1')).toBeNull()
+    await click('toolbar.newHand')
+    await play('zones.gy')
+    expect(icon('gy')).toBeNull()
+  })
+
+  it('an Xyz dragged over a monster comes in on top, and the monster becomes its material', async () => {
+    vi.mocked(cardsByIds).mockResolvedValue(new Map([[7, UTOPIA]]))
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await act(async () => void fireEvent.click(within(zone('extra')).getByRole('button')))
+    const utopia = within(screen.getByRole('list', { name: 'zones.extra' })).getByRole('button', { name: 'Utopia' })
+    await dragTo(utopia, zone('m0'))
+    expect(cardsIn('m0')[0]!.title).toBe('Utopia')
+    expect(within(zone('m0')).getByRole('button', { name: 'pile.materials' })).toBeTruthy()
+  })
+
+  it('a card activated in the GY shows on top of the GY, glowing, while its step is on screen', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const first = hand()[0]!.title
+    await play('zones.gy')
+    await play('zones.gy') // another card on top of it
+    await act(async () => void fireEvent.click(within(zone('gy')).getByRole('button')))
+    const card = within(screen.getByRole('list', { name: 'zones.gy' })).getByRole('button', { name: first })
+    await rightClick(card)
+    await choose('menu.activate')
+    const top = within(zone('gy')).getByRole('button')
+    expect(top.title).toBe(first)
+    expect(top.dataset.active).toBe('true')
+    await click('replay.prev')
+    expect(within(zone('gy')).getByRole('button').title).not.toBe(first) // the real order never changed
+  })
+
+  it('Choose hand puts the picked cards in hand and starts the replay after them', async () => {
+    await open(DECK)
+    await click('toolbar.chooseHand')
+    await act(async () => void fireEvent.click(button('2')))
+    await act(async () => void fireEvent.click(button('5')))
+    expect(button('2').getAttribute('aria-pressed')).toBe('true')
+    await click('handPicker.confirm')
+    expect(hand().map((card) => card.title)).toEqual(['2', '5'])
+    expect(within(zone('deck')).getByText('4')).toBeTruthy()
+    expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.move', 'history.move'])
+    expect(within(rows()[3]!).getByText('history.startMark')).toBeTruthy()
+  })
+
+  it('a caption typed for a step shows in the history and under the field during the replay', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    const caption = () => screen.queryByRole<HTMLInputElement>('textbox', { name: 'caption.label' })
+    await act(async () => void fireEvent.change(caption()!, { target: { value: 'Normal Summon' } }))
+    expect(rows()[3]!.textContent).toContain('Normal Summon')
+    await click('toolbar.endTurn') // a step after it, so the replay is still playing when it shows the caption
+    expect(caption()!.value).toBe('')
+    await click('replay.prev')
+    expect(caption()!.value).toBe('Normal Summon')
+    vi.useFakeTimers()
+    await click('replay.play') // from the step on screen, the captioned one
+    expect(caption()).toBeNull() // a replay only shows the caption
+    expect(screen.getByText('Normal Summon', { selector: 'p' })).toBeTruthy()
+    await act(async () => void vi.advanceTimersByTime(1200)) // the end of turn, and the end of the replay
+    expect(screen.queryByText('Normal Summon', { selector: 'p' })).toBeNull()
   })
 })

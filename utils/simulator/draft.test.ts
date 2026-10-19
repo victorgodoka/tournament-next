@@ -44,6 +44,15 @@ describe('simulator draft', () => {
     expect(parseSession(payload())).toEqual(session)
   })
 
+  it('keeps a step caption up to 100 characters and refuses a longer or non-text one', () => {
+    const noted = { ...session, actions: session.actions.map((a, i) => (i === 1 ? { ...a, note: 'Normal Summon' } : a)) }
+    expect(parseSession({ v: 1, ...noted })).toEqual(noted)
+    const withNote = (note: unknown) => payload({ actions: session.actions.map((a, i) => (i === 1 ? { ...a, note } : a)) })
+    expect(parseSession(withNote('x'.repeat(100)))).not.toBeNull()
+    expect(parseSession(withNote('x'.repeat(101)))).toBeNull()
+    expect(parseSession(withNote(42))).toBeNull()
+  })
+
   it('round-trips the empty session', () => {
     const store = memory()
     writeDraft(store, emptySession())

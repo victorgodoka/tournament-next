@@ -31,8 +31,16 @@ function parseDeck(x: unknown): Deck | null {
   return deck
 }
 
-/** One action rebuilt from its validated fields, so nothing unknown rides along. `count` is the cards on the board (main + extra). */
+/** One action rebuilt from its validated fields, so nothing unknown rides along, its caption included when it has one. */
 function parseAction(x: unknown, count: number): Action | null {
+  const action = parseBody(x, count)
+  if (!action || !isObj(x) || x.note === undefined) return action
+  if (typeof x.note !== 'string' || x.note.length > LIMITS.note) return null
+  return x.note ? { ...action, note: x.note } : action
+}
+
+/** The action itself, without its caption. `count` is the cards on the board (main + extra). */
+function parseBody(x: unknown, count: number): Action | null {
   if (!isObj(x)) return null
   const id = (v: unknown): v is number => int(v, 0, count - 1)
   const ids = (v: unknown): v is number[] => Array.isArray(v) && v.every(id)

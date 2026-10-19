@@ -11,6 +11,8 @@ export type SessionEvent =
   | { type: 'redo' }
   | { type: 'seek'; cursor: number }
   | { type: 'setStart'; start: number }
+  /** The caption of `actions[index]`: cut to 100 characters, an empty one removes it. */
+  | { type: 'note'; index: number; note: string }
 
 export const emptySession = (): Session => ({ deck: EMPTY_DECK, name: '', actions: [], cursor: 0, start: 0 })
 
@@ -40,6 +42,14 @@ export function sessionReducer(s: Session, e: SessionEvent): Session {
     case 'setStart': {
       const start = clamp(e.start, s.actions.length)
       return start === s.start ? s : { ...s, start }
+    }
+    case 'note': {
+      const action = s.actions[e.index]
+      const note = e.note.slice(0, LIMITS.note) || undefined
+      if (!action || action.note === note) return s
+      const actions = [...s.actions]
+      actions[e.index] = { ...action, note }
+      return { ...s, actions }
     }
   }
 }

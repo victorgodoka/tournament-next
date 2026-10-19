@@ -21,7 +21,8 @@ export type Card = { id: number; code: number; face: Face; pos: Pos; counters: n
 /** Every zone is an ordered list of card ids. In a monster slot, `[0]` is the monster and the rest are its Xyz materials; in a pile, `[0]` is the top. */
 export type Board = { cards: Card[]; zones: Record<ZoneId, number[]>; turn: number }
 
-export type Action =
+/** Every action may carry a caption (≤ 100 characters), shown under the field while its step is on screen. */
+export type Action = (
   | { t: 'move'; card: number; to: ZoneId; at?: 'top' | 'bottom'; face?: Face; pos?: Pos }
   | { t: 'flip'; card: number; face: Face; pos: Pos }
   | { t: 'activate'; card: number; targets: number[] }
@@ -30,8 +31,9 @@ export type Action =
   | { t: 'shuffle'; order: number[] }
   | { t: 'draw'; n: number }
   | { t: 'endTurn' }
+) & { note?: string }
 
 /** `cursor` is the step shown on the board; a replay plays from `start` to the end. */
 export type Session = { deck: Deck; name: string; actions: Action[]; cursor: number; start: number }
 
-export const LIMITS = { actions: 2000, name: 80, counters: 99, draw: 60 } as const
+export const LIMITS = { actions: 2000, name: 80, counters: 99, draw: 60, note: 100 } as const

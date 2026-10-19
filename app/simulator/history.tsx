@@ -58,8 +58,8 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
   }
   /** Each row's line, and the passcode of the card it names (none for a draw, a shuffle or an end of turn). */
   const rows = [
-    { line: t('history.start'), code: null },
-    ...session.actions.map((a, i) => ({ line: describe(a, boards[i]!), code: 'card' in a ? (boards[i]!.cards[a.card]?.code ?? null) : null })),
+    { line: t('history.start'), code: null, note: undefined },
+    ...session.actions.map((a, i) => ({ line: describe(a, boards[i]!), code: 'card' in a ? (boards[i]!.cards[a.card]?.code ?? null) : null, note: a.note })),
   ]
 
   // The current step stays in view as a replay or the arrows move it. Only the list scrolls, never the page.
@@ -75,7 +75,7 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
   return (
     <Panel tone="framed" title={t('history.title')} className="p-4 min-[720px]:p-4">
       <ol ref={list} aria-label={t('history.title')} className="relative max-h-96 overflow-y-auto">
-        {rows.map(({ line, code }, i) => (
+        {rows.map(({ line, code, note }, i) => (
           <li key={i} className="flex items-center gap-2 border-b border-line last:border-b-0">
             <span data-step-number={i ? '' : undefined} className="w-7 shrink-0 text-right font-mono text-ink-muted body-sm tabular-nums">
               {i ? `#${i}` : null}
@@ -95,6 +95,7 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
               )}
             >
               {line}
+              {note ? <span className="block text-ink-muted italic">{note}</span> : null}
             </button>
             {i === session.start ? (
               <Chip tone="cyan">{t('history.startMark')}</Chip>

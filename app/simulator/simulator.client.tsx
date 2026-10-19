@@ -5,6 +5,7 @@ import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
+import { TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
@@ -13,11 +14,13 @@ import { initial, isMonsterSlot, shuffleAction, stepCards, timeline, validRun } 
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
+import { LIMITS } from '@utils/simulator/types'
 import type { Action, MonsterSlot, Pile, Session } from '@utils/simulator/types'
 import { BoardView, DragGhost, FLIP_MS } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
+import { HandPicker } from './hand-picker'
 import { History } from './history'
 import { PilePanel } from './pile-panel'
 import { ReplayBar, type Speed } from './replay-bar'
@@ -69,6 +72,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [picker, setPicker] = useState(boot.session.deck.main.length + boot.session.deck.extra.length === 0)
   /** What the confirm dialog runs once the player agrees to discard the session. */
   const [pending, setPending] = useState<(() => void) | null>(null)
+  /** The opening hand picker is open. */
+  const [choosing, setChoosing] = useState(false)
   /** The card the card panel shows: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
@@ -176,19 +181,26 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setTargeting(null)
   }
 
-  /** Reset, shuffle, draw 5. Only shuffles and draws so far: no question, so testing hands takes one click each. */
-  const newHand = () => {
+  /**
+   * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
+   * Nothing played after the start so far: no question, so testing hands takes one click each.
+   */
+  const deal = (actions: Action[]) => {
     const start = initial(session.deck)
-    const actions: Action[] = [shuffleAction(start), { t: 'draw', n: 5 }]
     if (!validRun(start, actions)) return
-    discard(
-      session.actions.some((a) => a.t !== 'shuffle' && a.t !== 'draw'),
-      () => {
-        dispatch({ type: 'reset' })
-        dispatch({ type: 'act', actions })
-        forget()
-      },
-    )
+    discard(end > session.start, () => {
+      dispatch({ type: 'reset' })
+      dispatch({ type: 'act', actions })
+      dispatch({ type: 'setStart', start: actions.length })
+      forget()
+    })
+  }
+  /** Shuffle, draw 5. */
+  const newHand = () => deal([shuffleAction(initial(session.deck)), { t: 'draw', n: 5 }])
+  /** Shuffle, then the picked cards into the hand in the order they were picked. */
+  const chooseHand = (ids: number[]) => {
+    setChoosing(false)
+    deal([shuffleAction(initial(session.deck)), ...ids.map((card): Action => ({ t: 'move', card, to: 'hand' }))])
   }
 
   const reset = () =>
@@ -206,6 +218,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setPlaying(true)
   }
 
+  /** An Xyz monster, by its looked-up card: summoned over cards, it comes in on top of them. */
+  const isXyz = (id: number) => !!cards.get(board.cards[id]?.code ?? -1)?.monsterTypes.includes('xyz')
   /** The card a drag just dropped: it is already where the pointer let go, so the board does not slide it there. */
   const droppedRef = useRef<number | null>(null)
   // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
@@ -214,7 +228,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const drag = useDrag({
     enabled: dragOn,
     onDrop: (card, zone, shift) => {
-      const action = dropAction(board, card, zone, shift)
+      const action = dropAction(board, card, zone, shift, isXyz(card))
       if (!action) return
       droppedRef.current = card
       perform([action])
@@ -340,6 +354,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         picking={targetMode}
         onDeck={() => setPicker(true)}
         onNewHand={newHand}
+        onChooseHand={() => setChoosing(true)}
         onAct={perform}
         onUndo={() => step(cursor - 1)}
         onRedo={() => step(cursor + 1)}
@@ -376,22 +391,37 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <BoardView
-          board={board}
-          cards={cards}
-          selected={selected}
-          activation={activation}
-          marked={marked}
-          step={{ cursor, actions: session.actions }}
-          droppedRef={droppedRef}
-          flipMs={FLIP_MS / Math.max(1, speed)}
-          onCard={onCard}
-          onMenu={onMenu}
-          onLongPress={(id, at) => !targeting && openMenu(id, at)}
-          onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
-          drag={drag}
-          onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
-        />
+        <div className="flex min-w-0 flex-col gap-3">
+          <BoardView
+            board={board}
+            cards={cards}
+            selected={selected}
+            activation={activation}
+            marked={marked}
+            step={{ cursor, actions: session.actions }}
+            droppedRef={droppedRef}
+            flipMs={FLIP_MS / Math.max(1, speed)}
+            onCard={onCard}
+            onMenu={onMenu}
+            onLongPress={(id, at) => !targeting && openMenu(id, at)}
+            onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
+            drag={drag}
+            onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
+          />
+          {/* The caption of the step on screen: a field to write it in by hand, its text alone while a replay plays. */}
+          {cursor === 0 ? null : playing ? (
+            shown?.note ? <p className="text-center text-ink body">{shown.note}</p> : null
+          ) : (
+            <TextInput
+              aria-label={t('caption.label')}
+              placeholder={t('caption.placeholder')}
+              maxLength={LIMITS.note}
+              value={shown?.note ?? ''}
+              onChange={(e) => dispatch({ type: 'note', index: cursor - 1, note: e.target.value })}
+              plateClassName={TOUCH}
+            />
+          )}
+        </div>
         <div className="flex flex-col gap-4">
           {pile ? (
             <PilePanel
@@ -449,8 +479,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onDetails={show}
           onPile={setPile}
           onClose={() => setMenu(null)}
+          xyz={isXyz(menu.card)}
         />
       ) : null}
+
+      {choosing ? <HandPicker board={initial(session.deck)} cards={cards} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
 
       <Dialog
         size="sm"
