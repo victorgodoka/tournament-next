@@ -1,7 +1,8 @@
 import { satisfies } from './atoms'
 import type { DeckCard } from './deck-cards'
-import type { Rng } from './rng'
-import { DRAW_EFFECTS, type Analysis, type Banish, type EffectKind, type Effects, type Hand, type Roles, type Subject } from './types'
+import { drawCount, type Evaluation } from './evaluate'
+import { rng, type Rng } from './rng'
+import { DRAW_EFFECTS, type Analysis, type Banish, type Draw, type EffectKind, type Effects, type Hand, type Roles, type Subject } from './types'
 
 /** The main deck as canonical ids: `ids[lo..]` is still in the deck, `ids[..lo)` has left it (hand, banished, bottom). */
 export type Pile = { ids: number[]; lo: number }
@@ -168,4 +169,73 @@ export const resolveEffects = (hand: number[], pile: Pile, ctx: Context, rng: Rn
     }
   }
   return logs
+}
+
+/** One opening hand: `drawCount` cards (fewer when the deck runs out), the toggled effects, then `extra` more cards. */
+const openHand = (ids: readonly number[], n: number, ctx: Context, r: Rng, extra: number): { hand: number[]; log: EffectLog[]; pile: Pile } => {
+  const pile = newPile(ids)
+  const take = (k: number): number[] => {
+    const out: number[] = []
+    for (let i = 0; i < k; i++) {
+      const card = drawOne(pile, r)
+      if (card === undefined) break
+      out.push(card)
+    }
+    return out
+  }
+  const hand = take(n)
+  const log = resolveEffects(hand, pile, ctx, r)
+  hand.push(...take(extra))
+  return { hand, log, pile }
+}
+
+/** `left`: cards still in the deck, what "Draw next" has to take from. */
+export type Deal = { hand: number[]; passes: boolean[]; any: boolean; log: EffectLog[]; left: number }
+
+/** Pure: the same seed deals the same hand, and `extra + 1` is that hand plus one card. */
+export const dealHand = (cards: readonly DeckCard[], roles: Roles, analysis: Analysis, draw: Draw, effects: Effects, extraSize: number, seed: number, extra = 0): Deal => {
+  const { hand, log, pile } = openHand(expandIds(cards), drawCount(draw), { roles, analysis, effects, extraSize }, rng(seed), extra)
+  const passes = analysis.hands.map((h) => handPasses(hand, roles, h))
+  return { hand, passes, any: passes.some(Boolean), log, left: poolSize(pile) }
+}
+
+/** Raw tallies, so the page can sum chunks run between frames. */
+export type Counts = { runs: number; hits: number[]; any: number }
+
+/** `runs` opening hands on one generator; the deck is re-expanded once and copied per run. */
+export const monteCarlo = (cards: readonly DeckCard[], roles: Roles, analysis: Analysis, draw: Draw, effects: Effects, extraSize: number, runs: number, r: Rng): Counts => {
+  const ids = expandIds(cards)
+  const n = drawCount(draw)
+  const ctx: Context = { roles, analysis, effects, extraSize }
+  const hits = analysis.hands.map(() => 0)
+  let any = 0
+  for (let i = 0; i < runs; i++) {
+    const { hand } = openHand(ids, n, ctx, r, 0)
+    let hit = false
+    analysis.hands.forEach((h, j) => {
+      if (!handPasses(hand, roles, h)) return
+      hits[j]!++
+      hit = true
+    })
+    if (hit) any++
+  }
+  return { runs, hits, any }
+}
+
+export const addCounts = (a: Counts, b: Counts): Counts => ({ runs: a.runs + b.runs, hits: a.hits.map((h, i) => h + (b.hits[i] ?? 0)), any: a.any + b.any })
+
+export const standardError = (p: number, n: number): number => (n > 0 ? Math.sqrt((p * (1 - p)) / n) : 0)
+
+/** `diff` is in percentage points; `exact` and `diff` are null when there is no exact figure to compare with. */
+export type Estimate = { rate: number; exact: number | null; diff: number | null; halfWidth: number }
+export type Estimates = { runs: number; hands: Estimate[]; any: Estimate }
+
+/** The 95 % half-width is `1.96 · √(p̂(1−p̂)/runs)`: the normal approximation, fine at a thousand runs and up. */
+export const estimate = (counts: Counts, exact: Evaluation | null): Estimates => {
+  const one = (hits: number, p: number | undefined): Estimate => {
+    const rate = counts.runs > 0 ? hits / counts.runs : 0
+    const ex = p ?? null
+    return { rate, exact: ex, diff: ex === null ? null : (rate - ex) * 100, halfWidth: 1.96 * standardError(rate, counts.runs) }
+  }
+  return { runs: counts.runs, hands: counts.hits.map((h, i) => one(h, exact?.hands[i]?.odds.p)), any: one(counts.any, exact?.any.p) }
 }

@@ -1,10 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import type { DeckCard } from './deck-cards'
-import { rng } from './rng'
-import { banishable, drawOne, expandIds, handPasses, newPile, pickExcavated, poolSize, putBack, resolveEffects, type Context } from './simulate'
-import { DRAW_EFFECTS, type Analysis, type Roles, type Rule, type Subject } from './types'
+import { evaluate, type Evaluation } from './evaluate'
+import { nextSeed, rng } from './rng'
+import {
+  addCounts,
+  banishable,
+  dealHand,
+  drawOne,
+  estimate,
+  expandIds,
+  handPasses,
+  monteCarlo,
+  newPile,
+  pickExcavated,
+  poolSize,
+  putBack,
+  resolveEffects,
+  standardError,
+  type Context,
+  type Estimate,
+} from './simulate'
+import { DEFAULT_DRAW, DEFAULT_EFFECTS, DRAW_EFFECTS, type Analysis, type Roles, type Rule, type Subject } from './types'
 
 const card = (id: number, copies: number): DeckCard => ({ id, copies, card: null, passcode: id })
+/** `count` distinct one-copy cards, ids `from..from + count - 1`. */
+const fill = (from: number, count: number): DeckCard[] => Array.from({ length: count }, (_, i) => card(from + i, 1))
 const rule = (subject: Subject, min: number, max: number | null = null): Rule => ({ subject, min, max })
 const STARTER = { kind: 'role', role: 'Starter' } as const
 const TRAP = { kind: 'role', role: 'Hand Trap' } as const
@@ -107,5 +127,72 @@ describe('draw effects', () => {
     expect(handPasses(hand, brick, noBrick.hands[0]!)).toBe(false)
     resolveEffects(hand, newPile(rest(30)), ctx([D.desires], { roles: brick, analysis: noBrick }), rng(1))
     expect(handPasses(hand, brick, noBrick.hands[0]!)).toBe(true)
+  })
+})
+
+describe('deal and Monte Carlo', () => {
+  // 40 cards: 3 Starters, 3 Traps, 34 filler
+  const deck = [card(1, 3), card(2, 3), ...fill(200, 34)]
+
+  it('deals the same hand for a seed, another for the next seed, and Draw next keeps the first cards', () => {
+    const a = dealHand(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 42)
+    expect(a.hand).toHaveLength(5)
+    expect(a.left).toBe(35)
+    expect(dealHand(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 42).hand).toEqual(a.hand)
+    expect(dealHand(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, nextSeed(42)).hand).not.toEqual(a.hand)
+    const more = dealHand(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 42, 2)
+    expect(more.hand.slice(0, 5)).toEqual(a.hand)
+    expect(more.hand).toHaveLength(7)
+    expect(more.left).toBe(33)
+    expect(more.hand.filter((id) => id === 1).length).toBeLessThanOrEqual(3)
+    expect(a.passes).toEqual(analysis.hands.map((h) => handPasses(a.hand, roles, h)))
+    expect(a.any).toBe(a.passes.some(Boolean))
+    expect(a.log).toEqual([])
+  })
+  it('deals what the deck has when it is shorter than the draw, and logs a toggled effect', () => {
+    const short = dealHand([card(1, 3)], roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 0, 1)
+    expect(short.hand).toEqual([1, 1, 1])
+    expect(short.left).toBe(0)
+    const pots = dealHand([card(D.desires, 40)], roles, analysis, DEFAULT_DRAW, { ...DEFAULT_EFFECTS, resolve: [D.desires] }, 15, 1)
+    expect(pots.log[0]).toMatchObject({ effect: 'desires', skipped: null })
+    expect(pots.hand).toHaveLength(6)
+    expect(pots.left).toBe(23)
+  })
+  it('monteCarlo lands within 3 standard errors of evaluate at 50k runs', () => {
+    const exact = evaluate(deck, roles, analysis, DEFAULT_DRAW) as Evaluation
+    const counts = monteCarlo(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 50_000, rng(1))
+    expect(counts.runs).toBe(50_000)
+    const est = estimate(counts, exact)
+    expect(est.runs).toBe(50_000)
+    const pairs: [Estimate, number][] = [
+      [est.hands[0]!, exact.hands[0]!.odds.p],
+      [est.hands[1]!, exact.hands[1]!.odds.p],
+      [est.any, exact.any.p],
+    ]
+    for (const [e, p] of pairs) {
+      expect(Math.abs(e.rate - p)).toBeLessThanOrEqual(3 * standardError(p, 50_000))
+      expect(e.exact).toBe(p)
+      expect(e.diff).toBeCloseTo((e.rate - p) * 100, 10)
+      expect(e.halfWidth).toBeCloseTo(1.96 * standardError(e.rate, 50_000), 12)
+    }
+  })
+  it('counts add across chunks; without an exact result the estimate leaves exact and diff null', () => {
+    const r = rng(5)
+    const a = monteCarlo(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 5_000, r)
+    const b = monteCarlo(deck, roles, analysis, DEFAULT_DRAW, DEFAULT_EFFECTS, 15, 5_000, r)
+    const sum = addCounts(a, b)
+    expect(sum.runs).toBe(10_000)
+    expect(sum.hits).toEqual([a.hits[0]! + b.hits[0]!, a.hits[1]! + b.hits[1]!])
+    expect(sum.any).toBe(a.any + b.any)
+    expect(estimate(sum, null).any).toEqual({ rate: sum.any / 10_000, exact: null, diff: null, halfWidth: 1.96 * standardError(sum.any / 10_000, 10_000) })
+    expect(estimate({ runs: 0, hits: [0, 0], any: 0 }, null).any.rate).toBe(0)
+    expect(standardError(0.5, 10_000)).toBeCloseTo(0.005, 12)
+    expect(standardError(0.5, 0)).toBe(0)
+  })
+  it('three Upstarts raise the Starter odds well past the exact figure without them', () => {
+    const upstarts = [card(1, 3), card(D.upstart, 3), ...fill(200, 34)]
+    const exact = evaluate(upstarts, roles, analysis, DEFAULT_DRAW) as Evaluation
+    const est = estimate(monteCarlo(upstarts, roles, analysis, DEFAULT_DRAW, { ...DEFAULT_EFFECTS, resolve: [D.upstart] }, 15, 50_000, rng(2)), exact)
+    expect(est.hands[0]!.rate).toBeGreaterThan(exact.hands[0]!.odds.p + 3 * standardError(exact.hands[0]!.odds.p, 50_000))
   })
 })
