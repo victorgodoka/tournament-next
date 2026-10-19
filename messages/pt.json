@@ -1126,6 +1126,11 @@
       "empty": "Sem cartas aqui.",
       "materials": "Matérias ×{count}"
     },
+    "targets": {
+      "prompt": "Escolha os alvos no tabuleiro e confirme. Escolhidos: {count}",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar"
+    },
     "cardPanel": {
       "title": "Carta",
       "empty": "Selecione uma carta para lê-la."

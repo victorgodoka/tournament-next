@@ -57,10 +57,25 @@ const play = async (to: string) => {
   await choose(to)
 }
 
+/** The callbacks of every ResizeObserver the board made, so a test can fire the one that is watching. */
+let resized: (() => void)[] = []
+
 beforeEach(() => {
   // Node's own (flagged) localStorage shadows happy-dom's: each test gets a fresh one in memory.
   const store = new Map<string, string>()
   vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) })
+  // The board redraws its arrows when it is resized.
+  resized = []
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: () => void) {
+        resized.push(callback)
+      }
+      observe() {}
+      disconnect() {}
+    },
+  )
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
 })
 afterEach(() => {
@@ -368,6 +383,170 @@ describe('Simulator pile panel', () => {
   })
 })
 
+/** New hand, the first card to m0, then the next card of the hand in target mode: the activating card and the one on the field. */
+const targetMode = async () => {
+  await click('toolbar.newHand')
+  await play('zones.m0')
+  const source = hand()[0]!
+  await rightClick(source)
+  await choose('menu.activateTargets')
+  return { source, field: cardsIn('m0')[0]! }
+}
+const marked = (attr: 'data-active' | 'data-targeted') => Array.from(document.querySelectorAll(`[${attr}]`))
+
+describe('Simulator targets', () => {
+  it('activate with targets marks the source and the target, and Undo removes both', async () => {
+    await open(DECK)
+    const { source, field } = await targetMode()
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(button('targets.confirm').disabled).toBe(true) // nothing picked yet
+    await mouseClick(field)
+    expect(button('targets.confirm').disabled).toBe(false)
+    await click('targets.confirm')
+    expect(screen.queryByRole('button', { name: 'targets.confirm' })).toBeNull()
+    expect(marked('data-active')).toEqual([source])
+    expect(marked('data-targeted')).toEqual([field])
+    await click('toolbar.undo')
+    expect(marked('data-active')).toEqual([])
+    expect(marked('data-targeted')).toEqual([])
+    expect(cardsIn('m0')).toHaveLength(1) // the step undone was the activation, not the move
+  })
+
+  it('a click on a target again drops it, and the source cannot be its own target', async () => {
+    await open(DECK)
+    const { source, field } = await targetMode()
+    await mouseClick(field)
+    expect(marked('data-targeted')).toEqual([field]) // shown while picking
+    await mouseClick(source)
+    expect(marked('data-targeted')).toEqual([field])
+    await mouseClick(field)
+    expect(marked('data-targeted')).toEqual([])
+    expect(button('targets.confirm').disabled).toBe(true)
+  })
+
+  it('a keyboard click on a card picks it instead of opening the menu', async () => {
+    await open(DECK)
+    const { field } = await targetMode()
+    await act(async () => void fireEvent.click(field)) // detail 0: Enter on a focused button
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(marked('data-targeted')).toEqual([field])
+  })
+
+  it('a touch tap on a card in the pile panel picks it instead of opening the menu', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.gy')
+    await rightClick(hand()[0]!)
+    await choose('menu.activateTargets')
+    const card = within(await openPile('gy')).getAllByRole('button')[0]!
+    await act(async () => void fireEvent.pointerDown(card, { pointerType: 'touch' }))
+    await mouseClick(card)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(button('targets.confirm').disabled).toBe(false)
+  })
+
+  it('Escape leaves target mode without a step', async () => {
+    await open(DECK)
+    const { field } = await targetMode()
+    await mouseClick(field)
+    expect(button('targets.confirm')).toBeTruthy() // in target mode, with a pick
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape' }))
+    expect(screen.queryByRole('button', { name: 'targets.confirm' })).toBeNull()
+    expect(marked('data-active')).toEqual([])
+    expect(marked('data-targeted')).toEqual([])
+    await click('toolbar.undo') // the step undone is still the move, so no activation was logged
+    expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('Cancel leaves target mode too', async () => {
+    await open(DECK)
+    await targetMode()
+    await click('targets.cancel')
+    expect(screen.queryByRole('button', { name: 'targets.confirm' })).toBeNull()
+  })
+
+  it('no menu while picking', async () => {
+    await open(DECK)
+    await targetMode()
+    let proceeded = true
+    await act(async () => {
+      proceeded = fireEvent.contextMenu(hand()[0]!)
+    })
+    expect(proceeded).toBe(false) // still not the browser's menu
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('a double-click activates a card with no targets: it glows, nothing is targeted', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    await act(async () => void fireEvent.dblClick(card))
+    expect(marked('data-active')).toEqual([card])
+    expect(marked('data-targeted')).toEqual([])
+  })
+
+  describe('arrows', () => {
+    const arrows = () => Array.from(document.querySelectorAll('[data-arrows] path'))
+    /** The line of an arrow (the first four numbers of its path): where it leaves and where its head lands. */
+    const line = (el: Element) => el.getAttribute('d')!.match(/-?\d+(\.\d+)?/g)!.slice(0, 4).map(Number)
+    const expectLine = (el: Element | undefined, to: number[]) => line(el!).forEach((n, i) => expect(n).toBeCloseTo(to[i]!))
+    /** Where the stubbed layout puts each card: the activating one at x 0, the target at x 100, each 10 × 10; zones sit further right. */
+    let at: Record<string, number> = {}
+    const left = (el: Element) => (el.hasAttribute('data-card') ? at[el.getAttribute('data-card')!] : el.hasAttribute('data-zone') ? at[el.getAttribute('data-zone')!] : undefined)
+
+    beforeEach(() => {
+      at = {}
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+        const x = left(this)
+        return x === undefined ? new DOMRect(0, 0, 0, 0) : new DOMRect(x, 0, 10, 10)
+      })
+    })
+    afterEach(() => void vi.restoreAllMocks())
+
+    it('one arrow per target, from the edge of the source to the edge of the target', async () => {
+      await open(DECK)
+      const { source, field } = await targetMode()
+      at[source.getAttribute('data-card')!] = 0
+      at[field.getAttribute('data-card')!] = 100
+      await mouseClick(field)
+      await click('targets.confirm')
+      expect(arrows()).toHaveLength(1)
+      // The line leaves the source on its right edge and ends on the left edge of the target.
+      expectLine(arrows()[0], [10, 5, 100, 5])
+      expect(document.querySelector('[data-arrows]')!.getAttribute('aria-hidden')).toBe('true')
+      await click('toolbar.undo')
+      expect(arrows()).toHaveLength(0)
+    })
+
+    it('a ResizeObserver redraws the arrows where the cards are now', async () => {
+      await open(DECK)
+      const { source, field } = await targetMode()
+      at[source.getAttribute('data-card')!] = 0
+      at[field.getAttribute('data-card')!] = 100
+      await mouseClick(field)
+      await click('targets.confirm')
+      at[field.getAttribute('data-card')!] = 200
+      await act(async () => resized.at(-1)!())
+      expectLine(arrows()[0], [10, 5, 200, 5])
+    })
+
+    it('a target in a pile gets its arrow from the pile’s zone', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.gy') // the first card of the hand goes to the graveyard
+      const source = hand()[0]!
+      await rightClick(source)
+      await choose('menu.activateTargets')
+      at[source.getAttribute('data-card')!] = 0
+      at.gy = 300
+      await mouseClick(within(await openPile('gy')).getAllByRole('button')[0]!)
+      await click('targets.confirm')
+      expect(arrows()).toHaveLength(1)
+      expectLine(arrows()[0], [10, 5, 300, 5])
+    })
+  })
+})
+
 describe('Simulator gestures', () => {
   type Pointer = 'pointerDown' | 'pointerMove' | 'pointerUp' | 'pointerCancel'
   const ptr = (el: HTMLElement, type: Pointer, x: number, y: number, init: PointerEventInit = {}) =>
@@ -482,6 +661,16 @@ describe('Simulator gestures', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
+    await drag(hand()[1]!, zone('m0'))
+    expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('no drag while picking targets', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.activateTargets')
     await drag(hand()[1]!, zone('m0'))
     expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
     expect(hand()).toHaveLength(5)

@@ -47,6 +47,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** The card the card panel shows: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
+  /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
+  const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
   const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
   const [lookupAttempt, setLookupAttempt] = useState(0)
@@ -55,9 +57,24 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const boards = useMemo(() => timeline(session.deck, session.actions), [session.deck, session.actions])
   const board = boards[session.cursor]!
 
+  // What the board shows of an activation: the pick in progress, else the step on screen when that is an activation.
+  const shown = session.actions[session.cursor - 1]
+  const activation = useMemo(
+    () => (targeting ? { card: targeting.source, targets: targeting.targets } : shown?.t === 'activate' ? shown : null),
+    [targeting, shown],
+  )
+
   useEffect(() => {
     ensure([...session.deck.main, ...session.deck.extra]).catch(() => {})
   }, [session.deck, ensure, lookupAttempt])
+
+  const targetMode = targeting !== null
+  useEffect(() => {
+    if (!targetMode) return
+    const escape = (e: KeyboardEvent) => e.key === 'Escape' && setTargeting(null)
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [targetMode])
 
   // The booted session is never written back, so a damaged link leaves the draft alone.
   useEffect(() => {
@@ -73,6 +90,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
   const discard = (ask: boolean, run: () => void) => (ask ? setPending(() => run) : run())
   const hasActions = session.actions.length > 0
+  /** A new board: the card the panel shows and a pick in progress mean nothing on it. */
+  const forget = () => {
+    setSelected(null)
+    setTargeting(null)
+  }
 
   /** Reset, shuffle, draw 5. Only shuffles and draws so far: no question, so testing hands takes one click each. */
   const newHand = () => {
@@ -84,7 +106,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       () => {
         dispatch({ type: 'reset' })
         dispatch({ type: 'act', actions })
-        setSelected(null)
+        forget()
       },
     )
   }
@@ -92,23 +114,33 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const reset = () =>
     discard(hasActions, () => {
       dispatch({ type: 'reset' })
-      setSelected(null)
+      forget()
     })
 
   const openMenu = (id: number, at: { x: number; y: number }) => {
     setSelected(id)
     setMenu({ card: id, at })
   }
-  /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. */
-  const onCard = (id: number, e: React.MouseEvent) => (e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
+  /** Picks a card as a target, or drops it when it already is one. The activating card cannot target itself. */
+  const pick = (id: number) =>
+    setTargeting((now) => {
+      if (!now || id === now.source) return now
+      return { ...now, targets: now.targets.includes(id) ? now.targets.filter((other) => other !== id) : [...now.targets, id] }
+    })
+  const confirmTargets = () => {
+    if (targeting) perform([{ t: 'activate', card: targeting.source, targets: targeting.targets }])
+    setTargeting(null)
+  }
+  /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. While picking targets, any click picks. */
+  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
-    openMenu(id, anchor(e))
+    if (!targeting) openMenu(id, anchor(e))
   }
 
-  // Off while the menu is open: a drag would move a card the menu is about to act on.
+  // Off while the menu is open (a drag would move a card the menu is about to act on) and while picking targets.
   const drag = useDrag({
-    enabled: menu === null,
+    enabled: menu === null && !targeting,
     onDrop: (card, zone, shift) => {
       const action = dropAction(board, card, zone, shift)
       if (action) perform([action])
@@ -133,7 +165,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onPick={(build) =>
           discard(hasActions, () => {
             dispatch({ type: 'load', deck: build.deck, name: build.name })
-            setSelected(null)
+            forget()
           })
         }
       />
@@ -174,21 +206,50 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onReset={reset}
       />
 
+      {targeting ? (
+        <Alert
+          tone="info"
+          edged
+          title={t('targets.prompt', { count: targeting.targets.length })}
+          action={
+            <div className="flex gap-2">
+              <Button size="sm" disabled={targeting.targets.length === 0} onClick={confirmTargets} className={TOUCH}>
+                {t('targets.confirm')}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setTargeting(null)} className={TOUCH}>
+                {t('targets.cancel')}
+              </Button>
+            </div>
+          }
+        />
+      ) : null}
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <BoardView
           board={board}
           cards={cards}
           selected={selected}
+          activation={activation}
           onCard={onCard}
           onMenu={onMenu}
-          onLongPress={openMenu}
-          onActivate={(id) => perform([{ t: 'activate', card: id, targets: [] }])}
+          onLongPress={(id, at) => !targeting && openMenu(id, at)}
+          onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
           drag={drag}
           onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
         />
         <div className="flex flex-col gap-4">
           {pile ? (
-            <PilePanel board={board} zone={pile} cards={cards} onCard={onCard} onMenu={onMenu} drag={drag} onClose={() => setPile(null)} />
+            <PilePanel
+              board={board}
+              zone={pile}
+              cards={cards}
+              activation={activation}
+              picking={targeting !== null}
+              onCard={onCard}
+              onMenu={onMenu}
+              drag={drag}
+              onClose={() => setPile(null)}
+            />
           ) : null}
           <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
         </div>
@@ -204,7 +265,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           card={menu.card}
           at={menu.at}
           onAct={perform}
-          onTargets={() => {}} // target mode comes with task 7
+          onTargets={(source) => setTargeting({ source, targets: [] })}
           onDetails={setSelected}
           onClose={() => setMenu(null)}
         />

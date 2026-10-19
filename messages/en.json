@@ -1126,6 +1126,11 @@
       "empty": "No cards here.",
       "materials": "Materials ×{count}"
     },
+    "targets": {
+      "prompt": "Pick the targets on the board, then confirm. Picked: {count}",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
     "cardPanel": {
       "title": "Card",
       "empty": "Select a card to read it."

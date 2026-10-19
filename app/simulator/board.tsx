@@ -2,19 +2,25 @@
 
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
+import { useLayoutEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
 import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
-import { isMonsterSlot, isSlot } from '@utils/simulator/board'
+import { isMonsterSlot, isSlot, locate } from '@utils/simulator/board'
 import type { Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
 import type { Drag } from './use-drag'
+
+/** The card that was activated and the cards it targets. */
+export type Activation = { card: number; targets: number[] }
 
 export type BoardViewProps = {
   board: Board
   cards: CardMap
   selected: number | null
+  /** What to show of an activation: the glow on its card, a mark and an arrow for each target. */
+  activation: Activation | null
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
   /** A long press: the menu opens at the finger, which no click event carries. */
@@ -41,13 +47,91 @@ export const MARK = 'pointer-events-none absolute grid size-4 place-items-center
 const Back = () => <Image src="/back.webp" alt="" fill sizes={SIZES} draggable={false} className="pointer-events-none object-cover" />
 
 /**
+ * Over a card, never in the way of a click: the glow of the card that was activated (an outline that pulses when
+ * motion is welcome, a still one when it is not) and a dashed ring on each of its targets.
+ */
+export const ActivationMarks = ({ active, targeted }: { active: boolean; targeted: boolean }) => (
+  <>
+    {active ? <span aria-hidden className="pointer-events-none absolute inset-0 bg-ground-gold outline outline-2 outline-gold motion-safe:animate-pulse" /> : null}
+    {targeted ? <span aria-hidden className="pointer-events-none absolute inset-0 outline outline-2 -outline-offset-2 outline-dashed outline-crimson-lift" /> : null}
+  </>
+)
+
+/** An arrowhead's barbs, in px, and how far they spread from the line. */
+const HEAD = 10
+const SPREAD = 0.5
+
+type Point = { x: number; y: number }
+const centre = (r: DOMRect): Point => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+
+/** Where the line from the centre of `r` towards `to` leaves `r`; `to` itself when it lies inside. */
+const leave = (r: DOMRect, to: Point): Point => {
+  const c = centre(r)
+  const dx = to.x - c.x
+  const dy = to.y - c.y
+  const k = Math.min(1, r.width / 2 / Math.abs(dx), r.height / 2 / Math.abs(dy))
+  return { x: c.x + dx * k, y: c.y + dy * k }
+}
+
+/**
+ * Where a card is on the board: its button, or the cell of its pile when it sits in one (a pile shows only its top
+ * card, with no `[data-card]`). Looked up inside the board, because the pile panel lists the same ids.
+ */
+const boxOf = (root: HTMLElement, board: Board, id: number) => {
+  const at = locate(board, id)
+  return (root.querySelector(`[data-card="${id}"]`) ?? (at && root.querySelector(`[data-zone="${at.zone}"]`)))?.getBoundingClientRect()
+}
+
+/** One path per target: a line from the edge of the activated card to the edge of the target, and a head at the target. */
+const arrowsFor = (root: HTMLElement, board: Board, activation: Activation | null): SVGPathElement[] => {
+  if (!activation) return []
+  const from = boxOf(root, board, activation.card)
+  if (!from) return []
+  const origin = root.getBoundingClientRect()
+  const pt = (p: Point) => `${+(p.x - origin.left).toFixed(1)} ${+(p.y - origin.top).toFixed(1)}`
+  const paths: SVGPathElement[] = []
+  for (const id of activation.targets) {
+    const box = boxOf(root, board, id)
+    if (!box) continue
+    const start = leave(from, centre(box))
+    const end = leave(box, centre(from))
+    // Cards that overlap, or sit unmeasured (no layout), leave nothing to draw; NaN fails the comparison too.
+    if (!(Math.hypot(end.x - start.x, end.y - start.y) > 1)) continue
+    const angle = Math.atan2(end.y - start.y, end.x - start.x)
+    const barb = (side: number) => pt({ x: end.x - HEAD * Math.cos(angle + side), y: end.y - HEAD * Math.sin(angle + side) })
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('d', `M${pt(start)}L${pt(end)}M${barb(SPREAD)}L${pt(end)}L${barb(-SPREAD)}`)
+    paths.push(path)
+  }
+  return paths
+}
+
+/**
  * The player's side: seven columns that fit the width (at most 84px a card, 46px at 375px), the hand
  * under them. Every zone is a `[data-zone]` group, every card on the field or in the hand a `[data-card]` button.
  */
 export const BoardView = (p: BoardViewProps) => {
   const t = useTranslations('Simulator')
+  const { board, activation } = p
+  const root = useRef<HTMLDivElement>(null)
+  const arrows = useRef<SVGSVGElement>(null)
+
+  // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
+  // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
+  useLayoutEffect(() => {
+    const el = root.current
+    const svg = arrows.current
+    if (!el || !svg) return
+    const draw = () => svg.replaceChildren(...arrowsFor(el, board, activation))
+    draw()
+    if (!activation?.targets.length) return
+    const observer = new ResizeObserver(draw)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [board, activation])
+
   return (
-    <div className="@container [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
+    <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
       <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
         {LAYOUT.map(([zone, column, row]) => (
           <div
@@ -75,6 +159,12 @@ export const BoardView = (p: BoardViewProps) => {
           </div>
         ))}
       </div>
+      <svg
+        ref={arrows}
+        aria-hidden
+        data-arrows
+        className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible fill-none stroke-gold stroke-3 [stroke-linecap:round] [stroke-linejoin:round]"
+      />
     </div>
   )
 }
@@ -119,6 +209,8 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   const hold = press.bind(() => {})
   const drag = p.drag.bind(id, true)
   const card = p.board.cards[id]!
+  const active = p.activation?.card === id
+  const targeted = !!p.activation?.targets.includes(id)
   return (
     <div className={twMerge('relative', className)}>
       {/* DEF: turned and scaled by 59/86 so the sideways card fits its cell. */}
@@ -128,6 +220,8 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           card={p.cards.get(card.code)}
           sizes={SIZES}
           data-card={id}
+          data-active={active || undefined}
+          data-targeted={targeted || undefined}
           onPointerDown={(e) => {
             const at = { x: e.clientX, y: e.clientY }
             press.bind(() => p.onLongPress(id, at)).onPointerDown(e)
@@ -153,6 +247,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           className={twMerge('touch-none', card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
         />
         {card.face === 'down' ? <Back /> : null}
+        <ActivationMarks active={active} targeted={targeted} />
       </div>
       {card.negated ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-crimson-lift')}>

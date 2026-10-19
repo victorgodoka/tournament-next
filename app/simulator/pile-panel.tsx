@@ -10,7 +10,8 @@ import { CardTile } from '@app/deck-builder/card-tile'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot } from '@utils/simulator/board'
 import type { Board, MonsterSlot, Pile } from '@utils/simulator/types'
-import { MARK } from './board'
+import { ActivationMarks, MARK } from './board'
+import type { Activation } from './board'
 import type { Drag } from './use-drag'
 
 export type PilePanelProps = {
@@ -18,6 +19,10 @@ export type PilePanelProps = {
   /** A pile lists all its cards, top first; a monster slot lists the stack under its monster. */
   zone: Pile | MonsterSlot
   cards: CardMap
+  /** The same glow and rings as on the board, so a card picked here shows it. */
+  activation: Activation | null
+  /** Target mode: a tap picks the card, as a click does, instead of opening its menu. */
+  picking: boolean
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
   drag: Drag
@@ -27,9 +32,10 @@ export type PilePanelProps = {
 /**
  * A non-modal list of one pile (or of a monster's Xyz materials), the board still in view. On desktop it sits
  * at the top of the side column; below `lg` it is fixed to the bottom and scrolls. A touch tap opens the menu
- * instead of dragging, which would fight the list's scroll; a mouse or pen drags a card out onto the board.
+ * instead of dragging, which would fight the list's scroll (in target mode it picks the card); a mouse or pen drags
+ * a card out onto the board.
  */
-export const PilePanel = ({ board, zone, cards, onCard, onMenu, drag, onClose }: PilePanelProps) => {
+export const PilePanel = ({ board, zone, cards, activation, picking, onCard, onMenu, drag, onClose }: PilePanelProps) => {
   const t = useTranslations('Simulator')
   const touch = useRef(false)
   const stack = isMonsterSlot(zone)
@@ -67,7 +73,7 @@ export const PilePanel = ({ board, zone, cards, onCard, onMenu, drag, onClose }:
                       touch.current = e.pointerType !== 'mouse'
                       move.onPointerDown(e)
                     }}
-                    onClick={(e) => (touch.current && e.detail > 0 ? onMenu(id, e) : onCard(id, e))}
+                    onClick={(e) => (touch.current && e.detail > 0 && !picking ? onMenu(id, e) : onCard(id, e))}
                     onContextMenu={(e) => onMenu(id, e)}
                   />
                   {card.face === 'down' ? (
@@ -75,6 +81,7 @@ export const PilePanel = ({ board, zone, cards, onCard, onMenu, drag, onClose }:
                       <Icon name="down" size={14} label={t('faceDown')} />
                     </span>
                   ) : null}
+                  <ActivationMarks active={activation?.card === id} targeted={!!activation?.targets.includes(id)} />
                 </li>
               )
             })}
