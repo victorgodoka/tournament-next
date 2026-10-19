@@ -32,6 +32,13 @@ export const withCopies = (main: readonly number[], canonical: number, copies: n
   return out
 }
 
+/**
+ * From the card text: `HOPT` for a hard once-per-turn clause ("You can only use this effect of … once per turn",
+ * "You can only activate 1 … per turn"), `OPT` for a plain "once per turn", else `null`. Informational only.
+ */
+export const oncePerTurn = (description: string): 'OPT' | 'HOPT' | null =>
+  /you can only (use|activate) (this|1) .* (once|per turn)/i.test(description) ? 'HOPT' : /once per turn/i.test(description) ? 'OPT' : null
+
 /** Copies the format allows: the list's limit when it gives copies, else 3 (no list, Genesys points, unknown card). */
 export const copyLimit = (card: CardData | null, banlist: Banlist | null): number => {
   if (!card || !banlist) return MAX_COPIES

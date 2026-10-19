@@ -10,7 +10,7 @@ export const referencedSubjects = (analysis: Analysis, focus: Subject | null): S
 }
 
 /** Roles compare case-insensitively (they are whitespace-normalized on write), so `engine` on one card and `Engine` on another are one role. */
-const satisfies = (card: DeckCard, roles: Roles, s: Subject): boolean =>
+export const satisfies = (card: DeckCard, roles: Roles, s: Subject): boolean =>
   s.kind === 'card' ? s.id === card.id : (roles.get(card.id) ?? []).some((r) => r.toLowerCase() === s.role.toLowerCase())
 
 /** Copies of the cards that satisfy `subject`. */

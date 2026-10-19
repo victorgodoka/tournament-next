@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CardData } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
-import { canonicalOf, copyLimit, distinctCards, withCopies } from './deck-cards'
+import { canonicalOf, copyLimit, distinctCards, oncePerTurn, withCopies } from './deck-cards'
 
 const magician = { id: 46986414, idOriginal: 46986414, idTcg: null, alias: null, ruleId: null, alternateArts: [46986431], name: 'Dark Magician' } as unknown as CardData
 const cards = new Map<number, CardData>([
@@ -32,5 +32,11 @@ describe('deck cards', () => {
     expect(copyLimit(null, tcgList)).toBe(3)
     expect(copyLimit(magician, tcgList)).toBe(3)
     expect(copyLimit(limitedCard, { ...tcgList, name: 'Genesys', format: 'genesys', pointCap: 100 })).toBe(3)
+  })
+  it('reads once-per-turn clauses from the card text', () => {
+    expect(oncePerTurn('You can only use this effect of "Ash Blossom & Joyous Spring" once per turn.')).toBe('HOPT')
+    expect(oncePerTurn('You can only activate 1 "Called by the Grave" per turn.')).toBe('HOPT')
+    expect(oncePerTurn('Once per turn: You can target 1 monster; destroy it.')).toBe('OPT')
+    expect(oncePerTurn('A dragon with ferocious power.')).toBeNull()
   })
 })

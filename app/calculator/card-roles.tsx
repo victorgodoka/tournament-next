@@ -7,7 +7,7 @@ import { Button } from '@ui/button'
 import { Chip, FilterChip } from '@ui/chip'
 import { TextInput } from '@ui/field'
 import { Panel } from '@ui/panel'
-import { copyLimit, type DeckCard } from '@utils/combo/deck-cards'
+import { copyLimit, oncePerTurn, type DeckCard } from '@utils/combo/deck-cards'
 import type { Roles } from '@utils/combo/types'
 import { CARD_ART_URL } from '@utils/const'
 import type { Banlist } from '@utils/wiki'
@@ -56,6 +56,7 @@ export const CardRoles = (p: CardRolesProps) => {
           const canAdd = row.copies < limit
           const canRemove = row.copies > 0
           const mine = p.roles.get(row.id) ?? []
+          const opt = row.card ? oncePerTurn(row.card.description) : null
           return (
             <li key={row.id} className={twMerge('flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line py-2.5 last:border-b-0', row.copies === 0 && 'opacity-(--opacity-dim)')}>
               <span className="relative aspect-[4/3] w-12 shrink-0 bg-surface-300">
@@ -65,6 +66,7 @@ export const CardRoles = (p: CardRolesProps) => {
                 <span className="truncate text-ink body-strong">{name}</span>
                 <span className="flex flex-wrap items-center gap-2 text-ink-muted signal-sm">
                   {row.card ? null : <span>{t('deck.unknown')}</span>}
+                  {opt ? <Chip title={t('deck.optHint')}>{t(opt === 'HOPT' ? 'deck.hopt' : 'deck.opt')}</Chip> : null}
                   {changed(row) ? <Chip tone="cyan">{t('deck.changed')}</Chip> : null}
                 </span>
               </span>

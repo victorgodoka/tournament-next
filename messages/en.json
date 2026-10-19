@@ -941,7 +941,42 @@
       "unknown": "Unknown card",
       "addRole": "New role",
       "addRolePlaceholder": "Role name",
-      "roleOf": "Toggle {role} on {name}"
+      "roleOf": "Toggle {role} on {name}",
+      "opt": "OPT",
+      "hopt": "HOPT",
+      "optHint": "Once per turn: extra copies in hand are dead. Consider max 1 in the hand's rule."
+    },
+    "builds": {
+      "title": "Builds",
+      "untitled": "Deck {n}",
+      "add": "Add build",
+      "duplicate": "Duplicate",
+      "remove": "Remove build",
+      "copyOf": "{name} copy",
+      "full": "Up to 6 builds"
+    },
+    "compare": {
+      "title": "Compare",
+      "caption": "Change in percentage points against {name}",
+      "deckSize": "Deck size",
+      "delta": "{pp} pp"
+    },
+    "sweeps": {
+      "title": "Sweeps",
+      "copies": "Copies",
+      "deckSize": "Deck size",
+      "turn": "Turn",
+      "card": "Card",
+      "target": "Target",
+      "copiesOf": "Copies of {name}",
+      "reached": {
+        "copies": "{x} copies",
+        "deckSize": "{x} cards",
+        "turn": "Turn {x}"
+      },
+      "notReached": "Not reached",
+      "noHands": "Add a playable hand to sweep.",
+      "noPoints": "Nothing to sweep with these settings."
     },
     "draw": {
       "title": "Draw",

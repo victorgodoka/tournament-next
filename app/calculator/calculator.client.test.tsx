@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { encodeShare } from '@utils/combo/share'
+import { decodeShare, encodeShare } from '@utils/combo/share'
 import { DEFAULT_DRAW } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { DeckApiError, DeckConflictError, getDeck, listMyDecks, updateDeck, type DeckSummary, type SavedDeck } from '@utils/decks'
@@ -74,6 +74,14 @@ const open = async (url: string) => {
 
 beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+  // The sweep chart measures its width.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
   auth.user = { id: 'u1' }
   vi.mocked(getDeck).mockResolvedValue(null)
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
@@ -173,5 +181,40 @@ describe('Calculator', () => {
       await new Promise((r) => setTimeout(r, 400))
     })
     expect(location.search.startsWith('?c=')).toBe(true)
+  })
+  it('adds a second build from the picker, tabs switch the deck being edited, the link carries both', async () => {
+    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary(ID, 'Blue-Eyes')], nextCursor: null })
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, name: 'Blue-Eyes', main: [8, 8] }))
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [7], extra: [], side: [] }))}&name=First`)
+    await act(async () => fireEvent.click(screen.getByText('builds.add')))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'picker.openNamed' })))
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map((t) => t.textContent)).toEqual(['A · First', 'B · Blue-Eyes'])
+    expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
+    expect((screen.getByLabelText('deckName') as HTMLInputElement).value).toBe('Blue-Eyes')
+    fireEvent.click(tabs[0]!)
+    expect((screen.getByLabelText('deckName') as HTMLInputElement).value).toBe('First')
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    const shared = await decodeShare(new URLSearchParams(location.search).get('c')!)
+    expect(shared.builds.map((b) => b.name)).toEqual(['First', 'Blue-Eyes'])
+  })
+  it('duplicates the active build as a what-if copy with no saved deck behind it, and removes it again', async () => {
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [7, 7], revision: 2, ownerId: 'u1' }))
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [7, 7], extra: [], side: [] }))}&name=First&deck=${ID}`)
+    expect(screen.getByText('save.roles')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByText('builds.duplicate')))
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['A · First', 'B · builds.copyOf'])
+    expect(screen.queryByText('save.roles')).toBeNull() // the copy is not the saved deck
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.fewer' })[0]!))
+    const copies = () => within(screen.getByRole('group', { name: 'deck.copiesOf' })).getByText(/^\d$/).textContent
+    expect(copies()).toBe('1') // the copy's row: 1 copy
+    fireEvent.click(screen.getAllByRole('tab')[0]!)
+    expect(copies()).toBe('2') // the source still has 2
+    fireEvent.click(screen.getAllByRole('tab')[1]!)
+    await act(async () => fireEvent.click(screen.getByText('builds.remove')))
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(screen.queryByText('builds.remove')).toBeNull()
   })
 })

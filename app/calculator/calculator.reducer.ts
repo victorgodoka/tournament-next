@@ -3,22 +3,32 @@ import { addRole, toggleRole } from '@utils/combo/roles'
 import { DEFAULT_DRAW, LIMITS, type Build, type Calculation, type Draw, type Hand, type Roles, type Rule, type Subject } from '@utils/combo/types'
 import { EMPTY_DECK, MAX_COPIES, type CardMap, type Deck } from '@utils/deck/types'
 
-/** The saved deck behind the build: what a roles save needs. Never part of the share link. */
+/** The saved deck behind a build: what a roles save needs. Never part of the share link. */
 export type Saved = { revision: number; ownerId: string }
 
 export type CalcState = {
   calc: Calculation
-  /** The deck as loaded: what-if copies edit the build, Restore comes back here. */
-  original: Deck
-  saved: Saved | null
+  /** The build the editor shows; the compare table and the link carry them all. */
+  active: number
+  /** Per build, aligned with `calc.builds`: the deck as loaded. What-if copies edit the build, Restore comes back here. */
+  originals: Deck[]
+  /** Per build, aligned with `calc.builds`. */
+  saved: (Saved | null)[]
 }
 
 export type CalcAction =
-  /** Replaces the build. Roles of cards still in the new deck stay; the build's own roles merge in. */
+  /** Replaces the active build. Roles of cards still in the new deck stay; the build's own roles merge in. */
   | { type: 'load'; build: Build; saved: Saved | null; cards?: CardMap }
-  /** The saved deck behind the build arrived and its format and roles are adopted. Ignored when the build moved to another deck meanwhile. */
+  /** Appends a build and shows it. Ignored at the limit. */
+  | { type: 'addBuild'; build: Build; saved: Saved | null }
+  /** A what-if copy of the active build: same deck, roles and format, no saved deck behind it. Ignored at the limit. */
+  | { type: 'duplicateBuild'; name: string }
+  /** Ignored with one build left. */
+  | { type: 'removeBuild'; index: number }
+  | { type: 'setActive'; index: number }
+  /** A saved deck arrived and every build it backs adopts its format and roles. Ignored when no build points at it. */
   | { type: 'deckMeta'; deckId: string; format: number | null; roles: Roles; saved: Saved | null }
-  /** Only the saved deck's revision and owner: a share link keeps its own format and roles. Ignored when the build moved on. */
+  /** Only the saved deck's revision and owner: a share link keeps its own format and roles. Ignored when no build points at it. */
   | { type: 'setSaved'; deckId: string; saved: Saved | null }
   | { type: 'rename'; name: string }
   | { type: 'setFormat'; format: number | null }
@@ -41,7 +51,12 @@ export const emptyCalculation = (): Calculation => ({
   focus: null,
 })
 
-export const initialState = (calc: Calculation, saved: Saved | null = null): CalcState => ({ calc, original: calc.builds[0]!.deck, saved })
+export const initialState = (calc: Calculation, saved: Saved | null = null): CalcState => ({
+  calc,
+  active: 0,
+  originals: calc.builds.map((b) => b.deck),
+  saved: calc.builds.map((_, i) => (i === 0 ? saved : null)),
+})
 
 const DEFAULT_HAND: Hand = { name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }
 
@@ -59,11 +74,13 @@ const mergeRoles = (into: Roles, from: Roles): Roles => {
   return out
 }
 
-const build = (s: CalcState): Build => s.calc.builds[0]!
+const at = <T,>(list: readonly T[], index: number, value: T): T[] => list.map((v, i) => (i === index ? value : v))
+
+const build = (s: CalcState): Build => s.calc.builds[s.active]!
 
 const patchBuild = (s: CalcState, patch: Partial<Build>): CalcState => ({
   ...s,
-  calc: { ...s.calc, builds: [{ ...build(s), ...patch }, ...s.calc.builds.slice(1)] },
+  calc: { ...s.calc, builds: at(s.calc.builds, s.active, { ...build(s), ...patch }) },
 })
 
 const patchHands = (s: CalcState, hands: Hand[]): CalcState => ({ ...s, calc: { ...s.calc, analysis: { hands } } })
@@ -73,6 +90,12 @@ const patchHand = (s: CalcState, index: number, f: (hand: Hand) => Hand): CalcSt
   return hand ? patchHands(s, s.calc.analysis.hands.map((h, i) => (i === index ? f(h) : h))) : s
 }
 
+/** Appends a build and makes it the active one. */
+const append = (s: CalcState, b: Build, original: Deck, saved: Saved | null): CalcState =>
+  s.calc.builds.length >= LIMITS.builds
+    ? s
+    : { calc: { ...s.calc, builds: [...s.calc.builds, b] }, active: s.calc.builds.length, originals: [...s.originals, original], saved: [...s.saved, saved] }
+
 export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
   switch (a.type) {
     case 'load': {
@@ -80,16 +103,39 @@ export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
       const inDeck = new Set([...a.build.deck.main, ...a.build.deck.extra, ...a.build.deck.side].map((p) => canonicalOf(p, cards)))
       const kept: Roles = new Map([...build(s).roles].filter(([id]) => inDeck.has(id)))
       return {
-        calc: { ...s.calc, builds: [{ ...a.build, roles: mergeRoles(kept, a.build.roles) }, ...s.calc.builds.slice(1)] },
-        original: a.build.deck,
-        saved: a.saved,
+        ...s,
+        calc: { ...s.calc, builds: at(s.calc.builds, s.active, { ...a.build, roles: mergeRoles(kept, a.build.roles) }) },
+        originals: at(s.originals, s.active, a.build.deck),
+        saved: at(s.saved, s.active, a.saved),
       }
     }
-    case 'deckMeta':
-      if (build(s).deckId !== a.deckId) return s
-      return { ...patchBuild(s, { format: a.format, roles: mergeRoles(build(s).roles, a.roles) }), saved: a.saved }
-    case 'setSaved':
-      return build(s).deckId === a.deckId ? { ...s, saved: a.saved } : s
+    case 'addBuild':
+      return append(s, a.build, a.build.deck, a.saved)
+    case 'duplicateBuild':
+      return append(s, { ...build(s), name: a.name.slice(0, LIMITS.name), deckId: null }, s.originals[s.active]!, null)
+    case 'removeBuild': {
+      const n = s.calc.builds.length
+      if (n <= 1 || a.index < 0 || a.index >= n) return s
+      const drop = <T,>(list: readonly T[]) => list.filter((_, i) => i !== a.index)
+      // A build before the active one shifts it down; the active one gone, the next takes its place (or the last).
+      const active = a.index < s.active ? s.active - 1 : Math.min(s.active, n - 2)
+      return { calc: { ...s.calc, builds: drop(s.calc.builds) }, active, originals: drop(s.originals), saved: drop(s.saved) }
+    }
+    case 'setActive':
+      return { ...s, active: clamp(a.index, [0, s.calc.builds.length - 1]) }
+    case 'deckMeta': {
+      const hit = s.calc.builds.map((b) => b.deckId === a.deckId)
+      if (!hit.some(Boolean)) return s
+      return {
+        ...s,
+        calc: { ...s.calc, builds: s.calc.builds.map((b, i) => (hit[i] ? { ...b, format: a.format, roles: mergeRoles(b.roles, a.roles) } : b)) },
+        saved: s.saved.map((v, i) => (hit[i] ? a.saved : v)),
+      }
+    }
+    case 'setSaved': {
+      const hit = s.calc.builds.map((b) => b.deckId === a.deckId)
+      return hit.some(Boolean) ? { ...s, saved: s.saved.map((v, i) => (hit[i] ? a.saved : v)) } : s
+    }
     case 'rename':
       return patchBuild(s, { name: a.name.slice(0, LIMITS.name) })
     case 'setFormat':
@@ -103,7 +149,7 @@ export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
       return patchBuild(s, { deck: { ...deck, main: withCopies(deck.main, a.id, clamp(a.copies, [0, MAX_COPIES]), a.cards, a.passcode) } })
     }
     case 'restoreDeck':
-      return patchBuild(s, { deck: s.original })
+      return patchBuild(s, { deck: s.originals[s.active]! })
     case 'addHand':
       return s.calc.analysis.hands.length >= LIMITS.hands ? s : patchHands(s, [...s.calc.analysis.hands, a.hand ?? DEFAULT_HAND])
     case 'removeHand':
