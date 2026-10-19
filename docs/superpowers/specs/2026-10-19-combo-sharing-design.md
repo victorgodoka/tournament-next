@@ -72,7 +72,7 @@ need an `ALTER` (memory: schema changes need ALTER).
 `validateComboInput(raw) → { title, deckId, payload }` throws `ComboError(400, 'BAD_REQUEST', …)` on anything off:
 
 - `title`: trimmed string, 1–80. Every string it reads (title, name, notes) must be well-formed UTF-16 with no U+0000: Postgres
-  `jsonb` refuses both, which would be a 500.
+  refuses U+0000 (a 500), `jsonb` refuses lone surrogates, and a text column would store them as U+FFFD.
 - `deckId`: `null` or `^[0-9a-f]{16}$`. A deck the user cannot read is stored as `null`, never an error.
 - `payload.deck`: the same zone limits and passcode checks as `decks.validation.ts` (`ZONE_MAX`, integer passcodes).
   Copy limits are not checked: a combo may use a deck that breaks a banlist.
@@ -104,7 +104,8 @@ hand-built request can store one.
   (`payload->>'name'` and `steps`).
 - At most 500 combos per user (`MAX_COMBOS`), 409 `LIMIT` beyond.
 - Rate limit `rateLimitOptions(60)`; `cache-control: private, no-cache` on owner routes, `no-cache` on `GET /:id`. The
-  front reads combos with `cache: 'no-store'`: a cached revision would turn the owner's next save into a false conflict.
+  front reads combos with `cache: 'no-store'`: a cached revision would turn the owner's next save into a false conflict
+  (the link preview's `generateMetadata` may revalidate every 60 s: it never feeds a save).
 - Registered in `src/app.ts` like `deckRoutes`; tests added to the `test` script in `package.json`.
 
 ## Front (`tournament-next`)
