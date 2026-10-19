@@ -1,5 +1,6 @@
 'use client'
 
+import { Icon as Iconify } from '@iconify/react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useLayoutEffect, useRef } from 'react'
@@ -55,20 +56,36 @@ export const MARK = 'pointer-events-none absolute grid size-4 place-items-center
 const Back = () => <Image src="/back.webp" alt="" fill sizes={SIZES} draggable={false} className="pointer-events-none object-cover" />
 
 /**
- * Over a card, never in the way of a click: the glow of the card that was activated (an outline that pulses three
- * times when motion is welcome, then stays still, as it always is when motion is not) and a dashed ring on each of its targets.
+ * Over a card, never in the way of a click: the glow of the card that was activated (a gold halo that pulses three
+ * times when motion is welcome, then stays lit, as it always is when motion is not) and a dashed ring on each of its targets.
  */
 export const ActivationMarks = ({ active, targeted }: { active: boolean; targeted: boolean }) => (
   <>
     {active ? (
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-ground-gold outline outline-2 outline-gold motion-safe:animate-pulse motion-safe:[animation-iteration-count:3]"
+        className="pointer-events-none absolute inset-0 z-1 bg-ground-gold shadow-[0_0_18px_6px_var(--color-gold)] outline outline-2 outline-gold motion-safe:animate-pulse motion-safe:[animation-iteration-count:3]"
       />
     ) : null}
     {targeted ? <span aria-hidden className="pointer-events-none absolute inset-0 outline outline-2 -outline-offset-2 outline-dashed outline-crimson-lift" /> : null}
   </>
 )
+
+/**
+ * What an empty zone shows, faint: a gravestone in the GY, an X in Banished, a gem lying on its side in each Pendulum
+ * Zone (blue on the left, red on the right, each pointing out), the Field Spell mark in the Field Zone.
+ */
+const ZoneMark = ({ zone }: { zone: ZoneId }) => {
+  const icon = (name: string, className: string) => <Iconify icon={name} className={twMerge('size-1/2', className)} />
+  const mark =
+    zone === 'gy' ? icon('mdi:grave-stone', 'text-ink-muted')
+    : zone === 'banished' ? icon('foundation:x', 'text-ink-muted')
+    : zone === 's0' ? icon('mage:gem-b-fill', 'rotate-90 text-azure')
+    : zone === 's4' ? icon('mage:gem-b-fill', '-rotate-90 text-crimson')
+    : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
+    : null
+  return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
+}
 
 /** Corner brackets around a card the step on screen played. */
 const StepMark = () => (
@@ -223,17 +240,18 @@ export const BoardView = (p: BoardViewProps) => {
             style={{ gridColumn: column, gridRow: row }}
             className="relative aspect-[59/86] bg-surface-100"
           >
+            {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
             {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
           </div>
         ))}
       </div>
-      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. Left-aligned: a card that
-          leaves shifts only the ones after it, never the whole hand. */}
+      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. Centred; when a card
+          leaves, the others jump to their new place (only the card of the step slides). */}
       <div
         role="group"
         aria-label={t('zones.hand')}
         data-zone="hand"
-        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-start gap-1"
+        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-center gap-1"
       >
         {p.board.zones.hand.map((id) => (
           <div key={id} className="max-w-(--card-w) min-w-0 flex-1 last:flex-none">
@@ -294,7 +312,8 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   const card = p.board.cards[id]!
   const active = p.activation?.card === id
   const targeted = !!p.activation?.targets.includes(id)
-  const marked = p.marked.includes(id)
+  // Not in the hand: there the brackets of a draw would cover every card.
+  const marked = p.marked.includes(id) && !p.board.zones.hand.includes(id)
   return (
     <div className={twMerge('relative', className)}>
       {/* DEF: turned and scaled by 59/86 so the sideways card fits its cell. */}
@@ -345,14 +364,20 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   )
 }
 
-/** Deck, Extra, GY or Banished: the count and the top card (the back for Deck and Extra). A click opens the pile. */
+/**
+ * Deck, Extra, GY or Banished: the count and the top card (the back for Deck and Extra). A click opens the pile. A card
+ * of the pile being activated shows on top, face-up and glowing, while its step is on screen; the pile's real order
+ * stays as it is (a Deck card activated there is not the next draw).
+ */
 const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps }) => {
   const t = useTranslations('Simulator')
   const ids = p.board.zones[pile]
-  const top = ids[0] === undefined ? null : p.board.cards[ids[0]]!
+  const activated = p.activation && ids.includes(p.activation.card) ? p.activation.card : null
+  const topId = activated ?? ids[0]
+  const top = topId === undefined ? null : p.board.cards[topId]!
   const label = t(`zones.${pile}`)
   const open = () => p.onPile(pile)
-  const back = pile === 'deck' || pile === 'extra'
+  const back = (pile === 'deck' || pile === 'extra') && activated === null
   return (
     <>
       {!top ? null : back ? (
@@ -360,9 +385,10 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
           <Back />
         </button>
       ) : (
-        <CardTile id={top.code} card={p.cards.get(top.code)} sizes={SIZES} label={label} onClick={open} />
+        <CardTile id={top.code} card={p.cards.get(top.code)} sizes={SIZES} label={label} onClick={open} data-active={activated !== null || undefined} />
       )}
-      {top?.face === 'down' && !back ? (
+      {top ? <ActivationMarks active={activated !== null} targeted={!!p.activation?.targets.includes(top.id)} /> : null}
+      {top?.face === 'down' && !back && activated === null ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-ink')}>
           <Icon name="down" size={14} label={t('faceDown')} />
         </span>

@@ -1104,6 +1104,7 @@
     "toolbar": {
       "deck": "Escolher deck",
       "newHand": "Nova mão",
+      "chooseHand": "Escolher mão",
       "draw": "Comprar 1",
       "endTurn": "Encerrar turno",
       "undo": "Desfazer",
@@ -1161,7 +1162,19 @@
       "top": "Por cima",
       "bottom": "No fundo",
       "faceDown": "Com a face para baixo",
-      "faceUp": "Com a face para cima"
+      "faceUp": "Com a face para cima",
+      "material": "Como matéria"
+    },
+    "handPicker": {
+      "title": "Escolha a mão inicial",
+      "hint": "Toque nas cartas com que quer começar. O resto do deck é embaralhado, e o replay começa com esta mão.",
+      "count": "{count, plural, =0 {Nenhuma carta escolhida} one {1 carta escolhida} other {# cartas escolhidas}}",
+      "cancel": "Cancelar",
+      "confirm": "Começar com esta mão"
+    },
+    "caption": {
+      "label": "Legenda deste passo",
+      "placeholder": "O que acontece neste passo (opcional, até 100 caracteres)"
     },
     "pile": {
       "close": "Fechar pilha",

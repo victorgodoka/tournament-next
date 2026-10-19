@@ -38,6 +38,19 @@ describe('simulator drop', () => {
     expect(dropAction(base, 2, 'm0', true)).toEqual(move(2, 'm0', { at: 'top' }))
   })
 
+  it('an Xyz always comes in over an occupied monster slot; Shift attaches it as a material', () => {
+    expect(dropAction(base, 10, 'm0', false, true)).toEqual(move(10, 'm0', { at: 'top' }))
+    expect(dropAction(base, 10, 'm0', true, true)).toEqual(move(10, 'm0'))
+    expect(dropAction(base, 10, 'm1', false, true)).toEqual(move(10, 'm1')) // an empty slot is a plain summon
+  })
+
+  it('moveOptions offers an Xyz the top of an occupied monster slot first, then as a material', () => {
+    const m0 = moveOptions(base, 10, true).filter((o) => o.zone === 'm0')
+    expect(m0.map((o) => o.variant)).toEqual(['top', 'material'])
+    expect(m0.map((o) => o.action)).toEqual([move(10, 'm0', { at: 'top' }), move(10, 'm0')])
+    expect(moveOptions(base, 2).filter((o) => o.zone === 'm0').map((o) => o.variant)).toEqual(['plain', 'top'])
+  })
+
   it('empty spell or field slot: plain, Shift sets face-down; occupied gives null', () => {
     expect(dropAction(base, 2, 's1', false)).toEqual(move(2, 's1'))
     expect(dropAction(base, 2, 's1', true)).toEqual(move(2, 's1', { face: 'down' }))
