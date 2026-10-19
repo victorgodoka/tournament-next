@@ -60,6 +60,8 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
 /** An arrowhead's barbs, in px, and how far they spread from the line. */
 const HEAD = 10
 const SPREAD = 0.5
+/** How long a moved card takes to slide into its new place. */
+const FLIP_MS = 250
 
 type Point = { x: number; y: number }
 const centre = (r: DOMRect): Point => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
@@ -129,6 +131,28 @@ export const BoardView = (p: BoardViewProps) => {
     observer.observe(el)
     return () => observer.disconnect()
   }, [board, activation])
+
+  // FLIP, after the arrows so they measure where the cards land. Each card button's centre is kept, relative to the board
+  // (a scroll moves nothing); on the next board a card that moved slides from there. The button is measured, since in
+  // DEF its box is the turned card; its wrapper slides, since `translate` there is not turned by DEF.
+  // ponytail: positions are only taken on a board change, so a resize in between slides every card once on the next step; re-measure from the ResizeObserver if that shows.
+  const seen = useRef(new Map<string, Point>())
+  useLayoutEffect(() => {
+    const el = root.current
+    if (!el) return
+    const origin = el.getBoundingClientRect()
+    const motion = matchMedia('(prefers-reduced-motion: no-preference)').matches
+    const now = new Map<string, Point>()
+    for (const card of el.querySelectorAll<HTMLElement>('[data-card]')) {
+      const c = centre(card.getBoundingClientRect())
+      const at = { x: c.x - origin.left, y: c.y - origin.top }
+      const was = seen.current.get(card.dataset.card!)
+      now.set(card.dataset.card!, at)
+      if (!motion || !was || (was.x === at.x && was.y === at.y)) continue
+      card.parentElement?.animate([{ translate: `${was.x - at.x}px ${was.y - at.y}px` }, { translate: '0 0' }], { duration: FLIP_MS, easing: 'ease-out' })
+    }
+    seen.current = now
+  }, [board])
 
   return (
     <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">

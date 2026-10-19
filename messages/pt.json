@@ -1134,6 +1134,29 @@
     "cardPanel": {
       "title": "Carta",
       "empty": "Selecione uma carta para lê-la."
+    },
+    "tabs": {
+      "label": "Carta e histórico",
+      "card": "Carta",
+      "history": "Histórico"
+    },
+    "history": {
+      "title": "Histórico",
+      "start": "Início",
+      "move": "{card}: {from} → {to}",
+      "draw": "Comprou {n}",
+      "shuffle": "Embaralhou o deck",
+      "activate": "{n, plural, =0 {Ativou {card}} other {Ativou {card} → {targets}}}",
+      "flip": "{to, select, up {Virou {card} para cima} down {Virou {card} para baixo} atk {{card} em posição de ataque} other {{card} em posição de defesa}}",
+      "negate": "{to, select, on {Negou {card}} other {{card} deixou de ser negada}}",
+      "counter": "Marcadores em {card}: {delta}",
+      "endTurn": "Fim do turno {turn}",
+      "replayFromHere": "O replay começa aqui",
+      "startMark": "Início do replay"
+    },
+    "replay": {
+      "play": "Reproduzir",
+      "pause": "Pausar"
     }
   }
 }

@@ -1134,6 +1134,29 @@
     "cardPanel": {
       "title": "Card",
       "empty": "Select a card to read it."
+    },
+    "tabs": {
+      "label": "Card and history",
+      "card": "Card",
+      "history": "History"
+    },
+    "history": {
+      "title": "History",
+      "start": "Start",
+      "move": "{card}: {from} → {to}",
+      "draw": "Drew {n}",
+      "shuffle": "Shuffled the deck",
+      "activate": "{n, plural, =0 {Activated {card}} other {Activated {card} → {targets}}}",
+      "flip": "{to, select, up {Flipped {card} face-up} down {Flipped {card} face-down} atk {{card} to Attack Position} other {{card} to Defense Position}}",
+      "negate": "{to, select, on {Negated {card}} other {{card} no longer negated}}",
+      "counter": "Counters on {card}: {delta}",
+      "endTurn": "End of turn {turn}",
+      "replayFromHere": "Replay starts here",
+      "startMark": "Replay start"
+    },
+    "replay": {
+      "play": "Play",
+      "pause": "Pause"
     }
   }
 }

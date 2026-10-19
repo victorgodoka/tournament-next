@@ -1,11 +1,12 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useReducer, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { PageHeader } from '@ui/page-header'
+import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { initial, isMonsterSlot, shuffleAction, timeline, validRun } from '@utils/simulator/board'
@@ -17,11 +18,17 @@ import { BoardView, DragGhost } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
+import { History } from './history'
 import { PilePanel } from './pile-panel'
 import { Toolbar, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 
 const DRAFT_DELAY_MS = 300
+const REPLAY_STEP_MS = 800
+/** A key typed here is the field's, never a shortcut. */
+const TYPING = 'input, textarea, select, [contenteditable]'
+/** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
+const dialogOpen = () => document.querySelector('dialog[open]') !== null
 
 /** Where a menu opens for a click: at the pointer, or under the card when a key sent it (those carry no coordinates). */
 const anchor = (e: React.MouseEvent) => {
@@ -51,6 +58,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
   const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
+  /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar but Pause are off. */
+  const [playing, setPlaying] = useState(false)
+  /** Below `lg` the card panel and the history share the space under the board as two tabs. */
+  const [tab, setTab] = useState<'card' | 'history'>('card')
   const [lookupAttempt, setLookupAttempt] = useState(0)
   const { cards, failed, ensure } = useCardCache()
 
@@ -71,10 +82,22 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const targetMode = targeting !== null
   useEffect(() => {
     if (!targetMode) return
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && setTargeting(null)
+    const escape = (e: KeyboardEvent) => e.key === 'Escape' && !dialogOpen() && setTargeting(null)
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [targetMode])
+
+  // One timer per step: a pause, the unmount or any move of the cursor clears it; the step that reaches the end stops the replay.
+  const { cursor } = session
+  const end = session.actions.length
+  useEffect(() => {
+    if (!playing) return
+    const timer = setTimeout(() => {
+      dispatch({ type: 'redo' })
+      if (cursor + 1 >= end) setPlaying(false)
+    }, REPLAY_STEP_MS)
+    return () => clearTimeout(timer)
+  }, [playing, cursor, end])
 
   // The booted session is never written back, so a damaged link leaves the draft alone.
   useEffect(() => {
@@ -83,8 +106,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return () => clearTimeout(timer)
   }, [session, boot.session])
 
+  /** Not while a replay plays: acting there would cut the steps it is about to show. */
   const perform = (actions: Action[]) => {
-    if (validRun(board, actions)) dispatch({ type: 'act', actions })
+    if (!playing && validRun(board, actions)) dispatch({ type: 'act', actions })
   }
 
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
@@ -117,7 +141,48 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       forget()
     })
 
+  /** Play from `start` (or from where a pause left off), or pause. Not while picking targets, nor with no step after `start`. */
+  const togglePlay = () => {
+    if (playing) return setPlaying(false)
+    if (targeting || session.start >= end) return
+    if (cursor === end || cursor < session.start) dispatch({ type: 'seek', cursor: session.start })
+    setMenu(null)
+    setPlaying(true)
+  }
+
+  // Shortcuts. Target mode owns the keyboard (Escape cancels it), as do an open menu and dialog, a text field, and any
+  // widget that already handled the key (the tab bar's arrows). Space on a button presses the button.
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    const target = e.target instanceof Element ? e.target : null
+    if (e.defaultPrevented || targeting || menu || target?.matches(TYPING) || dialogOpen()) return
+    const mod = e.ctrlKey || e.metaKey
+    const key = e.key.toLowerCase()
+    const run =
+      mod && !e.altKey && key === 'z' ? (e.shiftKey ? 'redo' : 'undo')
+      : mod && !e.altKey && !e.shiftKey && key === 'y' ? 'redo'
+      : mod || e.altKey || e.shiftKey ? null
+      : e.key === 'ArrowLeft' ? 'undo'
+      : e.key === 'ArrowRight' ? 'redo'
+      : e.key === ' ' && !target?.matches('button') ? 'play'
+      : null
+    if (!run || (playing && run !== 'play')) return
+    e.preventDefault()
+    if (run === 'play') togglePlay()
+    else dispatch({ type: run })
+  })
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => onKey(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
+  }, [])
+
+  /** The card panel shows `id`; below `lg` its tab comes forward. */
+  const show = (id: number) => {
+    setSelected(id)
+    setTab('card')
+  }
   const openMenu = (id: number, at: { x: number; y: number }) => {
+    if (playing) return
     setSelected(id)
     setMenu({ card: id, at })
   }
@@ -132,20 +197,28 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setTargeting(null)
   }
   /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. While picking targets, any click picks. */
-  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
+  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : show(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
     if (!targeting) openMenu(id, anchor(e))
   }
 
-  // Off while the menu is open (a drag would move a card the menu is about to act on) and while picking targets.
+  // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
+  // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
+  const dragOn = menu === null && !targeting && !playing
   const drag = useDrag({
-    enabled: menu === null && !targeting,
+    enabled: dragOn,
     onDrop: (card, zone, shift) => {
       const action = dropAction(board, card, zone, shift)
       if (action) perform([action])
     },
   })
+  const dragging = dragOn ? drag.dragging : null
+
+  const nameOf = (id: number) => {
+    const code = board.cards[id]!.code
+    return cards.get(code)?.name ?? String(code)
+  }
 
   // A materials panel needs a stack of two or more. When a move, Undo or Reset leaves fewer it closes for good,
   // here in render: an effect would paint one frame of "×0", and leaving the state set would bring the panel back
@@ -198,11 +271,14 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       <Toolbar
         board={board}
         session={session}
+        playing={playing}
+        picking={targetMode}
         onDeck={() => setPicker(true)}
         onNewHand={newHand}
         onAct={perform}
         onUndo={() => dispatch({ type: 'undo' })}
         onRedo={() => dispatch({ type: 'redo' })}
+        onPlay={togglePlay}
         onReset={reset}
       />
 
@@ -251,11 +327,35 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               onClose={() => setPile(null)}
             />
           ) : null}
-          <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
+          {/* Below `lg` the card panel and the history are two tabs under the board; from `lg` the column stacks both. */}
+          <TabBar
+            tabs={[
+              { id: 'card', label: t('tabs.card') },
+              { id: 'history', label: t('tabs.history') },
+            ]}
+            active={tab}
+            onSelect={setTab}
+            label={t('tabs.label')}
+            idPrefix="simulator-side"
+            className="lg:hidden"
+          />
+          <div {...tabPanelProps('simulator-side', 'card')} className={tab === 'card' ? undefined : 'max-lg:hidden'}>
+            <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
+          </div>
+          <div {...tabPanelProps('simulator-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
+            <History
+              session={session}
+              boards={boards}
+              nameOf={nameOf}
+              disabled={playing || targetMode}
+              onSeek={(at) => dispatch({ type: 'seek', cursor: at })}
+              onSetStart={(start) => dispatch({ type: 'setStart', start })}
+            />
+          </div>
         </div>
       </div>
 
-      <DragGhost card={drag.dragging === null ? undefined : board.cards[drag.dragging]} cards={cards} ghostRef={drag.ghostRef} />
+      <DragGhost card={dragging === null ? undefined : board.cards[dragging]} cards={cards} ghostRef={drag.ghostRef} />
 
       {/* Outside the board: its container query box would be the containing block of anything fixed inside it. */}
       {menu ? (
@@ -266,7 +366,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           at={menu.at}
           onAct={perform}
           onTargets={(source) => setTargeting({ source, targets: [] })}
-          onDetails={setSelected}
+          onDetails={show}
           onClose={() => setMenu(null)}
         />
       ) : null}

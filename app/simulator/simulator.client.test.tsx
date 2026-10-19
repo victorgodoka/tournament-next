@@ -76,10 +76,13 @@ beforeEach(() => {
       disconnect() {}
     },
   )
+  // Reduced motion: nothing animates unless a test asks (happy-dom says no-preference but has no `Element.animate`).
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
 })
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
 })
@@ -684,5 +687,134 @@ describe('Simulator gestures', () => {
     expect(hand()).toHaveLength(5)
     await drag(card, zone('hand'))
     expect(hand()).toHaveLength(6)
+  })
+})
+
+/** The history rows; each one's first button seeks to it. */
+const rows = () => within(screen.getByRole('list', { name: 'history.title' })).getAllByRole('listitem')
+const steps = () => rows().map((row) => within(row).getAllByRole('button')[0]!.textContent)
+const replayFrom = (row: number) => act(async () => void fireEvent.click(within(rows()[row]!).getByRole('button', { name: 'history.replayFromHere' })))
+const key = (target: Window | Element, init: KeyboardEventInit) => act(async () => void fireEvent.keyDown(target, init))
+
+describe('Simulator history and replay', () => {
+  it('history lists steps and seeking shows that moment', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
+    expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
+    expect(within(rows()[0]!).getByText('history.startMark')).toBeTruthy()
+    await click('history.shuffle')
+    expect(hand()).toHaveLength(0)
+    expect(button('history.shuffle').getAttribute('aria-current')).toBe('step')
+  })
+
+  it('acting after a seek drops the later steps', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('history.shuffle')
+    await click('toolbar.draw')
+    expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
+    expect(hand()).toHaveLength(1)
+  })
+
+  it('replay starts at the chosen step and plays to the end', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.draw')
+    await replayFrom(2) // the draw of 5
+    expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy()
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(hand()).toHaveLength(5)
+    expect(button('replay.pause')).toBeTruthy()
+    await act(async () => void vi.advanceTimersByTime(800))
+    expect(hand()).toHaveLength(6)
+    expect(button('replay.play')).toBeTruthy()
+  })
+
+  it('no menu opens while the replay plays', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.draw')
+    await replayFrom(2)
+    vi.useFakeTimers()
+    await click('replay.play')
+    await rightClick(hand()[0]!)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(button('toolbar.undo').disabled).toBe(true) // the toolbar is off but for Pause
+    await click('replay.pause')
+    await act(async () => void vi.advanceTimersByTime(800))
+    expect(hand()).toHaveLength(5) // paused: no step
+  })
+
+  it('Ctrl+Z undoes, but not when typed into an input', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.draw')
+    await key(window, { key: 'z', ctrlKey: true })
+    expect(hand()).toHaveLength(5)
+    const input = document.body.appendChild(document.createElement('input'))
+    await key(input, { key: 'z', ctrlKey: true })
+    expect(hand()).toHaveLength(5)
+    input.remove()
+  })
+
+  it('arrows step, Ctrl+Y and Ctrl+Shift+Z redo', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await key(window, { key: 'ArrowLeft' })
+    expect(hand()).toHaveLength(0)
+    await key(window, { key: 'ArrowRight' })
+    expect(hand()).toHaveLength(5)
+    await key(window, { key: 'ArrowLeft' })
+    await key(window, { key: 'y', ctrlKey: true })
+    expect(hand()).toHaveLength(5)
+    await key(window, { key: 'ArrowLeft' })
+    await key(window, { key: 'Z', ctrlKey: true, shiftKey: true })
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('in target mode, Ctrl+Z does not undo', async () => {
+    await open(DECK)
+    await targetMode()
+    await key(window, { key: 'z', ctrlKey: true })
+    expect(cardsIn('m0')).toHaveLength(1)
+    expect(button('targets.confirm')).toBeTruthy()
+    expect(button('toolbar.undo').disabled).toBe(true)
+  })
+
+  it('Escape in an open dialog leaves target mode alone', async () => {
+    await open(DECK)
+    await targetMode()
+    await click('toolbar.reset') // the confirm dialog
+    await key(document.body, { key: 'Escape' })
+    expect(button('targets.confirm')).toBeTruthy()
+  })
+
+  it('a move slides the card from where it was, unless motion is reduced', async () => {
+    let motion = true
+    vi.stubGlobal('matchMedia', () => ({ matches: motion }))
+    const animate = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
+    // The hand sits at y 300, m0 at x 200; everything else at the origin.
+    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const at = this.closest('[data-zone]')?.getAttribute('data-zone')
+      return new DOMRect(at === 'm0' ? 200 : 0, at === 'hand' ? 300 : 0, 10, 10)
+    })
+    try {
+      await open(DECK)
+      await click('toolbar.newHand') // from the deck, which has no card buttons: nothing to slide
+      expect(animate).not.toHaveBeenCalled()
+      await play('zones.m0')
+      expect(animate).toHaveBeenCalledTimes(1)
+      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
+      expect(animate.mock.calls[0]).toEqual([[{ translate: '-200px 300px' }, { translate: '0 0' }], { duration: 250, easing: 'ease-out' }])
+      motion = false
+      await play('zones.m1')
+      expect(animate).toHaveBeenCalledTimes(1)
+    } finally {
+      rect.mockRestore()
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate
+    }
   })
 })
