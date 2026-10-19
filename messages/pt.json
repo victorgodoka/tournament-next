@@ -1053,5 +1053,53 @@
       "failed": "Não foi possível salvar as funções.",
       "signIn": "Entre para salvar funções no seu deck."
     }
+  },
+  "Simulator": {
+    "title": "Combo Simulator",
+    "meta": "Um campo manual de Yu-Gi-Oh! para testar mãos e treinar combos: carregue seu deck, compre, mova cartas, desfaça e reveja a linha.",
+    "eyebrow": "Treino de combos",
+    "loading": "Carregando…",
+    "turn": "Turno {n}",
+    "toolbar": {
+      "deck": "Escolher deck",
+      "newHand": "Nova mão",
+      "draw": "Comprar 1",
+      "endTurn": "Encerrar turno",
+      "undo": "Desfazer",
+      "redo": "Refazer",
+      "reset": "Recomeçar"
+    },
+    "confirm": {
+      "title": "Descartar esta linha?",
+      "body": "O campo e o histórico serão apagados. Isso não pode ser desfeito.",
+      "discard": "Descartar",
+      "cancel": "Continuar jogando"
+    },
+    "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
+    "dismiss": "Fechar",
+    "lookupFailed": "Algumas cartas não carregaram; elas aparecem pelo passcode.",
+    "retry": "Tentar de novo",
+    "zones": {
+      "deck": "Deck",
+      "hand": "Mão",
+      "extra": "Extra Deck",
+      "gy": "Cemitério",
+      "banished": "Banidas",
+      "field": "Zona de Campo",
+      "m0": "Zona de Monstro 1",
+      "m1": "Zona de Monstro 2",
+      "m2": "Zona de Monstro 3",
+      "m3": "Zona de Monstro 4",
+      "m4": "Zona de Monstro 5",
+      "s0": "Zona de Magia e Armadilha 1",
+      "s1": "Zona de Magia e Armadilha 2",
+      "s2": "Zona de Magia e Armadilha 3",
+      "s3": "Zona de Magia e Armadilha 4",
+      "s4": "Zona de Magia e Armadilha 5",
+      "emz0": "Zona de Monstro Extra (esquerda)",
+      "emz1": "Zona de Monstro Extra (direita)"
+    },
+    "negated": "Negada",
+    "faceDown": "Com a face para baixo"
   }
 }

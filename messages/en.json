@@ -1053,5 +1053,53 @@
       "failed": "Could not save the roles.",
       "signIn": "Sign in to save roles to your deck."
     }
+  },
+  "Simulator": {
+    "title": "Combo Simulator",
+    "meta": "A manual Yu-Gi-Oh! board to test hands and practice combos: load your deck, draw, move cards, undo and replay the line.",
+    "eyebrow": "Combo practice",
+    "loading": "Loading…",
+    "turn": "Turn {n}",
+    "toolbar": {
+      "deck": "Choose deck",
+      "newHand": "New hand",
+      "draw": "Draw 1",
+      "endTurn": "End turn",
+      "undo": "Undo",
+      "redo": "Redo",
+      "reset": "Reset"
+    },
+    "confirm": {
+      "title": "Discard this line?",
+      "body": "The board and its history will be cleared. This can't be undone.",
+      "discard": "Discard",
+      "cancel": "Keep playing"
+    },
+    "damagedLink": "This deck link is damaged, so the simulator opened empty.",
+    "dismiss": "Dismiss",
+    "lookupFailed": "Some cards did not load; they show their passcode.",
+    "retry": "Retry",
+    "zones": {
+      "deck": "Deck",
+      "hand": "Hand",
+      "extra": "Extra Deck",
+      "gy": "Graveyard",
+      "banished": "Banished",
+      "field": "Field Zone",
+      "m0": "Monster Zone 1",
+      "m1": "Monster Zone 2",
+      "m2": "Monster Zone 3",
+      "m3": "Monster Zone 4",
+      "m4": "Monster Zone 5",
+      "s0": "Spell & Trap Zone 1",
+      "s1": "Spell & Trap Zone 2",
+      "s2": "Spell & Trap Zone 3",
+      "s3": "Spell & Trap Zone 4",
+      "s4": "Spell & Trap Zone 5",
+      "emz0": "Extra Monster Zone (left)",
+      "emz1": "Extra Monster Zone (right)"
+    },
+    "negated": "Negated",
+    "faceDown": "Face-down"
   }
 }
