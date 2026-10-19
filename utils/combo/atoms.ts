@@ -9,13 +9,13 @@ export const referencedSubjects = (analysis: Analysis, focus: Subject | null): S
   return [...seen.values()]
 }
 
-/** Roles compare case-insensitively (they are whitespace-normalized on write), so `engine` on one card and `Engine` on another are one role. */
-export const satisfies = (card: DeckCard, roles: Roles, s: Subject): boolean =>
-  s.kind === 'card' ? s.id === card.id : (roles.get(card.id) ?? []).some((r) => r.toLowerCase() === s.role.toLowerCase())
+/** Whether the card `id` (canonical) counts for `s`. Roles compare case-insensitively (they are whitespace-normalized on write), so `engine` on one card and `Engine` on another are one role. */
+export const satisfies = (id: number, roles: Roles, s: Subject): boolean =>
+  s.kind === 'card' ? s.id === id : (roles.get(id) ?? []).some((r) => r.toLowerCase() === s.role.toLowerCase())
 
 /** Copies of the cards that satisfy `subject`. */
 export const subjectCopies = (cards: readonly DeckCard[], roles: Roles, subject: Subject): number =>
-  cards.reduce((sum, card) => (satisfies(card, roles, subject) ? sum + card.copies : sum), 0)
+  cards.reduce((sum, card) => (satisfies(card.id, roles, subject) ? sum + card.copies : sum), 0)
 
 /** Cards sharing one signature (the referenced subjects they satisfy), as subject keys. */
 export type Atom = { size: number; signature: ReadonlySet<string> }
@@ -31,7 +31,7 @@ export const atomize = (cards: readonly DeckCard[], roles: Roles, subjects: read
     total += card.copies
     if (card.copies === 0) continue
     // Subjects are visited in one fixed order, so equal sets give equal keys.
-    const keys = subjects.filter((s) => satisfies(card, roles, s)).map(subjectKey)
+    const keys = subjects.filter((s) => satisfies(card.id, roles, s)).map(subjectKey)
     if (!keys.length) {
       other += card.copies
       continue

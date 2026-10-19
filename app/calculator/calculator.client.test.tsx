@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextSeed } from '@utils/combo/rng'
 import { decodeShare, encodeShare } from '@utils/combo/share'
-import { DEFAULT_DRAW } from '@utils/combo/types'
+import { cardsByIds } from '@utils/cards'
+import { DEFAULT_DRAW, DEFAULT_EFFECTS, DRAW_EFFECTS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { DeckApiError, DeckConflictError, getDeck, listMyDecks, updateDeck, type DeckSummary, type SavedDeck } from '@utils/decks'
 import Calculator from './calculator.client'
@@ -128,6 +130,8 @@ describe('Calculator', () => {
       analysis: { hands: [] },
       draw: DEFAULT_DRAW,
       focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
     const chips = screen.getAllByRole('button', { name: 'deck.roleOf' })
@@ -144,6 +148,8 @@ describe('Calculator', () => {
       analysis: { hands: [] },
       draw: DEFAULT_DRAW,
       focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
     expect(screen.queryByText('deckRolesUnavailable')).toBeNull()
@@ -216,5 +222,23 @@ describe('Calculator', () => {
     await act(async () => fireEvent.click(screen.getByText('builds.remove')))
     expect(screen.getAllByRole('tab')).toHaveLength(1)
     expect(screen.queryByText('builds.remove')).toBeNull()
+  })
+  it('mounts the simulator; Deal again changes the seed the link carries', async () => {
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: Array.from({ length: 40 }, (_, i) => 100 + i), extra: [], side: [] }))}&name=Sim`)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    const seed = (await decodeShare(new URLSearchParams(location.search).get('c')!)).seed
+    await act(async () => fireEvent.click(screen.getByText('simulator.dealAgain')))
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    expect((await decodeShare(new URLSearchParams(location.search).get('c')!)).seed).toBe(nextSeed(seed))
+  })
+  it('looks the five draw-effect cards up, so the simulator names them even when the deck has none', async () => {
+    vi.mocked(cardsByIds).mockClear()
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [7], extra: [], side: [] }))}&name=Plain`)
+    const asked = vi.mocked(cardsByIds).mock.calls.flatMap(([ids]) => ids)
+    for (const id of Object.values(DRAW_EFFECTS)) expect(asked).toContain(id)
   })
 })

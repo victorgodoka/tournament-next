@@ -12,10 +12,21 @@ export type Draw = { going: 'first' | 'second'; handSize: number | null; extraDr
 /** Canonical card id → roles. */
 export type Roles = ReadonlyMap<number, readonly string[]>
 export type Build = { name: string; deck: Deck; roles: Roles; format: number | null; deckId: string | null }
-export type Calculation = { builds: Build[]; analysis: Analysis; draw: Draw; focus: Subject | null }
+/** The draw effects the simulator scripts; the key order is the order they resolve in. */
+export type EffectKind = 'extravagance' | 'prosperity' | 'duality' | 'desires' | 'upstart'
+/** Canonical ids, confirmed against the cards API on 2026-10-19. */
+export const DRAW_EFFECTS: Record<EffectKind, number> = { extravagance: 49238328, prosperity: 84211599, duality: 98645731, desires: 35261759, upstart: 70368879 }
+export const EFFECT_IDS: readonly number[] = Object.values(DRAW_EFFECTS)
+/** Extra Deck cards Prosperity or Extravagance banish. */
+export type Banish = 3 | 6
+/** `resolve`: the effect cards (canonical ids) resolved when they are in the opening hand. */
+export type Effects = { resolve: number[]; prosperity: Banish; extravagance: Banish }
+/** `seed` (32-bit) drives the hand simulator, so a shared link deals the same hand. */
+export type Calculation = { builds: Build[]; analysis: Analysis; draw: Draw; focus: Subject | null; seed: number; effects: Effects }
 
 export const DEFAULT_ROLES: readonly string[] = ['Starter', 'Extender', 'Hand Trap', 'Brick']
 export const DEFAULT_DRAW: Draw = { going: 'first', handSize: null, extraDraws: 0, turn: 1 }
+export const DEFAULT_EFFECTS: Effects = { resolve: [], prosperity: 6, extravagance: 6 }
 
 export const LIMITS = {
   handSize: [1, 20],
@@ -30,6 +41,7 @@ export const LIMITS = {
   share: 8192,
   name: 80,
   handName: 40,
+  runs: [1000, 200000],
 } as const
 
 export const subjectKey = (s: Subject): string => (s.kind === 'role' ? `role:${s.role}` : `card:${s.id}`)

@@ -15,6 +15,7 @@ import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
 import { rolesFromTags, tagsFromRoles } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
+import { EFFECT_IDS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { DeckApiError, DeckConflictError, getDeck, updateDeck } from '@utils/decks'
 import { setReturnTo } from '@utils/return-to'
@@ -27,6 +28,7 @@ import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
+import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
 import { useCalculations } from './use-calculation'
 
@@ -81,8 +83,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const original = state.originals[state.active]!
   const saved = state.saved[state.active] ?? null
   const banlist = banlists?.find((b) => (build.format === null ? b.format === 'tcg' : b.id === build.format)) ?? null
+  // The five draw-effect cards ride along, so the simulator can name the ones a deck lacks.
   const allIds = useMemo(
-    () => [...state.calc.builds.flatMap((b) => [...b.deck.main, ...b.deck.extra, ...b.deck.side]), ...state.originals.flatMap((o) => o.main)],
+    () => [...state.calc.builds.flatMap((b) => [...b.deck.main, ...b.deck.extra, ...b.deck.side]), ...state.originals.flatMap((o) => o.main), ...EFFECT_IDS],
     [state.calc.builds, state.originals],
   )
   const views = useCalculations(state.calc.builds, state.originals, cards, state.calc.analysis, state.calc.draw, state.calc.focus)
@@ -376,6 +379,20 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
           {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
           <Sweeps rows={view.rows} roles={build.roles} analysis={state.calc.analysis} draw={state.calc.draw} banlist={banlist} focus={state.calc.focus} nameOf={nameOf} />
+          <Simulator
+            rows={view.rows}
+            roles={build.roles}
+            analysis={state.calc.analysis}
+            draw={state.calc.draw}
+            effects={state.calc.effects}
+            extraSize={build.deck.extra.length}
+            seed={state.calc.seed}
+            result={view.result}
+            nameOf={nameOf}
+            onSeed={(seed) => dispatch({ type: 'setSeed', seed })}
+            onToggleEffect={(id) => dispatch({ type: 'toggleEffect', id })}
+            onBanish={(card, count) => dispatch({ type: 'setBanish', card, count })}
+          />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />
