@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { listMyDecks } from '@utils/decks'
+import { DRAFT_KEY } from '@utils/simulator/draft'
 import Simulator from './simulator.client'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }))
@@ -142,7 +143,73 @@ describe('Simulator', () => {
     await open('/simulator?d=garbage!!')
     expect(screen.getByText('damagedLink')).toBeTruthy()
   })
+
+  it('the link leaves the URL once booted, and a reload before any step still shows its deck', async () => {
+    await open(`${DECK}&name=Line&deck=abc&keep=1`)
+    expect(location.search).toBe('?keep=1')
+    cleanup()
+    await open(location.pathname + location.search)
+    expect(within(zone('deck')).getByText('6')).toBeTruthy() // written to the draft at boot
+  })
+
+  it('a reload right after a step on a ?d= link keeps the line', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    cleanup() // inside the 300 ms debounce
+    await open(location.pathname + location.search)
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('a step still on the debounce is written on pagehide and on unmount', async () => {
+    const cursor = () => JSON.parse(localStorage.getItem(DRAFT_KEY)!).cursor
+    await open(DECK)
+    await click('toolbar.newHand')
+    expect(cursor()).toBe(0) // the booted deck only: the hand waits on the debounce
+    await act(async () => void window.dispatchEvent(new Event('pagehide')))
+    expect(cursor()).toBe(2)
+    await click('toolbar.draw')
+    cleanup()
+    expect(cursor()).toBe(3)
+  })
+
+  it('a damaged ?d= leaves the stored draft as it was, for the next reload', async () => {
+    const saved = JSON.stringify({ v: 1, deck: { main: [1, 2, 3], extra: [], side: [] }, name: 'Saved', actions: [{ t: 'draw', n: 2 }], cursor: 1, start: 0 })
+    localStorage.setItem(DRAFT_KEY, saved)
+    await open('/simulator?d=garbage!!')
+    expect(screen.getByText('damagedLink')).toBeTruthy()
+    await wait(350)
+    cleanup()
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(saved)
+    await open(location.pathname + location.search)
+    expect(hand()).toHaveLength(2)
+  })
+
+  it('picking a deck with steps in the session asks first, and Cancel keeps the hand', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await pickDeck(toYdke({ main: [11, 12, 13, 14, 15, 16, 17], extra: [], side: [] }))
+    expect(screen.getByText('confirm.title')).toBeTruthy()
+    await click('confirm.cancel')
+    expect(screen.queryByText('confirm.title')).toBeNull()
+    expect(hand()).toHaveLength(5)
+    expect(within(zone('deck')).getByText('1')).toBeTruthy() // still the deck of the link
+  })
+
+  it('loading a deck clears damagedLink', async () => {
+    await open('/simulator?d=garbage!!')
+    await pickDeck(toYdke({ main: [11, 12, 13, 14, 15, 16, 17], extra: [], side: [] }))
+    expect(screen.queryByText('damagedLink')).toBeNull()
+    expect(within(zone('deck')).getByText('7')).toBeTruthy()
+  })
 })
+
+/** The deck picker's paste tab, with `code` imported. */
+const pickDeck = async (code: string) => {
+  await click('toolbar.deck')
+  await act(async () => void fireEvent.click(screen.getByText('picker.paste')))
+  fireEvent.change(screen.getByPlaceholderText('picker.placeholder'), { target: { value: code } })
+  await act(async () => void fireEvent.click(screen.getByText('picker.import')))
+}
 
 describe('Simulator card menu', () => {
   it('Move to puts a hand card in a monster zone and Undo brings it back', async () => {
@@ -368,6 +435,17 @@ describe('Simulator pile panel', () => {
     await choose('zones.gy')
     expect(within(zone('gy')).getAllByRole('button').length).toBeGreaterThan(0)
     expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
+  })
+
+  it('the top card’s menu opens the materials too', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await play('zones.m0')
+    await rightClick(cardsIn('m0')[0]!) // the monster on top
+    expect(names()).toContain('menu.materials')
+    await choose('menu.materials')
+    expect(within(screen.getByRole('list', { name: 'pile.materials' })).getAllByRole('button')).toHaveLength(1)
   })
 
   it('the materials panel closes once the slot no longer holds a stack', async () => {
@@ -677,6 +755,17 @@ describe('Simulator gestures', () => {
     await drag(hand()[1]!, zone('m0'))
     expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
     expect(hand()).toHaveLength(5)
+  })
+
+  it('shortcuts wait while a card is dragged', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    under(document.body)
+    await ptr(hand()[0]!, 'pointerDown', 0, 0)
+    await ptr(hand()[0]!, 'pointerMove', 50, 50)
+    await act(async () => void fireEvent.keyDown(window, { key: 'z', ctrlKey: true }))
+    expect(hand()).toHaveLength(5)
+    expect(document.querySelector('[inert]')).toBeTruthy() // the ghost still follows the card
   })
 
   it('a pile panel card drags with the mouse but not with a finger', async () => {

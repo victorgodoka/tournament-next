@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useEffectEvent, useMemo, useReducer, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
@@ -13,7 +13,7 @@ import { initial, isMonsterSlot, shuffleAction, timeline, validRun } from '@util
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
-import type { Action, MonsterSlot, Pile } from '@utils/simulator/types'
+import type { Action, MonsterSlot, Pile, Session } from '@utils/simulator/types'
 import { BoardView, DragGhost } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
@@ -37,9 +37,25 @@ const anchor = (e: React.MouseEvent) => {
   return { x: box.left, y: box.bottom }
 }
 
+/** The link's own params: read once at boot. */
+const LINK_PARAMS = ['d', 'name', 'deck']
+
+/** Writes the session waiting in `unsaved`, if any, and empties it, so a later flush has nothing left to write. */
+const saveDraft = (unsaved: { current: Session | null }) => {
+  if (unsaved.current) writeDraft(draftStorage(), unsaved.current)
+  unsaved.current = null
+}
+
 /** Boots once from `?d=` or the draft (client only: the loader is `ssr: false`), then hands over to the loaded simulator. */
 const Simulator = () => {
   const [boot] = useState(() => bootSession(window.location.search, draftStorage()))
+  useEffect(() => {
+    // `?d=` is read once; left in the URL it would beat the draft on reload and drop the line played since.
+    const url = new URL(window.location.href)
+    if (!LINK_PARAMS.some((key) => url.searchParams.has(key))) return
+    for (const key of LINK_PARAMS) url.searchParams.delete(key)
+    window.history.replaceState(null, '', url)
+  }, [])
   return <Loaded boot={boot} />
 }
 
@@ -99,12 +115,28 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return () => clearTimeout(timer)
   }, [playing, cursor, end])
 
-  // The booted session is never written back, so a damaged link leaves the draft alone.
+  // The session still waiting on the debounce: the unmount and `pagehide` write it at once, so a reload keeps the last step.
+  const unsaved = useRef<Session | null>(null)
   useEffect(() => {
-    if (session === boot.session) return
-    const timer = setTimeout(() => writeDraft(draftStorage(), session), DRAFT_DELAY_MS)
+    // A damaged link boots empty and is never written, so it leaves the stored draft alone.
+    if (boot.notice !== null && session === boot.session) return
+    unsaved.current = session
+    // The booted session at once: the link is gone from the URL, so a reload before the first step reads it from the draft.
+    if (session === boot.session) {
+      saveDraft(unsaved)
+      return
+    }
+    const timer = setTimeout(() => saveDraft(unsaved), DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [session, boot.session])
+  }, [session, boot])
+  useEffect(() => {
+    const flush = () => saveDraft(unsaved)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [])
 
   /** Not while a replay plays: acting there would cut the steps it is about to show. */
   const perform = (actions: Action[]) => {
@@ -150,11 +182,24 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setPlaying(true)
   }
 
+  // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
+  // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
+  const dragOn = menu === null && !targeting && !playing
+  const drag = useDrag({
+    enabled: dragOn,
+    onDrop: (card, zone, shift) => {
+      const action = dropAction(board, card, zone, shift)
+      if (action) perform([action])
+    },
+  })
+  const dragging = dragOn ? drag.dragging : null
+
   // Shortcuts. Target mode owns the keyboard (Escape cancels it), as do an open menu and dialog, a text field, and any
-  // widget that already handled the key (the tab bar's arrows). Space on a button presses the button.
+  // widget that already handled the key (the tab bar's arrows). Space on a button presses the button. Nothing during a
+  // drag: an undo there would take the dragged card off the board and leave its ghost hanging.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     const target = e.target instanceof Element ? e.target : null
-    if (e.defaultPrevented || targeting || menu || target?.matches(TYPING) || dialogOpen()) return
+    if (e.defaultPrevented || targeting || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     const run =
@@ -203,18 +248,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     if (!targeting) openMenu(id, anchor(e))
   }
 
-  // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
-  // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
-  const dragOn = menu === null && !targeting && !playing
-  const drag = useDrag({
-    enabled: dragOn,
-    onDrop: (card, zone, shift) => {
-      const action = dropAction(board, card, zone, shift)
-      if (action) perform([action])
-    },
-  })
-  const dragging = dragOn ? drag.dragging : null
-
   const nameOf = (id: number) => {
     const code = board.cards[id]!.code
     return cards.get(code)?.name ?? String(code)
@@ -227,6 +260,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   const picked = selected === null ? undefined : board.cards[selected]
   const code = picked?.code ?? null
+  /** Only this deck's cards: an id that failed for an earlier deck is not this one's problem. */
+  const lookupFailed = [...session.deck.main, ...session.deck.extra].some((id) => failed.has(id))
 
   return (
     <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
@@ -238,6 +273,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onPick={(build) =>
           discard(hasActions, () => {
             dispatch({ type: 'load', deck: build.deck, name: build.name })
+            setNotice(null) // a damaged link says nothing about the deck just loaded
             forget()
           })
         }
@@ -255,7 +291,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           }
         />
       ) : null}
-      {failed.size ? (
+      {lookupFailed ? (
         <Alert
           tone="warn"
           edged
@@ -368,6 +404,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onAct={perform}
           onTargets={(source) => setTargeting({ source, targets: [] })}
           onDetails={show}
+          onPile={setPile}
           onClose={() => setMenu(null)}
         />
       ) : null}

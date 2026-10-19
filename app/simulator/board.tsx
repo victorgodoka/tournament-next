@@ -47,12 +47,17 @@ export const MARK = 'pointer-events-none absolute grid size-4 place-items-center
 const Back = () => <Image src="/back.webp" alt="" fill sizes={SIZES} draggable={false} className="pointer-events-none object-cover" />
 
 /**
- * Over a card, never in the way of a click: the glow of the card that was activated (an outline that pulses when
- * motion is welcome, a still one when it is not) and a dashed ring on each of its targets.
+ * Over a card, never in the way of a click: the glow of the card that was activated (an outline that pulses three
+ * times when motion is welcome, then stays still, as it always is when motion is not) and a dashed ring on each of its targets.
  */
 export const ActivationMarks = ({ active, targeted }: { active: boolean; targeted: boolean }) => (
   <>
-    {active ? <span aria-hidden className="pointer-events-none absolute inset-0 bg-ground-gold outline outline-2 outline-gold motion-safe:animate-pulse" /> : null}
+    {active ? (
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-ground-gold outline outline-2 outline-gold motion-safe:animate-pulse motion-safe:[animation-iteration-count:3]"
+      />
+    ) : null}
     {targeted ? <span aria-hidden className="pointer-events-none absolute inset-0 outline outline-2 -outline-offset-2 outline-dashed outline-crimson-lift" /> : null}
   </>
 )
@@ -164,7 +169,9 @@ export const BoardView = (p: BoardViewProps) => {
   }, [board])
 
   return (
-    <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
+    // Clipped sideways: a card sliding in from a pile would widen the page for a moment. `clip`, not `hidden`, so nothing
+    // scrolls here and `sticky` still works. The menu, the ghost and the pile panel are rendered outside it.
+    <div ref={root} className="@container relative overflow-x-clip [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
       <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
         {LAYOUT.map(([zone, column, row]) => (
           <div
@@ -204,7 +211,8 @@ export const BoardView = (p: BoardViewProps) => {
 
 /**
  * A monster or spell slot: the card on top, its Xyz materials peeking out under it. Only a few pixels of them
- * show, so the ×N badge is the way in: it opens the list of materials. A focused material comes up over the top card.
+ * show, so the ×N badge (or Materials in the top card's menu) is the way in: it opens the list of materials. A focused
+ * material comes up over the top card.
  */
 const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
   const t = useTranslations('Simulator')

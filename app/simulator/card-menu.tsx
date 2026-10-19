@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { isMonsterSlot, isSlot, locate } from '@utils/simulator/board'
 import { moveOptions } from '@utils/simulator/drop'
 import { LIMITS } from '@utils/simulator/types'
-import type { Action, Board, ZoneId } from '@utils/simulator/types'
+import type { Action, Board, MonsterSlot, ZoneId } from '@utils/simulator/types'
 
 export type CardMenuProps = {
   board: Board
@@ -15,6 +15,8 @@ export type CardMenuProps = {
   onAct(actions: Action[]): void
   onTargets(card: number): void
   onDetails(card: number): void
+  /** Opens the Xyz materials under the monster on top of `zone`: on a phone the ×N badge is too small to be the only way in. */
+  onPile(zone: MonsterSlot): void
   onClose(): void
 }
 
@@ -31,7 +33,7 @@ const ITEM =
  * focused; arrows move between items; Escape, a pointer down outside or choosing an item closes it and the focus
  * goes back to the card. "Move to…" swaps the list for every zone the card can go to.
  */
-export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose }: CardMenuProps) => {
+export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile, onClose }: CardMenuProps) => {
   const t = useTranslations('Simulator')
   const [view, setView] = useState<'main' | 'move'>('main')
   const root = useRef<HTMLDivElement>(null)
@@ -95,6 +97,7 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose
   /** Only the card on top of a slot carries a face, a negation and counters; only a monster there has a battle position. */
   const field = isSlot(where.zone) && where.index === 0
   const monster = field && isMonsterSlot(where.zone)
+  const slot = where.zone
 
   const main: Entry[] = [
     { key: 'activate', label: t('menu.activate'), actions: [{ t: 'activate', card, targets: [] }] },
@@ -108,6 +111,7 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onClose
           ...(state.counters > 0 ? [{ key: 'counterDown', label: t('menu.counterDown'), actions: [{ t: 'counter', card, delta: -1 } as const] }] : []),
         ]
       : []),
+    ...(field && isMonsterSlot(slot) && board.zones[slot].length > 1 ? [{ key: 'materials', label: t('menu.materials'), run: () => onPile(slot) }] : []),
     { key: 'moveTo', label: t('menu.moveTo'), go: 'move' },
     { key: 'details', label: t('menu.details'), run: () => onDetails(card) },
   ]

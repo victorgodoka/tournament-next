@@ -6,7 +6,7 @@ import { ZONES } from '@utils/simulator/types'
 import type { ZoneId } from '@utils/simulator/types'
 
 export type DragOptions = {
-  /** Off while the card menu is open (and, later, while a replay plays). */
+  /** Off while the card menu is open, while targets are picked and while a replay plays. */
   enabled: boolean
   /** The pointer came up over `zone` (null: outside every zone) after a drag; `shift` was held at the drop. */
   onDrop(card: number, zone: ZoneId | null, shift: boolean): void
