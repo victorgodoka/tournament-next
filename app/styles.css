@@ -275,6 +275,8 @@
   --z-dropdown: 20;
   --z-sticky: 30;
   --z-dock: 40;
+  /* Above every page's sticky bar, or a tie hands the bar (later in the DOM) the header's dropdowns. */
+  --z-header: var(--z-dock);
   --z-dock-window: 41;
   --z-scrim: 55;
   --z-modal: 60;
