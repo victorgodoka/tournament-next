@@ -1,7 +1,8 @@
 import { DeckCodeError, ZONE_MAX, type Deck } from '../types'
 import { assertPasscodes } from './ydk'
 
-const pipe = async (bytes: Uint8Array<ArrayBuffer>, t: CompressionStream | DecompressionStream) =>
+/** `bytes` through a native (de)compression stream. Shared with the calculator's share codec. */
+export const pipe = async (bytes: Uint8Array<ArrayBuffer>, t: CompressionStream | DecompressionStream) =>
   new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(t)).arrayBuffer())
 
 /** Omega layout: base64(raw DEFLATE([main+extra count, side count, ...uint32 LE passcodes])). */
