@@ -47,6 +47,15 @@ const day = (iso: string, plus = 0) => {
 /** The 95% Wilson interval reaches more than 1.2 points under the rate. */
 const isSmall = (a: { winRate: number | null; wilsonLower: number | null }) =>
   a.winRate != null && a.wilsonLower != null && a.winRate - a.wilsonLower > 0.012
+/** A mix's name without its parent's: "Lead with Second" (combined) or "A / B" (main), either side. The whole name if it doesn't split. */
+const otherName = (mix: LeanArchetype, parent: LeanArchetype) => {
+  const n = nameOf(mix), p = nameOf(parent)
+  for (const sep of [' with ', ' / ']) {
+    if (n.startsWith(p + sep)) return n.slice(p.length + sep.length)
+    if (n.endsWith(sep + p)) return n.slice(0, -(sep.length + p.length))
+  }
+  return n
+}
 
 export const Section = ({ num: n, label, stamp, id, children }: { num: string; label: string; stamp?: React.ReactNode; id?: string; children: React.ReactNode }) => (
   <section id={id} aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
@@ -205,7 +214,7 @@ const TurnBlock = ({ title, meta, split, player }: { title: string; meta: string
   )
 }
 
-const ARCH_COLS = '32px minmax(240px, 1.6fr) minmax(180px, 1.5fr) repeat(4, minmax(80px, 0.75fr))'
+const ARCH_COLS = '32px minmax(300px, 2.4fr) minmax(160px, 1.2fr) repeat(4, minmax(80px, 0.7fr))'
 const USED_COLS = '40px minmax(200px, 2fr) repeat(3, minmax(88px, 0.8fr))'
 
 /**
@@ -395,28 +404,32 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
   /**
    * `combos` > 0: the name opens the mixes under the row; otherwise it calls `go`. `tag` labels a row without mixes.
    * `dot`: the main key whose trend color the dot takes, the row's own key by default.
+   * `parent`: a mix opened under it reads "+ Other", with Other's art: its own row's face, else the API's (the second deck's card).
    */
   const archRow = (
     a: LeanArchetype,
-    { nested = false, combos = 0, open = false, go, tag, dot = a.archetype }: { nested?: boolean; combos?: number; open?: boolean; go: () => void; tag?: string; dot?: number[] },
+    { nested = false, combos = 0, open = false, go, tag, dot = a.archetype, parent }: { nested?: boolean; combos?: number; open?: boolean; go: () => void; tag?: string; dot?: number[]; parent?: LeanArchetype },
   ) => {
     const key = archKey(a.archetype)
     const rank = rankOf.get(archKey(dot)) ?? 0
     const label = combos ? `${open ? '▾' : '▸'} ${combos} mixed` : tag
+    const other = parent && a.archetype.find((c) => c !== parent.archetype[0])
+    const name = parent ? `+ ${otherName(a, parent)}` : nameOf(a)
+    const face = faceOf((other !== undefined && byKey.get(String(other))) || a)
     return (
       <div key={key} role="row" className={twMerge(ROW, nested && 'bg-surface-200')} style={{ gridTemplateColumns: archCols }}>
         <span role="cell" className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{listRank.get(a)}</span>
         <span role="cell" className={twMerge('flex min-w-0 items-center gap-2.5', nested && 'pl-5')}>
           <span className="size-2 flex-none" style={{ background: rank && rank <= TREND_DECKS ? PALETTE[rank - 1] : 'var(--color-line-mid)' }} />
-          <Art card={faceOf(a)} size={32} className="size-8" />
+          <Art card={face} size={32} className="size-8" />
           <button
             type="button"
             onClick={() => (combos ? setOpenKey(open ? null : key) : go())}
             aria-expanded={combos ? open : undefined}
-            title={combos ? `Show the decks mixed with ${nameOf(a)}` : 'Open in the deep dive'}
+            title={combos ? `Show the decks mixed with ${nameOf(a)}` : `Open ${nameOf(a)} in the deep dive`}
             className="flex min-w-0 cursor-pointer items-center gap-2 font-bold text-ink hover:text-cyan"
           >
-            <span className="truncate">{nameOf(a)}</span>
+            <span className="truncate">{name}</span>
             {label ? (
               <span className="flex-none font-mono text-[10px] font-normal tracking-[0.08em] text-ink-muted uppercase">{label}</span>
             ) : null}
@@ -518,7 +531,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
                       <>
                         {only ? archRow(only, { nested: true, tag: 'Pure', go: () => ask('pure', only) }) : null}
                         {sortBy(mixes, archSort, ARCH_GET).map((b) =>
-                          archRow(b, { nested: true, dot: [...b.archetype].sort((x, y) => x - y), go: () => ask('combined', b) }),
+                          archRow(b, { nested: true, dot: [...b.archetype].sort((x, y) => x - y), go: () => ask('combined', b), parent: a }),
                         )}
                         {mixNote(a, <>Every mixed deck led by {nameOf(a)} that clears the sample minimum. Their games are inside {nameOf(a)}&apos;s row; a deck led by another archetype counts there.</>, general)}
                       </>
@@ -533,7 +546,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
                   {archRow(a, { combos: combos.length, open, go: () => pick(key) })}
                   {open ? (
                     <>
-                      {sortBy(combos, archSort, ARCH_GET).map((b) => archRow(b, { nested: true, go: () => pick(archKey(b.archetype)) }))}
+                      {sortBy(combos, archSort, ARCH_GET).map((b) => archRow(b, { nested: true, go: () => pick(archKey(b.archetype)), parent: a }))}
                       {mixNote(a, <>Mixed decks with {nameOf(a)} in the list. Each is its own archetype: its games are not in {nameOf(a)}&apos;s row.</>, () => pick(key))}
                     </>
                   ) : null}
