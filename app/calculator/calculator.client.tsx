@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
@@ -64,8 +64,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   /** `null` while loading; `[]` when the API failed (getBanlists swallows the error). */
   const [banlists, setBanlists] = useState<Banlist[] | null>(null)
-  /** The saved deck named by the link: its roles, format and revision. */
-  const [meta, setMeta] = useState<'idle' | 'loading' | 'failed'>(boot.deckId ? 'loading' : 'idle')
+  /** The saved deck behind a builder link: its roles, format and revision are adopted. A share link only learns the revision. */
+  const [meta, setMeta] = useState<'idle' | 'loading' | 'failed'>(boot.deckId && boot.from === 'builder' ? 'loading' : 'idle')
   const [metaAttempt, setMetaAttempt] = useState(0)
   const [toast, setToast] = useState<Toast | null>(null)
   /** The clipboard refused: the link shows in a field to copy by hand. */
@@ -94,25 +94,41 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     getBanlists().then(setBanlists)
   }, [])
 
+  /**
+   * Reads the saved deck behind `id`. `adopt`: take its format and roles too (a builder link, or Reload after a
+   * conflict) and report a failure; otherwise only its revision and owner, silently (a share link is complete
+   * on its own, and the viewer may not be allowed to read the deck). The reducer drops a reply for a deck the
+   * build has since left.
+   */
+  const readSaved = useCallback(
+    (id: string, adopt: boolean) =>
+      getDeck(id).then(
+        async (saved) => {
+          if (!saved) {
+            if (adopt) setMeta('failed')
+            return
+          }
+          const info = { revision: saved.revision, ownerId: saved.ownerId }
+          if (!adopt) return dispatch({ type: 'setSaved', deckId: saved.id, saved: info })
+          const known = await ensure([...saved.main, ...saved.extra, ...saved.side]).catch(() => new Map())
+          dispatch({ type: 'deckMeta', deckId: saved.id, format: saved.format, roles: rolesFromTags(saved.tags, known), saved: info })
+          setMeta('idle')
+        },
+        (error: unknown) => {
+          if (!adopt) return
+          console.error(error)
+          setMeta('failed')
+        },
+      ),
+    [ensure],
+  )
+
   useEffect(() => {
-    const id = boot.deckId
-    if (!id) return
-    let live = true
-    getDeck(id).then(
-      async (saved) => {
-        if (!live) return
-        if (!saved) return setMeta('failed')
-        const known = await ensure([...saved.main, ...saved.extra, ...saved.side]).catch(() => new Map())
-        if (!live) return
-        dispatch({ type: 'deckMeta', deckId: saved.id, format: saved.format, roles: rolesFromTags(saved.tags, known), saved: { revision: saved.revision, ownerId: saved.ownerId } })
-        setMeta('idle')
-      },
-      () => live && setMeta('failed'),
-    )
-    return () => {
-      live = false
-    }
-  }, [boot.deckId, metaAttempt, ensure])
+    if (!boot.deckId) return
+    // A share link's deck is read only for a signed-in viewer (the owner is the one who can save roles).
+    if (boot.from !== 'builder' && !user) return
+    void readSaved(boot.deckId, boot.from === 'builder')
+  }, [boot.deckId, boot.from, metaAttempt, readSaved, user])
 
   // The address bar is always the share link.
   useEffect(() => {
@@ -150,9 +166,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     if (!build.deckId || !state.saved || saveState === 'saving') return
     setSaveState('saving')
     try {
-      const saved = await updateDeck(build.deckId, { tags: tagsFromRoles(build.roles, build.deck, cards) }, state.saved.revision)
-      // Only the revision moved: the local format and roles stay as they are.
-      dispatch({ type: 'deckMeta', deckId: saved.id, format: build.format, roles: new Map(), saved: { revision: saved.revision, ownerId: saved.ownerId } })
+      // Tags are keyed by the saved deck's own prints: the what-if copies never decide what is written.
+      const saved = await updateDeck(build.deckId, { tags: tagsFromRoles(build.roles, state.original, cards) }, state.saved.revision)
+      dispatch({ type: 'setSaved', deckId: saved.id, saved: { revision: saved.revision, ownerId: saved.ownerId } })
       setSaveState('idle')
       setToast({ tone: 'positive', text: t('save.saved') })
     } catch (e) {
@@ -166,10 +182,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     }
   }
 
+  /** After a conflict: the deck the build came from, as it is now, roles merged, revision fresh. */
   const reloadDeck = () => {
+    if (!build.deckId) return
     setSaveState('idle')
     setMeta('loading')
-    setMetaAttempt((n) => n + 1)
+    void readSaved(build.deckId, true)
   }
 
   const builderHref = (() => {

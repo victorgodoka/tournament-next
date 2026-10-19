@@ -19,11 +19,20 @@ describe('calculator reducer', () => {
     expect(s1.original).toEqual({ main: [1, 3], extra: [], side: [] })
     expect(s1.saved).toBeNull()
   })
-  it('deckMeta fills the saved deck id, format, roles and revision', () => {
-    const s0 = initialState({ ...emptyCalculation(), builds: [build({ main: [1] })] })
+  it('deckMeta adopts the saved deck\'s format, roles and revision, only for the deck the build came from', () => {
+    const s0 = initialState({ ...emptyCalculation(), builds: [{ ...build({ main: [1] }), deckId: 'abcdefabcdefabcd' }] })
     const s1 = calculatorReducer(s0, { type: 'deckMeta', deckId: 'abcdefabcdefabcd', format: 2, roles: new Map([[1, ['Starter']]]), saved: { revision: 3, ownerId: 'u1' } })
     expect(s1.calc.builds[0]).toMatchObject({ deckId: 'abcdefabcdefabcd', format: 2, roles: new Map([[1, ['Starter']]]) })
     expect(s1.saved).toEqual({ revision: 3, ownerId: 'u1' })
+    // A reply for a deck the build has left (the user picked another one meanwhile) is dropped.
+    expect(calculatorReducer(s1, { type: 'deckMeta', deckId: 'bbbbbbbbbbbbbbbb', format: 9, roles: new Map([[1, ['Brick']]]), saved: { revision: 1, ownerId: 'u2' } })).toBe(s1)
+  })
+  it('setSaved learns the revision and owner without touching format or roles', () => {
+    const s0 = initialState({ ...emptyCalculation(), builds: [{ ...build({ main: [1] }, new Map([[1, ['Starter']]])), format: 4, deckId: 'abcdefabcdefabcd' }] })
+    const s1 = calculatorReducer(s0, { type: 'setSaved', deckId: 'abcdefabcdefabcd', saved: { revision: 7, ownerId: 'u1' } })
+    expect(s1.saved).toEqual({ revision: 7, ownerId: 'u1' })
+    expect(s1.calc.builds[0]).toMatchObject({ format: 4, roles: new Map([[1, ['Starter']]]) })
+    expect(calculatorReducer(s1, { type: 'setSaved', deckId: 'bbbbbbbbbbbbbbbb', saved: null })).toBe(s1)
   })
   it('what-if copies edit main and restore brings the loaded deck back', () => {
     const s0 = initialState({ ...emptyCalculation(), builds: [build({ main: [1, 1, 2] })] })

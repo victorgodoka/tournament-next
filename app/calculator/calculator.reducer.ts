@@ -16,8 +16,10 @@ export type CalcState = {
 export type CalcAction =
   /** Replaces the build. Roles of cards still in the new deck stay; the build's own roles merge in. */
   | { type: 'load'; build: Build; saved: Saved | null; cards?: CardMap }
-  /** The saved deck behind a builder link arrived. */
-  | { type: 'deckMeta'; deckId: string | null; format: number | null; roles: Roles; saved: Saved | null }
+  /** The saved deck behind the build arrived and its format and roles are adopted. Ignored when the build moved to another deck meanwhile. */
+  | { type: 'deckMeta'; deckId: string; format: number | null; roles: Roles; saved: Saved | null }
+  /** Only the saved deck's revision and owner: a share link keeps its own format and roles. Ignored when the build moved on. */
+  | { type: 'setSaved'; deckId: string; saved: Saved | null }
   | { type: 'rename'; name: string }
   | { type: 'setFormat'; format: number | null }
   | { type: 'toggleRole'; id: number; role: string }
@@ -84,7 +86,10 @@ export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
       }
     }
     case 'deckMeta':
-      return { ...patchBuild(s, { deckId: a.deckId, format: a.format, roles: mergeRoles(build(s).roles, a.roles) }), saved: a.saved }
+      if (build(s).deckId !== a.deckId) return s
+      return { ...patchBuild(s, { format: a.format, roles: mergeRoles(build(s).roles, a.roles) }), saved: a.saved }
+    case 'setSaved':
+      return build(s).deckId === a.deckId ? { ...s, saved: a.saved } : s
     case 'rename':
       return patchBuild(s, { name: a.name.slice(0, LIMITS.name) })
     case 'setFormat':

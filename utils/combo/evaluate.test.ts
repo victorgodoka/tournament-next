@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { subjectCopies } from './atoms'
 import type { DeckCard } from './deck-cards'
 import { drawCount, estimateCompositions, evaluate, type Evaluation } from './evaluate'
 import { choose } from './hypergeometric'
@@ -79,5 +80,26 @@ describe('evaluate', () => {
   })
   it('an empty analysis evaluates to zero hands and p 0', () => {
     expect(evaluate(fill(1, 40), new Map(), { hands: [] }, DEFAULT_DRAW)).toMatchObject({ hands: [], any: { favorable: 0n, total: 658008n, p: 0 } })
+  })
+  it('a role spelled two ways across cards is one role', () => {
+    const cards = [card(1, 3), card(2, 3), ...fill(3, 34)]
+    const roles = new Map([[1, ['Engine']], [2, ['engine']]])
+    const r = evaluate(cards, roles, { hands: [{ name: 'e', rules: [rule({ kind: 'role', role: 'ENGINE' }, 1)] }] }, DEFAULT_DRAW) as Evaluation
+    expect(r.any.favorable).toBe(379752n)
+    expect(subjectCopies(cards, roles, { kind: 'role', role: 'engine' })).toBe(6)
+  })
+  it('a hand with no rules never passes and stays out of the union', () => {
+    const cards = [card(1, 3), ...fill(2, 37)]
+    const roles = new Map([[1, ['Starter']]])
+    const r = evaluate(cards, roles, { hands: [{ name: 'empty', rules: [] }, { name: 's', rules: [rule(STARTER, 1)] }] }, DEFAULT_DRAW) as Evaluation
+    expect(r.hands[0]!.odds.favorable).toBe(0n)
+    expect(r.any.favorable).toBe(222111n)
+  })
+  it('refuses work that would freeze the page: 14 distinct roles over 11 cards', () => {
+    const many = fill(1, 40)
+    const roles = new Map(many.slice(0, 14).map((c) => [c.id, [`r${c.id}`]]))
+    const hands = many.slice(0, 14).map((c) => ({ name: String(c.id), rules: [rule({ kind: 'role', role: `r${c.id}` }, 1)] }))
+    expect(estimateCompositions(14, 11)).toBe(4457400n)
+    expect(evaluate(many, roles, { hands }, { ...DEFAULT_DRAW, handSize: 11 })).toEqual({ error: 'tooComplex' })
   })
 })

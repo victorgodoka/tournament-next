@@ -87,6 +87,21 @@ describe('HandBuilder', () => {
     fireEvent.click(screen.getByRole('button', { name: 'hands.remove' }))
     expect(onRemove).toHaveBeenCalledWith(0)
   })
+  it('keeps a rule readable when its subject left the palette, and hides odds on a hand without rules', () => {
+    render(
+      <HandBuilder
+        {...base}
+        analysis={{ hands: [hand('a', [rule({ kind: 'role', role: 'Engine' }, 1)]), hand('b', [])] }}
+        result={evaluation([0, 0], 0)}
+        unusedRoles={new Set(['Engine'])}
+      />,
+    )
+    const select = screen.getByLabelText('hands.subject') as HTMLSelectElement
+    expect(select.value).toBe('role:Engine')
+    expect(select.selectedOptions[0]!.text).toBe('Engine')
+    expect(screen.getByText('hands.noRules')).toBeTruthy()
+    expect(screen.getAllByText('0%').length).toBe(2) // hand a and the union; hand b shows none
+  })
   it('shows the evaluation error in place of the union', () => {
     render(<HandBuilder {...base} analysis={{ hands: [hand('a', [rule(STARTER, 1)])] }} result={{ error: 'tooFewCards' }} />)
     expect(screen.getByText('results.tooFewCards')).toBeTruthy()

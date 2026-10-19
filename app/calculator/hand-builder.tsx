@@ -40,7 +40,6 @@ export const HandBuilder = (p: HandBuilderProps) => {
   const t = useTranslations('Calculator')
   const format = useFormatter()
   const evaluation = 'error' in p.result ? null : p.result
-  const options = subjectOptions(p.subjects)
 
   return (
     <Panel
@@ -72,7 +71,8 @@ export const HandBuilder = (p: HandBuilderProps) => {
         ) : (
           <ul className="flex flex-col gap-4">
             {p.analysis.hands.map((hand, h) => {
-              const odds = evaluation?.hands[h]?.odds
+              // No rules, no odds: the hand never passes and the notice below says why.
+              const odds = hand.rules.length ? evaluation?.hands[h]?.odds : undefined
               return (
                 <li key={h} className="flex flex-col gap-3 border-b border-line pb-4 last:border-b-0 last:pb-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -101,7 +101,7 @@ export const HandBuilder = (p: HandBuilderProps) => {
                       <li key={i} className="flex flex-wrap items-center gap-2">
                         <Select
                           aria-label={t('hands.subject')}
-                          options={options}
+                          options={subjectOptions(p.subjects, rule.subject)}
                           value={subjectKey(rule.subject)}
                           onChange={(e) => {
                             const subject = parseSubject(e.target.value)

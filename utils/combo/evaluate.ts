@@ -6,7 +6,8 @@ import { subjectKey, type Analysis, type Draw, type Hand, type Roles } from './t
 /** Cards seen: the opening hand (5 first, 6 second, or the override), extra draws, one draw per later turn. */
 export const drawCount = (draw: Draw): number => (draw.handSize ?? (draw.going === 'first' ? 5 : 6)) + draw.extraDraws + (draw.turn - 1)
 
-export const MAX_COMPOSITIONS = 5_000_000
+/** Measured on the main thread: ~650 ms at 650k compositions, 4.4 s at 4.5M. Half a million keeps every keystroke under a second. */
+export const MAX_COMPOSITIONS = 500_000
 
 /** Upper bound on the compositions of `n` cards over `atomCount` atoms plus "other": C(n + m − 1, m − 1). */
 export const estimateCompositions = (atomCount: number, n: number): bigint => {
@@ -36,7 +37,9 @@ export const evaluate = (cards: readonly DeckCard[], roles: Roles, analysis: Ana
   const favorable = analysis.hands.map(() => 0n)
   let any = 0n
   const counts = new Map<string, number>()
+  // A hand with no rules is unfinished, not "always playable": it never passes.
   const passes = (hand: Hand) =>
+    hand.rules.length > 0 &&
     hand.rules.every((rule) => {
       const count = counts.get(subjectKey(rule.subject)) ?? 0
       return count >= rule.min && (rule.max === null || count <= rule.max)

@@ -9,8 +9,9 @@ export const referencedSubjects = (analysis: Analysis, focus: Subject | null): S
   return [...seen.values()]
 }
 
+/** Roles compare case-insensitively (they are whitespace-normalized on write), so `engine` on one card and `Engine` on another are one role. */
 const satisfies = (card: DeckCard, roles: Roles, s: Subject): boolean =>
-  s.kind === 'card' ? s.id === card.id : (roles.get(card.id) ?? []).includes(s.role)
+  s.kind === 'card' ? s.id === card.id : (roles.get(card.id) ?? []).some((r) => r.toLowerCase() === s.role.toLowerCase())
 
 /** Copies of the cards that satisfy `subject`. */
 export const subjectCopies = (cards: readonly DeckCard[], roles: Roles, subject: Subject): number =>

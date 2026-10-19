@@ -30,10 +30,17 @@ export const Fraction = ({ odds }: { odds: Odds }) => {
 /** What the subject selects name: every role, then every distinct card. */
 export type Subjects = { roles: string[]; cards: DeckCard[]; nameOf(id: number): string }
 
-export const subjectOptions = (subjects: Subjects): { value: string; label: string }[] => [
-  ...subjects.roles.map((role) => ({ value: subjectKey({ kind: 'role', role }), label: role })),
-  ...subjects.cards.map((card) => ({ value: subjectKey({ kind: 'card', id: card.id }), label: subjects.nameOf(card.id) })),
-]
+/** Every role, then every distinct card; `current` is appended when it is no longer among them, so a rule stays readable. */
+export const subjectOptions = (subjects: Subjects, current: Subject | null = null): { value: string; label: string }[] => {
+  const options = [
+    ...subjects.roles.map((role) => ({ value: subjectKey({ kind: 'role', role }), label: role })),
+    ...subjects.cards.map((card) => ({ value: subjectKey({ kind: 'card', id: card.id }), label: subjects.nameOf(card.id) })),
+  ]
+  if (current && !options.some((o) => o.value === subjectKey(current))) {
+    options.push({ value: subjectKey(current), label: current.kind === 'role' ? current.role : subjects.nameOf(current.id) })
+  }
+  return options
+}
 
 export const parseSubject = (key: string): Subject | null =>
   key.startsWith('role:') ? { kind: 'role', role: key.slice(5) } : key.startsWith('card:') ? { kind: 'card', id: Number(key.slice(5)) } : null
@@ -125,7 +132,7 @@ export const FocusPanel = ({ subjects, focus, onFocus, dist, copies, error }: Fo
         <Select
           block
           aria-label={t('results.focus')}
-          options={[{ value: '', label: t('results.pickSubject') }, ...subjectOptions(subjects)]}
+          options={[{ value: '', label: t('results.pickSubject') }, ...subjectOptions(subjects, focus)]}
           value={focus ? subjectKey(focus) : ''}
           onChange={(e) => onFocus(parseSubject(e.target.value))}
           className={TOUCH}
