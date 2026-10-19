@@ -6,8 +6,8 @@ import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
 import type { CardMap } from '@utils/deck/types'
-import { isSlot } from '@utils/simulator/board'
-import type { Board, Pile, ZoneId } from '@utils/simulator/types'
+import { isMonsterSlot, isSlot } from '@utils/simulator/board'
+import type { Board, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
 
 export type BoardViewProps = {
   board: Board
@@ -15,7 +15,8 @@ export type BoardViewProps = {
   selected: number | null
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
-  onPile(pile: Pile): void
+  /** A pile, or a monster slot whose Xyz materials the player wants to see. */
+  onPile(zone: Pile | MonsterSlot): void
 }
 
 /** `[zone, column, row]` on the 7 × 3 grid. Banished takes the EMZ row's last column, above the GY. */
@@ -27,7 +28,8 @@ const LAYOUT: [Exclude<ZoneId, 'hand'>, number, number][] = [
 
 const SIZES = '84px'
 const BADGE = 'pointer-events-none absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
-const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
+/** A small marker over a card's corner (negated, face-down). */
+export const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
 
 const Back = () => <Image src="/back.webp" alt="" fill sizes={SIZES} draggable={false} className="pointer-events-none object-cover" />
 
@@ -49,7 +51,7 @@ export const BoardView = (p: BoardViewProps) => {
             style={{ gridColumn: column, gridRow: row }}
             className="relative aspect-[59/86] bg-surface-100"
           >
-            {isSlot(zone) ? <Stack ids={p.board.zones[zone]} p={p} /> : <PileView pile={zone} p={p} />}
+            {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
           </div>
         ))}
       </div>
@@ -70,17 +72,30 @@ export const BoardView = (p: BoardViewProps) => {
   )
 }
 
-/** A monster or spell slot: the card on top, its Xyz materials peeking out under it. */
-const Stack = ({ ids, p }: { ids: number[]; p: BoardViewProps }) => {
-  const [top, ...materials] = ids
+/**
+ * A monster or spell slot: the card on top, its Xyz materials peeking out under it. Only a few pixels of them
+ * show, so the ×N badge is the way in: it opens the list of materials. A focused material comes up over the top card.
+ */
+const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
+  const t = useTranslations('Simulator')
+  const [top, ...materials] = p.board.zones[zone]
   if (top === undefined) return null
   return (
     <>
       <CardView id={top} p={p} className="z-1" />
       {materials.map((id) => (
-        <CardView key={id} id={id} p={p} className="absolute inset-0 translate-1" />
+        <CardView key={id} id={id} p={p} className="absolute inset-0 translate-1 focus-within:z-2" />
       ))}
-      {materials.length ? <span className={twMerge(BADGE, 'top-0 left-0 z-1 bg-space-000 text-ink')}>×{materials.length}</span> : null}
+      {materials.length && isMonsterSlot(zone) ? (
+        <button
+          type="button"
+          aria-label={t('pile.materials', { count: materials.length })}
+          onClick={() => p.onPile(zone)}
+          className={twMerge(BADGE, 'top-0 left-0 z-1 cursor-pointer bg-space-000 text-ink pointer-events-auto')}
+        >
+          ×{materials.length}
+        </button>
+      ) : null}
     </>
   )
 }

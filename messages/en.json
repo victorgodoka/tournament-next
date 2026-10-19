@@ -1100,6 +1100,35 @@
       "emz1": "Extra Monster Zone (right)"
     },
     "negated": "Negated",
-    "faceDown": "Face-down"
+    "faceDown": "Face-down",
+    "menu": {
+      "label": "Card actions",
+      "activate": "Activate",
+      "activateTargets": "Activate with targets…",
+      "flip": "Flip",
+      "position": "ATK / DEF",
+      "negate": "Negate",
+      "counterUp": "Add counter",
+      "counterDown": "Remove counter",
+      "moveTo": "Move to…",
+      "details": "Details",
+      "back": "Back"
+    },
+    "move": {
+      "set": "Set",
+      "top": "On top",
+      "bottom": "At the bottom",
+      "faceDown": "Face-down",
+      "faceUp": "Face-up"
+    },
+    "pile": {
+      "close": "Close pile",
+      "empty": "No cards here.",
+      "materials": "Materials ×{count}"
+    },
+    "cardPanel": {
+      "title": "Card",
+      "empty": "Select a card to read it."
+    }
   }
 }

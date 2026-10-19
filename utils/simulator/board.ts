@@ -92,6 +92,16 @@ export function apply(board: Board, a: Action): Board {
   }
 }
 
+/** Whether every action is valid on the board the ones before it leave: what a batch must pass before it is logged. */
+export function validRun(board: Board, actions: readonly Action[]): boolean {
+  let b = board
+  for (const a of actions) {
+    if (!isValid(b, a)) return false
+    b = apply(b, a)
+  }
+  return true
+}
+
 /** The board after every action, `[0]` being `initial(deck)`. Invalid actions leave their step equal to the one before. */
 export function timeline(deck: Deck, actions: readonly Action[]): Board[] {
   // ponytail: timeline keeps every step's board (≤ 2000, structurally shared); switch to checkpoints if logs grow

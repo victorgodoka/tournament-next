@@ -8,26 +8,24 @@ import { Dialog } from '@ui/dialog'
 import { PageHeader } from '@ui/page-header'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
-import { apply, initial, isValid, shuffleAction, timeline } from '@utils/simulator/board'
+import { initial, shuffleAction, timeline, validRun } from '@utils/simulator/board'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { sessionReducer } from '@utils/simulator/session'
-import type { Action, Board } from '@utils/simulator/types'
+import type { Action, MonsterSlot, Pile } from '@utils/simulator/types'
 import { BoardView } from './board'
 import { bootSession, type Boot } from './boot'
+import { CardMenu } from './card-menu'
+import { CardPanel } from './card-panel'
+import { PilePanel } from './pile-panel'
+import { Toolbar, TOUCH } from './toolbar'
 
-const TOUCH = 'max-lg:min-h-11'
 const DRAFT_DELAY_MS = 300
-const DRAW: Action = { t: 'draw', n: 1 }
-const END_TURN: Action = { t: 'endTurn' }
 
-/** Every action is valid on the board the ones before it leave. */
-const validRun = (board: Board, actions: readonly Action[]) => {
-  let b = board
-  for (const a of actions) {
-    if (!isValid(b, a)) return false
-    b = apply(b, a)
-  }
-  return true
+/** Where a menu opens for a click: at the pointer, or under the card when a key sent it (those carry no coordinates). */
+const anchor = (e: React.MouseEvent) => {
+  if (e.clientX || e.clientY) return { x: e.clientX, y: e.clientY }
+  const box = e.currentTarget.getBoundingClientRect()
+  return { x: box.left, y: box.bottom }
 }
 
 /** Boots once from `?d=` or the draft (client only: the loader is `ssr: false`), then hands over to the loaded simulator. */
@@ -44,7 +42,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [picker, setPicker] = useState(boot.session.deck.main.length + boot.session.deck.extra.length === 0)
   /** What the confirm dialog runs once the player agrees to discard the session. */
   const [pending, setPending] = useState<(() => void) | null>(null)
+  /** The card the card panel shows: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
+  const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
+  /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
+  const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
   const [lookupAttempt, setLookupAttempt] = useState(0)
   const { cards, failed, ensure } = useCardCache()
 
@@ -80,9 +82,30 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       () => {
         dispatch({ type: 'reset' })
         dispatch({ type: 'act', actions })
+        setSelected(null)
       },
     )
   }
+
+  const reset = () =>
+    discard(hasActions, () => {
+      dispatch({ type: 'reset' })
+      setSelected(null)
+    })
+
+  const openMenu = (id: number, e: React.MouseEvent) => {
+    setSelected(id)
+    setMenu({ card: id, at: anchor(e) })
+  }
+  /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. */
+  const onCard = (id: number, e: React.MouseEvent) => (e.detail === 0 ? openMenu(id, e) : setSelected(id))
+  const onMenu = (id: number, e: React.MouseEvent) => {
+    e.preventDefault() // not the browser's own menu
+    openMenu(id, e)
+  }
+
+  const picked = selected === null ? undefined : board.cards[selected]
+  const code = picked?.code ?? null
 
   return (
     <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
@@ -124,39 +147,45 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         />
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={() => setPicker(true)} className={TOUCH}>
-          {t('toolbar.deck')}
-        </Button>
-        <Button size="sm" disabled={session.deck.main.length === 0} onClick={newHand} className={TOUCH}>
-          {t('toolbar.newHand')}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={!isValid(board, DRAW)} onClick={() => perform([DRAW])} className={TOUCH}>
-          {t('toolbar.draw')}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={board.cards.length === 0} onClick={() => perform([END_TURN])} className={TOUCH}>
-          {t('toolbar.endTurn')}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={session.cursor === 0} onClick={() => dispatch({ type: 'undo' })} className={TOUCH}>
-          {t('toolbar.undo')}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={session.cursor === session.actions.length} onClick={() => dispatch({ type: 'redo' })} className={TOUCH}>
-          {t('toolbar.redo')}
-        </Button>
-        <Button variant="ghost" size="sm" disabled={!hasActions} onClick={() => discard(hasActions, () => dispatch({ type: 'reset' }))} className={TOUCH}>
-          {t('toolbar.reset')}
-        </Button>
-        <span className="ms-auto text-ink-muted signal">{t('turn', { n: board.turn })}</span>
+      <Toolbar
+        board={board}
+        session={session}
+        onDeck={() => setPicker(true)}
+        onNewHand={newHand}
+        onAct={perform}
+        onUndo={() => dispatch({ type: 'undo' })}
+        onRedo={() => dispatch({ type: 'redo' })}
+        onReset={reset}
+      />
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <BoardView
+          board={board}
+          cards={cards}
+          selected={selected}
+          onCard={onCard}
+          onMenu={onMenu}
+          onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
+        />
+        <div className="flex flex-col gap-4">
+          {pile ? <PilePanel board={board} zone={pile} cards={cards} onCard={onCard} onMenu={onMenu} onClose={() => setPile(null)} /> : null}
+          <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
+        </div>
       </div>
 
-      <BoardView
-        board={board}
-        cards={cards}
-        selected={selected}
-        onCard={(id) => setSelected(id)}
-        onMenu={(id) => setSelected(id)}
-        onPile={() => {}} // the pile panel comes with the card menu
-      />
+      {/* Outside the board: its container query box would be the containing block of anything fixed inside it. */}
+      {menu ? (
+        <CardMenu
+          key={`${menu.card}:${menu.at.x}:${menu.at.y}`}
+          board={board}
+          card={menu.card}
+          at={menu.at}
+          onAct={perform}
+          onTargets={() => {}} // target mode comes with task 7
+          onDetails={setSelected}
+          onClose={() => setMenu(null)}
+        />
+      ) : null}
 
       <Dialog
         size="sm"

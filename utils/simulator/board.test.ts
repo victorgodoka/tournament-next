@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
-import { apply, initial, isMonsterSlot, isSlot, isValid, locate, shuffleAction, timeline } from './board'
+import { apply, initial, isMonsterSlot, isSlot, isValid, locate, shuffleAction, timeline, validRun } from './board'
 import type { Action, Board, Face, Pos, ZoneId } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202, 203], side: [] }
@@ -260,6 +260,19 @@ describe('simulator board', () => {
     expect(timeline(deck, log)).toEqual(boards)
     expect(boards.at(-1)).toEqual(run(...log))
     expect(timeline(deck, [])).toEqual([b0])
+  })
+
+  it('validRun checks each action on the board the ones before it leave', () => {
+    expect(validRun(b0, [])).toBe(true)
+    // a counter needs the card on the field: invalid on b0, valid once the move before it ran
+    expect(isValid(b0, counter(0, 2))).toBe(false)
+    expect(validRun(b0, [mv(0, 'm0'), counter(0, 2)])).toBe(true)
+    // each move is valid on b0, but the second finds the slot the first one filled
+    expect(isValid(b0, mv(1, 's0'))).toBe(true)
+    expect(validRun(b0, [mv(0, 's0'), mv(1, 's0')])).toBe(false)
+    // the second draw finds the deck the first one emptied
+    expect(isValid(b0, draw(1))).toBe(true)
+    expect(validRun(b0, [draw(10), draw(1)])).toBe(false)
   })
 
   it('shuffleAction gives a valid permutation', () => {

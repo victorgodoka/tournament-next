@@ -1100,6 +1100,35 @@
       "emz1": "Zona de Monstro Extra (direita)"
     },
     "negated": "Negada",
-    "faceDown": "Com a face para baixo"
+    "faceDown": "Com a face para baixo",
+    "menu": {
+      "label": "Ações da carta",
+      "activate": "Ativar",
+      "activateTargets": "Ativar com alvos…",
+      "flip": "Virar",
+      "position": "ATK / DEF",
+      "negate": "Negar",
+      "counterUp": "Adicionar contador",
+      "counterDown": "Remover contador",
+      "moveTo": "Mover para…",
+      "details": "Detalhes",
+      "back": "Voltar"
+    },
+    "move": {
+      "set": "Baixada",
+      "top": "Por cima",
+      "bottom": "No fundo",
+      "faceDown": "Com a face para baixo",
+      "faceUp": "Com a face para cima"
+    },
+    "pile": {
+      "close": "Fechar pilha",
+      "empty": "Sem cartas aqui.",
+      "materials": "Matérias ×{count}"
+    },
+    "cardPanel": {
+      "title": "Carta",
+      "empty": "Selecione uma carta para lê-la."
+    }
   }
 }

@@ -36,6 +36,27 @@ const hand = () => within(zone('hand')).queryAllByRole('button')
 const button = (name: string) => screen.getByRole<HTMLButtonElement>('button', { name })
 const click = (name: string) => act(async () => fireEvent.click(button(name)))
 
+const menu = () => screen.getByRole('menu')
+const names = () => within(menu()).getAllByRole('menuitem').map((el) => el.textContent)
+const choose = (name: string) => act(async () => fireEvent.click(within(menu()).getByRole('menuitem', { name })))
+const rightClick = (el: HTMLElement) => act(async () => void fireEvent.contextMenu(el))
+/** A mouse click on the element: `detail` 1, as a browser sends it (the default is a keyboard click, 0). */
+const mouseClick = (el: HTMLElement) => act(async () => void fireEvent.click(el, { detail: 1 }))
+const cardsIn = (key: string) => within(zone(key)).getAllByRole('button')
+/** The counter badges in a zone. A card prints its own passcode (a number too) inside its button, so those are left out. */
+const counters = (key: string) =>
+  within(zone(key))
+    .queryAllByText(/^\d+$/)
+    .filter((el) => !el.closest('button'))
+    .map((el) => el.textContent)
+
+/** New hand, then the first card of the hand through Move to… into `to`. */
+const play = async (to: string) => {
+  await rightClick(hand()[0]!)
+  await choose('menu.moveTo')
+  await choose(to)
+}
+
 beforeEach(() => {
   // Node's own (flagged) localStorage shadows happy-dom's: each test gets a fresh one in memory.
   const store = new Map<string, string>()
@@ -102,5 +123,209 @@ describe('Simulator', () => {
   it('a damaged ?d= shows damagedLink', async () => {
     await open('/simulator?d=garbage!!')
     expect(screen.getByText('damagedLink')).toBeTruthy()
+  })
+})
+
+describe('Simulator card menu', () => {
+  it('Move to puts a hand card in a monster zone and Undo brings it back', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m2')
+    expect(cardsIn('m2')).toHaveLength(1)
+    expect(hand()).toHaveLength(4)
+    expect(screen.queryByRole('menu')).toBeNull()
+    await click('toolbar.undo')
+    expect(hand()).toHaveLength(5)
+    expect(within(zone('m2')).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('keyboard opens the menu on the first item and Escape returns focus to the card', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    card.focus()
+    await act(async () => void fireEvent.click(card)) // detail 0: Enter on a focused button
+    const first = within(menu()).getAllByRole('menuitem')[0]!
+    expect(document.activeElement).toBe(first)
+    await act(async () => void fireEvent.keyDown(first, { key: 'ArrowDown' }))
+    expect(document.activeElement).toBe(within(menu()).getAllByRole('menuitem')[1])
+    await act(async () => void fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' }))
+    expect(document.activeElement).toBe(first)
+    await act(async () => void fireEvent.keyDown(first, { key: 'Escape' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(document.activeElement).toBe(card)
+  })
+
+  it('a pointer down outside closes the menu', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await act(async () => void fireEvent.pointerDown(within(menu()).getAllByRole('menuitem')[0]!))
+    expect(screen.getByRole('menu')).toBeTruthy()
+    await act(async () => void fireEvent.pointerDown(document.body))
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('right-click keeps the browser menu away', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    let proceeded = true
+    await act(async () => {
+      proceeded = fireEvent.contextMenu(hand()[0]!)
+    })
+    expect(proceeded).toBe(false)
+  })
+
+  it('a field card gets flip, position, negate and counters; a hand card does not', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.moveTo', 'menu.details'])
+    await choose('menu.moveTo')
+    await choose('zones.m0')
+    await rightClick(cardsIn('m0')[0]!)
+    // no counters yet: no counterDown
+    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.flip', 'menu.position', 'menu.negate', 'menu.counterUp', 'menu.moveTo', 'menu.details'])
+    await choose('menu.counterUp')
+    await rightClick(cardsIn('m0')[0]!)
+    expect(names()).toContain('menu.counterDown')
+  })
+
+  it('position and negate show on the card, and flip is one step of its own', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    const top = () => cardsIn('m0')[0]!
+    await rightClick(top())
+    await choose('menu.position')
+    expect(top().parentElement!.className).toContain('rotate-90')
+    await rightClick(top())
+    await choose('menu.negate')
+    expect(within(zone('m0')).getByRole('img', { name: 'negated' })).toBeTruthy()
+    await rightClick(top())
+    await choose('menu.flip')
+    await click('toolbar.undo') // the flip only: the card is still there, still negated and sideways
+    expect(cardsIn('m0')).toHaveLength(1)
+    expect(within(zone('m0')).getByRole('img', { name: 'negated' })).toBeTruthy()
+    await rightClick(top())
+    await choose('menu.negate') // negate is a toggle
+    expect(within(zone('m0')).queryByRole('img', { name: 'negated' })).toBeNull()
+  })
+
+  it('counters go up and the badge shows the count', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m2')
+    expect(counters('m2')).toEqual([])
+    await rightClick(cardsIn('m2')[0]!)
+    await choose('menu.counterUp')
+    await rightClick(cardsIn('m2')[0]!)
+    await choose('menu.counterUp')
+    expect(counters('m2')).toEqual(['2'])
+    await rightClick(cardsIn('m2')[0]!)
+    await choose('menu.counterDown')
+    expect(counters('m2')).toEqual(['1'])
+  })
+
+  it('Move to leaves out the card’s own pile but keeps the deck top and bottom', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.moveTo')
+    const moves = names()
+    expect(moves[0]).toBe('menu.back')
+    expect(moves).not.toContain('zones.hand')
+    expect(moves).toEqual(expect.arrayContaining(['zones.deck — move.top', 'zones.deck — move.bottom', 'zones.gy', 'zones.m0', 'zones.m0 — move.set', 'zones.s0 — move.set']))
+    await choose('menu.back')
+    expect(names()).toContain('menu.moveTo')
+  })
+
+  it('Details shows the card in the card panel', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+    const card = hand()[1]!
+    await rightClick(card)
+    await choose('menu.details')
+    expect(screen.queryByText('cardPanel.empty')).toBeNull()
+    expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
+  })
+})
+
+describe('Simulator card panel', () => {
+  it('a mouse click selects the card without opening the menu; New hand and Reset clear it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    await mouseClick(card)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
+    await click('toolbar.newHand')
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+    await mouseClick(hand()[0]!)
+    await click('toolbar.reset')
+    await click('confirm.discard')
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+  })
+})
+
+describe('Simulator pile panel', () => {
+  const openPile = async (key: string) => {
+    await mouseClick(within(zone(key)).getByRole('button', { name: `zones.${key}` }))
+    return screen.getByRole('list', { name: `zones.${key}` })
+  }
+  const openMaterials = async (key: string) => {
+    await mouseClick(within(zone(key)).getByRole('button', { name: 'pile.materials' }))
+    return screen.getByRole('list', { name: 'pile.materials' })
+  }
+
+  it('the deck pile panel moves a card to the hand', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const list = await openPile('deck')
+    const cards = within(list).getAllByRole('button')
+    expect(cards).toHaveLength(1)
+    await rightClick(cards[0]!)
+    await choose('menu.moveTo')
+    await choose('zones.hand')
+    expect(hand()).toHaveLength(6)
+    expect(screen.getByText('pile.empty')).toBeTruthy()
+    await click('pile.close')
+    expect(screen.queryByRole('list', { name: 'zones.deck' })).toBeNull()
+  })
+
+  it('a second click on the pile closes its panel', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await openPile('deck')
+    await mouseClick(within(zone('deck')).getByRole('button', { name: 'zones.deck' }))
+    expect(screen.queryByRole('list', { name: 'zones.deck' })).toBeNull()
+  })
+
+  it('a mouse click in the panel selects and a touch tap opens the menu', async () => {
+    await open(DECK)
+    const card = within(await openPile('deck')).getAllByRole('button')[0]!
+    await mouseClick(card)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
+    await act(async () => void fireEvent.pointerDown(card, { pointerType: 'touch' }))
+    await mouseClick(card)
+    expect(names()).toContain('menu.moveTo')
+  })
+
+  it('the x N badge opens the materials, and the menu works on each of them', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await play('zones.m0') // an occupied monster zone: the second card goes under as a material
+    const materials = within(await openMaterials('m0')).getAllByRole('button')
+    expect(materials).toHaveLength(1)
+    await rightClick(materials[0]!)
+    // a material is not a field card: no flip, position, negate or counters
+    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.moveTo', 'menu.details'])
+    await choose('menu.moveTo')
+    await choose('zones.gy')
+    expect(within(zone('gy')).getAllByRole('button').length).toBeGreaterThan(0)
+    expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
   })
 })
