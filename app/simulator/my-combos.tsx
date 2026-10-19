@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
-import { deleteCombo, getCombo, listMyCombos, type ComboSummary, type SharedCombo } from '@utils/combos'
+import { ComboApiError, deleteCombo, getCombo, listMyCombos, type ComboSummary, type SharedCombo } from '@utils/combos'
 import { TOUCH } from './toolbar'
 
 type MyCombosProps = {
@@ -95,20 +95,20 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
   const remove = (id: string) => {
     setDeleting(true)
     setProblem(null)
-    deleteCombo(id).then(
-      () => {
-        setDeleting(false)
-        setConfirm(null)
-        drop(id)
-        // The button that was focused goes away with the row: the list takes the focus instead.
-        list.current?.focus()
-        onDeleted(id)
-      },
-      () => {
-        setDeleting(false)
-        setProblem('deleteFailed')
-      },
-    )
+    const deleted = () => {
+      setDeleting(false)
+      setConfirm(null)
+      drop(id)
+      // The button that was focused goes away with the row: the list takes the focus instead.
+      list.current?.focus()
+      onDeleted(id)
+    }
+    deleteCombo(id).then(deleted, (error) => {
+      // Gone already (deleted elsewhere): what the player wanted.
+      if (error instanceof ComboApiError && error.status === 404) return deleted()
+      setDeleting(false)
+      setProblem('deleteFailed')
+    })
   }
 
   return (

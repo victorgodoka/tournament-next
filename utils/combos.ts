@@ -15,7 +15,7 @@ export type SharedCombo = {
   id: string
   title: string
   deckId: string | null
-  owner: { id: string; name: string }
+  owner: { id: string; name: string | null }
   payload: ComboPayload
   revision: number
   updatedAt: string

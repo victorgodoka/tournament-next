@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { Header } from '@ui/header'
 import { API_URL } from '@utils/auth'
 import type { SharedCombo } from '@utils/combos'
-import { pageMetadata } from '@utils/metadata'
+import { metaDescription, pageMetadata } from '@utils/metadata'
 import { ComboPlayerLoader } from './combo-player.loader'
 
 type Props = { params: Promise<{ id: string }> }
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props) {
     const res = await fetch(`${API_URL}/combos/${encodeURIComponent(id)}`, { next: { revalidate: 60 } })
     if (!res.ok) throw new Error(`combo ${res.status}`)
     const { title, payload }: SharedCombo = await res.json()
-    const description = [payload.name, t('player.meta', { count: payload.actions.length })].filter(Boolean).join(' · ')
+    const description = metaDescription([payload.name, t('player.meta', { count: payload.actions.length })].filter(Boolean).join(' · '))
     return pageMetadata({ title: `${title} — ${t('title')}`, path, description, noIndex: true })
   } catch {
     // Unknown, deleted, or the API is down: the simulator's own preview.

@@ -38,8 +38,8 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
   const unsaved = hash !== session.combo?.saved
   /** The title dialog is open: the title it starts from, and whether the link is copied once it saves. */
   const [asking, setAsking] = useState<{ title: string; share: boolean } | null>(null)
-  /** An update answered 409: the conflict dialog is open. */
-  const [conflict, setConflict] = useState<{ share: boolean } | null>(null)
+  /** An update answered 409: the conflict dialog is open, with the title that update carried (a rename included). */
+  const [conflict, setConflict] = useState<{ title: string; share: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
 
@@ -68,7 +68,7 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
       if (share) await copy(id)
     } catch (error) {
       setAsking(null)
-      if (error instanceof ComboConflictError) setConflict({ share })
+      if (error instanceof ComboConflictError) setConflict({ title, share })
       else if (tied && error instanceof ComboApiError && error.status === 404) {
         // Deleted elsewhere: the session lets go of it, and the title dialog saves it as a new one.
         dispatch({ type: 'saved', combo: null })
@@ -104,8 +104,15 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
     }
   }
 
-  /** Signed out: the sign-in link, and the draft keeps the line. Tied: `PATCH` at once. Else the title dialog, from the deck name. */
+  /**
+   * Tied and unchanged: nothing to send (a `PATCH` would only bump the revision); Share copies the link, in this click.
+   * Signed out: the sign-in link, and the draft keeps the line. Tied: `PATCH` at once. Else the title dialog, from the deck name.
+   */
   const save = (share: boolean) => {
+    if (session.combo && !unsaved) {
+      if (share) void copy(session.combo.id)
+      return
+    }
     if (user === null) return setOutcome({ kind: 'signIn' })
     if (session.combo) return void write({ title: session.combo.title, asNew: false, share })
     setOutcome(null)
@@ -123,13 +130,13 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
     saveAs: () => {
       if (session.combo) setAsking({ title: session.combo.title, share: false })
     },
-    share: () => (session.combo && !unsaved ? void copy(session.combo.id) : save(true)),
+    share: () => save(true),
     submit: (title: string, asNew: boolean) => void write({ title, asNew, share: asking?.share ?? false }),
     cancel: () => setAsking(null),
     reload: () => void reload(),
     /** The conflict's way out that keeps the line here. */
     saveAsNew: () => {
-      if (session.combo) void write({ title: session.combo.title, asNew: true, share: conflict?.share ?? false })
+      if (session.combo) void write({ title: conflict?.title ?? session.combo.title, asNew: true, share: conflict?.share ?? false })
     },
     closeConflict: () => setConflict(null),
     retry: () => {

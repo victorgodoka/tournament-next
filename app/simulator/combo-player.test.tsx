@@ -117,6 +117,13 @@ describe('ComboPlayer', () => {
     expect(button('replay.play')).toBeTruthy() // the last step ends the replay
   })
 
+  it('an owner with no name shows no "by" lead', async () => {
+    vi.mocked(getCombo).mockResolvedValue(combo({ owner: { id: 'u1', name: null } }))
+    await open()
+    expect(screen.getByRole('heading', { name: 'Opening line' })).toBeTruthy()
+    expect(screen.queryByText(/player\.by/)).toBeNull()
+  })
+
   it('Play now skips the countdown', async () => {
     vi.useFakeTimers()
     await open()

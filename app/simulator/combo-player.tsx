@@ -159,7 +159,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
         eyebrow={t('eyebrow')}
         eyebrowMeta={session.name || undefined}
         title={combo.title}
-        lead={t('player.by', { name: combo.owner.name })}
+        lead={combo.owner.name === null ? undefined : t('player.by', { name: combo.owner.name })}
         end={
           <>
             {user?.id === combo.owner.id ? (

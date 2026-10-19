@@ -1254,7 +1254,7 @@ describe('Simulator save and share', () => {
     expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line, again' }))
     expect(updateCombo).not.toHaveBeenCalled()
 
-    await click('toolbar.draw') // tied to the new one now
+    await play('zones.m2') // tied to the new one now
     await click('toolbar.save')
     expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Line, again' }), 1)
   })
@@ -1311,6 +1311,18 @@ describe('Simulator save and share', () => {
     expect(hand()).toHaveLength(6) // the line is the one just saved
   })
 
+  it('a rename that meets a conflict keeps its title: Save as new posts it', async () => {
+    await saved()
+    await click('toolbar.saveAs')
+    await retitle('Renamed')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    await click('combos.save')
+    expect(screen.getByText('combos.conflict.title')).toBeTruthy()
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Renamed' }))
+  })
+
   it('a combo deleted elsewhere: the update answers 404, and the title dialog posts a new one', async () => {
     await saved()
     await click('toolbar.draw')
@@ -1322,9 +1334,57 @@ describe('Simulator save and share', () => {
     expect(saveCombo).toHaveBeenCalledTimes(2)
     expect(updateCombo).toHaveBeenCalledTimes(1)
     expect(unsaved()).toBe(false)
-    await click('toolbar.draw')
+    await play('zones.m2')
     await click('toolbar.save')
     expect(updateCombo).toHaveBeenLastCalledWith('c2', expect.anything(), 1)
+  })
+
+  it('Save on a tied line that has not changed sends nothing; after a step it updates', async () => {
+    await saved()
+    await click('toolbar.save')
+    expect(updateCombo).not.toHaveBeenCalled()
+    expect(saveDialog()).toBeNull()
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Share on a tied line that has not changed copies its link in the click and sends nothing', async () => {
+    const writeText = clipboard(async () => {})
+    await saved()
+    await act(async () => {
+      fireEvent.click(button('toolbar.share'))
+      expect(writeText).toHaveBeenCalledWith(LINK('c1')) // before anything is awaited: still inside the user's gesture
+    })
+    expect(screen.getByText('combos.copied')).toBeTruthy()
+    expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('Share on a tied line that has not changed shows the link when the clipboard refuses', async () => {
+    clipboard(async () => {
+      throw new Error('denied')
+    })
+    await saved()
+    await click('toolbar.share')
+    expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
+    expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('a saved line survives a reload with no unsaved dot, and still tied', async () => {
+    // A draft keeps only a tie with a real id, as the server's.
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'fedcba9876543210', revision: 1 })
+    vi.mocked(updateCombo).mockResolvedValue({ id: 'fedcba9876543210', revision: 2 })
+    await saved()
+    await play('zones.m2')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+
+    cleanup() // the draft is written as the simulator unmounts
+    await open('/simulator')
+    expect(cardsIn('m2')).toHaveLength(1)
+    expect(button('toolbar.saveAs')).toBeTruthy() // tied
+    expect(unsaved()).toBe(false)
   })
 
   it('Share saves an unsaved session first, then copies its link; a saved one is copied at once', async () => {
@@ -1605,6 +1665,21 @@ describe('Simulator my combos', () => {
     await click('combos.save')
     expect(saveCombo).toHaveBeenCalledTimes(2)
     expect(updateCombo).not.toHaveBeenCalled()
+  })
+
+  it('a combo already deleted elsewhere (404) counts as deleted: the row goes and the tie with it', async () => {
+    listing('Opening')
+    vi.mocked(deleteCombo).mockRejectedValue(new ComboApiError(404, 'NOT_FOUND'))
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save') // tied to c1
+    await showList()
+    await removeRow(0)
+    expect(screen.queryByText('myCombos.deleteFailed')).toBeNull()
+    expect(list().queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // untied
+    expect(unsaved()).toBe(true)
   })
 
   it('a delete that lands after another combo was opened leaves that tie alone, so Save updates the one opened', async () => {
