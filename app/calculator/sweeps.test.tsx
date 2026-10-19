@@ -38,6 +38,7 @@ describe('Sweeps', () => {
   it('sweeps copies of the first tagged card and names the first count that reaches the target', () => {
     render(<Sweeps {...base} />)
     expect(screen.getByLabelText('sweeps.copiesOf:card 1')).toBeTruthy() // the chart, titled by the card
+    expect(screen.getAllByText('hands.any')).toHaveLength(2) // the legend and the reached list; no direct label on the line, which overlaps the hand's
     expect(screen.getAllByText('sweeps.notReached')).toHaveLength(2) // Combo and Any at 80 %
     fireEvent.change(screen.getByLabelText('sweeps.target'), { target: { value: '20' } })
     expect(screen.getAllByText('sweeps.reached.copies:2')).toHaveLength(2) // 2 of 40 over 5 cards: 23.7 %

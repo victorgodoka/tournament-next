@@ -90,7 +90,8 @@ export const Sweeps = (p: SweepsProps) => {
           <p className="text-ink-muted body">{t('sweeps.noPoints')}</p>
         ) : (
           <>
-            <LineChart title={title} labels={points.map((pt) => String(pt.x))} series={series} format={(v) => percent(v / 100, format)} height={240} />
+            {/* The legend names the lines; direct labels would sit on top of each other where a hand and "any" coincide. */}
+            <LineChart title={title} labels={points.map((pt) => String(pt.x))} series={series} format={(v) => percent(v / 100, format)} height={240} directLabels={false} />
             <ul className="flex flex-col divide-y divide-line">
               {names.map((name, i) => {
                 const x = reached(i)
