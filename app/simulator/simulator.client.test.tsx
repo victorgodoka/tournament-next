@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useAuth } from '@hooks/index'
 import { cardsByIds } from '@utils/cards'
+import { ComboApiError, ComboConflictError, getCombo, saveCombo, updateCombo } from '@utils/combos'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import type { CardData } from '@utils/deck/types'
 import { listMyDecks } from '@utils/decks'
@@ -16,11 +18,18 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
+vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
 // Iconify fetches its icons from the network: here each one is a span that names its icon.
 vi.mock('@iconify/react', () => ({ Icon: ({ icon, className }: { icon: string; className?: string }) => <span data-icon={icon} className={className} /> }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), listMyDecks: vi.fn() }))
+// The errors and `comboUrl` stay real: the client tells them apart and builds the link with them.
+vi.mock('@utils/combos', async (original) => ({
+  ...(await original<typeof import('@utils/combos')>()),
+  saveCombo: vi.fn(),
+  updateCombo: vi.fn(),
+  getCombo: vi.fn(),
+}))
 
 const DECK = `/simulator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3, 4, 5, 6], extra: [7], side: [] }))}`
 
@@ -84,6 +93,9 @@ beforeEach(() => {
   // Reduced motion: nothing animates unless a test asks (happy-dom says no-preference but has no `Element.animate`).
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
+  vi.mocked(useAuth).mockReturnValue({ user: { id: 'u1' } } as ReturnType<typeof useAuth>)
+  vi.mocked(saveCombo).mockResolvedValue({ id: 'c1', revision: 1 })
+  vi.mocked(updateCombo).mockResolvedValue({ id: 'c1', revision: 2 })
 })
 afterEach(() => {
   cleanup()
@@ -1150,5 +1162,256 @@ describe('Simulator board details', () => {
     expect(screen.getByText('Normal Summon', { selector: 'p' })).toBeTruthy()
     await act(async () => void vi.advanceTimersByTime(1200)) // the end of turn, and the end of the replay
     expect(screen.queryByText('Normal Summon', { selector: 'p' })).toBeNull()
+  })
+})
+
+describe('Simulator save and share', () => {
+  const DECK_ID = '0123456789abcdef'
+  /** A deck with a name and a saved deck id, as the deck picker hands it over. */
+  const NAMED = `${DECK}&name=Line&deck=${DECK_ID}`
+  const LINK = (id: string) => `${location.origin}/simulator/c/${id}`
+  const saveDialog = () => screen.queryByText('combos.dialogTitle')
+  const titleField = () => screen.getByRole<HTMLInputElement>('textbox', { name: 'combos.titleLabel' })
+  const retitle = (title: string) => act(async () => void fireEvent.change(titleField(), { target: { value: title } }))
+  /** The unsaved dot: Save says so in its description. */
+  const unsaved = () => button('toolbar.save').title === 'toolbar.unsaved'
+  /** New hand, then the first Save through the title dialog: the session is tied to `c1`, revision 1. */
+  const saved = async (url = NAMED) => {
+    await open(url)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save')
+  }
+  const clipboard = (writeText: () => Promise<void>) => {
+    const spy = vi.fn(writeText)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: spy }, configurable: true })
+    return spy
+  }
+
+  it('signed out, Save asks to sign in with a link back here and saves nothing', async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    expect(screen.getByText('combos.signIn')).toBeTruthy()
+    const link = screen.getByRole('link', { name: 'combos.signInAction' })
+    expect(link.getAttribute('href')).toBe('/login')
+    expect(saveDialog()).toBeNull()
+    expect(saveCombo).not.toHaveBeenCalled()
+    expect(hand()).toHaveLength(5) // the line stays
+    await act(async () => void fireEvent.click(link))
+    expect(sessionStorage.getItem('return-to')).toBe('/simulator') // back here after signing in
+  })
+
+  it('the first Save asks the title with the deck name filled in, then a Save after a step updates it without asking', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    expect(unsaved()).toBe(true)
+    await click('toolbar.save')
+    expect(titleField().value).toBe('Line')
+    await retitle('  Opening  ')
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }) })
+    expect(saveDialog()).toBeNull()
+    expect(unsaved()).toBe(false)
+
+    await click('toolbar.draw')
+    expect(unsaved()).toBe(true)
+    await click('toolbar.save')
+    expect(saveDialog()).toBeNull()
+    expect(updateCombo).toHaveBeenCalledWith('c1', { title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line' }) }, 1)
+    expect(vi.mocked(updateCombo).mock.calls[0]![1].payload.actions).toHaveLength(3)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+  })
+
+  it('an empty title cannot be saved', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await retitle('   ')
+    expect(button('combos.save').disabled).toBe(true)
+    expect(button('combos.saveAsNew').disabled).toBe(true)
+  })
+
+  it('Save as new always posts: from the first save, and from a tied session through Save as', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // nothing to save as yet
+    await click('toolbar.save')
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('toolbar.draw')
+    await click('toolbar.saveAs')
+    expect(titleField().value).toBe('Line') // the combo's title
+    await retitle('Line, again')
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line, again' }))
+    expect(updateCombo).not.toHaveBeenCalled()
+
+    await click('toolbar.draw') // tied to the new one now
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Line, again' }), 1)
+  })
+
+  it('Save in the Save as dialog renames the tied combo', async () => {
+    await saved()
+    await click('toolbar.saveAs')
+    await retitle('Renamed')
+    await click('combos.save')
+    expect(updateCombo).toHaveBeenCalledWith('c1', expect.objectContaining({ title: 'Renamed' }), 1)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('a combo saved elsewhere since: the conflict dialog, and Reload loads the saved one', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    // As the server sends it: jsonb reorders the keys, so its hash is not the session's.
+    vi.mocked(getCombo).mockResolvedValue({
+      id: 'c1',
+      title: 'Line',
+      deckId: DECK_ID,
+      owner: { id: 'u1', name: 'Me' },
+      revision: 2,
+      updatedAt: '2026-10-19T00:00:00Z',
+      payload: { start: 0, name: 'Line', actions: [{ n: 2, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,
+    })
+    await click('toolbar.save')
+    expect(screen.getByText('combos.conflict.title')).toBeTruthy()
+    expect(hand()).toHaveLength(6) // nothing changed yet
+
+    await click('combos.conflict.reload')
+    expect(getCombo).toHaveBeenCalledWith('c1')
+    expect(screen.queryByText('combos.conflict.title')).toBeNull()
+    expect(hand()).toHaveLength(2)
+    expect(unsaved()).toBe(false)
+
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenLastCalledWith('c1', expect.anything(), 2) // the revision just loaded
+  })
+
+  it('Save as new in the conflict dialog posts the line as a new combo', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    await click('toolbar.save')
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.saveAsNew')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line' }))
+    expect(screen.queryByText('combos.conflict.title')).toBeNull()
+    expect(unsaved()).toBe(false)
+    expect(hand()).toHaveLength(6) // the line is the one just saved
+  })
+
+  it('a combo deleted elsewhere: the update answers 404, and the title dialog posts a new one', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboApiError(404, 'NOT_FOUND'))
+    await click('toolbar.save')
+    expect(saveDialog()).toBeTruthy()
+    vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(unsaved()).toBe(false)
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(updateCombo).toHaveBeenLastCalledWith('c2', expect.anything(), 1)
+  })
+
+  it('Share saves an unsaved session first, then copies its link; a saved one is copied at once', async () => {
+    const writeText = clipboard(async () => {})
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    expect(writeText).not.toHaveBeenCalled() // the title first
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledWith(LINK('c1'))
+    expect(screen.getByText('combos.copied')).toBeTruthy()
+
+    await click('toolbar.share')
+    expect(writeText).toHaveBeenCalledTimes(2)
+    expect(updateCombo).not.toHaveBeenCalled()
+
+    await click('toolbar.draw')
+    await click('toolbar.share')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledTimes(3)
+  })
+
+  it('a plain Save copies nothing, and closing the title dialog drops the share', async () => {
+    const writeText = clipboard(async () => {})
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    await click('Close')
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(writeText).not.toHaveBeenCalled()
+  })
+
+  it('a clipboard that refuses shows the link in a read-only field', async () => {
+    clipboard(async () => {
+      throw new Error('denied')
+    })
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.share')
+    await click('combos.save')
+    expect(screen.getByText('combos.copyFailed')).toBeTruthy()
+    expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
+  })
+
+  it('the combo limit and a refused combo each say so, and nothing is tied', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new ComboApiError(409, 'LIMIT'))
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(screen.getByText('combos.limit')).toBeTruthy()
+    expect(saveDialog()).toBeNull()
+
+    vi.mocked(saveCombo).mockRejectedValueOnce(new ComboApiError(400, 'BAD_REQUEST'))
+    await click('toolbar.save') // still a first save: the title again
+    await click('combos.save')
+    expect(screen.getByText('combos.saveFailed')).toBeTruthy()
+    expect(screen.queryByText('combos.limit')).toBeNull()
+    expect(unsaved()).toBe(true)
+  })
+
+  it('a network failure shows Retry and changes nothing; Retry saves the line as it is then', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await click('combos.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    expect(unsaved()).toBe(true)
+    expect(hand()).toHaveLength(5)
+    await click('toolbar.draw')
+    await act(async () => void fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'retry' })))
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(saveCombo).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Line' }))
+    expect(vi.mocked(saveCombo).mock.lastCall![0].payload.actions).toHaveLength(3) // the draw played after the failure
+    expect(screen.queryByText('combos.failed')).toBeNull()
+    expect(unsaved()).toBe(false)
+  })
+
+  it('Save, Save as and Share are off while a replay plays', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(button('toolbar.save').disabled).toBe(true)
+    expect(button('toolbar.saveAs').disabled).toBe(true)
+    expect(button('toolbar.share').disabled).toBe(true)
   })
 })

@@ -24,12 +24,22 @@ type ToolbarProps = {
   onUndo(): void
   onRedo(): void
   onReset(): void
+  /** Nothing saved yet, or changed since: Save shows a dot. */
+  unsaved: boolean
+  onSave(): void
+  /** Shown only for a session tied to a saved combo. */
+  onSaveAs(): void
+  onShare(): void
 }
 
-/** Deck, New hand, Choose hand, Draw 1, End turn, Undo, Redo and Reset, then the turn. Every decision is the client's: the buttons only ask. */
-export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onChooseHand, onAct, onUndo, onRedo, onReset }: ToolbarProps) => {
+/**
+ * Deck, New hand, Choose hand, Draw 1, End turn, Undo, Redo, Reset, Save, Save as and Share, then the turn. Every
+ * decision is the client's: the buttons only ask.
+ */
+export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onChooseHand, onAct, onUndo, onRedo, onReset, unsaved, onSave, onSaveAs, onShare }: ToolbarProps) => {
   const t = useTranslations('Simulator')
   const still = playing || picking
+  const noDeck = session.deck.main.length === 0
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary" size="sm" disabled={playing} onClick={onDeck} className={TOUCH}>
@@ -55,6 +65,18 @@ export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, o
       </Button>
       <Button variant="ghost" size="sm" disabled={playing || session.actions.length === 0} onClick={onReset} className={TOUCH}>
         {t('toolbar.reset')}
+      </Button>
+      <Button variant="secondary" size="sm" disabled={playing || noDeck} onClick={onSave} title={unsaved ? t('toolbar.unsaved') : undefined} className={TOUCH}>
+        {t('toolbar.save')}
+        {unsaved ? <span aria-hidden className="size-1.5 bg-gold" /> : null}
+      </Button>
+      {session.combo ? (
+        <Button variant="secondary" size="sm" disabled={playing} onClick={onSaveAs} className={TOUCH}>
+          {t('toolbar.saveAs')}
+        </Button>
+      ) : null}
+      <Button variant="secondary" size="sm" disabled={playing || noDeck} onClick={onShare} className={TOUCH}>
+        {t('toolbar.share')}
       </Button>
       <span className="ms-auto text-ink-muted signal">{t('turn', { n: board.turn })}</span>
     </div>

@@ -1109,13 +1109,37 @@
       "endTurn": "End turn",
       "undo": "Undo",
       "redo": "Redo",
-      "reset": "Reset"
+      "reset": "Reset",
+      "save": "Save",
+      "saveAs": "Save as…",
+      "share": "Share",
+      "unsaved": "Unsaved changes"
     },
     "confirm": {
       "title": "Discard this line?",
       "body": "The board and its history will be cleared. This can't be undone.",
       "discard": "Discard",
       "cancel": "Keep playing"
+    },
+    "combos": {
+      "dialogTitle": "Save combo",
+      "titleLabel": "Title",
+      "save": "Save",
+      "saveAsNew": "Save as new",
+      "signIn": "Sign in to save your combos. Your line stays here.",
+      "signInAction": "Sign in",
+      "limit": "You have 500 combos saved; delete one to save another.",
+      "saveFailed": "Could not save this combo.",
+      "failed": "Could not reach the server. Nothing was changed.",
+      "damaged": "The saved combo is damaged, so it was not loaded.",
+      "copied": "Link copied.",
+      "copyFailed": "Copy this link to share the combo:",
+      "link": "Combo link",
+      "conflict": {
+        "title": "This combo changed elsewhere",
+        "body": "It was saved from another tab or device after you loaded it. Reload the saved one, which discards your changes here, or save yours as a new combo.",
+        "reload": "Reload the saved one"
+      }
     },
     "damagedLink": "This deck link is damaged, so the simulator opened empty.",
     "dismiss": "Dismiss",

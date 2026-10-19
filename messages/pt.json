@@ -1109,13 +1109,37 @@
       "endTurn": "Encerrar turno",
       "undo": "Desfazer",
       "redo": "Refazer",
-      "reset": "Recomeçar"
+      "reset": "Recomeçar",
+      "save": "Salvar",
+      "saveAs": "Salvar como…",
+      "share": "Compartilhar",
+      "unsaved": "Alterações não salvas"
     },
     "confirm": {
       "title": "Descartar esta linha?",
       "body": "O campo e o histórico serão apagados. Isso não pode ser desfeito.",
       "discard": "Descartar",
       "cancel": "Continuar jogando"
+    },
+    "combos": {
+      "dialogTitle": "Salvar combo",
+      "titleLabel": "Título",
+      "save": "Salvar",
+      "saveAsNew": "Salvar como novo",
+      "signIn": "Entre para salvar seus combos. Sua linha continua aqui.",
+      "signInAction": "Entrar",
+      "limit": "Você tem 500 combos salvos; apague um para salvar outro.",
+      "saveFailed": "Não foi possível salvar este combo.",
+      "failed": "Não foi possível falar com o servidor. Nada foi alterado.",
+      "damaged": "O combo salvo está corrompido, então não foi carregado.",
+      "copied": "Link copiado.",
+      "copyFailed": "Copie este link para compartilhar o combo:",
+      "link": "Link do combo",
+      "conflict": {
+        "title": "Este combo mudou em outro lugar",
+        "body": "Ele foi salvo em outra aba ou dispositivo depois que você o carregou. Recarregue o salvo, descartando suas mudanças aqui, ou salve o seu como um combo novo.",
+        "reload": "Recarregar o salvo"
+      }
     },
     "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
     "dismiss": "Fechar",

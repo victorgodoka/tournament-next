@@ -24,8 +24,10 @@ import { HandPicker } from './hand-picker'
 import { History } from './history'
 import { PilePanel } from './pile-panel'
 import { ReplayBar, type Speed } from './replay-bar'
+import { SaveFlowView } from './save-dialog'
 import { Toolbar, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
+import { useSave } from './use-save'
 
 const DRAFT_DELAY_MS = 300
 /** How long a step stays on screen at 1x: a move or a draw has a card to follow, the rest only changes in place. */
@@ -180,6 +182,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setSelected(null)
     setTargeting(null)
   }
+  const saves = useSave(session, dispatch, forget)
 
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
@@ -346,11 +349,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           }
         />
       ) : null}
+      <SaveFlowView flow={saves} />
 
+      {/* A save on its way holds the toolbar too: a deck or hand loaded before it lands would be tied to that combo. */}
       <Toolbar
         board={board}
         session={session}
-        playing={playing}
+        playing={playing || saves.busy}
         picking={targetMode}
         onDeck={() => setPicker(true)}
         onNewHand={newHand}
@@ -359,6 +364,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onUndo={() => step(cursor - 1)}
         onRedo={() => step(cursor + 1)}
         onReset={reset}
+        unsaved={saves.unsaved}
+        onSave={saves.save}
+        onSaveAs={saves.saveAs}
+        onShare={saves.share}
       />
       <ReplayBar
         cursor={cursor}
