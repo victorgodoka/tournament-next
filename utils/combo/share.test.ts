@@ -55,6 +55,18 @@ describe('share', () => {
     await expect(decodeShare(await edit((r) => (r.builds = [])))).rejects.toThrow(ShareError)
     await expect(decodeShare(await edit((r) => (r.focus = { kind: 'role', role: '' })))).rejects.toThrow(ShareError)
   })
+  it('round-trips three builds and refuses seven', async () => {
+    const a = calc().builds[0]!
+    const three: Calculation = {
+      ...calc(),
+      builds: [a, { ...a, name: 'B', format: null, deckId: null, roles: new Map([[1001, ['Brick']]]) }, { ...a, name: 'C', deck: { ...a.deck, main: [...a.deck.main, 1037, 1038] } }],
+    }
+    const code = await encodeShare(three)
+    expect(code.length).toBeLessThan(3000)
+    expect(await decodeShare(code)).toEqual(three)
+    const raw = JSON.parse(await inflateForTest(code)) as { builds: unknown[] }
+    await expect(decodeShare(await deflateForTest(JSON.stringify({ ...raw, builds: Array<unknown>(7).fill(raw.builds[0]) })))).rejects.toThrow(ShareError)
+  })
   it('normalizes roles and ignores unknown keys on the way in', async () => {
     const raw = JSON.parse(await inflateForTest(await encodeShare(calc()))) as Record<string, unknown>
     raw.extra = true
