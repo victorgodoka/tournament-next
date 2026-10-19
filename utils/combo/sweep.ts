@@ -19,7 +19,7 @@ const split = (cards: readonly DeckCard[], roles: Roles, analysis: Analysis, kee
   const tagged: DeckCard[] = []
   let filler = 0
   for (const card of cards) {
-    if (card.id === keep || subjects.some((s) => satisfies(card, roles, s))) tagged.push(card)
+    if (card.id === keep || subjects.some((s) => satisfies(card.id, roles, s))) tagged.push(card)
     else filler += card.copies
   }
   return { tagged, filler }
