@@ -790,6 +790,7 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
+    expect(rows().map((row) => row.querySelector('[data-step-number]')?.textContent ?? null)).toEqual([null, '#1', '#2'])
     expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
     expect(within(rows()[0]!).getByText('history.startMark')).toBeTruthy()
     await click('history.shuffle')
@@ -816,7 +817,7 @@ describe('Simulator history and replay', () => {
     await click('replay.play')
     expect(hand()).toHaveLength(5)
     expect(button('replay.pause')).toBeTruthy()
-    await act(async () => void vi.advanceTimersByTime(800))
+    await act(async () => void vi.advanceTimersByTime(1200)) // the draw of 5 on screen: a draw stays 1.2 s
     expect(hand()).toHaveLength(6)
     expect(button('replay.play')).toBeTruthy()
   })
@@ -900,17 +901,26 @@ describe('Simulator history and replay', () => {
       vi.stubGlobal('matchMedia', () => ({ matches: motion }))
       animate = vi.fn()
       Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
-      // The hand sits at y 300, m0 at x 200, the deck at x 600; everything else at the origin.
+      // The hand sits at y 300, each of its cards 50 px right of the one before; m0 at x 200, the deck at x 600;
+      // everything else at the origin.
       vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
         const at = this.closest('[data-zone]')?.getAttribute('data-zone')
-        return new DOMRect(at === 'm0' ? 200 : at === 'deck' ? 600 : 0, at === 'hand' ? 300 : 0, 10, 10)
+        const slot = this.closest('[data-zone="hand"] > *')
+        const x = at === 'm0' ? 200 : at === 'deck' ? 600 : slot ? [...slot.parentElement!.children].indexOf(slot) * 50 : 0
+        return new DOMRect(x, at === 'hand' ? 300 : 0, 10, 10)
       })
     })
     afterEach(() => {
       vi.restoreAllMocks()
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate
     })
-    const slide = (dx: number, dy: number) => [[{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: 250, easing: 'ease-out' }]
+    const slide = (dx: number, dy: number) => [
+      [
+        { translate: `${dx}px ${dy}px`, scale: '1.08', zIndex: '20' },
+        { translate: '0 0', scale: '1', zIndex: '20' },
+      ],
+      { duration: 450, easing: 'ease-out' },
+    ]
 
     it('a move slides the card from where it was, unless motion is reduced', async () => {
       await open(DECK)
@@ -932,7 +942,113 @@ describe('Simulator history and replay', () => {
       await click('toolbar.draw')
       expect(animate).toHaveBeenCalledTimes(1) // the cards already in the hand stay put
       expect(animate.mock.contexts[0]).toBe(hand()[5]!.parentElement)
-      expect(animate.mock.calls[0]).toEqual(slide(600, -300))
+      expect(animate.mock.calls[0]).toEqual(slide(350, -300))
     })
+
+    it('only the card of the step slides: the hand closing the gap it left does not', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      animate.mockClear()
+      await play('zones.m0') // the four cards after it each shift 50 px left
+      expect(animate).toHaveBeenCalledTimes(1)
+      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement)
+    })
+
+    it('a card sent to a pile slides in as the pile’s top card', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      animate.mockClear()
+      await play('zones.gy') // from the hand at (0, 300) to the GY at the origin
+      expect(animate).toHaveBeenCalledTimes(1)
+      expect(animate.mock.contexts[0]).toBe(zone('gy').firstElementChild)
+      expect(animate.mock.calls[0]).toEqual(slide(0, 300))
+    })
+
+    it('a step back slides the card back to where it came from', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      animate.mockClear()
+      await click('replay.prev')
+      expect(animate).toHaveBeenCalledTimes(1)
+      expect(animate.mock.contexts[0]).toBe(hand()[0]!.parentElement)
+      expect(animate.mock.calls[0]).toEqual(slide(200, -300))
+    })
+
+    it('a card dropped by drag lands where it was dropped, with no slide', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      animate.mockClear()
+      vi.spyOn(document, 'elementFromPoint').mockReturnValue(zone('m0'))
+      const card = hand()[0]!
+      for (const [type, x] of [['pointerDown', 0], ['pointerMove', 50], ['pointerUp', 50]] as const)
+        await act(async () => void fireEvent[type](card, { clientX: x, clientY: x, pointerId: 1, pointerType: 'mouse' }))
+      expect(cardsIn('m0')).toHaveLength(1)
+      expect(animate).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('Simulator replay bar', () => {
+  const position = () => screen.getByText(/^\d+ \/ \d+$/).textContent
+  const timeline = () => screen.getByRole<HTMLInputElement>('slider', { name: 'replay.timeline' })
+  const speed = (label: string) =>
+    act(async () => void fireEvent.click(within(screen.getByRole('group', { name: 'replay.speed' })).getByRole('button', { name: label })))
+  const empty = (key: string) => within(zone(key)).queryAllByRole('button')
+
+  it('steps back and forward, seeks on the timeline, and Stop goes back to the last step', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('toolbar.draw')
+    expect(position()).toBe('3 / 3')
+    expect(button('replay.next').disabled).toBe(true)
+    await click('replay.prev')
+    expect(hand()).toHaveLength(5)
+    await click('replay.next')
+    expect(hand()).toHaveLength(6)
+    await act(async () => void fireEvent.change(timeline(), { target: { value: '1' } }))
+    expect(hand()).toHaveLength(0)
+    expect(position()).toBe('1 / 3')
+    await click('replay.stop')
+    expect(hand()).toHaveLength(6)
+    expect(position()).toBe('3 / 3')
+  })
+
+  it('a move stays on screen 1.2 s at 1x and half that at 2x', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await play('zones.m1')
+    await replayFrom(3) // after the first move
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(cardsIn('m0')).toHaveLength(1)
+    expect(empty('m1')).toHaveLength(0)
+    await act(async () => void vi.advanceTimersByTime(1199))
+    expect(empty('m1')).toHaveLength(0)
+    await act(async () => void vi.advanceTimersByTime(1))
+    expect(cardsIn('m1')).toHaveLength(1)
+    await speed('2x')
+    await click('replay.play')
+    await act(async () => void vi.advanceTimersByTime(599))
+    expect(empty('m1')).toHaveLength(0)
+    await act(async () => void vi.advanceTimersByTime(1))
+    expect(cardsIn('m1')).toHaveLength(1)
+  })
+
+  it('the card of the step on screen is marked and the card panel shows it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const moved = hand()[1]!
+    await rightClick(moved)
+    await choose('menu.moveTo')
+    await choose('zones.m0')
+    await click('replay.prev') // the draw of 5: its cards are marked, the panel shows the first of them
+    expect(hand().every((card) => card.dataset.step === 'true')).toBe(true)
+    expect(screen.getByRole('heading', { name: hand()[0]!.title })).toBeTruthy()
+    await click('replay.next')
+    expect(cardsIn('m0')[0]!.dataset.step).toBe('true')
+    expect(hand().some((card) => card.dataset.step)).toBe(false)
+    expect(screen.getByRole('heading', { name: moved.title })).toBeTruthy()
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
-import { apply, initial, isMonsterSlot, isSlot, isValid, locate, shuffleAction, timeline, validRun } from './board'
+import { apply, initial, isMonsterSlot, isSlot, isValid, locate, shuffleAction, stepCards, timeline, validRun } from './board'
 import type { Action, Board, Face, Pos, ZoneId } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202, 203], side: [] }
@@ -31,6 +31,15 @@ describe('simulator board', () => {
     expect(b0.cards[10]!.code).toBe(201)
     expect(b0.turn).toBe(1)
     for (const z of Object.keys(b0.zones) as ZoneId[]) if (z !== 'deck' && z !== 'extra') expect(b0.zones[z]).toEqual([])
+  })
+
+  it('stepCards names the cards a step plays: a draw takes the deck top, a shuffle or an end of turn none', () => {
+    expect(stepCards(draw(3), b0)).toEqual([0, 1, 2])
+    expect(stepCards(mv(4, 'm0'), b0)).toEqual([4])
+    expect(stepCards(activate(4, [5]), b0)).toEqual([4])
+    expect(stepCards(counter(4, 1), b0)).toEqual([4])
+    expect(stepCards({ t: 'shuffle', order: ids.slice(0, 10) }, b0)).toEqual([])
+    expect(stepCards({ t: 'endTurn' }, b0)).toEqual([])
   })
 
   it('locate finds a card, isSlot and isMonsterSlot classify zones', () => {

@@ -8,8 +8,8 @@ import { Icon } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
 import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
-import { isMonsterSlot, isSlot, locate } from '@utils/simulator/board'
-import type { Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import { isMonsterSlot, isSlot, locate, stepCards } from '@utils/simulator/board'
+import type { Action, Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
 import type { Drag } from './use-drag'
 
 /** The card that was activated and the cards it targets. */
@@ -21,6 +21,14 @@ export type BoardViewProps = {
   selected: number | null
   /** What to show of an activation: the glow on its card, a mark and an arrow for each target. */
   activation: Activation | null
+  /** The cards the step on screen played: corner brackets on each. */
+  marked: number[]
+  /** Where the session stands: a move of one step slides the cards of that step, and only those. */
+  step: { cursor: number; actions: readonly Action[] }
+  /** A card a drag just dropped: it is already where the pointer let go, so it does not slide. Read once, then cleared. */
+  droppedRef: React.RefObject<number | null>
+  /** How long a card takes to slide into its new place. */
+  flipMs: number
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
   /** A long press: the menu opens at the finger, which no click event carries. */
@@ -62,11 +70,21 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
   </>
 )
 
+/** Corner brackets around a card the step on screen played. */
+const StepMark = () => (
+  <span aria-hidden className="pointer-events-none absolute -inset-1 z-1">
+    <span className="absolute top-0 left-0 size-2.5 border-t-2 border-l-2 border-cyan" />
+    <span className="absolute top-0 right-0 size-2.5 border-t-2 border-r-2 border-cyan" />
+    <span className="absolute bottom-0 left-0 size-2.5 border-b-2 border-l-2 border-cyan" />
+    <span className="absolute right-0 bottom-0 size-2.5 border-r-2 border-b-2 border-cyan" />
+  </span>
+)
+
 /** An arrowhead's barbs, in px, and how far they spread from the line. */
 const HEAD = 10
 const SPREAD = 0.5
-/** How long a moved card takes to slide into its new place. */
-const FLIP_MS = 250
+/** How long a card takes to slide into its new place at 1x: slow enough to follow. */
+export const FLIP_MS = 450
 
 type Point = { x: number; y: number }
 const centre = (r: DOMRect): Point => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
@@ -119,7 +137,8 @@ const arrowsFor = (root: HTMLElement, board: Board, activation: Activation | nul
  */
 export const BoardView = (p: BoardViewProps) => {
   const t = useTranslations('Simulator')
-  const { board, activation } = p
+  const { board, activation, droppedRef, flipMs } = p
+  const { cursor, actions } = p.step
   const root = useRef<HTMLDivElement>(null)
   const arrows = useRef<SVGSVGElement>(null)
 
@@ -138,11 +157,14 @@ export const BoardView = (p: BoardViewProps) => {
   }, [board, activation])
 
   // FLIP, after the arrows so they measure where the cards land. Each card button's centre is kept, relative to the board
-  // (a scroll moves nothing); on the next board a card that moved slides from there. A card that was in a pile had no
-  // button there, so it slides from the pile's cell; one that goes into a pile has nothing left to slide. The button is
-  // measured, since in DEF its box is the turned card; its wrapper slides, since `translate` there is not turned by DEF.
+  // (a scroll moves nothing); on the next board the cards of the step between the two slide from there, lifted over the
+  // rest: one step on, the step just played; one step back, the step undone. Everything else jumps to its place (the hand
+  // closing a gap, a seek, a new hand), so the eye has one card to follow. A card that was in a pile had no button there,
+  // so it slides from the pile's cell; one that goes into a pile has nothing left to slide; one a drag just dropped is
+  // already there. The button is measured, since in DEF its box is the turned card; its wrapper slides, since
+  // `translate` there is not turned by DEF.
   // ponytail: positions are only taken on a board change, so a resize in between slides every card once on the next step; re-measure from the ResizeObserver if that shows.
-  const seen = useRef<{ board: Board; at: Map<string, Point> } | null>(null)
+  const seen = useRef<{ board: Board; cursor: number; actions: readonly Action[]; at: Map<string, Point> } | null>(null)
   useLayoutEffect(() => {
     const el = root.current
     if (!el) return
@@ -153,20 +175,41 @@ export const BoardView = (p: BoardViewProps) => {
     }
     const before = seen.current
     const motion = matchMedia('(prefers-reduced-motion: no-preference)').matches
+    const played = before && cursor === before.cursor + 1 ? actions[cursor - 1] : undefined
+    const undone = before && cursor === before.cursor - 1 ? before.actions[cursor] : undefined
+    const moving = played ? stepCards(played, before!.board) : undone ? stepCards(undone, board) : []
+    const landed = droppedRef.current
+    droppedRef.current = null
+    const slide = (target: Element | null | undefined, was: Point | null | undefined, at: Point) => {
+      if (!target || !was || (was.x === at.x && was.y === at.y)) return
+      target.animate(
+        [
+          { translate: `${was.x - at.x}px ${was.y - at.y}px`, scale: '1.08', zIndex: '20' },
+          { translate: '0 0', scale: '1', zIndex: '20' },
+        ],
+        { duration: flipMs, easing: 'ease-out' },
+      )
+    }
     const now = new Map<string, Point>()
     for (const card of el.querySelectorAll<HTMLElement>('[data-card]')) {
       const id = card.dataset.card!
       const at = local(card.getBoundingClientRect())
       now.set(id, at)
-      if (!motion || !before) continue
+      if (!motion || !before || !moving.includes(Number(id)) || Number(id) === landed) continue
       const pile = before.at.has(id) ? null : locate(before.board, Number(id))?.zone
       const cell = pile ? el.querySelector(`[data-zone="${pile}"]`) : null
-      const was = before.at.get(id) ?? (cell ? local(cell.getBoundingClientRect()) : null)
-      if (!was || (was.x === at.x && was.y === at.y)) continue
-      card.parentElement?.animate([{ translate: `${was.x - at.x}px ${was.y - at.y}px` }, { translate: '0 0' }], { duration: FLIP_MS, easing: 'ease-out' })
+      slide(card.parentElement, before.at.get(id) ?? (cell ? local(cell.getBoundingClientRect()) : null), at)
     }
-    seen.current = { board, at: now }
-  }, [board])
+    // A card that went into a pile has no button there: the pile's top slides in from where the card was, when it is that card.
+    for (const id of moving) {
+      if (!motion || !before || now.has(String(id)) || id === landed) continue
+      const to = locate(board, id)
+      if (!to || isSlot(to.zone) || to.index !== 0) continue
+      const top = el.querySelector(`[data-zone="${to.zone}"] > *`)
+      if (top) slide(top, before.at.get(String(id)), local(top.getBoundingClientRect()))
+    }
+    seen.current = { board, cursor, actions, at: now }
+  }, [board, cursor, actions, flipMs, droppedRef])
 
   return (
     <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
@@ -184,12 +227,13 @@ export const BoardView = (p: BoardViewProps) => {
           </div>
         ))}
       </div>
-      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. */}
+      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. Left-aligned: a card that
+          leaves shifts only the ones after it, never the whole hand. */}
       <div
         role="group"
         aria-label={t('zones.hand')}
         data-zone="hand"
-        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-center gap-1"
+        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-start gap-1"
       >
         {p.board.zones.hand.map((id) => (
           <div key={id} className="max-w-(--card-w) min-w-0 flex-1 last:flex-none">
@@ -250,6 +294,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   const card = p.board.cards[id]!
   const active = p.activation?.card === id
   const targeted = !!p.activation?.targets.includes(id)
+  const marked = p.marked.includes(id)
   return (
     <div className={twMerge('relative', className)}>
       {/* DEF: turned and scaled by 59/86 so the sideways card fits its cell. */}
@@ -261,6 +306,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           data-card={id}
           data-active={active || undefined}
           data-targeted={targeted || undefined}
+          data-step={marked || undefined}
           onPointerDown={(e) => {
             const at = { x: e.clientX, y: e.clientY }
             press.bind(() => p.onLongPress(id, at)).onPointerDown(e)
@@ -287,6 +333,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
         />
         {card.face === 'down' ? <Back /> : null}
         <ActivationMarks active={active} targeted={targeted} />
+        {marked ? <StepMark /> : null}
       </div>
       {card.negated ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-crimson-lift')}>
@@ -321,6 +368,8 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
         </span>
       ) : null}
       <span className={twMerge(BADGE, 'right-0 bottom-0 bg-space-000 text-ink')}>{ids.length}</span>
+      {/* The card the step just put on top of the pile (a send to the GY, a banish). */}
+      {top && p.marked.includes(top.id) ? <StepMark /> : null}
     </>
   )
 }

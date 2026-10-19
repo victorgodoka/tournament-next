@@ -9,22 +9,24 @@ import { PageHeader } from '@ui/page-header'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
-import { initial, isMonsterSlot, shuffleAction, timeline, validRun } from '@utils/simulator/board'
+import { initial, isMonsterSlot, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
 import type { Action, MonsterSlot, Pile, Session } from '@utils/simulator/types'
-import { BoardView, DragGhost } from './board'
+import { BoardView, DragGhost, FLIP_MS } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { History } from './history'
 import { PilePanel } from './pile-panel'
+import { ReplayBar, type Speed } from './replay-bar'
 import { Toolbar, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 
 const DRAFT_DELAY_MS = 300
-const REPLAY_STEP_MS = 800
+/** How long a step stays on screen at 1x: a move or a draw has a card to follow, the rest only changes in place. */
+const stepMs = (a: Action | undefined) => (a?.t === 'move' || a?.t === 'draw' ? 1200 : 700)
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -74,8 +76,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
   const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
-  /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar but Pause are off. */
+  /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar are off. */
   const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState<Speed>(1)
   /** Below `lg` the card panel and the history share the space under the board as two tabs. */
   const [tab, setTab] = useState<'card' | 'history'>('card')
   const [lookupAttempt, setLookupAttempt] = useState(0)
@@ -90,6 +93,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     () => (targeting ? { card: targeting.source, targets: targeting.targets } : shown?.t === 'activate' ? shown : null),
     [targeting, shown],
   )
+  /** The cards the step on screen played: the board marks them. */
+  const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
 
   useEffect(() => {
     ensure([...session.deck.main, ...session.deck.extra]).catch(() => {})
@@ -103,17 +108,36 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return () => document.removeEventListener('keydown', escape)
   }, [targetMode])
 
-  // One timer per step: a pause, the unmount or any move of the cursor clears it; the step that reaches the end stops the replay.
   const { cursor } = session
   const end = session.actions.length
+  /**
+   * Shows step `to` as the replay and its controls do: the card panel follows the card that step played (a step with
+   * none, a shuffle or an end of turn, leaves it). Acting by hand is not this: a draw or a drag leaves the panel alone.
+   */
+  const go = (to: number) => {
+    const at = Math.max(0, Math.min(to, end))
+    const card = at > 0 ? stepCards(session.actions[at - 1]!, boards[at - 1]!)[0] : undefined
+    if (card !== undefined) setSelected(card)
+    dispatch({ type: 'seek', cursor: at })
+  }
+  /** The bar's buttons, its timeline, the arrows and the history: they pause a replay, then show that step. */
+  const step = (to: number) => {
+    setPlaying(false)
+    go(to)
+  }
+
+  // One timer per step, as long as the step on screen asks at this speed: a pause, the unmount or any move of the cursor
+  // clears it; the step that reaches the end stops the replay.
+  const delay = stepMs(shown) / speed
+  const advance = useEffectEvent(() => {
+    go(cursor + 1)
+    if (cursor + 1 >= end) setPlaying(false)
+  })
   useEffect(() => {
     if (!playing) return
-    const timer = setTimeout(() => {
-      dispatch({ type: 'redo' })
-      if (cursor + 1 >= end) setPlaying(false)
-    }, REPLAY_STEP_MS)
+    const timer = setTimeout(advance, delay)
     return () => clearTimeout(timer)
-  }, [playing, cursor, end])
+  }, [playing, cursor, end, delay])
 
   // The session still waiting on the debounce: the unmount and `pagehide` write it at once, so a reload keeps the last step.
   const unsaved = useRef<Session | null>(null)
@@ -177,11 +201,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const togglePlay = () => {
     if (playing) return setPlaying(false)
     if (targeting || session.start >= end) return
-    if (cursor === end || cursor < session.start) dispatch({ type: 'seek', cursor: session.start })
+    if (cursor === end || cursor < session.start) go(session.start)
     setMenu(null)
     setPlaying(true)
   }
 
+  /** The card a drag just dropped: it is already where the pointer let go, so the board does not slide it there. */
+  const droppedRef = useRef<number | null>(null)
   // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
   // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
   const dragOn = menu === null && !targeting && !playing
@@ -189,14 +215,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     enabled: dragOn,
     onDrop: (card, zone, shift) => {
       const action = dropAction(board, card, zone, shift)
-      if (action) perform([action])
+      if (!action) return
+      droppedRef.current = card
+      perform([action])
     },
   })
   const dragging = dragOn ? drag.dragging : null
 
   // Shortcuts. Target mode owns the keyboard (Escape cancels it), as do an open menu and dialog, a text field, and any
   // widget that already handled the key (the tab bar's arrows). Space on a button presses the button. Nothing during a
-  // drag: an undo there would take the dragged card off the board and leave its ghost hanging.
+  // drag: an undo there would take the dragged card off the board and leave its ghost hanging. During a replay a step
+  // key pauses it first, as the bar's buttons do.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     const target = e.target instanceof Element ? e.target : null
     if (e.defaultPrevented || targeting || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
@@ -210,10 +239,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       : e.key === 'ArrowRight' ? 'redo'
       : e.key === ' ' && !target?.matches('button') ? 'play'
       : null
-    if (!run || (playing && run !== 'play')) return
+    if (!run) return
     e.preventDefault()
     if (run === 'play') togglePlay()
-    else dispatch({ type: run })
+    else step(cursor + (run === 'redo' ? 1 : -1))
   })
   useEffect(() => {
     const listener = (e: KeyboardEvent) => onKey(e)
@@ -312,10 +341,20 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onDeck={() => setPicker(true)}
         onNewHand={newHand}
         onAct={perform}
-        onUndo={() => dispatch({ type: 'undo' })}
-        onRedo={() => dispatch({ type: 'redo' })}
-        onPlay={togglePlay}
+        onUndo={() => step(cursor - 1)}
+        onRedo={() => step(cursor + 1)}
         onReset={reset}
+      />
+      <ReplayBar
+        cursor={cursor}
+        end={end}
+        start={session.start}
+        playing={playing}
+        picking={targetMode}
+        speed={speed}
+        onStep={step}
+        onPlay={togglePlay}
+        onSpeed={setSpeed}
       />
 
       {targeting ? (
@@ -342,6 +381,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           cards={cards}
           selected={selected}
           activation={activation}
+          marked={marked}
+          step={{ cursor, actions: session.actions }}
+          droppedRef={droppedRef}
+          flipMs={FLIP_MS / Math.max(1, speed)}
           onCard={onCard}
           onMenu={onMenu}
           onLongPress={(id, at) => !targeting && openMenu(id, at)}
@@ -385,7 +428,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               cards={cards}
               nameOf={nameOf}
               disabled={playing || targetMode}
-              onSeek={(at) => dispatch({ type: 'seek', cursor: at })}
+              onSeek={step}
               onSetStart={(start) => dispatch({ type: 'setStart', start })}
             />
           </div>

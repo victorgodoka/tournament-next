@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { Chip } from '@ui/chip'
@@ -61,11 +62,24 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
     ...session.actions.map((a, i) => ({ line: describe(a, boards[i]!), code: 'card' in a ? (boards[i]!.cards[a.card]?.code ?? null) : null })),
   ]
 
+  // The current step stays in view as a replay or the arrows move it. Only the list scrolls, never the page.
+  const list = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    const ol = list.current
+    const row = ol?.querySelector('[aria-current="step"]')?.closest('li')
+    if (!ol || !row) return
+    if (row.offsetTop < ol.scrollTop) ol.scrollTop = row.offsetTop
+    else if (row.offsetTop + row.offsetHeight > ol.scrollTop + ol.clientHeight) ol.scrollTop = row.offsetTop + row.offsetHeight - ol.clientHeight
+  }, [session.cursor])
+
   return (
     <Panel tone="framed" title={t('history.title')} className="p-4 min-[720px]:p-4">
-      <ol aria-label={t('history.title')} className="max-h-96 overflow-y-auto">
+      <ol ref={list} aria-label={t('history.title')} className="relative max-h-96 overflow-y-auto">
         {rows.map(({ line, code }, i) => (
           <li key={i} className="flex items-center gap-2 border-b border-line last:border-b-0">
+            <span data-step-number={i ? '' : undefined} className="w-7 shrink-0 text-right font-mono text-ink-muted body-sm tabular-nums">
+              {i ? `#${i}` : null}
+            </span>
             {/* A picture, not a control: the line already names the card. The slot stays for rows without one, so the lines align. */}
             <span className="w-6 shrink-0">
               {code === null ? null : <CardTile id={code} card={cards.get(code)} sizes="24px" disabled aria-hidden className="cursor-default" />}

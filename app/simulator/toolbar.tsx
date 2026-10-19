@@ -13,21 +13,20 @@ const END_TURN: Action = { t: 'endTurn' }
 type ToolbarProps = {
   board: Board
   session: Session
-  /** A replay is playing: every button but Pause is off. */
+  /** A replay is playing: every button is off (the replay bar pauses it). */
   playing: boolean
-  /** Target mode: Undo, Redo and Play are off until the pick is confirmed or cancelled. */
+  /** Target mode: Undo and Redo are off until the pick is confirmed or cancelled. */
   picking: boolean
   onDeck(): void
   onNewHand(): void
   onAct(actions: Action[]): void
   onUndo(): void
   onRedo(): void
-  onPlay(): void
   onReset(): void
 }
 
-/** Deck, New hand, Draw 1, End turn, Undo, Redo, Play/Pause and Reset, then the turn. Every decision is the client's: the buttons only ask. */
-export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onAct, onUndo, onRedo, onPlay, onReset }: ToolbarProps) => {
+/** Deck, New hand, Draw 1, End turn, Undo, Redo and Reset, then the turn. Every decision is the client's: the buttons only ask. */
+export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, onAct, onUndo, onRedo, onReset }: ToolbarProps) => {
   const t = useTranslations('Simulator')
   const still = playing || picking
   return (
@@ -49,10 +48,6 @@ export const Toolbar = ({ board, session, playing, picking, onDeck, onNewHand, o
       </Button>
       <Button variant="secondary" size="sm" disabled={still || session.cursor === session.actions.length} onClick={onRedo} className={TOUCH}>
         {t('toolbar.redo')}
-      </Button>
-      {/* Nothing after the start: nothing to play. */}
-      <Button variant="secondary" size="sm" disabled={!playing && (picking || session.start >= session.actions.length)} onClick={onPlay} className={TOUCH}>
-        {t(playing ? 'replay.pause' : 'replay.play')}
       </Button>
       <Button variant="ghost" size="sm" disabled={playing || session.actions.length === 0} onClick={onReset} className={TOUCH}>
         {t('toolbar.reset')}

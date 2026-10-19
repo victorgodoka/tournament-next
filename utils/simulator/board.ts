@@ -32,6 +32,12 @@ export function locate(board: Board, card: number): { zone: ZoneId; index: numbe
   return null
 }
 
+/** The cards a step plays, read against the board it was played on: a draw's are the deck's top `n`, a shuffle or an end of turn has none. */
+export function stepCards(a: Action, before: Board): number[] {
+  if (a.t === 'draw') return before.zones.deck.slice(0, a.n)
+  return 'card' in a ? [a.card] : []
+}
+
 /** On the field and not an Xyz material: the only cards that carry counters, negate and a face/pos. */
 function onField(board: Board, card: number): boolean {
   const at = locate(board, card)
