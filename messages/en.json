@@ -1159,6 +1159,20 @@
       "deleteFailed": "Couldn't delete the combo.",
       "cancel": "Cancel"
     },
+    "player": {
+      "meta": "{count, plural, one {# step} other {# steps}} in the Combo Simulator: watch the line and take it into your own board.",
+      "loading": "Loading combo…",
+      "notFound": "This combo does not exist or was deleted.",
+      "damaged": "This combo is damaged.",
+      "failed": "Couldn't load this combo.",
+      "by": "by {name}",
+      "autoplay": "Playing in {n}…",
+      "playNow": "Play now",
+      "cancel": "Cancel",
+      "operate": "Operate from here",
+      "edit": "Edit",
+      "replace": "Your simulator has a line in progress. Opening this one replaces it."
+    },
     "damagedLink": "This deck link is damaged, so the simulator opened empty.",
     "dismiss": "Dismiss",
     "lookupFailed": "Some cards did not load; they show their passcode.",

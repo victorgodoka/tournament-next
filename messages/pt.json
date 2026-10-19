@@ -1159,6 +1159,20 @@
       "deleteFailed": "Não foi possível excluir o combo.",
       "cancel": "Cancelar"
     },
+    "player": {
+      "meta": "{count, plural, one {# passo} other {# passos}} no Combo Simulator: assista à linha e leve-a para o seu campo.",
+      "loading": "Carregando combo…",
+      "notFound": "Este combo não existe ou foi excluído.",
+      "damaged": "Este combo está corrompido.",
+      "failed": "Não foi possível carregar este combo.",
+      "by": "por {name}",
+      "autoplay": "Reproduzindo em {n}…",
+      "playNow": "Reproduzir agora",
+      "cancel": "Cancelar",
+      "operate": "Jogar a partir daqui",
+      "edit": "Editar",
+      "replace": "Seu simulador tem uma linha em andamento. Abrir esta a substitui."
+    },
     "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
     "dismiss": "Fechar",
     "lookupFailed": "Algumas cartas não carregaram; elas aparecem pelo passcode.",
