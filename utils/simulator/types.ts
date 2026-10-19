@@ -33,7 +33,19 @@ export type Action = (
   | { t: 'endTurn' }
 ) & { note?: string }
 
-/** `cursor` is the step shown on the board; a replay plays from `start` to the end. */
-export type Session = { deck: Deck; name: string; actions: Action[]; cursor: number; start: number }
+/** What a saved combo holds: the session minus its cursor and ties. `start` is where the replay starts, 0..actions.length. */
+export type ComboPayload = { deck: Deck; name: string; actions: Action[]; start: number }
 
-export const LIMITS = { actions: 2000, name: 80, counters: 99, draw: 60, note: 100 } as const
+/** The saved combo a session is tied to; `saved` is `hashPayload` of the payload as last saved, so the page can tell a changed session from a saved one. */
+export type SavedRef = { id: string; title: string; revision: number; saved: string }
+
+/**
+ * `cursor` is the step shown on the board; a replay plays from `start` to the end. `deckId` is the saved deck the session
+ * was picked from and `combo` the saved combo it is tied to; each is null for a session that came from nowhere saved.
+ */
+export type Session = { deck: Deck; name: string; actions: Action[]; cursor: number; start: number; deckId: string | null; combo: SavedRef | null }
+
+export const LIMITS = { actions: 2000, name: 80, title: 80, counters: 99, draw: 60, note: 100 } as const
+
+/** A deck or combo id: 16 lowercase hex characters, as the server issues them. */
+export const ID = /^[0-9a-f]{16}$/

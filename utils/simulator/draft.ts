@@ -2,11 +2,13 @@ import { assertDeck } from '@utils/deck/codecs/ydk'
 import { DeckCodeError } from '@utils/deck/types'
 import type { Deck } from '@utils/deck/types'
 import { apply, initial, isValid } from './board'
-import { LIMITS, ZONES } from './types'
+import { ID, LIMITS, ZONES } from './types'
 import type { Action, Session } from './types'
 
 export const DRAFT_KEY = 'simulator:draft'
-const VERSION = 1
+/** v1 had no `deckId` or `combo`; it is still read. */
+export const DRAFT_VERSION = 2
+const HASH = /^[0-9a-f]{8}$/
 
 const AT = ['top', 'bottom'] as const
 const FACES = ['up', 'down'] as const
@@ -16,6 +18,7 @@ type Obj = Record<string, unknown>
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x)
 const int = (x: unknown, min: number, max: number): x is number => typeof x === 'number' && Number.isInteger(x) && x >= min && x <= max
 const oneOf = <T extends string>(x: unknown, set: readonly T[]): x is T => set.includes(x as T)
+const isId = (x: unknown): x is string => typeof x === 'string' && ID.test(x)
 const optional = <T extends string>(x: unknown, set: readonly T[]): x is T | undefined => x === undefined || oneOf(x, set)
 
 /** The three lists, copied, and passed through the same limits the deck codecs enforce. */
@@ -69,9 +72,23 @@ function parseBody(x: unknown, count: number): Action | null {
   }
 }
 
-/** Checks an untrusted `{ v: 1, deck, name, actions, cursor, start }`, then replays the log and refuses it if any action is invalid at its step. */
+/** The `deckId` and `combo` of a v2 draft, the combo rebuilt field by field; null when either is damaged. */
+function parseTie(x: Obj): Pick<Session, 'deckId' | 'combo'> | null {
+  const { deckId, combo } = x
+  if (deckId !== null && !isId(deckId)) return null
+  if (combo === null) return { deckId, combo }
+  if (!isObj(combo)) return null
+  const { id, title, revision, saved } = combo
+  if (!isId(id) || typeof title !== 'string' || title.length < 1 || title.length > LIMITS.title) return null
+  if (!int(revision, 1, Number.MAX_SAFE_INTEGER) || typeof saved !== 'string' || !HASH.test(saved)) return null
+  return { deckId, combo: { id, title, revision, saved } }
+}
+
+/** Checks an untrusted `{ v: 2, deck, name, actions, cursor, start, deckId, combo }` (or a v1 without the last two), then replays the log and refuses it if any action is invalid at its step. */
 export function parseSession(raw: unknown): Session | null {
-  if (!isObj(raw) || raw.v !== VERSION) return null
+  if (!isObj(raw) || (raw.v !== 1 && raw.v !== DRAFT_VERSION)) return null
+  const tie = raw.v === 1 ? { deckId: null, combo: null } : parseTie(raw)
+  if (!tie) return null
   const deck = parseDeck(raw.deck)
   const { name, actions: log, cursor, start } = raw
   if (!deck || typeof name !== 'string' || name.length > LIMITS.name) return null
@@ -92,7 +109,7 @@ export function parseSession(raw: unknown): Session | null {
     if (!isValid(board, action)) return null
     board = apply(board, action)
   }
-  return { deck, name, actions, cursor, start }
+  return { deck, name, actions, cursor, start, ...tie }
 }
 
 /** The saved draft, or null for no storage, no draft, or a draft that is damaged or was tampered with. Never throws, so a bad draft cannot stop the page opening. */
@@ -108,7 +125,7 @@ export function readDraft(storage: Pick<Storage, 'getItem'> | null): Session | n
 /** Never throws: a full or blocked storage just means this draft is not kept. */
 export function writeDraft(storage: Pick<Storage, 'setItem'> | null, session: Session): void {
   try {
-    storage?.setItem(DRAFT_KEY, JSON.stringify({ v: VERSION, ...session }))
+    storage?.setItem(DRAFT_KEY, JSON.stringify({ v: DRAFT_VERSION, ...session }))
   } catch {
     // quota, private mode or a blocked storage: the next action tries again
   }

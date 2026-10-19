@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Deck } from '@utils/deck/types'
 import { DRAFT_KEY, draftStorage, parseSession, readDraft, writeDraft } from './draft'
 import { emptySession } from './session'
-import type { Action, Session } from './types'
+import type { Action, SavedRef, Session } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202, 203], side: [] }
 
@@ -20,7 +20,8 @@ const actions: Action[] = [
   { t: 'move', card: 10, to: 'm1' },
   { t: 'endTurn' },
 ]
-const session: Session = { deck, name: 'Combo', actions, cursor: 9, start: 2 }
+const combo: SavedRef = { id: '0123456789abcdef', title: 'Snake-Eye line', revision: 3, saved: 'deadbeef' }
+const session: Session = { deck, name: 'Combo', actions, cursor: 9, start: 2, deckId: 'abcdefabcdefabcd', combo }
 
 /** A map-backed stand-in for localStorage. */
 const memory = () => {
@@ -29,7 +30,9 @@ const memory = () => {
 }
 
 /** A payload as it would sit in storage, with the fields to tamper with replaced. */
-const payload = (o: Record<string, unknown> = {}) => ({ v: 1, ...session, ...o })
+const payload = (o: Record<string, unknown> = {}) => ({ v: 2, ...session, ...o })
+/** What a draft written before the saved combos looked like. */
+const v1 = (o: Record<string, unknown> = {}) => ({ v: 1, deck, name: 'Combo', actions, cursor: 9, start: 2, ...o })
 /** A tampered log, with the cursor and start put back at 0 so only the log is at fault. */
 const log = (...a: unknown[]) => payload({ actions: a, cursor: 0, start: 0 })
 
@@ -39,14 +42,62 @@ describe('simulator draft', () => {
   it('round-trips a session', () => {
     const store = memory()
     writeDraft(store, session)
-    expect(JSON.parse(store.data.get(DRAFT_KEY)!)).toMatchObject({ v: 1, name: 'Combo', cursor: 9, start: 2 })
+    expect(JSON.parse(store.data.get(DRAFT_KEY)!)).toMatchObject({ v: 2, name: 'Combo', cursor: 9, start: 2, deckId: 'abcdefabcdefabcd', combo })
     expect(readDraft(store)).toEqual(session)
     expect(parseSession(payload())).toEqual(session)
   })
 
+  it('round-trips a session with no deck id and no saved combo', () => {
+    const store = memory()
+    const loose = { ...session, deckId: null, combo: null }
+    writeDraft(store, loose)
+    expect(readDraft(store)).toEqual(loose)
+  })
+
+  it('reads a v1 draft, which had neither, with deckId and combo null', () => {
+    const store = memory()
+    store.data.set(DRAFT_KEY, JSON.stringify(v1()))
+    expect(readDraft(store)).toEqual({ ...session, deckId: null, combo: null })
+    // a v1 draft never had these fields, so whatever sits there is not read
+    expect(parseSession(v1({ deckId: 'abcdefabcdefabcd', combo }))).toEqual({ ...session, deckId: null, combo: null })
+    // and a v1 draft is still replayed in full
+    expect(parseSession(v1({ cursor: 99 }))).toBeNull()
+    expect(parseSession(v1({ actions: [{ t: 'draw', n: 1 }, { t: 'flip', card: 0, face: 'down', pos: 'atk' }], cursor: 0, start: 0 }))).toBeNull()
+  })
+
+  it('refuses a damaged deck id or saved combo in a v2 draft', () => {
+    const tied = (c: Record<string, unknown>) => payload({ combo: { ...combo, ...c } })
+    const bad: [string, unknown][] = [
+      ['deckId "nope"', payload({ deckId: 'nope' })],
+      ['deckId in capitals', payload({ deckId: 'ABCDEFABCDEFABCD' })],
+      ['deckId a number', payload({ deckId: 7 })],
+      ['deckId missing', payload({ deckId: undefined })],
+      ['combo missing', payload({ combo: undefined })],
+      ['combo a string', payload({ combo: 'saved' })],
+      ['combo an array', payload({ combo: [combo] })],
+      ['combo.saved "xyz"', tied({ saved: 'xyz' })],
+      ['combo.saved in capitals', tied({ saved: 'DEADBEEF' })],
+      ['combo.saved 9 characters', tied({ saved: 'deadbeef0' })],
+      ['combo.saved a number', tied({ saved: 12345678 })],
+      ['combo.id short', tied({ id: 'abc' })],
+      ['combo.id a number', tied({ id: 1234567890123456 })],
+      ['combo.title empty', tied({ title: '' })],
+      ['combo.title 81 chars', tied({ title: 'x'.repeat(81) })],
+      ['combo.title not a string', tied({ title: 7 })],
+      ['combo.revision 0', tied({ revision: 0 })],
+      ['combo.revision 1.5', tied({ revision: 1.5 })],
+      ['combo.revision a string', tied({ revision: '1' })],
+      ['combo without a revision', tied({ revision: undefined })],
+    ]
+    for (const [label, draft] of bad) expect(parseSession(draft), label).toBeNull()
+    expect(parseSession(tied({ title: 'x'.repeat(80) }))).not.toBeNull()
+    expect(parseSession(tied({ title: 'x' }))).not.toBeNull()
+    expect(parseSession(tied({ revision: 1 }))).not.toBeNull()
+  })
+
   it('keeps a step caption up to 100 characters and refuses a longer or non-text one', () => {
     const noted = { ...session, actions: session.actions.map((a, i) => (i === 1 ? { ...a, note: 'Normal Summon' } : a)) }
-    expect(parseSession({ v: 1, ...noted })).toEqual(noted)
+    expect(parseSession({ v: 2, ...noted })).toEqual(noted)
     const withNote = (note: unknown) => payload({ actions: session.actions.map((a, i) => (i === 1 ? { ...a, note } : a)) })
     expect(parseSession(withNote('x'.repeat(100)))).not.toBeNull()
     expect(parseSession(withNote('x'.repeat(101)))).toBeNull()
@@ -72,7 +123,8 @@ describe('simulator draft', () => {
     const tampered: [string, unknown][] = [
       ['not an object', null],
       ['an array', [session]],
-      ['v 2', payload({ v: 2 })],
+      ['v 3', payload({ v: 3 })],
+      ['v 0', payload({ v: 0 })],
       ['no v', { ...session }],
       ['card id 13', log({ t: 'draw', n: 1 }, { t: 'move', card: 13, to: 'hand' })],
       ['card id -1', log({ t: 'draw', n: 1 }, { t: 'move', card: -1, to: 'hand' })],
@@ -132,8 +184,9 @@ describe('simulator draft', () => {
 
   it('keeps only the session fields', () => {
     const parsed = parseSession({ ...payload(), role: 'admin', actions: [...actions.slice(0, 2), { ...actions[2]!, extra: 1 }], cursor: 3 })!
-    expect(Object.keys(parsed).sort()).toEqual(['actions', 'cursor', 'deck', 'name', 'start'])
+    expect(Object.keys(parsed).sort()).toEqual(['actions', 'combo', 'cursor', 'deck', 'deckId', 'name', 'start'])
     expect(parsed.actions[2]).toEqual(actions[2])
+    expect(Object.keys(parseSession(payload({ combo: { ...combo, role: 'admin' } }))!.combo!).sort()).toEqual(['id', 'revision', 'saved', 'title'])
   })
 
   it('null storage reads null and writes nothing', () => {

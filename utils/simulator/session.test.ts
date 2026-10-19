@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
 import { emptySession, sessionReducer } from './session'
-import type { Action, Session } from './types'
+import type { SessionEvent } from './session'
+import type { Action, SavedRef, Session } from './types'
 import { LIMITS } from './types'
 
 const deck: Deck = { main: [101, 102, 103], extra: [201], side: [] }
 const [a, b, c, d] = [1, 2, 3, 4].map((n): Action => ({ t: 'draw', n })) as [Action, Action, Action, Action]
 const session = (o: Partial<Session> = {}): Session => ({ ...emptySession(), ...o })
+const ref: SavedRef = { id: '0123456789abcdef', title: 'Line', revision: 1, saved: 'deadbeef' }
+const DECK_ID = 'abcdefabcdefabcd'
 
 describe('simulator session', () => {
-  it('emptySession: empty deck, no name, no actions, cursor and start at 0', () => {
-    expect(emptySession()).toEqual({ deck: { main: [], extra: [], side: [] }, name: '', actions: [], cursor: 0, start: 0 })
+  it('emptySession: empty deck, no name, no actions, cursor and start at 0, no deck id, no saved combo', () => {
+    expect(emptySession()).toEqual({ deck: { main: [], extra: [], side: [] }, name: '', actions: [], cursor: 0, start: 0, deckId: null, combo: null })
   })
 
   it('act drops the future and advances the cursor', () => {
@@ -89,19 +92,52 @@ describe('simulator session', () => {
     expect(sessionReducer(s, { type: 'seek', cursor: 99 }).start).toBe(1)
   })
 
-  it('load trims the name to 80 and starts empty', () => {
-    const loaded = sessionReducer(session({ actions: [a], cursor: 1, start: 1, name: 'old' }), { type: 'load', deck, name: 'x'.repeat(100) })
+  it('load trims the name to 80, starts empty, keeps the given deck id and drops the saved combo', () => {
+    const loaded = sessionReducer(session({ actions: [a], cursor: 1, start: 1, name: 'old', combo: ref, deckId: 'bbbbbbbbbbbbbbbb' }), { type: 'load', deck, name: 'x'.repeat(100), deckId: DECK_ID })
     expect(loaded.name).toBe('x'.repeat(LIMITS.name))
     expect(loaded.deck).toBe(deck)
     expect(loaded.actions).toEqual([])
     expect(loaded.cursor).toBe(0)
     expect(loaded.start).toBe(0)
+    expect(loaded.deckId).toBe(DECK_ID)
+    expect(loaded.combo).toBeNull()
+    expect(sessionReducer(loaded, { type: 'load', deck, name: 'pasted', deckId: null }).deckId).toBeNull()
   })
 
-  it('reset keeps deck and name and clears the log', () => {
-    const s = session({ deck, name: 'combo', actions: [a, b], cursor: 2, start: 1 })
-    expect(sessionReducer(s, { type: 'reset' })).toEqual({ deck, name: 'combo', actions: [], cursor: 0, start: 0 })
-    const fresh = session({ deck, name: 'combo' })
+  it('reset keeps deck, name and deck id, clears the log and the saved combo', () => {
+    const s = session({ deck, name: 'combo', actions: [a, b], cursor: 2, start: 1, deckId: DECK_ID, combo: ref })
+    expect(sessionReducer(s, { type: 'reset' })).toEqual({ deck, name: 'combo', actions: [], cursor: 0, start: 0, deckId: DECK_ID, combo: null })
+    const fresh = session({ deck, name: 'combo', deckId: DECK_ID })
     expect(sessionReducer(fresh, { type: 'reset' })).toBe(fresh)
+    // a saved combo with no steps is still something to let go of
+    expect(sessionReducer(session({ deck, combo: ref }), { type: 'reset' }).combo).toBeNull()
+  })
+
+  it('saved sets and clears the tie to a saved combo, and changes nothing else', () => {
+    const s = session({ deck, name: 'combo', actions: [a, b], cursor: 1, start: 1, deckId: DECK_ID })
+    const tied = sessionReducer(s, { type: 'saved', combo: ref })
+    expect(tied).toEqual({ ...s, combo: ref })
+    expect(tied.actions).toBe(s.actions)
+    const bumped = sessionReducer(tied, { type: 'saved', combo: { ...ref, revision: 2, saved: '00000001' } })
+    expect(bumped.combo).toEqual({ ...ref, revision: 2, saved: '00000001' })
+    expect(sessionReducer(bumped, { type: 'saved', combo: null })).toEqual(s)
+    expect(sessionReducer(tied, { type: 'saved', combo: ref })).toBe(tied)
+    expect(sessionReducer(s, { type: 'saved', combo: null })).toBe(s)
+  })
+
+  it('open replaces the whole session', () => {
+    const opened = session({ deck, name: 'other', actions: [c], cursor: 1, start: 0, deckId: DECK_ID, combo: ref })
+    const next = sessionReducer(session({ actions: [a, b], cursor: 2, name: 'mine', combo: { ...ref, id: 'ffffffffffffffff' } }), { type: 'open', session: opened })
+    expect(next).toBe(opened)
+  })
+
+  it('act, undo, redo, seek, setStart and note keep the deck id and the saved combo', () => {
+    const s = session({ actions: [a, b], cursor: 1, deckId: DECK_ID, combo: ref })
+    const events: SessionEvent[] = [{ type: 'act', actions: [c] }, { type: 'redo' }, { type: 'undo' }, { type: 'seek', cursor: 2 }, { type: 'setStart', start: 1 }, { type: 'note', index: 0, note: 'hi' }]
+    for (const e of events) {
+      const next = sessionReducer(s, e)
+      expect(next.deckId, e.type).toBe(DECK_ID)
+      expect(next.combo, e.type).toBe(ref)
+    }
   })
 })

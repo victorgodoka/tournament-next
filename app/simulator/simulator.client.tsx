@@ -315,7 +315,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         lookup={ensure}
         onPick={(build) =>
           discard(hasActions, () => {
-            dispatch({ type: 'load', deck: build.deck, name: build.name })
+            dispatch({ type: 'load', deck: build.deck, name: build.name, deckId: build.deckId })
             setNotice(null) // a damaged link says nothing about the deck just loaded
             forget()
           })
