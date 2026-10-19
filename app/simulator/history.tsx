@@ -6,6 +6,8 @@ import { Button } from '@ui/button'
 import { Chip } from '@ui/chip'
 import { Icon } from '@ui/icon'
 import { Panel } from '@ui/panel'
+import { CardTile } from '@app/deck-builder/card-tile'
+import type { CardMap } from '@utils/deck/types'
 import { locate } from '@utils/simulator/board'
 import type { Action, Board, Session } from '@utils/simulator/types'
 import { TOUCH } from './toolbar'
@@ -14,6 +16,8 @@ export type HistoryProps = {
   session: Session
   /** `timeline(deck, actions)`: `boards[i]` is the board `actions[i]` was played on. */
   boards: Board[]
+  /** For the thumbnail of the card a row names; a card not loaded shows `CardTile`'s plate. */
+  cards: CardMap
   nameOf(id: number): string
   /** While a replay plays or targets are being picked: the rows only show. */
   disabled: boolean
@@ -25,7 +29,7 @@ export type HistoryProps = {
  * Every step as a line, the board before the first one on top. A row's button shows that moment; the play button
  * next to it makes the replay start there (the start row carries a mark instead).
  */
-export const History = ({ session, boards, nameOf, disabled, onSeek, onSetStart }: HistoryProps) => {
+export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSetStart }: HistoryProps) => {
   const t = useTranslations('Simulator')
 
   /** One line for an action, read against the board it was played on (where a move came from, what a flip changed). */
@@ -51,13 +55,21 @@ export const History = ({ session, boards, nameOf, disabled, onSeek, onSetStart 
         return t('history.endTurn', { turn: before.turn })
     }
   }
-  const lines = [t('history.start'), ...session.actions.map((a, i) => describe(a, boards[i]!))]
+  /** Each row's line, and the passcode of the card it names (none for a draw, a shuffle or an end of turn). */
+  const rows = [
+    { line: t('history.start'), code: null },
+    ...session.actions.map((a, i) => ({ line: describe(a, boards[i]!), code: 'card' in a ? (boards[i]!.cards[a.card]?.code ?? null) : null })),
+  ]
 
   return (
     <Panel tone="framed" title={t('history.title')} className="p-4 min-[720px]:p-4">
       <ol aria-label={t('history.title')} className="max-h-96 overflow-y-auto">
-        {lines.map((line, i) => (
+        {rows.map(({ line, code }, i) => (
           <li key={i} className="flex items-center gap-2 border-b border-line last:border-b-0">
+            {/* A picture, not a control: the line already names the card. The slot stays for rows without one, so the lines align. */}
+            <span className="w-6 shrink-0">
+              {code === null ? null : <CardTile id={code} card={cards.get(code)} sizes="24px" disabled aria-hidden className="cursor-default" />}
+            </span>
             <button
               type="button"
               aria-current={i === session.cursor ? 'step' : undefined}

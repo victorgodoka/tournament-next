@@ -791,30 +791,59 @@ describe('Simulator history and replay', () => {
     expect(button('targets.confirm')).toBeTruthy()
   })
 
-  it('a move slides the card from where it was, unless motion is reduced', async () => {
+  it('a row that names a card shows its thumbnail, hidden from the row’s name', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    await play('zones.m0')
+    expect(steps()[3]).toBe('history.move')
+    const thumb = rows()[3]!.querySelector('[data-tile]')
+    expect(thumb?.getAttribute('title')).toBe(card.title)
+    expect(thumb?.getAttribute('aria-hidden')).toBe('true')
+    expect(rows()[2]!.querySelector('[data-tile]')).toBeNull() // a draw names no card
+  })
+
+  describe('FLIP', () => {
     let motion = true
-    vi.stubGlobal('matchMedia', () => ({ matches: motion }))
-    const animate = vi.fn()
-    Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
-    // The hand sits at y 300, m0 at x 200; everything else at the origin.
-    const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-      const at = this.closest('[data-zone]')?.getAttribute('data-zone')
-      return new DOMRect(at === 'm0' ? 200 : 0, at === 'hand' ? 300 : 0, 10, 10)
+    let animate = vi.fn()
+    beforeEach(() => {
+      motion = true
+      vi.stubGlobal('matchMedia', () => ({ matches: motion }))
+      animate = vi.fn()
+      Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
+      // The hand sits at y 300, m0 at x 200, the deck at x 600; everything else at the origin.
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+        const at = this.closest('[data-zone]')?.getAttribute('data-zone')
+        return new DOMRect(at === 'm0' ? 200 : at === 'deck' ? 600 : 0, at === 'hand' ? 300 : 0, 10, 10)
+      })
     })
-    try {
+    afterEach(() => {
+      vi.restoreAllMocks()
+      delete (HTMLElement.prototype as Partial<HTMLElement>).animate
+    })
+    const slide = (dx: number, dy: number) => [[{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: 250, easing: 'ease-out' }]
+
+    it('a move slides the card from where it was, unless motion is reduced', async () => {
       await open(DECK)
-      await click('toolbar.newHand') // from the deck, which has no card buttons: nothing to slide
-      expect(animate).not.toHaveBeenCalled()
+      await click('toolbar.newHand')
+      animate.mockClear()
       await play('zones.m0')
       expect(animate).toHaveBeenCalledTimes(1)
       expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
-      expect(animate.mock.calls[0]).toEqual([[{ translate: '-200px 300px' }, { translate: '0 0' }], { duration: 250, easing: 'ease-out' }])
+      expect(animate.mock.calls[0]).toEqual(slide(-200, 300))
       motion = false
       await play('zones.m1')
       expect(animate).toHaveBeenCalledTimes(1)
-    } finally {
-      rect.mockRestore()
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate
-    }
+    })
+
+    it('a draw from the deck slides the new hand card from the deck pile', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      animate.mockClear()
+      await click('toolbar.draw')
+      expect(animate).toHaveBeenCalledTimes(1) // the cards already in the hand stay put
+      expect(animate.mock.contexts[0]).toBe(hand()[5]!.parentElement)
+      expect(animate.mock.calls[0]).toEqual(slide(600, -300))
+    })
   })
 })

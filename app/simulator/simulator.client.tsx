@@ -346,6 +346,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             <History
               session={session}
               boards={boards}
+              cards={cards}
               nameOf={nameOf}
               disabled={playing || targetMode}
               onSeek={(at) => dispatch({ type: 'seek', cursor: at })}
