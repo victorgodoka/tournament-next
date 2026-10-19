@@ -39,8 +39,9 @@ type ComboPayload = {
 }
 ```
 
-The draft keeps where the session was saved: `Session` gains `combo: { id: string; revision: number; saved: string } | null`,
-where `saved` is a hash (FNV-1a, hex) of the payload as last saved. It is not part of the payload. Loading a deck, Reset with discard, and "Operate from here" set it to `null`; opening a combo
+The draft keeps where the session was saved: `Session` gains `combo: { id: string; title: string; revision: number; saved: string } | null`
+(`SavedRef`), where `saved` is a hash (FNV-1a, hex) of the payload as last saved. It is the hash of the payload rebuilt from
+the parsed session, never of the bytes sent or returned: jsonb reorders keys. It is not part of the payload. Loading a deck, Reset with discard, and "Operate from here" set it to `null`; opening a combo
 from My combos sets it. The draft format bumps to `v: 2`; a `v: 1` draft is read with `combo: null`.
 
 ## Server (`omega-server-v3`)
@@ -68,9 +69,10 @@ need an `ALTER` (memory: schema changes need ALTER).
 
 ### Validation (`combos.validation.ts`)
 
-`validateComboInput(raw) → { title, deckId, payload }` throws `ComboError(400, 'INVALID', …)` on anything off:
+`validateComboInput(raw) → { title, deckId, payload }` throws `ComboError(400, 'BAD_REQUEST', …)` on anything off:
 
-- `title`: trimmed string, 1–80.
+- `title`: trimmed string, 1–80. Every string it reads (title, name, notes) must be well-formed UTF-16 with no U+0000: Postgres
+  `jsonb` refuses both, which would be a 500.
 - `deckId`: `null` or `^[0-9a-f]{16}$`. A deck the user cannot read is stored as `null`, never an error.
 - `payload.deck`: the same zone limits and passcode checks as `decks.validation.ts` (`ZONE_MAX`, integer passcodes).
   Copy limits are not checked: a combo may use a deck that breaks a banlist.
@@ -80,7 +82,8 @@ need an `ALTER` (memory: schema changes need ALTER).
   `at`/`face`/`pos` enums; `draw.n` 1..60; `counter.delta` a non-zero integer in −99..99; `targets` and `order` arrays
   of in-range ids, at most `main+extra` long; `note` a string ≤ 100.
 - `payload.start`: integer in `0..actions.length`.
-- The body is refused above 256 KB (route `bodyLimit`).
+- The body limit is 1 MiB (route `bodyLimit`): 2000 actions with 100-character notes exceed 256 KB, and a line that long must
+  still save.
 
 What it does not check is the game itself (a move into an occupied spell zone, a card that is not where a step says).
 The client's `parseSession` replays the log on open; a combo that fails it opens as "This combo is damaged". Only a
@@ -94,14 +97,14 @@ hand-built request can store one.
 | `PATCH /:id` | owner | body adds `baseRevision`; 200 `{ id, revision }`; 409 `CONFLICT` when `baseRevision` is not current |
 | `DELETE /:id` | owner | 204 |
 | `GET /mine?cursor=` | required | `{ combos: ComboSummary[], nextCursor }`, 24 per page, newest update first |
-| `GET /:id` | optional | `{ id, title, deckId, owner: { id, name }, payload, revision, updatedAt }` |
+| `GET /:id` | optional | `{ id, title, deckId, owner: { id, name }, payload, revision, updatedAt }`, `name` is `null` for an owner without a username |
 
 - A combo of someone else on `PATCH`/`DELETE`, and an unknown or malformed id anywhere, is 404, never 403 (as decks).
 - `ComboSummary` = `{ id, title, deckName: payload.name, steps, updatedAt }`, read without loading `payload` whole
   (`payload->>'name'` and `steps`).
 - At most 500 combos per user (`MAX_COMBOS`), 409 `LIMIT` beyond.
-- Rate limit `rateLimitOptions(60)`; `cache-control: private, no-cache` on owner routes, `public, max-age=60` on
-  `GET /:id`.
+- Rate limit `rateLimitOptions(60)`; `cache-control: private, no-cache` on owner routes, `no-cache` on `GET /:id`. The
+  front reads combos with `cache: 'no-store'`: a cached revision would turn the owner's next save into a false conflict.
 - Registered in `src/app.ts` like `deckRoutes`; tests added to the `test` script in `package.json`.
 
 ## Front (`tournament-next`)
@@ -117,13 +120,18 @@ hand-built request can store one.
 - **Save**:
   - signed out: sends the player to sign in, and the draft keeps the line;
   - with no `combo`: a dialog asks the title, with the deck name prefilled, then `POST`;
-  - with a `combo`: `PATCH` with its revision, no dialog.
+  - with a `combo` and changes since the last save: `PATCH` with its revision, no dialog;
+  - with a `combo` and no changes (no dot): nothing is sent, since a `PATCH` would only bump the revision and give other
+    tabs a conflict.
   - **Save as new** sits in the same dialog and always `POST`s.
-- **Conflict (409)**: a dialog offers "Reload the saved one" (discards local changes) or "Save as new".
+  - A tied session also shows a **Save as…** toolbar button. It opens the same dialog from the combo's title: Save there
+    renames the combo (`PATCH`), Save as new posts a copy. Save itself never opens the dialog once tied.
+- **Conflict (409)**: a dialog offers "Reload the saved one" (discards local changes) or "Save as new", which posts the
+  title the update carried (a rename included).
 - **Share**: saves first if the session has no `combo` or has unsaved changes, then copies `/simulator/c/<id>` with
-  the same clipboard fallback as the calculator.
+  the same clipboard fallback as the calculator. A tied session with no changes copies the link at once, in the click.
 - **My combos**: a dialog listing title, deck name, steps and updated date, with "Load more". Open asks to discard
-  when the session has actions. Delete asks to confirm; deleting the combo the session is tied to sets `combo` to `null`.
+  when the session has actions. Delete asks to confirm; deleting the combo the session is tied to sets `combo` to `null`. A 404 on delete counts as deleted.
 - **Unsaved changes**: when the hash of the current payload differs from `combo.saved`, Save shows a dot.
 
 ### Shared player (`app/simulator/c/[id]/`)
@@ -131,7 +139,7 @@ hand-built request can store one.
 - `page.tsx` server-renders `generateMetadata` from `GET /combos/:id`: the title, the deck name and the step count, for
   the Discord preview. When the API fails, the generic simulator title is used.
 - The client fetches the combo, runs `parseSession` on `{ v: 2, ...payload, cursor: start, combo: null }`, and shows:
-  - the title, the owner's name, and the deck name;
+  - the title, the owner's name (left out when the owner has none), and the deck name;
   - the board read-only: no menus, no drag, no target mode, no toolbar;
   - the replay bar, the captions and the history (rows seek).
 - **Auto-play**: a 3-second countdown with Cancel and Play now, then playback from `start`.
@@ -155,7 +163,7 @@ hand-built request can store one.
 ## Testing
 
 - **Server** (`combos.test.ts` with `app.inject`, `combos.db.test.ts` against Postgres as the deck tests do):
-  - the validation table: each rule and its limit, unknown fields dropped, the 256 KB body;
+  - the validation table: each rule and its limit, unknown fields dropped, the 1 MiB body;
   - routes: owner-only `PATCH`/`DELETE` as 404 for others, the 409 on a stale revision, `GET /:id` without a
     session, `/mine` paging, the 500 limit.
 - **Front**:
