@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
+import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot, isSlot } from '@utils/simulator/board'
-import type { Board, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import type { Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import type { Drag } from './use-drag'
 
 export type BoardViewProps = {
   board: Board
@@ -15,6 +17,11 @@ export type BoardViewProps = {
   selected: number | null
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
+  /** A long press: the menu opens at the finger, which no click event carries. */
+  onLongPress(id: number, at: { x: number; y: number }): void
+  /** A double-click (or double-tap) on a card. */
+  onActivate(id: number): void
+  drag: Drag
   /** A pile, or a monster slot whose Xyz materials the player wants to see. */
   onPile(zone: Pile | MonsterSlot): void
 }
@@ -100,9 +107,17 @@ const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
   )
 }
 
-/** One card: its scan (the back when set), DEF turned sideways, and its negated and counter markers, which stay upright. */
+/**
+ * One card: its scan (the back when set), DEF turned sideways, and its negated and counter markers, which stay upright.
+ * Mouse: click selects, double-click activates, right-click opens the menu, a drag moves it. Touch: tap selects,
+ * double-tap activates, long press opens the menu, a drag moves it (`touch-none`: the card, not the page, takes the swipe).
+ */
 const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; className?: string }) => {
   const t = useTranslations('Simulator')
+  const press = useLongPress()
+  /** Move, up and cancel only drop the press; what a long press does is bound on pointer down, where the finger is known. */
+  const hold = press.bind(() => {})
+  const drag = p.drag.bind(id, true)
   const card = p.board.cards[id]!
   return (
     <div className={twMerge('relative', className)}>
@@ -113,9 +128,29 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           card={p.cards.get(card.code)}
           sizes={SIZES}
           data-card={id}
-          onClick={(e) => p.onCard(id, e)}
-          onContextMenu={(e) => p.onMenu(id, e)}
-          className={twMerge(card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
+          onPointerDown={(e) => {
+            const at = { x: e.clientX, y: e.clientY }
+            press.bind(() => p.onLongPress(id, at)).onPointerDown(e)
+            drag.onPointerDown(e)
+          }}
+          onPointerMove={(e) => {
+            hold.onPointerMove(e)
+            drag.onPointerMove(e)
+          }}
+          onPointerUp={(e) => {
+            hold.onPointerUp()
+            drag.onPointerUp(e)
+          }}
+          onPointerCancel={(e) => {
+            hold.onPointerCancel()
+            drag.onPointerCancel(e)
+          }}
+          onClickCapture={drag.onClickCapture}
+          // The release after a long press has nothing left to do: the menu is already open.
+          onClick={(e) => press.kind(e) !== 'long' && p.onCard(id, e)}
+          onDoubleClick={() => p.onActivate(id)}
+          onContextMenu={(e) => (press.kind(e) === 'long' ? e.preventDefault() : p.onMenu(id, e))}
+          className={twMerge('touch-none', card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
         />
         {card.face === 'down' ? <Back /> : null}
       </div>
@@ -153,5 +188,21 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
       ) : null}
       <span className={twMerge(BADGE, 'right-0 bottom-0 bg-space-000 text-ink')}>{ids.length}</span>
     </>
+  )
+}
+
+/**
+ * The card under the pointer while it is dragged; `useDrag` moves it. Rendered by the page, not the board: the
+ * board's container query box would be the containing block of anything fixed inside it.
+ */
+export const DragGhost = ({ card, cards, ghostRef }: { card: Card | undefined; cards: CardMap; ghostRef: React.RefObject<HTMLDivElement | null> }) => {
+  if (!card) return null
+  return (
+    <div ref={ghostRef} inert className="pointer-events-none fixed top-0 left-0 z-(--z-overlay)">
+      <div className="relative w-16 -translate-1/2 opacity-80 shadow-lift">
+        <CardTile id={card.code} card={cards.get(card.code)} sizes="64px" tabIndex={-1} />
+        {card.face === 'down' ? <Back /> : null}
+      </div>
+    </div>
   )
 }

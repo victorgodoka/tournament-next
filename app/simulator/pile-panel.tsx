@@ -11,6 +11,7 @@ import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot } from '@utils/simulator/board'
 import type { Board, MonsterSlot, Pile } from '@utils/simulator/types'
 import { MARK } from './board'
+import type { Drag } from './use-drag'
 
 export type PilePanelProps = {
   board: Board
@@ -19,15 +20,16 @@ export type PilePanelProps = {
   cards: CardMap
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
+  drag: Drag
   onClose(): void
 }
 
 /**
  * A non-modal list of one pile (or of a monster's Xyz materials), the board still in view. On desktop it sits
  * at the top of the side column; below `lg` it is fixed to the bottom and scrolls. A touch tap opens the menu
- * instead of dragging, which would fight the list's scroll.
+ * instead of dragging, which would fight the list's scroll; a mouse or pen drags a card out onto the board.
  */
-export const PilePanel = ({ board, zone, cards, onCard, onMenu, onClose }: PilePanelProps) => {
+export const PilePanel = ({ board, zone, cards, onCard, onMenu, drag, onClose }: PilePanelProps) => {
   const t = useTranslations('Simulator')
   const touch = useRef(false)
   const stack = isMonsterSlot(zone)
@@ -52,6 +54,7 @@ export const PilePanel = ({ board, zone, cards, onCard, onMenu, onClose }: PileP
           <ul aria-label={name} className="grid grid-cols-[repeat(auto-fill,64px)] gap-1">
             {ids.map((id) => {
               const card = board.cards[id]!
+              const move = drag.bind(id, false) // not for a finger: it scrolls the list
               return (
                 <li key={id} className="relative">
                   <CardTile
@@ -59,8 +62,10 @@ export const PilePanel = ({ board, zone, cards, onCard, onMenu, onClose }: PileP
                     card={cards.get(card.code)}
                     sizes="64px"
                     data-card={id}
+                    {...move}
                     onPointerDown={(e) => {
                       touch.current = e.pointerType !== 'mouse'
+                      move.onPointerDown(e)
                     }}
                     onClick={(e) => (touch.current && e.detail > 0 ? onMenu(id, e) : onCard(id, e))}
                     onContextMenu={(e) => onMenu(id, e)}

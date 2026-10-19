@@ -8,16 +8,18 @@ import { Dialog } from '@ui/dialog'
 import { PageHeader } from '@ui/page-header'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
-import { initial, shuffleAction, timeline, validRun } from '@utils/simulator/board'
+import { initial, isMonsterSlot, shuffleAction, timeline, validRun } from '@utils/simulator/board'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
+import { dropAction } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
 import type { Action, MonsterSlot, Pile } from '@utils/simulator/types'
-import { BoardView } from './board'
+import { BoardView, DragGhost } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { PilePanel } from './pile-panel'
 import { Toolbar, TOUCH } from './toolbar'
+import { useDrag } from './use-drag'
 
 const DRAFT_DELAY_MS = 300
 
@@ -93,16 +95,30 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       setSelected(null)
     })
 
-  const openMenu = (id: number, e: React.MouseEvent) => {
+  const openMenu = (id: number, at: { x: number; y: number }) => {
     setSelected(id)
-    setMenu({ card: id, at: anchor(e) })
+    setMenu({ card: id, at })
   }
   /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. */
-  const onCard = (id: number, e: React.MouseEvent) => (e.detail === 0 ? openMenu(id, e) : setSelected(id))
+  const onCard = (id: number, e: React.MouseEvent) => (e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
-    openMenu(id, e)
+    openMenu(id, anchor(e))
   }
+
+  // Off while the menu is open: a drag would move a card the menu is about to act on.
+  const drag = useDrag({
+    enabled: menu === null,
+    onDrop: (card, zone, shift) => {
+      const action = dropAction(board, card, zone, shift)
+      if (action) perform([action])
+    },
+  })
+
+  // A materials panel needs a stack of two or more. When a move, Undo or Reset leaves fewer it closes for good,
+  // here in render: an effect would paint one frame of "×0", and leaving the state set would bring the panel back
+  // the next time something is stacked there.
+  if (pile !== null && isMonsterSlot(pile) && board.zones[pile].length < 2) setPile(null)
 
   const picked = selected === null ? undefined : board.cards[selected]
   const code = picked?.code ?? null
@@ -165,13 +181,20 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           selected={selected}
           onCard={onCard}
           onMenu={onMenu}
+          onLongPress={openMenu}
+          onActivate={(id) => perform([{ t: 'activate', card: id, targets: [] }])}
+          drag={drag}
           onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
         />
         <div className="flex flex-col gap-4">
-          {pile ? <PilePanel board={board} zone={pile} cards={cards} onCard={onCard} onMenu={onMenu} onClose={() => setPile(null)} /> : null}
+          {pile ? (
+            <PilePanel board={board} zone={pile} cards={cards} onCard={onCard} onMenu={onMenu} drag={drag} onClose={() => setPile(null)} />
+          ) : null}
           <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
         </div>
       </div>
+
+      <DragGhost card={drag.dragging === null ? undefined : board.cards[drag.dragging]} cards={cards} ghostRef={drag.ghostRef} />
 
       {/* Outside the board: its container query box would be the containing block of anything fixed inside it. */}
       {menu ? (

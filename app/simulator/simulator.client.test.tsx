@@ -292,16 +292,16 @@ describe('Simulator card panel', () => {
   })
 })
 
-describe('Simulator pile panel', () => {
-  const openPile = async (key: string) => {
-    await mouseClick(within(zone(key)).getByRole('button', { name: `zones.${key}` }))
-    return screen.getByRole('list', { name: `zones.${key}` })
-  }
-  const openMaterials = async (key: string) => {
-    await mouseClick(within(zone(key)).getByRole('button', { name: 'pile.materials' }))
-    return screen.getByRole('list', { name: 'pile.materials' })
-  }
+const openPile = async (key: string) => {
+  await mouseClick(within(zone(key)).getByRole('button', { name: `zones.${key}` }))
+  return screen.getByRole('list', { name: `zones.${key}` })
+}
+const openMaterials = async (key: string) => {
+  await mouseClick(within(zone(key)).getByRole('button', { name: 'pile.materials' }))
+  return screen.getByRole('list', { name: 'pile.materials' })
+}
 
+describe('Simulator pile panel', () => {
   it('the deck pile panel moves a card to the hand', async () => {
     await open(DECK)
     await click('toolbar.newHand')
@@ -350,5 +350,150 @@ describe('Simulator pile panel', () => {
     await choose('zones.gy')
     expect(within(zone('gy')).getAllByRole('button').length).toBeGreaterThan(0)
     expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
+  })
+
+  it('the materials panel closes once the slot no longer holds a stack', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await play('zones.m0')
+    await rightClick(within(await openMaterials('m0')).getAllByRole('button')[0]!)
+    await choose('menu.moveTo')
+    await choose('zones.gy') // the last material leaves: the slot is a lone monster again
+    expect(screen.queryByRole('list', { name: 'pile.materials' })).toBeNull()
+    expect(screen.queryByText('pile.empty')).toBeNull()
+    await play('zones.m0') // a new material in the same slot does not bring the closed panel back
+    expect(within(zone('m0')).getByRole('button', { name: 'pile.materials' })).toBeTruthy()
+    expect(screen.queryByRole('list', { name: 'pile.materials' })).toBeNull()
+  })
+})
+
+describe('Simulator gestures', () => {
+  type Pointer = 'pointerDown' | 'pointerMove' | 'pointerUp' | 'pointerCancel'
+  const ptr = (el: HTMLElement, type: Pointer, x: number, y: number, init: PointerEventInit = {}) =>
+    act(async () => void fireEvent[type](el, { clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', ...init }))
+  /** What `document.elementFromPoint` finds under the pointer: happy-dom has no layout. */
+  const under = (el: Element) => vi.spyOn(document, 'elementFromPoint').mockReturnValue(el)
+  /** Press at (0, 0), move to (50, 50), release over `to`. */
+  const drag = async (el: HTMLElement, to: Element, init: PointerEventInit = {}) => {
+    under(to)
+    await ptr(el, 'pointerDown', 0, 0, init)
+    await ptr(el, 'pointerMove', 50, 50, init)
+    await ptr(el, 'pointerUp', 50, 50, init)
+  }
+  const touch = { pointerType: 'touch' }
+
+  afterEach(() => void vi.restoreAllMocks())
+
+  it('dragging a hand card onto an empty monster zone moves it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await drag(hand()[0]!, zone('m0'))
+    expect(cardsIn('m0')).toHaveLength(1)
+    expect(hand()).toHaveLength(4)
+  })
+
+  it('a drop outside any zone adds no step', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await drag(hand()[0]!, document.body)
+    expect(hand()).toHaveLength(5)
+    await click('toolbar.undo') // the last step is still the draw
+    expect(hand()).toHaveLength(0)
+  })
+
+  it('a ghost follows the pointer through the DOM and goes when it is released', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    const ghost = () => document.querySelector<HTMLElement>('[inert]')
+    under(document.body)
+    await ptr(card, 'pointerDown', 0, 0)
+    expect(ghost()).toBeNull()
+    await ptr(card, 'pointerMove', 50, 60)
+    expect(ghost()!.style.translate).toBe('50px 60px')
+    await ptr(card, 'pointerMove', 70, 80)
+    expect(ghost()!.style.translate).toBe('70px 80px')
+    await ptr(card, 'pointerUp', 70, 80)
+    expect(ghost()).toBeNull()
+  })
+
+  it('a press that stays inside the slop is not a drag', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    under(zone('m0'))
+    await ptr(card, 'pointerDown', 0, 0)
+    await ptr(card, 'pointerMove', 4, 4)
+    await ptr(card, 'pointerUp', 4, 4)
+    expect(hand()).toHaveLength(5)
+    expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('Shift on the drop sets the card: face-down DEF on a monster zone', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await drag(hand()[0]!, zone('m1'), { shiftKey: true })
+    expect(cardsIn('m1')[0]!.parentElement!.className).toContain('rotate-90')
+  })
+
+  it('the click that ends a drag is swallowed, the next one selects', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    await drag(card, document.body)
+    await mouseClick(card)
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+    await mouseClick(card)
+    expect(screen.queryByText('cardPanel.empty')).toBeNull()
+  })
+
+  it('double-click activates without moving the card', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await act(async () => void fireEvent.dblClick(hand()[0]!))
+    expect(hand()).toHaveLength(5)
+    await click('toolbar.undo') // the step undone was the activation
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('a touch drag moves a card and never opens the menu', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await drag(hand()[0]!, zone('m0'), touch)
+    await wait(500) // past the long press
+    expect(cardsIn('m0')).toHaveLength(1)
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('a long press opens the menu at the finger and selects the card', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = hand()[0]!
+    await ptr(card, 'pointerDown', 20, 30, touch)
+    expect(screen.queryByRole('menu')).toBeNull()
+    await wait(500)
+    expect(names()).toContain('menu.moveTo')
+    expect([menu().style.left, menu().style.top]).toEqual(['20px', '30px'])
+    expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
+  })
+
+  it('no drag while the menu is open', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await drag(hand()[1]!, zone('m0'))
+    expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
+    expect(hand()).toHaveLength(5)
+  })
+
+  it('a pile panel card drags with the mouse but not with a finger', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const card = within(await openPile('deck')).getAllByRole('button')[0]!
+    await drag(card, zone('hand'), touch)
+    expect(hand()).toHaveLength(5)
+    await drag(card, zone('hand'))
+    expect(hand()).toHaveLength(6)
   })
 })
