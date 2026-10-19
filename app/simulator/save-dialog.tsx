@@ -72,8 +72,8 @@ export const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDi
 
 const TONE = { signIn: 'info', limit: 'warn', saveFailed: 'negative', damaged: 'negative', failed: 'negative', copied: 'positive', copyFailed: 'info' } as const
 
-/** What `useSave` shows: the outcome of the last save or share, the title dialog and the conflict dialog. */
-export const SaveFlowView = ({ flow }: { flow: SaveFlow }) => {
+/** What `useSave` shows: the outcome of the last save or share, the title dialog and the conflict dialog. Retry waits out a replay, as Save does. */
+export const SaveFlowView = ({ flow, playing }: { flow: SaveFlow; playing: boolean }) => {
   const t = useTranslations('Simulator')
   const { outcome } = flow
   const dismiss = (
@@ -96,7 +96,7 @@ export const SaveFlowView = ({ flow }: { flow: SaveFlow }) => {
               </Link>
             ) : outcome.kind === 'failed' ? (
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={flow.retry} className={TOUCH}>
+                <Button variant="secondary" size="sm" disabled={playing || flow.busy} onClick={flow.retry} className={TOUCH}>
                   {t('retry')}
                 </Button>
                 {dismiss}

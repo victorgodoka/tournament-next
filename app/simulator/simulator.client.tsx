@@ -177,12 +177,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
   const discard = (ask: boolean, run: () => void) => (ask ? setPending(() => run) : run())
   const hasActions = session.actions.length > 0
-  /** A new board: the card the panel shows and a pick in progress mean nothing on it. */
-  const forget = () => {
+  /** The card the panel shows and a pick in progress mean nothing on a new board. */
+  const unpick = () => {
     setSelected(null)
     setTargeting(null)
   }
-  const saves = useSave(session, dispatch, forget)
+  // A reload clears the save alert itself before it opens the combo.
+  const saves = useSave(session, dispatch, unpick)
+  /** A new board: nothing picked, and the last save's alert (its Retry included) was about the old one. */
+  const forget = () => {
+    unpick()
+    saves.dismiss()
+  }
 
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
@@ -349,7 +355,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           }
         />
       ) : null}
-      <SaveFlowView flow={saves} />
+      <SaveFlowView flow={saves} playing={playing} />
 
       {/* A save on its way holds the toolbar too: a deck or hand loaded before it lands would be tied to that combo. */}
       <Toolbar

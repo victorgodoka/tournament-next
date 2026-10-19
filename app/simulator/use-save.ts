@@ -11,7 +11,8 @@ type Write = { title: string; asNew: boolean; share: boolean }
 
 /**
  * What the last save, reload or share came to, shown as one alert. `failed` got no answer: Retry runs `again` (a reload
- * when null) on the session as it is then, so whatever it ties is what it sent.
+ * when null) on the session as it is then, so whatever it ties is what it sent. It is only that session's: the client
+ * dismisses the outcome whenever a new board replaces it (a deck, a hand, Reset, a reload).
  */
 export type Outcome =
   | { kind: 'signIn' | 'limit' | 'saveFailed' | 'damaged' | 'copied' }
@@ -83,6 +84,7 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
     const tied = session.combo
     if (!tied) return
     setConflict(null)
+    setOutcome(null) // its Retry goes with it: a second click cannot start a second reload
     setBusy(true)
     try {
       const combo = await getCombo(tied.id)

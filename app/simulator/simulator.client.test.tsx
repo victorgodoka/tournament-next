@@ -1405,6 +1405,56 @@ describe('Simulator save and share', () => {
     expect(unsaved()).toBe(false)
   })
 
+  it('a failed save is retried only on its own session: a new deck or a new hand takes the Retry away', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    await pickDeck(toYdke({ main: [11, 12, 13, 14, 15, 16, 17], extra: [], side: [] }))
+    await click('confirm.discard')
+    expect(screen.queryByText('combos.failed')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull() // no Retry left
+
+    await click('toolbar.newHand')
+    vi.mocked(saveCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await retitle('Second') // a pasted deck has no name to start from
+    await click('combos.save')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    await click('toolbar.newHand')
+    expect(screen.queryByRole('alert')).toBeNull()
+    // the first save, the failed update, the failed first save: nothing since
+    expect(saveCombo).toHaveBeenCalledTimes(2)
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Retry is off while a replay plays', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    const retry = () => within(screen.getByRole('alert')).getByRole<HTMLButtonElement>('button', { name: 'retry' })
+    expect(retry().disabled).toBe(false)
+    vi.useFakeTimers()
+    await click('replay.play')
+    expect(retry().disabled).toBe(true)
+  })
+
+  it('a Retry of the reload takes its alert away while it runs, so it cannot run twice', async () => {
+    await saved()
+    await click('toolbar.draw')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
+    vi.mocked(getCombo).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await click('toolbar.save')
+    await click('combos.conflict.reload')
+    expect(screen.getByText('combos.failed')).toBeTruthy()
+    vi.mocked(getCombo).mockReturnValue(new Promise(() => {})) // still on its way
+    await act(async () => void fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'retry' })))
+    expect(getCombo).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   it('Save, Save as and Share are off while a replay plays', async () => {
     await saved()
     await click('toolbar.draw')
