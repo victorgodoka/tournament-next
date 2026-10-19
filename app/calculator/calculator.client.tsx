@@ -15,6 +15,7 @@ import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
 import { rolesFromTags, tagsFromRoles } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
+import { EFFECT_IDS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import { DeckApiError, DeckConflictError, getDeck, updateDeck } from '@utils/decks'
 import { setReturnTo } from '@utils/return-to'
@@ -82,8 +83,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const original = state.originals[state.active]!
   const saved = state.saved[state.active] ?? null
   const banlist = banlists?.find((b) => (build.format === null ? b.format === 'tcg' : b.id === build.format)) ?? null
+  // The five draw-effect cards ride along, so the simulator can name the ones a deck lacks.
   const allIds = useMemo(
-    () => [...state.calc.builds.flatMap((b) => [...b.deck.main, ...b.deck.extra, ...b.deck.side]), ...state.originals.flatMap((o) => o.main)],
+    () => [...state.calc.builds.flatMap((b) => [...b.deck.main, ...b.deck.extra, ...b.deck.side]), ...state.originals.flatMap((o) => o.main), ...EFFECT_IDS],
     [state.calc.builds, state.originals],
   )
   const views = useCalculations(state.calc.builds, state.originals, cards, state.calc.analysis, state.calc.draw, state.calc.focus)
