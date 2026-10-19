@@ -122,6 +122,7 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
     item: "Tools",
     children: [
       { item: "Deck Builder", to: "/deck-builder" },
+      { item: "Combo Calculator", to: "/calculator" },
       { item: "Public decks", to: "/decks" },
       { item: "Banlist timeline", to: "/banlist-timeline" },
     ],

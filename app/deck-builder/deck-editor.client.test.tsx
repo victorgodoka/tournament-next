@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toYdke } from '@utils/deck/codecs/ydke'
 import { createDeck, deleteDeck, getDeck, listMyDecks, updateDeck, type SavedDeck } from '@utils/decks'
 import DeckEditor from './deck-editor.client'
 import { draftKey, type Draft } from './drafts'
@@ -290,4 +291,19 @@ it('an artwork added from the sheet keeps the original card behind its passcode,
   pickAndAdd(0)
   await act(async () => {})
   expect(tiles()).toEqual(['100', '101', '100'])
+})
+
+it('opens the combo calculator with the deck, name and id', async () => {
+  const opened = vi.fn()
+  vi.stubGlobal('open', opened)
+  vi.mocked(getDeck).mockResolvedValue(server({ name: 'Saved', main: [1] }))
+  await open(ID)
+  fireEvent.click(screen.getByText('io.export'))
+  fireEvent.click(screen.getByText('io.as.calculator'))
+  const url = new URL(opened.mock.calls[0]![0] as string, 'http://x')
+  expect(url.pathname).toBe('/calculator')
+  expect(url.searchParams.get('d')).toBe(toYdke({ main: [1], extra: [], side: [] }))
+  expect(url.searchParams.get('name')).toBe('Saved')
+  expect(url.searchParams.get('deck')).toBe(ID)
+  expect(opened.mock.calls[0]![1]).toBe('_blank')
 })

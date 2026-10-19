@@ -15,9 +15,9 @@ const POPOVER_ID = PROBLEMS_POPOVER
 const IMPORT_ID = 'deck-import'
 const EXPORT_ID = 'deck-export'
 
-/** `wide` / `tall`: the 16:9 and 9:16 images, downloaded. `share`: the 9:16 one through the share sheet. */
-export type ExportKind = 'omega' | 'ydke' | 'ydk' | 'pdf' | 'list' | 'wide' | 'tall' | 'share'
-const EXPORTS: ExportKind[] = ['omega', 'ydke', 'ydk', 'pdf', 'list', 'wide', 'tall', 'share']
+/** `wide` / `tall`: the 16:9 and 9:16 images, downloaded. `share`: the 9:16 one through the share sheet. `calculator`: the deck in the combo calculator, in a new tab. */
+export type ExportKind = 'omega' | 'ydke' | 'ydk' | 'pdf' | 'list' | 'wide' | 'tall' | 'share' | 'calculator'
+const EXPORTS: ExportKind[] = ['omega', 'ydke', 'ydk', 'pdf', 'list', 'wide', 'tall', 'share', 'calculator']
 
 // `fixed` beats `.cut`'s position: relative; the UA popover border and Canvas fill give way to the chamfer.
 const MENU =
