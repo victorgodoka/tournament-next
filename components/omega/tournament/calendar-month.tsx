@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useSyncExternalStore } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useLocale, useNow, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Switch } from '@ui/choice'
 import { Select } from '@ui/field'
 import { Modal } from '@ui/modal/modal.component'
 import { LocalTime } from '@omega/profile/local-time'
-import { CalendarRow, calendarKey } from '@omega/tournament/calendar-row'
+import { CalendarRow, calendarKey, isPast } from '@omega/tournament/calendar-row'
 import { TIME_ONLY, formatTone } from '@omega/tournament/labels'
 import type { CalendarEntry } from '@utils/types'
 
@@ -32,6 +32,9 @@ const FORMAT_COLOR = {
 } as const
 const colorOf = (entry: CalendarEntry) => FORMAT_COLOR[entry.format ? formatTone(entry.format) : 'neutral']
 
+/** A tournament that already happened: its color and text fade to gray. */
+const PAST = 'opacity-50 grayscale'
+
 /** Shown per day before "+N". */
 const PER_DAY = 3
 
@@ -48,6 +51,7 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
   const locale = useLocale()
   const local = useSyncExternalStore(subscribe, () => true, () => false)
   const today = useSyncExternalStore(subscribe, todayKey, () => null)
+  const now = useNow()
   const [picked, setPicked] = useState<string | null>(null)
   const [format, setFormat] = useState('')
   const [slot, setSlot] = useState<Slot | ''>('')
@@ -140,7 +144,11 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
               {list.length ? (
                 <span aria-hidden className="flex flex-wrap gap-1 min-[720px]:hidden">
                   {list.map((entry) => (
-                    <span key={calendarKey(entry)} className="size-1.5 rounded-round" style={{ background: colorOf(entry) }} />
+                    <span
+                      key={calendarKey(entry)}
+                      className={twMerge('size-1.5 rounded-round', isPast(entry, now) && PAST)}
+                      style={{ background: colorOf(entry) }}
+                    />
                   ))}
                 </span>
               ) : null}
@@ -148,7 +156,11 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
                 {list.slice(0, PER_DAY).map((entry) => (
                   <span
                     key={calendarKey(entry)}
-                    className={twMerge('flex min-w-0 items-center gap-1.5 border-l-2 pl-1.5 text-xs leading-4', outside ? 'text-ink-muted' : 'text-ink-dim')}
+                    className={twMerge(
+                      'flex min-w-0 items-center gap-1.5 border-l-2 pl-1.5 text-xs leading-4',
+                      outside ? 'text-ink-muted' : 'text-ink-dim',
+                      isPast(entry, now) && PAST,
+                    )}
                     style={{ borderColor: colorOf(entry) }}
                   >
                     {entry.status === 'live' ? <span aria-hidden className="size-1.5 shrink-0 rounded-round bg-crimson motion-safe:animate-blink" /> : null}

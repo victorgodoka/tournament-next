@@ -14,6 +14,9 @@ const META = 'signal-sm text-ink-muted'
  */
 export const calendarKey = (entry: CalendarEntry) => `${entry.source}-${entry.id ?? `${entry.startsAt}-${entry.format}-${entry.banlist}`}`
 
+/** Started and not live: finished, or a pre-registration whose time went by (those stay `scheduled`). */
+export const isPast = (entry: CalendarEntry, now: Date) => entry.status !== 'live' && Date.parse(entry.startsAt) < now.getTime()
+
 /**
  * One calendar entry: date block, format, settings and where to sign up. The whole row links to
  * the tournament (`omega`) or its pre-registration page (`panel`); the game's recurring
@@ -64,7 +67,7 @@ export const CalendarRow = ({ entry }: { entry: CalendarEntry }) => {
     </>
   )
 
-  const row = 'grid grid-cols-[52px_minmax(0,1fr)] gap-4 bg-surface-100 px-4 py-3.5'
+  const row = `grid grid-cols-[52px_minmax(0,1fr)] gap-4 bg-surface-100 px-4 py-3.5 ${isPast(entry, now) ? '*:opacity-50 *:grayscale' : ''}`
   return (
     <li className={href ? 'flex' : undefined}>
       {href ? (
