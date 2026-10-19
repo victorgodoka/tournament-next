@@ -209,10 +209,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       setListing(false)
     })
   }
-  /** Deleting the combo the session is tied to leaves its line as an unsaved one. */
-  const comboDeleted = (id: string) => {
-    if (session.combo?.id === id) dispatch({ type: 'saved', combo: null })
-  }
+  /** Deleting the combo the session is tied to leaves its line as an unsaved one. The reducer judges the tie: the delete may land long after the click. */
+  const comboDeleted = (id: string) => dispatch({ type: 'unlink', id })
 
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.

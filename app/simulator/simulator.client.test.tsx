@@ -1607,6 +1607,63 @@ describe('Simulator my combos', () => {
     expect(updateCombo).not.toHaveBeenCalled()
   })
 
+  it('a delete that lands after another combo was opened leaves that tie alone, so Save updates the one opened', async () => {
+    listing('Opening', 'Backrow')
+    let landed: () => void = () => {}
+    vi.mocked(deleteCombo).mockReturnValue(new Promise<void>((resolve) => void (landed = resolve)))
+    vi.mocked(getCombo).mockResolvedValue(stored('c2'))
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    await click('combos.save') // tied to c1
+    await showList()
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    await click('myCombos.delete') // the DELETE of c1 is on its way
+    await click('Close') // the list goes, the delete does not
+
+    vi.mocked(listMyCombos).mockResolvedValueOnce({ combos: [summary('c2', 'Backrow')], nextCursor: null })
+    await showList()
+    await openRow(0)
+    await click('confirm.discard')
+    expect(hand()).toHaveLength(4)
+    await act(async () => landed()) // c1 is gone, and the session is tied to c2
+
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(screen.queryByText('combos.dialogTitle')).toBeNull()
+    expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Combo c2' }), 3)
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+  })
+
+  it('Open does nothing while a delete is on its way', async () => {
+    listing('Opening', 'Backrow')
+    let landed: () => void = () => {}
+    vi.mocked(deleteCombo).mockReturnValue(new Promise<void>((resolve) => void (landed = resolve)))
+    vi.mocked(getCombo).mockResolvedValue(stored('c2'))
+    await open(DECK)
+    await showList()
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    await click('myCombos.delete')
+    await openRow(1)
+    expect(getCombo).not.toHaveBeenCalled()
+    await act(async () => landed())
+    expect(list().getAllByRole('listitem')).toHaveLength(1)
+    await openRow(0) // the delete is over: Open works again
+    expect(getCombo).toHaveBeenCalledWith('c2')
+    expect(hand()).toHaveLength(4)
+  })
+
+  it('Delete does nothing while an open is on its way', async () => {
+    listing('Opening')
+    vi.mocked(getCombo).mockReturnValue(new Promise(() => {}))
+    await open(DECK)
+    await showList()
+    await openRow(0)
+    await act(async () => void fireEvent.click(rowButton(0, 'myCombos.deleteNamed')))
+    expect(screen.queryByText('myCombos.deleteBody')).toBeNull() // no confirm to answer
+    expect(deleteCombo).not.toHaveBeenCalled()
+  })
+
   it('Delete asks first: Cancel leaves the combo alone', async () => {
     listing('Opening')
     await open(DECK)

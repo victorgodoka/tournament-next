@@ -125,6 +125,15 @@ describe('simulator session', () => {
     expect(sessionReducer(s, { type: 'saved', combo: null })).toBe(s)
   })
 
+  it('unlink lets go of the saved combo only when its id is the one named, and is the same session otherwise', () => {
+    const tied = session({ deck, name: 'combo', actions: [a, b], cursor: 1, start: 1, deckId: DECK_ID, combo: ref })
+    const unlinked = sessionReducer(tied, { type: 'unlink', id: ref.id })
+    expect(unlinked).toEqual({ ...tied, combo: null })
+    expect(unlinked.actions).toBe(tied.actions)
+    expect(sessionReducer(tied, { type: 'unlink', id: 'ffffffffffffffff' })).toBe(tied) // another combo was deleted
+    expect(sessionReducer(unlinked, { type: 'unlink', id: ref.id })).toBe(unlinked) // tied to nothing
+  })
+
   it('open replaces the whole session', () => {
     const opened = session({ deck, name: 'other', actions: [c], cursor: 1, start: 0, deckId: DECK_ID, combo: ref })
     const next = sessionReducer(session({ actions: [a, b], cursor: 2, name: 'mine', combo: { ...ref, id: 'ffffffffffffffff' } }), { type: 'open', session: opened })

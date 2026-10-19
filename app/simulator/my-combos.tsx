@@ -72,8 +72,11 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
   }
   const drop = (id: string) => setPage((prev) => ({ ...prev, combos: prev.combos.filter((c) => c.id !== id) }))
 
+  /** An open or a delete is on its way: Open and Delete wait, so a delete never lands on a session that has since opened another combo. */
+  const busy = opening !== null || deleting
+
   const load = async (id: string) => {
-    if (opening !== null) return
+    if (busy) return
     setOpening(id)
     setProblem(null)
     try {
@@ -122,7 +125,7 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
                 <Button size="sm" variant="secondary" autoFocus onClick={() => setConfirm(null)} className={TOUCH}>
                   {t('myCombos.cancel')}
                 </Button>
-                <Button size="sm" variant="danger" aria-disabled={deleting || undefined} onClick={() => !deleting && remove(c.id)} className={TOUCH}>
+                <Button size="sm" variant="danger" aria-disabled={busy || undefined} onClick={() => !busy && remove(c.id)} className={TOUCH}>
                   {t('myCombos.delete')}
                 </Button>
               </>
@@ -137,7 +140,7 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
                 <Button
                   size="sm"
                   variant="secondary"
-                  aria-disabled={opening !== null || undefined}
+                  aria-disabled={busy || undefined}
                   onClick={() => void load(c.id)}
                   aria-label={t('myCombos.openNamed', { name: c.title })}
                   className={TOUCH}
@@ -147,7 +150,9 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
                 <Button
                   size="sm"
                   variant="ghost"
+                  aria-disabled={busy || undefined}
                   onClick={() => {
+                    if (busy) return
                     setProblem(null)
                     setConfirm(c.id)
                   }}

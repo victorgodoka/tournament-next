@@ -15,6 +15,8 @@ export type SessionEvent =
   | { type: 'note'; index: number; note: string }
   /** Ties the session to a saved combo, or lets go of it. */
   | { type: 'saved'; combo: SavedRef | null }
+  /** Lets go of the saved combo `id`, as deleting it does; a session tied to another one, or to none, is left alone. */
+  | { type: 'unlink'; id: string }
   /** Replaces the whole session, as opening a saved combo does. */
   | { type: 'open'; session: Session }
 
@@ -57,6 +59,8 @@ export function sessionReducer(s: Session, e: SessionEvent): Session {
     }
     case 'saved':
       return e.combo === s.combo ? s : { ...s, combo: e.combo }
+    case 'unlink':
+      return s.combo?.id === e.id ? { ...s, combo: null } : s
     case 'open':
       return e.session
   }
