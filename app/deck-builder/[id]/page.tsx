@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
 import { DeckEditorLoader } from '../deck-editor.loader'
+import { VipPromo } from '@omega/ads/vip-promo'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -18,6 +19,8 @@ const DeckEditorDeckPage = async ({ params }: Props) => {
       <Header />
       <main className="min-h-dvh pt-16">
         <DeckEditorLoader deckId={id} />
+        {/* No footer on this page: our VIP pitch goes at the end instead. */}
+        <VipPromo className="mx-auto my-12 w-[min(1280px,calc(100%-32px))]" />
       </main>
     </>
   )
