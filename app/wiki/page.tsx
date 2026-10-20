@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { WIKI_PAD, WikiBar } from '@omega/wiki'
 import { userName } from '@omega/wiki/article'
 import { Eyebrow } from '@ui/eyebrow/eyebrow'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
@@ -203,6 +204,8 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
           </details>
         </form>
 
+        <AdBanner id="ad-top" placement="content" className={twMerge('pt-8', WIKI_PAD)} />
+
         <section aria-labelledby="articles-head" className={twMerge('py-[clamp(28px,4vw,44px)]', WIKI_PAD)}>
           <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
             <h2 id="articles-head" className="text-ink display-6">
@@ -241,6 +244,8 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
             .
           </p>
         </section>
+
+        <AdBanner id="ad-bottom" placement="content" className={twMerge('pb-12', WIKI_PAD)} />
       </main>
       <Footer />
     </>

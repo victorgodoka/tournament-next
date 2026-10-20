@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { LocalTime } from '@omega/profile/local-time'
 import { playerName } from '@omega/tournament/player'
@@ -323,6 +324,8 @@ export const TournamentBrowser = ({ live, first }: TournamentBrowserProps) => {
 
       {live ? <LiveBanner live={live} /> : null}
 
+      <AdBanner id="ad-top" placement="content" />
+
       <StatGrid
         items={[
           { label: t('browser.totals.tournaments'), value: dash(formatNumber(stats?.tournaments ?? 0, locale)), hint: t('browser.totals.tournamentsHint') },
@@ -380,6 +383,8 @@ export const TournamentBrowser = ({ live, first }: TournamentBrowserProps) => {
 
         <Aside stats={stats} />
       </div>
+
+      <AdBanner id="ad-bottom" placement="content" />
     </div>
   )
 }

@@ -31,6 +31,8 @@ import {
 import { CardSearch } from './CardSearch'
 import { DeepDiveSearch, PICKS, type DeepDiveRequest } from './DeepDiveSearch'
 import { OmegaActivity } from './OmegaActivity'
+import { AdBanner } from '@omega/ads/ad-banner'
+import { AdVideo } from '@omega/ads/ad-video'
 
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 /** Rows the archetype table shows before "Show all". */
@@ -108,6 +110,7 @@ export const MetaStatistics = ({ ladder, season, past, result, omega }: MetaStat
         title="Meta statistics"
         lead="Archetype shares, win rates, trends and card choices from every ranked duel of the season. The numbers refresh once a day, after the nightly sweep."
       />
+      <AdVideo id="ad-video" className="mt-8" />
 
       {/* Whole-game activity first; the ladder and season below pick the report under them. */}
       {omega ? <OmegaActivity data={omega} ladder={ladder} /> : null}
@@ -502,6 +505,8 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
         </div>
       </Section>
 
+      <AdBanner id="ad-mid" placement="content" className="mt-12 min-[720px]:mt-16" />
+
       <Section
         num="03"
         label={player ? 'Decks' : 'Archetypes'}
@@ -631,6 +636,8 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
         </Section>
       ) : null}
 
+      <AdBanner id="ad-mid-2" placement="content" className="mt-12 min-[720px]:mt-16" />
+
       <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
         {player ? null : (
@@ -712,6 +719,8 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
           </Panel>
         )}
       </Section>
+
+      <AdBanner id="ad-bottom" placement="content" className="mt-12 min-[720px]:mt-16" />
 
       <section aria-label="Method" className="mt-12 min-[720px]:mt-16">
         <Notice title="How it's counted" date={data.syncedDays.last ? day(data.syncedDays.last) : undefined} mark>

@@ -3,6 +3,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { CalendarMonth } from '@omega/tournament/calendar-month'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
@@ -58,6 +59,7 @@ const CalendarPage = ({ from, prev, next, entries }: ReturnType<typeof monthOf> 
               </nav>
             }
           />
+          <AdBanner id="ad-top" placement="content" />
           {entries === null ? (
             <EmptyBox title={t('failed')} />
           ) : (
@@ -66,6 +68,7 @@ const CalendarPage = ({ from, prev, next, entries }: ReturnType<typeof monthOf> 
               {entries.length ? null : <EmptyBox title={t('empty')} />}
             </>
           )}
+          <AdBanner id="ad-bottom" placement="content" />
         </div>
       </main>
       <Footer />

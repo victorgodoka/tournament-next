@@ -24,6 +24,8 @@ export type AuthUser = {
   permissions: Permission[]
   profile: { username: string | null; avatarUrl: string | null }
   createdAt: string
+  /** Game accountrank >= 1, staff included. Hides every ad and the VIP promo. */
+  isVip: boolean
   /** `welcome` + `avatar` slots (BACKGROUND, WEBDECO). The welcome page's background comes from here. */
   cosmetics: Cosmetics
 }

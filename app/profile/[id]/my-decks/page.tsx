@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { DeckBrowser } from '@app/decks/deck-browser'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { PageHeader } from '@ui/page-header'
@@ -36,7 +37,9 @@ const MyDecksRoute = async ({ params }: MyDecksRouteProps) => {
       <Header />
       <main className="mx-auto flex min-h-dvh w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-24 pb-24">
         <PageHeader eyebrow="Profile" title={t('userTitle', { name: nameOf(profile) })} />
+        <AdBanner id="ad-top" placement="content" />
         <DeckBrowser userId={id} />
+        <AdBanner id="ad-bottom" placement="content" />
       </main>
       <Footer />
     </>

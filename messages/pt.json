@@ -377,7 +377,8 @@
       "perks": {
         "rarities": { "label": "Raridades", "value": "1 de cada" },
         "mat": { "label": "Tapete", "value": "Visível aos oponentes" },
-        "sleeves": { "label": "Capas", "value": "Visíveis aos oponentes" }
+        "sleeves": { "label": "Capas", "value": "Visíveis aos oponentes" },
+        "ads": { "label": "Anúncios no site", "value": "Nenhum" }
       },
       "donate": "Doar"
     },
@@ -1333,6 +1334,15 @@
       "stop": "Parar e ir para o último passo",
       "timeline": "Passo",
       "speed": "Velocidade do replay"
+    }
+  },
+  "Ads": {
+    "label": "Publicidade",
+    "removeWithVip": "VIP remove os anúncios",
+    "promo": {
+      "eyebrow": "Omega VIP",
+      "body": "Doando no mínimo 5 USD, você ganha 1 de cada raridade, seu tapete e suas capas visíveis para os oponentes, e nenhum anúncio no site.",
+      "cta": "Ver vantagens VIP"
     }
   }
 }

@@ -26,6 +26,9 @@ import { getLatestArticles } from "@utils/articles";
 import { getTopDecks } from "@utils/global-explorer";
 import type { ArticleSummary } from "@utils/types";
 import { Carousel } from "@ui/carousel";
+import { useTranslations } from "next-intl";
+import { NonVipOnly } from "@omega/ads/non-vip-only";
+import { VipPanel } from "@app/download/vip-panel";
 
 type MetaDeck = { id: number; name: string; note: string }
 
@@ -465,6 +468,17 @@ const Modes = () => (
   </Band>
 )
 
+/** The home carries no ads: the VIP pitch takes their place. `num="VIP"` keeps 01–09 unbroken when it hides. */
+const Vip = () => {
+  const t = useTranslations("Download.donations")
+  return (
+    <Band id="vip">
+      <Rail num="VIP">{t("heading")}</Rail>
+      <VipPanel />
+    </Band>
+  )
+}
+
 const Faq = () => (
   <Band id="faq">
     <Rail num="08">FAQ</Rail>
@@ -551,6 +565,9 @@ const HomePage = async () => {
         <MetaDecks decks={decks} />
         <Tools />
         <Modes />
+        <NonVipOnly>
+          <Vip />
+        </NonVipOnly>
         <Faq />
         {articles.length ? <Wiki articles={articles} /> : null}
         <ClosingCta />

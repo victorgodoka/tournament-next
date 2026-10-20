@@ -20,6 +20,10 @@ type ArticleViewProps = {
   links?: ArticleLinks
   /** Extra side-column blocks after Contents: status, history, editing. */
   children?: React.ReactNode
+  /** The published page only (never the editor preview): first thing in the article column. */
+  lead?: React.ReactNode
+  /** The published page only: names the article column so the ad script can space units through it. */
+  bodyId?: string
 }
 
 /** "Read next" and the hub's own list: title and summary per article. */
@@ -43,7 +47,7 @@ const LinkList = ({ label, articles }: { label: string; articles: ArticleLink[] 
  * A block article, cover to infobox. Every pixel comes from `doc` (and `html`, its rendered Markdown), so
  * the editor preview and the published page are the same component fed the same JSON.
  */
-export const ArticleView = ({ doc, slug, html, links, children }: ArticleViewProps) => {
+export const ArticleView = ({ doc, slug, html, links, children, lead, bodyId }: ArticleViewProps) => {
   const cover = doc.cover && doc.assets[doc.cover.asset]
   const infobox = doc.infobox
   const infoAsset = infobox?.asset ? doc.assets[infobox.asset] : undefined
@@ -104,7 +108,8 @@ export const ArticleView = ({ doc, slug, html, links, children }: ArticleViewPro
       </header>
 
       <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 border-line lg:grid-cols-[minmax(0,1fr)_340px] 2xl:border-x">
-        <article className={twMerge('order-2 py-[clamp(24px,3vw,40px)] lg:order-1', WIKI_PAD)}>
+        <article id={bodyId} className={twMerge('order-2 py-[clamp(24px,3vw,40px)] lg:order-1', WIKI_PAD)}>
+          {lead}
           <WikiBlocks doc={doc} html={html} />
           {links?.children.length ? <LinkList label="In this hub" articles={links.children} /> : null}
           {links?.related.length ? <LinkList label="Read next" articles={links.related} /> : null}
