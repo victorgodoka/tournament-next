@@ -54,7 +54,8 @@ const deferred = <T,>() => {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers()
+  // A clock of its own, so the `expiresAt` of the renders below is always 30 min to an hour away.
+  vi.useFakeTimers({ now: new Date('2026-10-19T00:00:00Z') })
   vi.mocked(startRender).mockReset()
   vi.mocked(getRender).mockReset()
 })
@@ -177,6 +178,31 @@ describe('VideoDialog render', () => {
     expect(screen.queryByRole('link')).toBeNull()
     expect(button('video.generate')).toBeTruthy()
     expect(getRender).toHaveBeenCalledTimes(1)
+  })
+
+  it('a ready render goes back to Generate when its files expire, and never polls', async () => {
+    vi.mocked(startRender).mockResolvedValue(info({ status: 'ready', framesDone: 90, framesTotal: 90, expiresAt: '2026-10-19T00:30:00Z' }))
+    await mount()
+    await click('video.generate')
+    await tick(30 * 60_000 - 1)
+    expect(screen.getByRole('link', { name: 'video.downloadMp4' })).toBeTruthy()
+    await tick(1)
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(button('video.generate')).toBeTruthy()
+    expect(screen.queryByText('video.ready')).toBeNull()
+    expect(getRender).not.toHaveBeenCalled()
+  })
+
+  it('the expiry of a render dropped by another choice does not reach the next one', async () => {
+    vi.mocked(startRender)
+      .mockResolvedValueOnce(info({ status: 'ready', expiresAt: '2026-10-19T00:30:00Z' }))
+      .mockResolvedValue(info({ id: 'r2', status: 'ready', expiresAt: '2026-10-19T01:00:00Z' }))
+    await mount()
+    await click('video.generate')
+    fireEvent.click(button('3x'))
+    await click('video.generate')
+    await tick(45 * 60_000) // past the first render's expiry, not the second's
+    expect(screen.getByRole('link', { name: 'video.downloadMp4' }).getAttribute('href')).toBe(renderFileUrl('r2', 'mp4'))
   })
 
   it('changing a choice drops the render shown and offers Generate again', async () => {

@@ -77,6 +77,9 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
   </>
 )
 
+/** The Iconify icons of the empty-zone marks, fetched from Iconify's API the first time one is drawn. */
+export const ZONE_ICONS = { gy: 'mdi:grave-stone', banished: 'foundation:x', pendulum: 'mage:gem-b-fill' } as const
+
 /**
  * What an empty zone shows, faint: a gravestone in the GY, an X in Banished, a gem lying on its side in each Pendulum
  * Zone (blue on the left, red on the right, each pointing out), the Field Spell mark in the Field Zone.
@@ -84,10 +87,10 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
 const ZoneMark = ({ zone }: { zone: ZoneId }) => {
   const icon = (name: string, className: string) => <Iconify icon={name} className={twMerge('size-1/2', className)} />
   const mark =
-    zone === 'gy' ? icon('mdi:grave-stone', 'text-ink-muted')
-    : zone === 'banished' ? icon('foundation:x', 'text-ink-muted')
-    : zone === 's0' ? icon('mage:gem-b-fill', 'rotate-90 text-azure')
-    : zone === 's4' ? icon('mage:gem-b-fill', '-rotate-90 text-crimson')
+    zone === 'gy' ? icon(ZONE_ICONS.gy, 'text-ink-muted')
+    : zone === 'banished' ? icon(ZONE_ICONS.banished, 'text-ink-muted')
+    : zone === 's0' ? icon(ZONE_ICONS.pendulum, 'rotate-90 text-azure')
+    : zone === 's4' ? icon(ZONE_ICONS.pendulum, '-rotate-90 text-crimson')
     : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null

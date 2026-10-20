@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
+import { loadIcons } from '@iconify/react'
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
 import type { CardData } from '@utils/deck/types'
 import { renderTimeline } from '@utils/simulator/timing'
+import { ZONE_ICONS } from './board'
 import { ComboRender } from './combo-render'
 
 // A real <img>, so the page has images to decode.
@@ -14,7 +16,14 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
-vi.mock('@iconify/react', () => ({ Icon: () => null }))
+// Every icon already loaded, unless a test holds them back.
+vi.mock('@iconify/react', () => ({
+  Icon: () => null,
+  loadIcons: vi.fn((icons: string[], done: (loaded: string[], missing: string[], pending: string[]) => void) => {
+    done(icons, [], [])
+    return () => {}
+  }),
+}))
 vi.mock('@utils/combos', async (original) => ({ ...(await original<typeof import('@utils/combos')>()), getCombo: vi.fn() }))
 
 /** Four steps, the replay starting at the third (as Task 5's timeline): two draws, a monster to the field, end of turn. */
@@ -44,8 +53,9 @@ const seek = (ms: number) => act(() => page().seek(ms))
 const inM0 = () => within(screen.getByRole('group', { name: 'zones.m0' })).queryByRole('button')
 /**
  * A layout for `getBoundingClientRect`, happy-dom having none. Every zone spans the whole board at the probe width,
- * 724 × 640, and the room around it is 1200 × 560, so the board fits at 87px. A card button is one card wide at the
- * board's `--card-w`, in the hand row (4 widths down) or in m0, so where it is shows the width it was measured at.
+ * 724 × 640, the caption (a 16 px gap, then 48 px) under it, and the room around both is 1200 × 624: the board has
+ * 560 px of it, so it fits at 87px (97px if the caption were left out). A card button is one card wide at the board's
+ * `--card-w`, in the hand row (4 widths down) or in m0, so where it is shows the width it was measured at.
  */
 function layout(this: Element) {
   if (this.hasAttribute('data-card')) {
@@ -53,7 +63,8 @@ function layout(this: Element) {
     const hand = this.closest('[data-zone]')!.getAttribute('data-zone') === 'hand'
     return hand ? new DOMRect(0, 4 * w, w, w) : new DOMRect(w, w, w, w)
   }
-  return this.hasAttribute('data-zone') ? new DOMRect(0, 0, 724, 640) : new DOMRect(0, 0, 1200, 560)
+  if (this.hasAttribute('data-zone')) return new DOMRect(0, 0, 724, 640)
+  return this.tagName === 'P' ? new DOMRect(0, 656, 1200, 48) : new DOMRect(0, 0, 1200, 624)
 }
 /** Whether `p` has settled by the time pending work has run. */
 const settled = async (p: Promise<unknown>) => {
@@ -109,11 +120,12 @@ describe('ComboRender', () => {
     expect(screen.queryByText(/player\.by/)).toBeNull()
   })
 
-  it('fits the board to the room it has and asks for its images at that width', async () => {
+  it('fits the board to the room the caption leaves it and asks for its images at that width', async () => {
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(layout)
     await open()
     const root = screen.getByRole('group', { name: 'zones.hand' }).parentElement!
     expect(root.style.getPropertyValue('--card-w')).toBe('87px')
+    expect(root.nextElementSibling).toBe(screen.getByText('Open')) // the caption, right under the board
     expect(document.querySelector('img[src="/back.webp"]')!.getAttribute('sizes')).toBe('87px')
   })
 
@@ -140,6 +152,19 @@ describe('ComboRender', () => {
     expect(document.querySelectorAll('img').length).toBeGreaterThan(0)
     expect(await settled(page().ready)).toBe(false)
     decoding.resolve()
+    expect(await settled(page().ready)).toBe(true)
+  })
+
+  it('ready waits for the zone marks to load from Iconify', async () => {
+    let done!: () => void
+    vi.mocked(loadIcons).mockImplementationOnce((icons, callback) => {
+      done = () => callback!(icons as never, [], [], () => {})
+      return () => {}
+    })
+    await open()
+    expect(loadIcons).toHaveBeenCalledWith(expect.arrayContaining(Object.values(ZONE_ICONS)), expect.any(Function))
+    expect(await settled(page().ready)).toBe(false)
+    done()
     expect(await settled(page().ready)).toBe(true)
   })
 

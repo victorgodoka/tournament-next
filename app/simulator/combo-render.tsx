@@ -1,5 +1,6 @@
 'use client'
 
+import { loadIcons } from '@iconify/react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -12,13 +13,13 @@ import { fitCardWidth } from '@utils/simulator/fit'
 import { sessionReducer } from '@utils/simulator/session'
 import { renderTimeline } from '@utils/simulator/timing'
 import type { Session } from '@utils/simulator/types'
-import { BoardView, FLIP_MS } from './board'
+import { BoardView, FLIP_MS, ZONE_ICONS } from './board'
 import type { Speed } from './replay-bar'
 import { useDrag } from './use-drag'
 
 /** How the video renderer drives the page: it awaits `ready`, then seeks to each frame's time and takes a screenshot. */
 type RenderHandle = {
-  /** Settles once the combo is on screen, fitted, with every image decoded (or broken) and the fonts loaded. */
+  /** Settles once the combo is on screen, fitted, with every image decoded (or broken), the zone marks and the fonts loaded. */
   ready: Promise<{ revision: number; durationMs: number }>
   /** Shows the frame `ms` into the video. Forward only: a time before the last one rejects. */
   seek(ms: number): Promise<void>
@@ -56,6 +57,16 @@ const failed = (error: unknown): RenderHandle => {
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve))
 /** Every image on the page decoded or broken: a 404 or a blocked origin leaves its frames without it, never fails the video. */
 const decoded = () => Promise.allSettled(Array.from(document.querySelectorAll('img'), (img) => img.decode()))
+/**
+ * The board's zone marks loaded, or given up on: Iconify fetches them, so without this the first frames would show the
+ * zones bare. Once loaded they are drawn from memory, at any step.
+ */
+const iconsLoaded = () =>
+  new Promise<void>((resolve) => {
+    loadIcons(Object.values(ZONE_ICONS), (loaded, missing, pending) => {
+      if (!pending.length) resolve()
+    })
+  })
 const none = () => {}
 
 /**
@@ -87,6 +98,7 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
   /** Null while the board is drawn at `PROBE` to be measured. */
   const [cardW, setCardW] = useState<number | null>(null)
   const room = useRef<HTMLDivElement>(null)
+  const caption = useRef<HTMLParagraphElement>(null)
   // Read-only: nothing drags and nothing drops.
   const drag = useDrag({ enabled: false, onDrop: none })
   const droppedRef = useRef<number | null>(null)
@@ -99,20 +111,23 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
 
   // Fitted before the first paint, so each image is asked for once, at the width it is drawn. The board's root fills the
   // row, so its size is the span of its zones; nothing around it depends on the fonts (one line each, a fixed caption).
+  // The caption shares the room, under the board: the board gets the room less the caption and the gap above it.
   useLayoutEffect(() => {
     const el = room.current!
     const boxes = [...el.querySelectorAll('[data-zone]')].map((zone) => zone.getBoundingClientRect())
+    const bottom = Math.max(...boxes.map((b) => b.bottom))
     const measured = {
       width: Math.max(...boxes.map((b) => b.right)) - Math.min(...boxes.map((b) => b.left)),
-      height: Math.max(...boxes.map((b) => b.bottom)) - Math.min(...boxes.map((b) => b.top)),
+      height: bottom - Math.min(...boxes.map((b) => b.top)),
     }
-    setCardW(fitCardWidth(PROBE, measured, el.getBoundingClientRect()))
+    const { width, height } = el.getBoundingClientRect()
+    setCardW(fitCardWidth(PROBE, measured, { width, height: height - (caption.current!.getBoundingClientRect().bottom - bottom) }))
   }, [])
 
   // Handed to the renderer once the board is fitted: the images `ready` waits on are the ones the frames show.
   useEffect(() => {
     if (cardW === null) return
-    const ready = decoded()
+    const ready = Promise.all([decoded(), iconsLoaded()])
       .then(() => document.fonts.ready)
       .then(() => ({ revision: combo.revision, durationMs: video.durationMs }))
     let cursor = opened.cursor
@@ -151,7 +166,7 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
         </div>
         <p className="shrink-0 text-ink-muted signal">{t('render.brand')}</p>
       </header>
-      <div ref={room} className="flex min-h-0 flex-1 flex-col justify-center">
+      <div ref={room} className="flex min-h-0 flex-1 flex-col justify-center gap-4">
         {/* Keyed by the width: drawn anew once fitted, before the first paint, so the places its slides start from and its
             arrows are taken at the fitted size, never at the probe's. */}
         <BoardView
@@ -173,9 +188,12 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
           cardW={w}
           imageSizes={`${w}px`}
         />
+        {/* Right under the board in both shapes, as in the player. Two lines kept for every caption, so the board never
+            moves; the counter sits in the frame's corner. */}
+        <p ref={caption} className="line-clamp-2 h-12 shrink-0 px-16 text-center text-ink body">
+          {shown?.note}
+        </p>
       </div>
-      {/* Two lines kept for every caption, so the board never moves; the counter sits in the corner beside them. */}
-      <p className="line-clamp-2 h-12 shrink-0 px-16 text-center text-ink body">{shown?.note}</p>
       <span className="absolute right-6 bottom-6 text-ink-muted signal tabular-nums">{`${session.cursor}/${session.actions.length}`}</span>
     </div>
   )

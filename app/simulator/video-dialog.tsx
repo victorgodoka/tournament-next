@@ -66,17 +66,24 @@ const Body = ({ comboId, actions, start }: Pick<VideoDialogProps, 'comboId' | 'a
   const [speed, setSpeed] = useState<Speed>(1)
   const [phase, setPhase] = useState<Phase>(IDLE)
 
-  // A queued or running render is asked about once, and again `POLL_MS` after the answer: never an interval.
-  // Each answer is a new `phase`, so this runs again for the next one; the cleanup is what stops it on close.
+  // A queued or running render is asked about once, and again `POLL_MS` after the answer: never an interval. A ready
+  // one goes back to Generate when its files expire, so no link outlives them. Each answer is a new `phase`, so this
+  // runs again for the next one; the cleanup is what stops it on close or on another choice.
   useEffect(() => {
-    if (phase.kind !== 'render' || phase.info.status === 'ready') return
+    if (phase.kind !== 'render') return
+    const { info } = phase
     let live = true
-    const timer = setTimeout(() => {
-      getRender(phase.info.id).then(
-        (next) => live && setPhase(next ? show(next) : IDLE),
-        () => live && setPhase(FAILED),
-      )
-    }, POLL_MS)
+    const timer =
+      info.status !== 'ready'
+        ? setTimeout(() => {
+            getRender(info.id).then(
+              (next) => live && setPhase(next ? show(next) : IDLE),
+              () => live && setPhase(FAILED),
+            )
+          }, POLL_MS)
+        : info.expiresAt
+          ? setTimeout(() => setPhase(IDLE), Date.parse(info.expiresAt) - Date.now())
+          : undefined
     return () => {
       live = false
       clearTimeout(timer)

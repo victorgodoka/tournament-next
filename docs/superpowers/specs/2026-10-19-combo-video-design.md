@@ -62,7 +62,8 @@ A `failed` row never holds the key, so trying again inserts a new row.
   Otherwise checks the caps and inserts a `queued` row (202). Body validation: `shape` in the two values, `speed` in
   the four, nothing else; 400 `BAD_REQUEST` like `ComboError`. Rate limit `rateLimitOptions(10)`.
 - `GET /combos/renders/:renderId` → `{ id, status, shape, speed, framesDone, framesTotal, position, expiresAt }`.
-  `position` is the number of queued rows created before it (0 when running or done). `cache-control: no-store`.
+  `position` is the number of rows ahead of a queued one: the rows rendering plus the queued rows created before it
+  (0 when running or done). `cache-control: no-store`.
   404 for an unknown id or an expired row.
 - `GET /combos/renders/:renderId/:format` (`mp4` or `webp`, anything else 404) streams `${RENDERS_DIR}/<renderId>.<format>` with
   `content-type` `video/mp4` or `image/webp` and `content-disposition: attachment; filename="<title>.<format>"`. The title
@@ -81,7 +82,8 @@ A `failed` row never holds the key, so trying again inserts a new row.
 A second entry point in the same repo, `src/renderer/main.ts`, with its own `Dockerfile.renderer` from Playwright's
 official image plus `ffmpeg` from apt, run as the image's unprivileged user. New compose service `renderer` and image
 `victorgodoka/omega-renderer`. It shares the Postgres settings and the `renders` volume (read-write; the API mounts it
-read-only).
+read-only). The images create `/renders` with mode 1777: whichever container mounts the empty volume first, the renderer
+can write to it.
 
 - Queue: every 2 s it claims the oldest queued row with
   `UPDATE combo_renders SET status = 'running', started_at = now() WHERE id = (SELECT id FROM combo_renders WHERE
@@ -89,22 +91,27 @@ read-only).
 - One Chromium kept open between renders; restarted after a crash, a timeout and every 50 renders.
 - Per render:
   1. Open `${FRONTEND_URL}/simulator/c/<comboId>/render?shape=<shape>&speed=<speed>` at the shape's viewport,
-     `deviceScaleFactor` 1. Every request outside `FRONTEND_URL`'s origin is aborted.
+     `deviceScaleFactor` 1. Every request is aborted except to the front's origin (`FRONTEND_URL`), the API's
+     (`API_URL`: the browser loads the combo and the card data from it) and Iconify's API hosts (`api.iconify.design`,
+     `api.simplesvg.com`, `api.unisvg.com`: the board's zone marks).
   2. Await `window.__render.ready` → `{ revision, durationMs }`. The page shows the combo as it is now; a newer
      revision than the row's is rendered under the row's key anyway (a later request for the new revision renders again).
   3. `frames_total = ceil(durationMs / 1000 × RENDER_FPS)`. For each frame `i`: `await page.evaluate(seek, i × 1000 /
      fps)`, `page.screenshot({ type: 'jpeg', quality: 92 })`, write it to ffmpeg's stdin.
   4. One ffmpeg process reads the JPEG stream (`-f image2pipe -framerate <fps>`) and writes both files:
-     MP4 `libx264 -pix_fmt yuv420p -preset veryfast -crf 23 -movflags +faststart`, and WebP
+     MP4 `scale=out_range=tv,libx264 -pix_fmt yuv420p -preset veryfast -crf 23 -movflags +faststart` (the JPEGs are
+     full range; the MP4 is pinned to tv range whatever the ffmpeg version), and WebP
      `fps=15,libwebp_anim -lossless 0 -quality 70 -loop 0`.
   5. `frames_done` is written every 30 frames. At the end: `status = 'ready'`, `finished_at = now()`,
      `expires_at = now() + RENDER_TTL_MIN`.
 - Timeout: `10 × durationMs + 2 min` of wall time → `failed` with `error = 'timeout'`, files removed, Chromium
-  restarted. A page error, a failed `ready` or an ffmpeg exit code ≠ 0 → `failed` with the message.
+  restarted. A failed `ready` or an ffmpeg exit code ≠ 0 → `failed` with the message. A page error is logged, not
+  fatal: only what holds up `ready`, `seek`, the timeout or ffmpeg fails a render.
 - On boot, rows left `running` go back to `queued` (their partial files are removed).
 - Cleanup every minute: delete rows whose `expires_at` has passed and `failed` rows older than a day, then every file
   in `RENDERS_DIR` without a `ready` row (expired, deleted combo, partial).
-- Settings: `RENDERS_DIR` (both services), `RENDER_FPS=30`, `RENDER_TTL_MIN=30`, and the existing `FRONTEND_URL`.
+- Settings: `RENDERS_DIR` (both services), `RENDER_FPS=30`, `RENDER_TTL_MIN=30`, the existing `FRONTEND_URL`, and
+  `API_URL` (the public API base, the front's `NEXT_PUBLIC_API_URL`).
 
 ## Front (`tournament-next`)
 
@@ -121,12 +128,14 @@ dock. The frame fills the viewport:
 `window.__render`:
 
 - `ready: Promise<{ revision: number; durationMs: number }>`: resolves after the combo loads, every `<img>` on the page
-  has decoded and `document.fonts.ready`. Rejects when the combo is missing or damaged.
+  has settled (its `decode()` resolved or rejected: a broken image never holds the video back), the board's icons have
+  loaded from Iconify and `document.fonts.ready`. Rejects when the combo is missing or damaged.
 - `seek(ms): Promise<void>`, forward only (a smaller `ms` than the last call rejects). The timeline is a 1 s hold on
   the board at `start`, then each step from `start` for `stepMs(action) / speed`, then a 2 s hold on the final board.
   `seek` turns `ms` into (step, ms inside the step); when the step changed it moves the cursor and waits for React to
-  commit (two animation frames), so the step's animations exist; then it pauses every `document.getAnimations()` (the
-  FLIP moves and the activation glow) at the ms inside the step.
+  commit (two animation frames), so the step's animations exist, and for the images the step mounted to settle (the
+  board's icons, loaded by `ready`, are drawn from memory); then it pauses every `document.getAnimations()` (the FLIP
+  moves and the activation glow) at the ms inside the step.
 
 `stepMs` moves out of `use-replay.ts` into `utils/simulator` so the replay and the render page share one timing. The
 opening hand drawn before `start` is not animated, as in the player.
@@ -140,7 +149,8 @@ opening hand drawn before `start` is not animated, as in the player.
   buttons, "Download MP4" and "Download WebP" (plain links to the file route).
 - Closing the dialog cancels nothing; opening it again with the same choices gets the same render back from the POST.
 - 503 → "The queue is full, try again in a few minutes". 429 → "You already have videos rendering, wait for them".
-  `failed` → "Could not generate the video" with "Try again". A 404 on the status (expired) → back to "Generate".
+  `failed` → "Could not generate the video" with "Try again". A 404 on the status (expired) → back to "Generate". A ready
+  render goes back to "Generate" when its `expiresAt` passes with the dialog open.
 - API client in `utils/combos.ts`: `startRender(id, { shape, speed })`, `getRender(renderId)`,
   `renderFileUrl(renderId, format)`; every read uses `cache: 'no-store'`. Strings in en and pt, `Simulator` namespace.
 
