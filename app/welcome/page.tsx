@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
+import { ArticleCard } from '@omega/wiki/article'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { LocalTime } from '@omega/profile/local-time'
 import { calendarKey } from '@omega/tournament/calendar-row'
@@ -18,9 +19,10 @@ import { Icon } from '@ui/icon'
 import { PageHeader } from '@ui/page-header'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
+import { getLatestArticles } from '@utils/articles'
 import { getMeServer } from '@utils/auth'
 import { pageMetadata } from '@utils/metadata'
-import type { WelcomeData, WelcomeLadder, WelcomeMeta, WelcomeTournament, WelcomeUpcoming } from '@utils/types'
+import type { ArticleSummary, WelcomeData, WelcomeLadder, WelcomeMeta, WelcomeTournament, WelcomeUpcoming } from '@utils/types'
 import { change, getWelcomeData } from '@utils/welcome'
 import { ReturnAfterSignIn } from './return-to'
 
@@ -335,10 +337,38 @@ const Tournaments = ({ num, recent, upcoming }: { num: string; recent: WelcomeTo
   )
 }
 
+/* ------------------------------------------------------------------ wiki */
+
+const Wiki = ({ num, articles }: { num: string; articles: ArticleSummary[] }) => {
+  const t = useTranslations('Welcome.wiki')
+
+  return (
+    <section aria-labelledby="wiki" className="flex flex-col gap-6">
+      <SectionHead
+        ruled
+        num={num}
+        id="wiki"
+        end={
+          <Link href="/wiki" className="ml-auto flex items-center gap-1.5 signal-strong">
+            {t('all')} <Icon name="right" />
+          </Link>
+        }
+      >
+        {t('heading')}
+      </SectionHead>
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+      </ul>
+    </section>
+  )
+}
+
 /* ------------------------------------------------------------------ page */
 
-const Welcome = ({ welcome }: { welcome: WelcomeData | null }) => {
+const Welcome = ({ welcome, articles }: { welcome: WelcomeData | null; articles: ArticleSummary[] }) => {
   const t = useTranslations('Welcome.header')
+  // The wiki is another API, so it still shows when the game payload is down.
+  const before = welcome ? (welcome.meta ? 3 : 2) : 0
 
   return (
     <div className="mx-auto flex w-full max-w-page flex-col gap-section px-gutter">
@@ -360,15 +390,17 @@ const Welcome = ({ welcome }: { welcome: WelcomeData | null }) => {
           <Tournaments num={welcome.meta ? '03' : '02'} recent={welcome.tournaments.recent} upcoming={welcome.tournaments.upcoming} />
         </>
       ) : null}
+      {articles.length ? <Wiki num={String(before + 1).padStart(2, '0')} articles={articles} /> : null}
     </div>
   )
 }
 
 const WelcomePage = async () => {
   // `/welcome` is public and cached, so the viewer's equipped background comes from `/auth/me`.
-  const [welcome, me] = await Promise.all([
+  const [welcome, me, articles] = await Promise.all([
     getWelcomeData(),
     headers().then((h) => getMeServer(h.get('cookie'))).catch(() => null),
+    getLatestArticles(),
   ])
   const background = me?.cosmetics?.BACKGROUND?.assetUrl
   return (
@@ -379,7 +411,7 @@ const WelcomePage = async () => {
         className="flex min-h-dvh flex-col overflow-x-clip pt-16 pb-24"
         style={background ? { background: `linear-gradient(color-mix(in srgb, var(--color-space-000) 85%, transparent), var(--color-space-000)), url(${JSON.stringify(background)}) center / cover fixed` } : undefined}
       >
-        <Welcome welcome={welcome} />
+        <Welcome welcome={welcome} articles={articles} />
       </main>
       <Footer />
     </>
