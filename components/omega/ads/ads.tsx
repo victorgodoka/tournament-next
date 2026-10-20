@@ -2,7 +2,6 @@
 
 import Script from 'next/script'
 import { usePathname } from 'next/navigation'
-import { useEffect } from 'react'
 import { useAuth } from '@hooks/index'
 import { removeNitroHost } from '@utils/nitro-ads'
 import {
@@ -28,8 +27,7 @@ const STUB =
  * Unmounting (a page without ads, a VIP) takes Nitro's own host off the screen.
  */
 const Placement = ({ id, options }: { id: string; options: NitroAdOptions }) => {
-  useNitroAd(id, options)
-  useEffect(() => () => removeNitroHost(id), [id])
+  useNitroAd(id, options, { remove: removeNitroHost })
   return null
 }
 

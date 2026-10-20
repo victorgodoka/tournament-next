@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthUser } from '@utils/auth'
-import { createNitroPlacement, removeNitroHost, removeNitroPlacement } from '@utils/nitro-ads'
+import { createNitroPlacement, removeNitroHost } from '@utils/nitro-ads'
 import { ANCHOR_AD_OPTIONS, ANCHOR_MOBILE_AD_OPTIONS, NITRO_AD_SLOT_IDS } from '@utils/nitro-ads.const'
 import { Ads } from './ads'
 
@@ -95,7 +95,6 @@ describe('Ads', () => {
     pathname = '/admin'
     rerender(<Ads />)
     expect(container.innerHTML).toBe('')
-    expect(vi.mocked(removeNitroPlacement).mock.calls.map(([id]) => id).sort()).toEqual([...ALL].sort())
     // Nitro has no removeAd: taking its body-level host out is what actually clears the screen.
     expect(vi.mocked(removeNitroHost).mock.calls.map(([id]) => id).sort()).toEqual([...ALL].sort())
   })

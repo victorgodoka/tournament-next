@@ -1,11 +1,18 @@
 'use client'
 
+import { useCallback } from 'react'
+import { contentWidth, fitSizes } from '@utils/nitro-ads'
 import { ARTICLE_AD_OPTIONS } from '@utils/nitro-ads.const'
 import { useAdsMode } from './ads-mode'
 import { useNitroAd } from './use-nitro-ad'
 
 const ArticlePlacement = ({ targetId }: { targetId: string }) => {
-  useNitroAd(targetId, ARTICLE_AD_OPTIONS)
+  // Read when the slot asks: the column is 860px on desktop, less on a tablet.
+  const options = useCallback(() => {
+    const sizes = fitSizes(ARTICLE_AD_OPTIONS.sizes, contentWidth(document.getElementById(targetId)))
+    return sizes.length ? { ...ARTICLE_AD_OPTIONS, sizes } : null
+  }, [targetId])
+  useNitroAd(targetId, options)
   return null
 }
 

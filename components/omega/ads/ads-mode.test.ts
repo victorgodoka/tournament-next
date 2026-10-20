@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AuthUser } from '@utils/auth'
-import { adsMode, isVideoPage, promoVisible } from './ads-mode'
+import { adsLayout, adsMode, isVideoPage, promoLayout, promoVisible } from './ads-mode'
 
 const base: Omit<AuthUser, 'isVip'> = {
   id: '1',
@@ -41,9 +41,30 @@ describe('promoVisible', () => {
 
 describe('isVideoPage', () => {
   it.each([
-    ['/wiki/foo', true], ['/wiki/card/123', true], ['/statistics', true], ['/profile/1/statistics', true],
+    ['/wiki/foo', true], ['/wiki/card/123', true], ['/statistics', true],
+    // The player report mounts no video: the floating player stays on there.
+    ['/profile/1/statistics', false],
     ['/wiki', false], ['/decks', false], ['/profile/1', false],
   ] as const)('%s is %s', (pathname, video) => {
     expect(isVideoPage(pathname)).toBe(video)
+  })
+})
+
+describe('adsLayout', () => {
+  // While /auth/me is in flight the page holds the boxes a signed-out reader would get: no shift for
+  // anyone but a VIP, whose boxes collapse once auth answers.
+  it.each([
+    [undefined, '/decks', 'all'], [undefined, '/', 'none'], [undefined, '/deck-builder', 'rail'], [undefined, '/admin', 'none'],
+    [vip, '/decks', 'none'], [free, '/decks', 'all'], [anon, '/calculator', 'rail'],
+  ] as const)('%o on %s holds %s', (user, pathname, mode) => {
+    expect(adsLayout(user, pathname)).toBe(mode)
+  })
+})
+
+describe('promoLayout', () => {
+  it.each([
+    [undefined, true], [anon, true], [free, true], [vip, false], [legacy, false],
+  ] as const)('%o holds the promo: %s', (user, held) => {
+    expect(promoLayout(user)).toBe(held)
   })
 })

@@ -9,6 +9,8 @@ import type { NitroAdInstance, NitroAdOptions } from '@utils/nitro-ads.types'
 
 interface UseNitroAdOptions {
   enabled?: boolean
+  /** How the placement leaves the screen. Site-wide formats pass `removeNitroHost`. */
+  remove?: (slotId: string) => void
 }
 
 function scheduleIdleWork(work: () => void): () => void {
@@ -23,8 +25,9 @@ function scheduleIdleWork(work: () => void): () => void {
 
 export function useNitroAd(
   slotId: string,
-  options: NitroAdOptions,
-  { enabled = true }: UseNitroAdOptions = {},
+  /** A function is read when the slot asks, once it is laid out; `null` skips the slot. */
+  options: NitroAdOptions | (() => NitroAdOptions | null),
+  { enabled = true, remove = removeNitroPlacement }: UseNitroAdOptions = {},
 ) {
   const adInstanceRef = useRef<NitroAdInstance | null>(null)
   // Blocked script or timeout: the caller can show something in the empty slot.
@@ -32,7 +35,7 @@ export function useNitroAd(
 
   useEffect(() => {
     if (!enabled) {
-      removeNitroPlacement(slotId)
+      remove(slotId)
       adInstanceRef.current = null
       return
     }
@@ -40,13 +43,15 @@ export function useNitroAd(
     let cancelled = false
     const cancelIdle = scheduleIdleWork(() => {
       if (cancelled) return
+      const resolved = typeof options === 'function' ? options() : options
+      if (!resolved) return
 
       setFailed(false)
-      createNitroPlacement(slotId, options)
+      createNitroPlacement(slotId, resolved)
         .then((ad) => {
-          if (!cancelled) {
-            adInstanceRef.current = ad
-          }
+          // Calls queued before the script loaded resolve late: the reader may be gone by then.
+          if (cancelled) remove(slotId)
+          else adInstanceRef.current = ad
         })
         .catch((error: unknown) => {
           adInstanceRef.current = null
@@ -63,10 +68,10 @@ export function useNitroAd(
     return () => {
       cancelled = true
       cancelIdle()
-      removeNitroPlacement(slotId)
+      remove(slotId)
       adInstanceRef.current = null
     }
-  }, [enabled, options, slotId])
+  }, [enabled, options, remove, slotId])
 
   return { failed }
 }

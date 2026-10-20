@@ -101,5 +101,17 @@ export function removeNitroPlacement(slotId: string): void {
 export function removeNitroHost(slotId: string): void {
   let host = document.getElementById(slotId)
   while (host?.parentElement && host.parentElement !== document.body) host = host.parentElement
-  host?.remove()
+  // Never past <body>: a slot hung anywhere else would take <html> with it.
+  if (host?.parentElement === document.body) host.remove()
+}
+
+/** The creatives as wide as the slot or narrower: a wider one would clip or scroll the page sideways. */
+export const fitSizes = <S extends readonly (readonly [number, number])[]>(sizes: S, width: number): S[number][] =>
+  sizes.filter(([w]) => w <= width)
+
+/** The width a unit can fill inside `el`, padding left out. 0 when there is no element. */
+export const contentWidth = (el: Element | null | undefined): number => {
+  if (!(el instanceof HTMLElement)) return 0
+  const style = getComputedStyle(el)
+  return el.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)
 }

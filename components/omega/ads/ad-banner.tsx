@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useMemo } from 'react'
+import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { contentWidth, fitSizes } from '@utils/nitro-ads'
 import { AD_REPORT, ASIDE_AD_OPTIONS, CONTENT_SIZES } from '@utils/nitro-ads.const'
 import type { NitroAdOptions } from '@utils/nitro-ads.types'
-import { useAdsMode } from './ads-mode'
+import { useAdsLayout, useAdsMode } from './ads-mode'
 import { useNitroAd } from './use-nitro-ad'
 import { VipPromo } from './vip-promo'
 
@@ -18,19 +19,23 @@ type AdBannerProps = {
   className?: string
 }
 
-const contentOptions = (): NitroAdOptions => ({
-  sizes: typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches ? CONTENT_SIZES.desktop : CONTENT_SIZES.mobile,
-  renderVisibleOnly: true,
-  report: AD_REPORT,
-})
+/** Read when the slot asks: only the creatives its box can hold. */
+const contentOptions = (id: string): NitroAdOptions | null => {
+  const sizes = fitSizes(CONTENT_SIZES, contentWidth(document.getElementById(id)?.parentElement))
+  return sizes.length ? { sizes, renderVisibleOnly: true, report: AD_REPORT } : null
+}
 
-/** A labelled display unit. Blocked by an adblocker, the reserved box shows our VIP promo instead. */
+/**
+ * A labelled display unit. The box is there from the server render on (no shift when auth answers),
+ * the slot only once ads are on. Blocked by an adblocker, the box shows our VIP promo instead.
+ */
 export const AdBanner = ({ id, placement, className }: AdBannerProps) => {
-  const mode = useAdsMode()
+  const layout = useAdsLayout()
+  const live = useAdsMode() === 'all'
   const t = useTranslations('Ads')
-  const options = useMemo(() => (placement === 'aside' ? ASIDE_AD_OPTIONS : contentOptions()), [placement])
-  const { failed } = useNitroAd(id, options, { enabled: mode === 'all' })
-  if (mode !== 'all') return null
+  const options = useCallback(() => (placement === 'aside' ? ASIDE_AD_OPTIONS : contentOptions(id)), [placement, id])
+  const { failed } = useNitroAd(id, options, { enabled: live })
+  if (layout !== 'all') return null
 
   return (
     <div
@@ -44,7 +49,7 @@ export const AdBanner = ({ id, placement, className }: AdBannerProps) => {
     >
       <span className="text-ink-muted signal-sm">{t('label')}</span>
       <div className="flex min-h-[250px] w-full items-center justify-center">
-        {failed ? <VipPromo className="w-full" /> : <div id={id} />}
+        {failed ? <VipPromo className="w-full" /> : live ? <div id={id} /> : null}
       </div>
       <Link href="/download#donations" className="text-ink-muted signal-sm hover:text-ink">
         {t('removeWithVip')}

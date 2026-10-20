@@ -223,6 +223,21 @@ describe('useNitroAd', () => {
     )
   })
 
+  it('removes a placement that Nitro creates after the reader left', async () => {
+    vi.useFakeTimers()
+    let resolve!: (ad: object) => void
+    vi.spyOn(nitroAds, 'createNitroPlacement').mockReturnValue(new Promise((r) => { resolve = r }))
+    const remove = vi.fn()
+
+    const { unmount } = renderHook(() => useNitroAd('slot-1', FLOATING_AD_OPTIONS, { remove }))
+    await runScheduledWork()
+    unmount()
+    expect(remove).toHaveBeenCalledTimes(1)
+
+    await act(async () => resolve({}))
+    expect(remove).toHaveBeenCalledTimes(2)
+  })
+
   it('reports failed when creation rejects', async () => {
     vi.useFakeTimers()
     vi.spyOn(console, 'warn').mockImplementation(() => {})

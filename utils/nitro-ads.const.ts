@@ -84,13 +84,24 @@ export const INTERSTITIAL_AD_OPTIONS = {
 } as const satisfies NitroInterstitialAdOptions
 
 /**
- * In-content sizes, picked once at mount: the more sizes a slot takes, the more bidders compete.
- * Every slot reserves 250px, the tallest of them, so no fill shifts the page.
+ * In-content sizes: the more sizes a slot takes, the more bidders compete. Each slot keeps the ones
+ * that fit its width when it asks (`fitSizes`). Every slot reserves 250px, the tallest of them, so
+ * no fill shifts the page.
  */
-export const CONTENT_SIZES = {
-  desktop: [[970, 250], [970, 90], [728, 90], [300, 250]],
-  mobile: [[300, 250], [320, 100], [320, 50]],
-} as const satisfies Record<'desktop' | 'mobile', NitroAdSizes>
+export const CONTENT_SIZES = [
+  [970, 250],
+  [970, 90],
+  [728, 90],
+  [300, 250],
+  [320, 100],
+  [320, 50],
+] as const satisfies NitroAdSizes
+
+/**
+ * The wiki article's body, which Nitro's `article` format spaces units through. Never an ad-like id
+ * (`ad-article`, `ad-top`…): EasyList hides those, and here that would hide the article.
+ */
+export const WIKI_BODY_ID = 'wiki-body'
 
 /** Below `lg` the wiki aside moves above the article: there the anchor covers phones instead. */
 export const ASIDE_AD_OPTIONS = {

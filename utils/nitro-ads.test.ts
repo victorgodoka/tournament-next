@@ -4,6 +4,7 @@ import { FLOATING_AD_OPTIONS } from './nitro-ads.const'
 import {
   NITRO_LOADED_EVENT,
   createNitroPlacement,
+  fitSizes,
   removeNitroHost,
   removeNitroPlacement,
   waitForNitroAds,
@@ -225,11 +226,35 @@ describe('removeNitroHost', () => {
     expect(anchor.isConnected).toBe(false)
   })
 
+  it('never climbs past body', () => {
+    const stray = document.createElement('div')
+    stray.id = 'slot-1'
+    document.documentElement.append(stray)
+
+    removeNitroHost('slot-1')
+
+    expect(document.documentElement.isConnected).toBe(true)
+    expect(document.body.isConnected).toBe(true)
+    stray.remove()
+  })
+
   it('does nothing when Nitro never created the slot', () => {
     document.body.append(document.createElement('main'))
 
     removeNitroHost('slot-1')
 
     expect(document.body.childElementCount).toBe(1)
+  })
+})
+
+describe('fitSizes', () => {
+  const sizes = [[970, 250], [728, 90], [300, 250], [320, 50]] as const
+
+  it('keeps only the creatives as wide as the slot or narrower', () => {
+    expect(fitSizes(sizes, 800)).toEqual([[728, 90], [300, 250], [320, 50]])
+  })
+
+  it('keeps everything in a slot wide enough', () => {
+    expect(fitSizes(sizes, 1280)).toEqual(sizes)
   })
 })

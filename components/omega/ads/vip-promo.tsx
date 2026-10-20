@@ -5,19 +5,20 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button/button.component'
 import { Panel } from '@ui/panel'
-import { useAdsMode, usePromoVisible } from './ads-mode'
+import { useAdsLayout, usePromoLayout } from './ads-mode'
 
 /**
  * Our own ad: the VIP pitch on every page that carries ads, and in any ad slot Nitro couldn't
- * fill (adblock). Gone for a VIP, and on /download, which already is the pitch.
+ * fill (adblock). Held from the server render on so it doesn't shift the page; gone for a VIP,
+ * and on /download, which already is the pitch.
  */
 export const VipPromo = ({ className }: { className?: string }) => {
-  const mode = useAdsMode()
-  const visible = usePromoVisible()
+  const layout = useAdsLayout()
+  const held = usePromoLayout()
   const pathname = usePathname()
   const t = useTranslations('Ads.promo')
   const donations = useTranslations('Download.donations')
-  if (!visible || mode === 'none' || pathname === '/download') return null
+  if (!held || layout === 'none' || pathname === '/download') return null
 
   return (
     <Panel

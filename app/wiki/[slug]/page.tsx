@@ -11,6 +11,7 @@ import { ArticleView } from '@omega/wiki/article-view'
 import { AdArticle } from '@omega/ads/ad-article'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
+import { WIKI_BODY_ID } from '@utils/nitro-ads.const'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { getArticle } from '@utils/articles'
@@ -116,7 +117,7 @@ const MarkdownArticle = async ({ article }: { article: Article }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <article id="ad-article" className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
+      <article id={WIKI_BODY_ID} className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
         <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
           <Link href="/wiki" className="text-ink-muted hover:text-cyan">
             Omega Wiki
@@ -143,7 +144,7 @@ const MarkdownArticle = async ({ article }: { article: Article }) => {
         <AdVideo id="ad-video" className="mt-7" />
         <ArticleBody html={html} className="mt-7" />
       </article>
-      <AdArticle targetId="ad-article" />
+      <AdArticle targetId={WIKI_BODY_ID} />
 
       <aside className={twMerge('border-line lg:border-l', WIKI_ASIDE)}>
         <ArticleMeta article={article} />
@@ -180,7 +181,7 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
             slug={article.slug}
             html={await renderDocHtml(article.doc)}
             links={article.links}
-            bodyId="ad-article"
+            bodyId={WIKI_BODY_ID}
             lead={<AdVideo id="ad-video" className="mb-8" />}
           >
             {/* The Markdown page has a byline for this; the block page shows it here. */}
@@ -192,7 +193,7 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
             </AsideBlock>
             <ArticleMeta article={article} />
             <AdBanner id="ad-aside" placement="aside" />
-            <AdArticle targetId="ad-article" />
+            <AdArticle targetId={WIKI_BODY_ID} />
           </ArticleView>
         ) : (
           <MarkdownArticle article={article} />
