@@ -39,7 +39,10 @@ deploy:
   image: curlimages/curl:latest
   services: []
   script:
-    - curl -fsS -X POST -H "Authorization: Bearer $WATCHTOWER_TOKEN" "$WATCHTOWER_URL/v1/update"
+    - |
+      curl -fsS -X POST \
+        -H "Authorization: Bearer $WATCHTOWER_TOKEN" \
+        "$WATCHTOWER_URL/v1/update"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "master"
