@@ -440,6 +440,10 @@
         "swiss": "Swiss",
         "single_elimination": "Single elimination"
       }
+    },
+    "wiki": {
+      "heading": "Latest on the wiki",
+      "all": "All articles"
     }
   },
   "Banlist": {

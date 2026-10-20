@@ -10,6 +10,7 @@ import type {
   ArticleDraft,
   ArticleIndex,
   ArticlePatch,
+  ArticleSummary,
   DocArticleDraft,
   DocArticlePatch,
   Revision,
@@ -88,6 +89,20 @@ export type ArticleQuery = {
 /** Newest published first by default. Drafts appear only for a viewer with `wiki.write`. */
 export const listArticles = (query: ArticleQuery = {}, cookie?: string | null, signal?: AbortSignal) =>
   request<ArticleIndex>(`/wiki${search(query)}`, { ...withCookie(cookie), signal })
+
+/**
+ * Newest published articles for the landing and /welcome. No cookie, so never a draft, and cached like the
+ * rest of those pages instead of `no-store`. Capped at 3 s so a slow API never holds the page: `[]` hides the block.
+ */
+export const getLatestArticles = async (limit = 3): Promise<ArticleSummary[]> => {
+  try {
+    const res = await fetch(`${API_URL}/wiki?limit=${limit}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(3_000) })
+    return res.ok ? ((await res.json()) as ArticleIndex).articles : []
+  } catch (error) {
+    console.error(error)
+    return []
+  }
+}
 
 /** Everyone with at least one article this viewer can see: the index's author filter. */
 export const listAuthors = async (cookie?: string | null) =>

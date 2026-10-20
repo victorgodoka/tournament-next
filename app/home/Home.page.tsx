@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
+import { ArticleCard } from "@omega/wiki/article";
 import { Button } from "@ui/button";
 import { Chip } from "@ui/chip";
 import { Eyebrow } from "@ui/eyebrow";
@@ -21,7 +22,9 @@ import {
   HOME_NAVBAR_ITEMS,
   HOME_TOOLS,
 } from "@utils/const";
+import { getLatestArticles } from "@utils/articles";
 import { getTopDecks } from "@utils/global-explorer";
+import type { ArticleSummary } from "@utils/types";
 import { Carousel } from "@ui/carousel";
 
 type MetaDeck = { id: number; name: string; note: string }
@@ -485,6 +488,22 @@ const Faq = () => (
   </Band>
 )
 
+const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
+  <Band id="wiki">
+    <Rail num="09">Yugioh wiki</Rail>
+    <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
+      <h2 className={twMerge(BAND_TITLE, "max-w-[15ch] flex-[1_1_560px]")}>Latest from the wiki</h2>
+      <Button href="/wiki" variant="ghost">
+        All articles
+        <Icon name="right" />
+      </Button>
+    </div>
+    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+    </ul>
+  </Band>
+)
+
 const ClosingCta = () => (
   <section className="relative mt-[clamp(80px,11vw,160px)] overflow-hidden border-t border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_50%_70%_at_50%_100%,rgba(0,253,255,0.18),rgba(0,0,0,0)_70%)] py-[clamp(72px,10vw,144px)]">
     <Image src="/omega-mark.png" alt="" width={820} height={765} aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
@@ -512,7 +531,8 @@ const ClosingCta = () => (
 /** Landing, rebuilt on the Omega Hub design system: hero, format ticker, eight numbered bands, closing call to action. */
 const HomePage = async () => {
   // TCG ranking; the landing falls back to the static picks if the API is down or has no open season.
-  const top = (ANALYTICS_ENABLED ? await getTopDecks("tcg").catch(() => null) : null) ?? []
+  const [ranked, articles] = await Promise.all([ANALYTICS_ENABLED ? getTopDecks("tcg").catch(() => null) : null, getLatestArticles()])
+  const top = ranked ?? []
   const heroCards = top[0]?.topCards.length === 3 ? top[0].topCards : HERO_FALLBACK
   const live = top.flatMap(({ topCards: [card], name, metaShare }) =>
     card && name ? [{ id: card.id, name, note: `${(metaShare * 100).toFixed(1)}% of the meta` }] : [])
@@ -532,6 +552,7 @@ const HomePage = async () => {
         <Tools />
         <Modes />
         <Faq />
+        {articles.length ? <Wiki articles={articles} /> : null}
         <ClosingCta />
       </main>
       <Footer />
