@@ -333,6 +333,41 @@
     outline: 2px solid var(--color-cyan);
     outline-offset: 3px;
   }
+
+  /*
+   * Scrollbars: a square line-mid thumb in a space-000 channel, lifting under the pointer.
+   * Chromium and Safari get the ::-webkit-scrollbar pseudos, the only route to a thumb hover. The standard
+   * pair would switch those off in Chrome 121+, so it is left to Firefox, which has no pseudos.
+   */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-line-mid) var(--color-space-000);
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: var(--color-space-000);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid var(--color-space-000);
+    background: var(--color-line-mid);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-steel-edge);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--color-line-strong);
+  }
 }
 
 /* Named type styles sit below utilities, so text-*, leading-*, tracking-* on the same element win. */

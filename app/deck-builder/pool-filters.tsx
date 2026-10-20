@@ -120,7 +120,7 @@ export const PoolFilters = ({ open, onClose, query, onChange, banlist }: PoolFil
         </Button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-5 py-5 [scrollbar-color:var(--color-line-mid)_transparent] [scrollbar-width:thin]">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-5 py-5">
         <div className="flex flex-col gap-2">
           {section(
             t('kind'),
