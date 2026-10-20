@@ -54,6 +54,8 @@ const failed = (error: unknown): RenderHandle => {
 }
 
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve))
+/** Every image on the page decoded or broken: a 404 or a blocked origin leaves its frames without it, never fails the video. */
+const decoded = () => Promise.allSettled(Array.from(document.querySelectorAll('img'), (img) => img.decode()))
 const none = () => {}
 
 /**
@@ -110,8 +112,7 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
   // Handed to the renderer once the board is fitted: the images `ready` waits on are the ones the frames show.
   useEffect(() => {
     if (cardW === null) return
-    // A broken image (a 404, a blocked origin) is missing from the frames; it never fails the whole video.
-    const ready = Promise.allSettled(Array.from(document.querySelectorAll('img'), (img) => img.decode()))
+    const ready = decoded()
       .then(() => document.fonts.ready)
       .then(() => ({ revision: combo.revision, durationMs: video.durationMs }))
     let cursor = opened.cursor
@@ -124,10 +125,12 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
         const at = video.at(ms)
         if (at.cursor !== cursor) {
           cursor = at.cursor
-          // Committed at once (the step's slides start in its layout effects), then two frames for its glow to start.
+          // Committed at once (the step's slides start in its layout effects), then two frames for its glow to start, then
+          // the images the step mounted (a card drawn, a new GY top), so its first frame never shows an empty tile.
           flushSync(() => dispatch({ type: 'seek', cursor: at.cursor }))
           await frame()
           await frame()
+          await decoded()
         }
         // Every slide and glow held at the time inside the step, whatever the screenshot costs.
         for (const animation of document.getAnimations()) {

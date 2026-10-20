@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
+import type { CardData } from '@utils/deck/types'
 import { renderTimeline } from '@utils/simulator/timing'
 import { ComboRender } from './combo-render'
 
@@ -165,6 +167,32 @@ describe('ComboRender', () => {
       expect(a.pause).toHaveBeenCalled()
       expect(a.currentTime).toBe(700)
     }
+  })
+
+  it('a seek that changes the step waits for the images the step mounts', async () => {
+    // Card 0 (passcode 1) has its scan: moved from the hand to m0, it mounts a new <img> there.
+    vi.mocked(cardsByIds).mockResolvedValueOnce(new Map([[1, { id: 1, kind: 'spell', name: 'Pot', monsterTypes: [] } as unknown as CardData]]))
+    await open()
+    await page().ready
+    const before = new Set(document.querySelectorAll('img'))
+    const decoding = Promise.withResolvers<void>()
+    let asked = false
+    vi.spyOn(HTMLImageElement.prototype, 'decode').mockImplementation(function (this: HTMLImageElement) {
+      if (before.has(this)) return Promise.resolve()
+      asked = true
+      return decoding.promise
+    })
+    let seeking!: Promise<void>
+    await act(async () => {
+      seeking = page().seek(2900)
+    })
+    await vi.waitFor(() => expect(asked).toBe(true)) // past the two frames, at the new scan
+    expect(inM0()!.querySelector('img')).toBeTruthy()
+    expect(await settled(seeking)).toBe(false)
+    expect(animations[0]!.pause).not.toHaveBeenCalled()
+    decoding.resolve()
+    expect(await settled(seeking)).toBe(true)
+    for (const a of animations) expect(a.currentTime).toBe(700)
   })
 
   it('seek never goes back', async () => {
