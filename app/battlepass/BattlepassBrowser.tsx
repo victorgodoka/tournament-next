@@ -573,7 +573,7 @@ export const BattlepassBrowser = ({ data }: { data: Data }) => {
               role="region"
               aria-label={`Battlepass track, levels 1 to ${maxLevel}`}
               tabIndex={0}
-              className="relative min-w-0 flex-1 overflow-x-auto pb-4 [scrollbar-color:var(--color-line-mid)_var(--color-surface-100)] [scrollbar-width:thin] max-[719px]:[scrollbar-width:none]"
+              className="relative min-w-0 flex-1 overflow-x-auto pb-4 max-[719px]:scrollbar-none"
             >
               <div className="flex w-max gap-2.5 pt-2.5 pr-4 pl-2.5 min-[720px]:gap-3 min-[720px]:pr-20">
                 {levels.map((l) => {
