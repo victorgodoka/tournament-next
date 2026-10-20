@@ -1173,6 +1173,9 @@
       "edit": "Editar",
       "replace": "Seu simulador tem uma linha em andamento. Abrir esta a substitui."
     },
+    "render": {
+      "brand": "YGO Omega Combo Simulator"
+    },
     "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
     "dismiss": "Fechar",
     "lookupFailed": "Algumas cartas não carregaram; elas aparecem pelo passcode.",

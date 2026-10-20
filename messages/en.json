@@ -1173,6 +1173,9 @@
       "edit": "Edit",
       "replace": "Your simulator has a line in progress. Opening this one replaces it."
     },
+    "render": {
+      "brand": "YGO Omega Combo Simulator"
+    },
     "damagedLink": "This deck link is damaged, so the simulator opened empty.",
     "dismiss": "Dismiss",
     "lookupFailed": "Some cards did not load; they show their passcode.",
