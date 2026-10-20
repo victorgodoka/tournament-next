@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import { useEffect, useSyncExternalStore, type MouseEvent, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Breadcrumbs } from '@ui/breadcrumbs'
 import { Segmented } from '@ui/choice'
 import { Footer } from '@ui/footer'
@@ -308,6 +309,8 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
             </div>
           </section>
 
+          <AdBanner id="ad-top" placement="content" />
+
           <section id="list" aria-labelledby="bl-timeline" className="flex scroll-mt-20 flex-col gap-5">
             <SectionHead ruled num="02" id="bl-timeline" end={t('timeline.meta', { count: BANLISTS.length })}>{t('timeline.heading')}</SectionHead>
             <nav
@@ -488,6 +491,8 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
               {t('note')} <a href={SOURCE}>{t('source')}</a>
             </span>
           </p>
+
+          <AdBanner id="ad-bottom" placement="content" />
         </div>
       </main>
       <Footer />

@@ -7,6 +7,7 @@ import { Chip } from '@ui/chip/chip.component'
 import { Eyebrow } from '@ui/eyebrow/eyebrow'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { StatGrid } from '@ui/stat-grid'
 import type { TournamentDetail } from '@utils/types'
 import { Rounds } from './sections/Rounds'
@@ -66,6 +67,8 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
             <CopyButton label={t('detail.copyLink')} icon="deck" />
           </header>
 
+          <AdBanner id="ad-top" placement="content" />
+
           <TournamentTabs
             live={live}
             summary={
@@ -99,6 +102,8 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
             rounds={<Rounds rounds={rounds} standings={standings} live={live} />}
             stats={<Stats tournament={tournament} stats={stats} live={live} standings={standings} />}
           />
+
+          <AdBanner id="ad-bottom" placement="content" />
         </div>
       </main>
       <Footer />
