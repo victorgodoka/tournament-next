@@ -90,3 +90,16 @@ export async function createNitroPlacement(
 export function removeNitroPlacement(slotId: string): void {
   window.nitroAds?.removeAd?.(slotId)
 }
+
+/**
+ * Takes a site-wide placement (rail, anchor, floating, interstitial) off the screen. The live
+ * script has no `removeAd`, and these formats need no element of ours: Nitro hangs its own host
+ * off <body>, sometimes wrapping the slot and its close button. Removing that host is Nitro's
+ * documented removal. Only for ids React never renders: on an in-content slot it would climb to
+ * a page wrapper.
+ */
+export function removeNitroHost(slotId: string): void {
+  let host = document.getElementById(slotId)
+  while (host?.parentElement && host.parentElement !== document.body) host = host.parentElement
+  host?.remove()
+}

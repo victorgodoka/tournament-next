@@ -13,6 +13,7 @@ import { FONTS_VARIABLES } from '@utils/fonts'
 import './styles.css'
 import { AuthProvider, ModalProvider } from '../contexts'
 import { MessengerDock, MessengerProvider } from '@omega/messenger'
+import { Ads } from '@omega/ads/ads'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -72,6 +73,7 @@ export default async function RootLayout({
               <MessengerProvider>
                 {children}
                 <MessengerDock />
+                <Ads />
               </MessengerProvider>
             </ModalProvider>
           </AuthProvider>

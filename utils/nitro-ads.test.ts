@@ -4,6 +4,7 @@ import { FLOATING_AD_OPTIONS } from './nitro-ads.const'
 import {
   NITRO_LOADED_EVENT,
   createNitroPlacement,
+  removeNitroHost,
   removeNitroPlacement,
   waitForNitroAds,
 } from './nitro-ads'
@@ -195,5 +196,40 @@ describe('removeNitroPlacement', () => {
     removeNitroPlacement('slot-1')
 
     expect(slot.querySelector('p')).toBeTruthy()
+  })
+})
+
+describe('removeNitroHost', () => {
+  beforeEach(() => {
+    document.body.replaceChildren()
+  })
+
+  it('removes the wrapper Nitro hangs off body around a rail and its close button', () => {
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = '<div id="slot-1"></div><div id="slot-1-close"></div>'
+    document.body.append(document.createElement('main'), wrapper)
+
+    removeNitroHost('slot-1')
+
+    expect(wrapper.isConnected).toBe(false)
+    expect(document.querySelector('main')).toBeTruthy()
+  })
+
+  it('removes a slot Nitro put straight on body', () => {
+    const anchor = document.createElement('div')
+    anchor.id = 'slot-1'
+    document.body.append(anchor)
+
+    removeNitroHost('slot-1')
+
+    expect(anchor.isConnected).toBe(false)
+  })
+
+  it('does nothing when Nitro never created the slot', () => {
+    document.body.append(document.createElement('main'))
+
+    removeNitroHost('slot-1')
+
+    expect(document.body.childElementCount).toBe(1)
   })
 })

@@ -4,7 +4,7 @@ import { twMerge } from "tailwind-merge";
 import { FOOTER_DISCLAIMER, FOOTER_LINKS, FOOTER_MEDIA_NOTE } from "@utils/const";
 
 export const Footer = ({ className }: { className?: string }) => (
-  <footer className={twMerge("border-t border-line bg-space-000 px-gutter pt-8 pb-30 sm:pb-8", className)}>
+  <footer id="site-footer" className={twMerge("border-t border-line bg-space-000 px-gutter pt-8 pb-30 sm:pb-8", className)}>
     <div className="flex flex-wrap items-center justify-between gap-5">
       <div className="flex items-center gap-3">
         <Image src="/omega-mark.png" alt="" width={30} height={28} />

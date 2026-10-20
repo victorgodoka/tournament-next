@@ -110,6 +110,7 @@ export const Header = ({ elementRef, className, items, extra }: HeaderProps) => 
 
   return (
     <header
+      id="site-header"
       ref={elementRef}
       className={twMerge("absolute top-0 z-(--z-header) flex h-15 w-full flex-nowrap items-stretch gap-8 border-b border-line bg-surface-100/92 px-6 max-lg:gap-3 max-lg:px-4 xl:fixed", className)}
     >
