@@ -1,4 +1,5 @@
 import { Button } from "@ui/button";
+import { AdBanner } from "@omega/ads/ad-banner";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { Icon } from "@ui/icon";
@@ -187,12 +188,14 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
   return (
     <>
       {header}
+      <AdBanner id="ad-top" placement="content" />
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Rail num="01" label="Ranked ladders" stamp="Elo live · rank from last sync" />
           <Ladders name={name ?? 'Elo'} ladders={profile.ladders} currentSeasons={profile.currentSeasons ?? []} />
           <Rail num="02" label="Duel history" stamp={`Ranked only · ${formatNumber(profile.duelsPlayed)} duels`} className="mt-4" />
           <MatchHistory profileId={profile.id} matches={profile.matches} nextCursor={profile.nextCursor} />
+          <AdBanner id="ad-bottom" placement="content" />
         </div>
 
         <aside className="flex min-w-0 flex-col gap-6">

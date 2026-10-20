@@ -4,6 +4,7 @@ import { API_URL } from '@utils/auth'
 import type { SharedCombo } from '@utils/combos'
 import { metaDescription, pageMetadata } from '@utils/metadata'
 import { ComboPlayerLoader } from './combo-player.loader'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { VipPromo } from '@omega/ads/vip-promo'
 
 type Props = { params: Promise<{ id: string }> }
@@ -32,6 +33,7 @@ const ComboPlayerPage = async ({ params }: Props) => {
       {/* As the simulator's page: clipped sideways at the viewport edge, for a card sliding in from a pile. */}
       <main className="min-h-dvh overflow-x-clip pt-16">
         <ComboPlayerLoader id={id} />
+        <AdBanner id="ad-bottom" placement="content" className="mx-auto mt-12 w-[min(1280px,calc(100%-32px))]" />
         {/* No footer on this page: our VIP pitch goes at the end instead. */}
         <VipPromo className="mx-auto my-12 w-[min(1280px,calc(100%-32px))]" />
       </main>

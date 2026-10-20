@@ -13,6 +13,7 @@ import { DAY, TIME_ONLY, banlistLabel, formatNumber, formatRate, formatTone } fr
 import { Avatar } from '@ui/avatar'
 import { Button } from '@ui/button/button.component'
 import { Chip } from '@ui/chip/chip.component'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
@@ -386,8 +387,10 @@ const Welcome = ({ welcome, articles }: { welcome: WelcomeData | null; articles:
             <LiveBanner key={tournament.id} tournament={tournament} featured={!i} />
           ))}
           <Activity players={welcome.players} games={welcome.games} />
+          <AdBanner id="ad-top" placement="content" />
           {welcome.meta ? <Meta meta={welcome.meta} /> : null}
           <Tournaments num={welcome.meta ? '03' : '02'} recent={welcome.tournaments.recent} upcoming={welcome.tournaments.upcoming} />
+          <AdBanner id="ad-bottom" placement="content" />
         </>
       ) : null}
       {articles.length ? <Wiki num={String(before + 1).padStart(2, '0')} articles={articles} /> : null}

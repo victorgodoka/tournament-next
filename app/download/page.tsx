@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@ui/button/button.component'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
@@ -137,6 +138,7 @@ const DownloadPage = () => (
         <Requirements />
         <Donations />
         <About />
+        <AdBanner id="ad-bottom" placement="content" />
       </div>
     </main>
     <Footer />
