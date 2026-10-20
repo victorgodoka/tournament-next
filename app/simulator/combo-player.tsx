@@ -23,6 +23,7 @@ import { ReplayBar } from './replay-bar'
 import { TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 import { useReplay } from './use-replay'
+import { VideoDialog } from './video-dialog'
 
 const COUNTDOWN_S = 3
 const WIDTH = 'mx-auto w-[min(1280px,calc(100%-32px))]'
@@ -99,6 +100,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
   const [countdown, setCountdown] = useState<number | null>(opened.start < opened.actions.length ? COUNTDOWN_S : null)
   /** The session "Operate from here" or Edit hands to the simulator, waiting on the confirm. */
   const [pending, setPending] = useState<Session | null>(null)
+  const [videoOpen, setVideoOpen] = useState(false)
   const { cards, ensure } = useCardCache()
 
   const boards = useMemo(() => timeline(session.deck, session.actions), [session.deck, session.actions])
@@ -167,6 +169,9 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
                 {t('player.edit')}
               </Button>
             ) : null}
+            <Button variant="secondary" onClick={() => setVideoOpen(true)} className={TOUCH}>
+              {t('video.open')}
+            </Button>
             <Button onClick={operate} className={TOUCH}>
               {t('player.operate')}
             </Button>
@@ -254,6 +259,9 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
           </div>
         </div>
       </div>
+
+      {/* The video is cut from the combo as it opened, like the render page does: this viewer's own "Replay starts here" never reaches it. */}
+      <VideoDialog open={videoOpen} onClose={() => setVideoOpen(false)} comboId={combo.id} actions={opened.actions} start={opened.start} />
 
       <Dialog
         size="sm"

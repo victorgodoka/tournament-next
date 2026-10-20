@@ -1,6 +1,7 @@
 /**
  * Saved combos of the simulator and their share links. Same shape as `decks.ts`: one `request`, one `json`.
  */
+import type { Speed } from '@app/simulator/replay-bar'
 import { API_URL } from '@utils/auth'
 import type { ComboPayload } from '@utils/simulator/types'
 
@@ -94,3 +95,38 @@ export const getCombo = async (id: string): Promise<SharedCombo | null> => {
 
 /** The share link of a combo. Browser only: it reads `location`. */
 export const comboUrl = (id: string) => `${location.origin}/simulator/c/${id}`
+
+export type RenderShape = 'landscape' | 'portrait'
+
+/** A video render of a shared combo, as the API reports it. `position` is how many renders are ahead of a `queued` one. */
+export type RenderInfo = {
+  id: string
+  status: 'queued' | 'running' | 'ready' | 'failed'
+  shape: RenderShape
+  speed: Speed
+  framesDone: number
+  /** Null until the renderer knows it. */
+  framesTotal: number | null
+  position: number
+  /** When the files go away; null until `ready`. */
+  expiresAt: string | null
+}
+
+/**
+ * `POST /combos/:id/renders`: 202 for a new render, 200 for the one already made with these choices. Anonymous is fine.
+ * `429 RENDER_BUSY` (or `RATE_LIMITED`) and `503 QUEUE_FULL` reject as `ComboApiError`.
+ */
+export const startRender = (id: string, input: { shape: RenderShape; speed: Speed }) => request<RenderInfo>(`${path(id)}/renders`, json('POST', input))
+
+/** `GET /combos/renders/:renderId`. `null` for 404: unknown or expired. */
+export const getRender = async (renderId: string): Promise<RenderInfo | null> => {
+  try {
+    return await request<RenderInfo>(`/combos/renders/${encodeURIComponent(renderId)}`)
+  } catch (error) {
+    if (error instanceof ComboApiError && error.status === 404) return null
+    throw error
+  }
+}
+
+/** The file of a `ready` render. The API answers with `content-disposition: attachment`, so a plain link downloads it. */
+export const renderFileUrl = (renderId: string, format: 'mp4' | 'webp') => `${API_URL}/combos/renders/${encodeURIComponent(renderId)}/${format}`

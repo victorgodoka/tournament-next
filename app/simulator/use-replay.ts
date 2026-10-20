@@ -3,11 +3,9 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { stepCards } from '@utils/simulator/board'
 import type { SessionEvent } from '@utils/simulator/session'
-import type { Action, Board, Session } from '@utils/simulator/types'
+import { stepMs } from '@utils/simulator/timing'
+import type { Board, Session } from '@utils/simulator/types'
 import type { Speed } from './replay-bar'
-
-/** How long a step stays on screen at 1x: a move or a draw has a card to follow, the rest only changes in place. */
-const stepMs = (a: Action | undefined) => (a?.t === 'move' || a?.t === 'draw' ? 1200 : 700)
 
 type ReplayOptions = {
   session: Session

@@ -1,6 +1,20 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ComboApiError, ComboConflictError, comboUrl, deleteCombo, getCombo, listMyCombos, saveCombo, updateCombo, type ComboInput } from './combos'
+import {
+  ComboApiError,
+  ComboConflictError,
+  comboUrl,
+  deleteCombo,
+  getCombo,
+  getRender,
+  listMyCombos,
+  renderFileUrl,
+  saveCombo,
+  startRender,
+  updateCombo,
+  type ComboInput,
+  type RenderInfo,
+} from './combos'
 
 const reply = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status })
 const stub = (res: Response) => {
@@ -143,5 +157,56 @@ describe('combos client', () => {
 
   it('comboUrl is the share link on the current origin', () => {
     expect(comboUrl('abc')).toBe(`${location.origin}/simulator/c/abc`)
+  })
+})
+
+describe('render client', () => {
+  const info: RenderInfo = { id: 'r1', status: 'queued', shape: 'portrait', speed: 2, framesDone: 0, framesTotal: null, position: 1, expiresAt: null }
+
+  it('startRender POSTs shape and speed to /combos/<id>/renders and returns the body of a 202 and of a 200', async () => {
+    let fetchMock = stub(reply(202, info))
+    await expect(startRender('abc', { shape: 'portrait', speed: 2 })).resolves.toEqual(info)
+    const { url, init } = call(fetchMock)
+    expect(url).toMatch(/\/combos\/abc\/renders$/)
+    expect(init.method).toBe('POST')
+    expect(init.body).toBe(JSON.stringify({ shape: 'portrait', speed: 2 }))
+    expect(init.headers).toMatchObject({ 'content-type': 'application/json' })
+    expect(init).toMatchObject({ credentials: 'include', cache: 'no-store' })
+    const ready = { ...info, status: 'ready', framesDone: 90, framesTotal: 90, expiresAt: '2026-10-19T01:00:00.000Z' }
+    fetchMock = stub(reply(200, ready))
+    await expect(startRender('abc', { shape: 'portrait', speed: 2 })).resolves.toEqual(ready)
+  })
+
+  it('startRender: 429 and 503 reject as ComboApiError with status and code', async () => {
+    stub(reply(429, { error: 'RENDER_BUSY', message: 'two already' }))
+    let error = await startRender('abc', { shape: 'landscape', speed: 1 }).catch((e) => e)
+    expect(error).toBeInstanceOf(ComboApiError)
+    expect([error.status, error.code]).toEqual([429, 'RENDER_BUSY'])
+    stub(reply(503, { error: 'QUEUE_FULL', message: 'full' }))
+    error = await startRender('abc', { shape: 'landscape', speed: 1 }).catch((e) => e)
+    expect(error).toBeInstanceOf(ComboApiError)
+    expect([error.status, error.code]).toEqual([503, 'QUEUE_FULL'])
+  })
+
+  it('getRender GETs the render with credentials and no-store', async () => {
+    const fetchMock = stub(reply(200, info))
+    await expect(getRender('r1')).resolves.toEqual(info)
+    const { url, init } = call(fetchMock)
+    expect(url).toMatch(/\/combos\/renders\/r1$/)
+    expect(init.method).toBeUndefined()
+    expect(init).toMatchObject({ credentials: 'include', cache: 'no-store' })
+  })
+
+  it('getRender: 404 gives null, other errors throw', async () => {
+    stub(reply(404, { error: 'NOT_FOUND' }))
+    expect(await getRender('r1')).toBeNull()
+    stub(reply(500))
+    await expect(getRender('r1')).rejects.toBeInstanceOf(ComboApiError)
+  })
+
+  it('renderFileUrl points at the file route of the format, with the id path-encoded', () => {
+    expect(renderFileUrl('r1', 'webp')).toMatch(/\/combos\/renders\/r1\/webp$/)
+    expect(renderFileUrl('r1', 'mp4')).toMatch(/\/combos\/renders\/r1\/mp4$/)
+    expect(renderFileUrl('a/b', 'mp4')).toMatch(/\/combos\/renders\/a%2Fb\/mp4$/)
   })
 })

@@ -179,6 +179,16 @@ describe('ComboPlayer', () => {
     expect(push).toHaveBeenCalledWith('/simulator')
   })
 
+  it('Download video shows for a signed-out viewer, and opens the dialog', async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
+    await open()
+    await click('player.cancel')
+    expect(screen.queryByRole('heading', { name: 'video.title' })).toBeNull()
+    await click('video.open')
+    expect(screen.getByRole('heading', { name: 'video.title' })).toBeTruthy()
+    expect(button('video.generate')).toBeTruthy()
+  })
+
   it('Edit shows only for the owner, and loads the combo tied to it', async () => {
     await open()
     expect(screen.queryByRole('button', { name: 'player.edit' })).toBeNull()

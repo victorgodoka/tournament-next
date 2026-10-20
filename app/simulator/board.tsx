@@ -39,6 +39,10 @@ export type BoardViewProps = {
   drag: Drag
   /** A pile, or a monster slot whose Xyz materials the player wants to see. */
   onPile(zone: Pile | MonsterSlot): void
+  /** A card width in px, in place of the one that fits the width (at most 84px): the render page sizes the board itself. */
+  cardW?: number
+  /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 84px. */
+  imageSizes?: string
 }
 
 /** `[zone, column, row]` on the 7 × 3 grid. Banished takes the EMZ row's last column, above the GY. */
@@ -53,7 +57,9 @@ const BADGE = 'pointer-events-none absolute px-1 font-mono text-[11px] leading-4
 /** A small marker over a card's corner (negated, face-down). */
 export const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
 
-const Back = () => <Image src="/back.webp" alt="" fill sizes={SIZES} draggable={false} className="pointer-events-none object-cover" />
+const Back = ({ sizes = SIZES }: { sizes?: string }) => (
+  <Image src="/back.webp" alt="" fill sizes={sizes} draggable={false} className="pointer-events-none object-cover" />
+)
 
 /**
  * Over a card, never in the way of a click: the glow of the card that was activated (a gold halo that pulses three
@@ -71,6 +77,9 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
   </>
 )
 
+/** The Iconify icons of the empty-zone marks, fetched from Iconify's API the first time one is drawn. */
+export const ZONE_ICONS = { gy: 'mdi:grave-stone', banished: 'foundation:x', pendulum: 'mage:gem-b-fill' } as const
+
 /**
  * What an empty zone shows, faint: a gravestone in the GY, an X in Banished, a gem lying on its side in each Pendulum
  * Zone (blue on the left, red on the right, each pointing out), the Field Spell mark in the Field Zone.
@@ -78,10 +87,10 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
 const ZoneMark = ({ zone }: { zone: ZoneId }) => {
   const icon = (name: string, className: string) => <Iconify icon={name} className={twMerge('size-1/2', className)} />
   const mark =
-    zone === 'gy' ? icon('mdi:grave-stone', 'text-ink-muted')
-    : zone === 'banished' ? icon('foundation:x', 'text-ink-muted')
-    : zone === 's0' ? icon('mage:gem-b-fill', 'rotate-90 text-azure')
-    : zone === 's4' ? icon('mage:gem-b-fill', '-rotate-90 text-crimson')
+    zone === 'gy' ? icon(ZONE_ICONS.gy, 'text-ink-muted')
+    : zone === 'banished' ? icon(ZONE_ICONS.banished, 'text-ink-muted')
+    : zone === 's0' ? icon(ZONE_ICONS.pendulum, 'rotate-90 text-azure')
+    : zone === 's4' ? icon(ZONE_ICONS.pendulum, '-rotate-90 text-crimson')
     : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
@@ -229,7 +238,11 @@ export const BoardView = (p: BoardViewProps) => {
   }, [board, cursor, actions, flipMs, droppedRef])
 
   return (
-    <div ref={root} className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]">
+    <div
+      ref={root}
+      style={p.cardW === undefined ? undefined : ({ '--card-w': `${p.cardW}px` } as React.CSSProperties)}
+      className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]"
+    >
       <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
         {LAYOUT.map(([zone, column, row]) => (
           <div
@@ -321,7 +334,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
         <CardTile
           id={card.code}
           card={p.cards.get(card.code)}
-          sizes={SIZES}
+          sizes={p.imageSizes ?? SIZES}
           data-card={id}
           data-active={active || undefined}
           data-targeted={targeted || undefined}
@@ -350,7 +363,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           onContextMenu={(e) => (press.kind(e) === 'long' ? e.preventDefault() : p.onMenu(id, e))}
           className={twMerge('touch-none', card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
         />
-        {card.face === 'down' ? <Back /> : null}
+        {card.face === 'down' ? <Back sizes={p.imageSizes} /> : null}
         <ActivationMarks active={active} targeted={targeted} />
         {marked ? <StepMark /> : null}
       </div>
@@ -382,10 +395,10 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
     <>
       {!top ? null : back ? (
         <button type="button" aria-label={label} onClick={open} className="relative block aspect-[59/86] w-full cursor-pointer">
-          <Back />
+          <Back sizes={p.imageSizes} />
         </button>
       ) : (
-        <CardTile id={top.code} card={p.cards.get(top.code)} sizes={SIZES} label={label} onClick={open} data-active={activated !== null || undefined} />
+        <CardTile id={top.code} card={p.cards.get(top.code)} sizes={p.imageSizes ?? SIZES} label={label} onClick={open} data-active={activated !== null || undefined} />
       )}
       {top ? <ActivationMarks active={activated !== null} targeted={!!p.activation?.targets.includes(top.id)} /> : null}
       {top?.face === 'down' && !back && activated === null ? (
