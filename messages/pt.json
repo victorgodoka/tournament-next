@@ -1176,6 +1176,23 @@
     "render": {
       "brand": "YGO Omega Combo Simulator"
     },
+    "video": {
+      "open": "Baixar vídeo",
+      "title": "Baixar vídeo",
+      "aspect": "Proporção",
+      "speed": "Velocidade",
+      "length": "Duração estimada: {length}",
+      "generate": "Gerar",
+      "tryAgain": "Tentar de novo",
+      "queued": "Na fila ({position} à frente)",
+      "running": "Gerando {percent}%",
+      "ready": "Seu vídeo está pronto.",
+      "downloadMp4": "Baixar MP4",
+      "downloadWebp": "Baixar WebP",
+      "queueFull": "A fila está cheia, tente de novo em alguns minutos.",
+      "busy": "Você já tem vídeos sendo gerados, espere por eles.",
+      "failed": "Não foi possível gerar o vídeo."
+    },
     "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
     "dismiss": "Fechar",
     "lookupFailed": "Algumas cartas não carregaram; elas aparecem pelo passcode.",
