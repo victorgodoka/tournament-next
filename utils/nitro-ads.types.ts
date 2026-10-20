@@ -53,11 +53,40 @@ export interface NitroInterstitialAdOptions {
   report: NitroAdReportOptions
 }
 
+export type NitroAdSizes = readonly (readonly [number, number])[]
+
+/** A plain display unit: no `format`. */
+export interface NitroDisplayAdOptions {
+  sizes: NitroAdSizes
+  /** Waits until the slot nears the viewport: better viewability, better CPM. */
+  renderVisibleOnly: boolean
+  mediaQuery?: string
+  report: NitroAdReportOptions
+}
+
+/** Units Nitro spaces through long content inside the target element, up to 20. */
+export interface NitroArticleAdOptions {
+  format: 'article'
+  sizes: NitroAdSizes
+  pageInterval: number
+  articleOffsetTop: number
+  report: NitroAdReportOptions
+}
+
+/** The in-content video player; floats once scrolled off. */
+export interface NitroVideoNcAdOptions {
+  format: 'video-nc'
+  report: NitroAdReportOptions
+}
+
 export type NitroAdOptions =
   | NitroRailAdOptions
   | NitroAnchorAdOptions
   | NitroFloatingAdOptions
   | NitroInterstitialAdOptions
+  | NitroDisplayAdOptions
+  | NitroArticleAdOptions
+  | NitroVideoNcAdOptions
 
 export interface NitroAdInstance {
   onNavigate?: (href?: string) => void

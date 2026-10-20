@@ -377,7 +377,8 @@
       "perks": {
         "rarities": { "label": "Rarities", "value": "1 of each" },
         "mat": { "label": "Mat", "value": "Visible to opponents" },
-        "sleeves": { "label": "Sleeves", "value": "Visible to opponents" }
+        "sleeves": { "label": "Sleeves", "value": "Visible to opponents" },
+        "ads": { "label": "Site ads", "value": "None" }
       },
       "donate": "Donate"
     },
@@ -1298,6 +1299,15 @@
       "stop": "Stop and go to the last step",
       "timeline": "Step",
       "speed": "Replay speed"
+    }
+  },
+  "Ads": {
+    "label": "Advertisement",
+    "removeWithVip": "VIP removes ads",
+    "promo": {
+      "eyebrow": "Omega VIP",
+      "body": "Donate 5 USD or more: 1 of each rarity, your mat and sleeves visible to opponents, and no ads on the site.",
+      "cta": "See VIP perks"
     }
   }
 }

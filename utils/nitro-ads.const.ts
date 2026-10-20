@@ -1,6 +1,10 @@
 import type {
   NitroAdReportOptions,
+  NitroAdSizes,
   NitroAnchorAdOptions,
+  NitroArticleAdOptions,
+  NitroDisplayAdOptions,
+  NitroVideoNcAdOptions,
   NitroFloatingAdOptions,
   NitroInterstitialAdOptions,
   NitroRailAdOptions,
@@ -78,3 +82,35 @@ export const INTERSTITIAL_AD_OPTIONS = {
   frequencyCap: 300,
   report: AD_REPORT,
 } as const satisfies NitroInterstitialAdOptions
+
+/**
+ * In-content sizes, picked once at mount: the more sizes a slot takes, the more bidders compete.
+ * Every slot reserves 250px, the tallest of them, so no fill shifts the page.
+ */
+export const CONTENT_SIZES = {
+  desktop: [[970, 250], [970, 90], [728, 90], [300, 250]],
+  mobile: [[300, 250], [320, 100], [320, 50]],
+} as const satisfies Record<'desktop' | 'mobile', NitroAdSizes>
+
+/** Below `lg` the wiki aside moves above the article: there the anchor covers phones instead. */
+export const ASIDE_AD_OPTIONS = {
+  sizes: [[300, 250]],
+  renderVisibleOnly: true,
+  mediaQuery: '(min-width: 1024px)',
+  report: AD_REPORT,
+} as const satisfies NitroDisplayAdOptions
+
+/** The article column is about 860px wide on desktop: 970s don't fit. */
+export const ARTICLE_AD_OPTIONS = {
+  format: 'article',
+  sizes: [[728, 90], [300, 250], [320, 100], [320, 50]],
+  pageInterval: 1,
+  articleOffsetTop: 80,
+  report: AD_REPORT,
+} as const satisfies NitroArticleAdOptions
+
+/** Nitro's defaults: plays in place, floats once scrolled off. */
+export const VIDEO_NC_AD_OPTIONS = {
+  format: 'video-nc',
+  report: AD_REPORT,
+} as const satisfies NitroVideoNcAdOptions
