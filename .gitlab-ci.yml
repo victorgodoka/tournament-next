@@ -9,6 +9,7 @@ variables:
 
 stages:
   - build
+  - deploy
 
 build:
   stage: build
@@ -30,3 +31,10 @@ build:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "master"
+  
+  deploy:
+    stage: deploy
+    image: curlimages/curl:latest
+    script:
+      - curl -fsS -H "Authorization: Bearer $WATCHTOWER_TOKEN" "$WATCHTOWER_URL/v1/update"
+    only: [main]
