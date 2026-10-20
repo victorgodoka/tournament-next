@@ -174,6 +174,7 @@ export const FOOTER_LINKS = [
   { item: "Home", to: "https://omega.duelistsunite.org/" },
   { item: "Discord", to: "https://discord.gg/duelistsunite" },
   { item: "Deck Builder", to: "/deck-builder" },
+  { item: "Privacy", to: "/privacy" },
 ]
 
 export const FOOTER_DISCLAIMER = "Duelists Unite. A fan project, unaffiliated with Konami."
