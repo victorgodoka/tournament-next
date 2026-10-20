@@ -7,7 +7,7 @@ import { flushSync } from 'react-dom'
 import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
 import type { CardMap } from '@utils/deck/types'
-import { stepCards, timeline } from '@utils/simulator/board'
+import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { sessionOf } from '@utils/simulator/combo'
 import { fitCardWidth } from '@utils/simulator/fit'
 import { sessionReducer } from '@utils/simulator/session'
@@ -107,6 +107,7 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
   const board = boards[session.cursor]!
   const shown = session.actions[session.cursor - 1]
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
+  const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
   const video = useMemo(() => renderTimeline(opened.actions, opened.start, speed), [opened, speed])
 
   // Fitted before the first paint, so each image is asked for once, at the width it is drawn. The board's root fills the
@@ -176,6 +177,8 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
           selected={null}
           activation={shown?.t === 'activate' ? shown : null}
           marked={marked}
+          destroyed={destroyed}
+          tags={session.cursor === session.actions.length}
           step={{ cursor: session.cursor, actions: session.actions }}
           droppedRef={droppedRef}
           flipMs={FLIP_MS / Math.max(1, speed)}

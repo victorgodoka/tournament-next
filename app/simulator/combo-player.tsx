@@ -8,10 +8,11 @@ import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { getCombo, type SharedCombo } from '@utils/combos'
-import { stepCards, timeline } from '@utils/simulator/board'
+import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { comboSession, operateFrom, payloadOf, sessionOf } from '@utils/simulator/combo'
 import { draftStorage, readDraft, writeDraft } from '@utils/simulator/draft'
 import { sessionReducer } from '@utils/simulator/session'
@@ -107,6 +108,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
   const board = boards[session.cursor]!
   const shown = session.actions[session.cursor - 1]
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
+  const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
   const replay = useReplay({ session, boards, dispatch, onShow: setSelected })
   // Read-only: nothing drags and nothing drops.
   const drag = useDrag({ enabled: false, onDrop: () => {} })
@@ -218,6 +220,8 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             selected={selected}
             activation={shown?.t === 'activate' ? shown : null}
             marked={marked}
+            destroyed={destroyed}
+            tags={session.cursor === session.actions.length}
             step={{ cursor: session.cursor, actions: session.actions }}
             droppedRef={droppedRef}
             flipMs={FLIP_MS / Math.max(1, replay.speed)}
@@ -247,15 +251,17 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
           </div>
           <div {...tabPanelProps('player-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
             {/* "Replay starts here" moves this viewer's start only: the combo itself is never written from here. */}
-            <History
-              session={session}
-              boards={boards}
-              cards={cards}
-              nameOf={nameOf}
-              disabled={replay.playing}
-              onSeek={step}
-              onSetStart={(start) => dispatch({ type: 'setStart', start })}
-            />
+            <Panel tone="framed" title={t('history.title')} className="p-4 min-[720px]:p-4">
+              <History
+                session={session}
+                boards={boards}
+                cards={cards}
+                nameOf={nameOf}
+                disabled={replay.playing}
+                onSeek={step}
+                onSetStart={(start) => dispatch({ type: 'setStart', start })}
+              />
+            </Panel>
           </div>
         </div>
       </div>

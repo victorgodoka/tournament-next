@@ -39,6 +39,15 @@ export type BoardViewProps = {
   drag: Drag
   /** A pile, or a monster slot whose Xyz materials the player wants to see. */
   onPile(zone: Pile | MonsterSlot): void
+  /** The pointer came over a card, or left it: the card panel follows. */
+  onHover?(id: number | null): void
+  /** The card the panel is locked on; its lock button is lit. Without `onLock` no card shows one. */
+  locked?: number | null
+  onLock?(id: number): void
+  /** The card the step on screen destroyed and where it was: cracks over both places. */
+  destroyed?: { card: number; from: ZoneId } | null
+  /** Show the tags: on the last frame, where the line ends. */
+  tags?: boolean
   /** A card width in px, in place of the one that fits the width (at most 84px): the render page sizes the board itself. */
   cardW?: number
   /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 84px. */
@@ -95,6 +104,37 @@ const ZoneMark = ({ zone }: { zone: ZoneId }) => {
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
 }
+
+/** Cracks and a crimson glow: the card was destroyed in the step on screen. Over the cell it left and the pile it went to. */
+export const DestroyMark = () => (
+  <span aria-hidden data-destroyed className="pointer-events-none absolute inset-0 z-2 motion-safe:animate-pulse">
+    <span className="absolute inset-0 bg-crimson/30 shadow-[0_0_16px_4px_var(--color-crimson)] outline outline-2 outline-crimson-lift" />
+    <svg viewBox="0 0 59 86" preserveAspectRatio="none" className="absolute inset-0 size-full fill-none stroke-crimson-lift stroke-[2.5] [stroke-linecap:round] [stroke-linejoin:round]">
+      <path d="M31 1 27 24 36 43 24 60 33 85M27 24 8 16M36 43 52 33M24 60 6 68M36 43 40 56M27 24 32 8" />
+    </svg>
+  </span>
+)
+
+/** The tag of a card, in a box over it with a point down at it: what the card is, in a few words. */
+const Tag = ({ text }: { text: string }) => (
+  <span
+    data-tag
+    className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 w-max max-w-[calc(var(--card-w)*2.2)] -translate-x-1/2 bg-ink px-1.5 py-0.5 text-center font-mono text-[10px] leading-3 font-bold break-words text-space-000 shadow-lift after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-ink"
+  >
+    {text}
+  </span>
+)
+
+/** The counters on a card, one badge per kind from the bottom-left corner up: the count alone for the plain kind, the kind's first letters before it otherwise. */
+const Counters = ({ counters, plain }: { counters: Record<string, number>; plain: string }) => (
+  <span className="pointer-events-none absolute bottom-0 left-0 flex flex-col-reverse items-start gap-px">
+    {Object.entries(counters).map(([kind, n]) => (
+      <span key={kind} title={kind || plain} className="bg-gold px-1 font-mono text-[11px] leading-4 font-bold text-gold-on tabular-nums">
+        {kind ? `${kind.slice(0, 3).toUpperCase()} ${n}` : n}
+      </span>
+    ))}
+  </span>
+)
 
 /** Corner brackets around a card the step on screen played. */
 const StepMark = () => (
@@ -255,6 +295,7 @@ export const BoardView = (p: BoardViewProps) => {
           >
             {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
             {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
+            {p.destroyed?.from === zone ? <DestroyMark /> : null}
           </div>
         ))}
       </div>
@@ -284,8 +325,8 @@ export const BoardView = (p: BoardViewProps) => {
 
 /**
  * A monster or spell slot: the card on top, its Xyz materials peeking out under it. Only a few pixels of them
- * show, so the ×N badge (or Materials in the top card's menu) is the way in: it opens the list of materials. A focused
- * material comes up over the top card.
+ * show, so the materials button over the top card (or Materials in its menu) is the way in: it opens the list of
+ * materials. A focused material comes up over the top card.
  */
 const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
   const t = useTranslations('Simulator')
@@ -301,10 +342,12 @@ const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
         <button
           type="button"
           aria-label={t('pile.materials', { count: materials.length })}
+          title={t('pile.materials', { count: materials.length })}
           onClick={() => p.onPile(zone)}
-          className={twMerge(BADGE, 'top-0 left-0 z-1 cursor-pointer bg-space-000 text-ink pointer-events-auto')}
+          className="absolute top-0 left-0 z-3 flex min-h-5 cursor-pointer items-center gap-0.5 bg-space-000 px-1 font-mono text-[11px] leading-4 font-bold text-ink tabular-nums hover:text-cyan focus-visible:text-cyan"
         >
-          ×{materials.length}
+          <Icon name="cards" size={11} />
+          {materials.length}
         </button>
       ) : null}
     </>
@@ -327,8 +370,10 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   const targeted = !!p.activation?.targets.includes(id)
   // Not in the hand: there the brackets of a draw would cover every card.
   const marked = p.marked.includes(id) && !p.board.zones.hand.includes(id)
+  const locked = p.locked === id
+  const name = p.cards.get(card.code)?.name ?? String(card.code)
   return (
-    <div className={twMerge('relative', className)}>
+    <div className={twMerge('group relative', className)} onPointerEnter={() => p.onHover?.(id)} onPointerLeave={() => p.onHover?.(null)}>
       {/* DEF: turned and scaled by 59/86 so the sideways card fits its cell. */}
       <div className={twMerge('relative', card.pos === 'def' && 'scale-[calc(59/86)] rotate-90')}>
         <CardTile
@@ -372,7 +417,26 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           <Icon name="close" size={14} label={t('negated')} />
         </span>
       ) : null}
-      {card.counters ? <span className={twMerge(BADGE, 'bottom-0 left-0 bg-gold text-gold-on')}>{card.counters}</span> : null}
+      <Counters counters={card.counters} plain={t('menu.counterPlain')} />
+      {p.tags && card.tag ? <Tag text={card.tag} /> : null}
+      {/* A sibling of the tile, not a child: a click here never selects, drags or opens the menu. Shown on hover or
+          focus, on the selected card where there is no hover, and always once lit. */}
+      {p.onLock ? (
+        <button
+          type="button"
+          aria-label={t(locked ? 'lock.unlock' : 'lock.lock', { name })}
+          title={t(locked ? 'lock.unlock' : 'lock.lock', { name })}
+          aria-pressed={locked}
+          onClick={() => p.onLock!(id)}
+          className={twMerge(
+            'absolute right-0 bottom-0 z-3 grid size-6 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:after:absolute pointer-coarse:after:right-0 pointer-coarse:after:bottom-0 pointer-coarse:after:size-10',
+            (locked || p.selected === id) && 'opacity-100',
+            locked && 'text-gold',
+          )}
+        >
+          <Icon name={locked ? 'lock' : 'unlock'} size={13} />
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -392,7 +456,7 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
   const open = () => p.onPile(pile)
   const back = (pile === 'deck' || pile === 'extra') && activated === null
   return (
-    <>
+    <div className="absolute inset-0" onPointerEnter={() => top && p.onHover?.(top.id)} onPointerLeave={() => p.onHover?.(null)}>
       {!top ? null : back ? (
         <button type="button" aria-label={label} onClick={open} className="relative block aspect-[59/86] w-full cursor-pointer">
           <Back sizes={p.imageSizes} />
@@ -409,7 +473,9 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
       <span className={twMerge(BADGE, 'right-0 bottom-0 bg-space-000 text-ink')}>{ids.length}</span>
       {/* The card the step just put on top of the pile (a send to the GY, a banish). */}
       {top && p.marked.includes(top.id) ? <StepMark /> : null}
-    </>
+      {top && p.destroyed?.card === top.id ? <DestroyMark /> : null}
+      {top && p.tags && top.tag && !back ? <Tag text={top.tag} /> : null}
+    </div>
   )
 }
 

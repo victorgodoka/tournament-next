@@ -8,8 +8,10 @@ import { draftKey, type Draft } from './drafts'
 
 const router = { push: vi.fn(), replace: vi.fn() }
 const auth = { user: { id: 'u1' } as { id: string } | null, refresh: vi.fn() }
+/** The router's query, which a client navigation renders with before the address bar shows it. */
+let search = new URLSearchParams()
 
-vi.mock('next/navigation', () => ({ useRouter: () => router }))
+vi.mock('next/navigation', () => ({ useRouter: () => router, useSearchParams: () => search }))
 vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -70,6 +72,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
   auth.user = { id: 'u1' }
   cardsByIds.mockResolvedValue(new Map())
+  search = new URLSearchParams()
   window.history.replaceState(null, '', '/deck-builder')
 })
 afterEach(() => {
@@ -122,6 +125,14 @@ describe('opening a saved deck', () => {
     vi.mocked(getDeck).mockResolvedValue(server({ ownerId: 'u2' }))
     await open(ID)
     expect(router.replace).toHaveBeenCalledWith(expect.stringMatching(/^\/deck-builder\?d=ydke[^&]+&name=Saved&copy=$/))
+  })
+
+  it('the copy opens from the router query, though the address bar still shows the deck it came from', async () => {
+    window.history.replaceState(null, '', `/deck-builder/${ID}`)
+    search = new URLSearchParams({ d: toYdke({ main: [1], extra: [], side: [] }), name: 'Saved', copy: '' })
+    await open(null)
+    expect(nameInput().value).toBe('Saved')
+    expect(screen.getByText('deckCopied')).toBeTruthy()
   })
 
   it("a deck the API won't show sends the user back to a new deck with a notice", async () => {

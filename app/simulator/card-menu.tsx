@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { isMonsterSlot, isSlot, locate } from '@utils/simulator/board'
+import { apply, isMonsterSlot, isSlot, isValid, locate, shuffleAction } from '@utils/simulator/board'
 import { moveOptions } from '@utils/simulator/drop'
-import { LIMITS } from '@utils/simulator/types'
+import { LIMITS, PLAIN } from '@utils/simulator/types'
 import type { Action, Board, MonsterSlot, ZoneId } from '@utils/simulator/types'
 
 export type CardMenuProps = {
@@ -12,9 +12,15 @@ export type CardMenuProps = {
   card: number
   /** Viewport point the menu opens at; the menu slides back inside the viewport when it would overflow. */
   at: { x: number; y: number }
+  /** The counter kinds on offer besides the plain one. */
+  kinds: string[]
+  /** The card is one of the Extra Deck's: "Hand" and "Shuffle into the deck" send it back to the Extra Deck instead. */
+  extra: boolean
   onAct(actions: Action[]): void
   onTargets(card: number): void
-  onDetails(card: number): void
+  /** Asks the name of a new counter kind, then puts one of it on the card. */
+  onNewKind(card: number): void
+  onTag(card: number): void
   /** Opens the Xyz materials under the monster on top of `zone`: on a phone the ×N badge is too small to be the only way in. */
   onPile(zone: MonsterSlot): void
   onClose(): void
@@ -22,8 +28,10 @@ export type CardMenuProps = {
   xyz?: boolean
 }
 
+/** The list on screen: the main one, a submenu, or the counters of one kind. */
+type View = 'main' | 'activate' | 'counters' | 'move' | 'zones' | { kind: string }
 /** One item: it swaps the list (`go`), runs a callback, or performs actions; the last two close the menu. */
-type Entry = { key: string; label: string } & ({ go: 'main' | 'move' } | { run(): void } | { actions: Action[] })
+type Entry = { key: string; label: string } & ({ go: View } | { run(): void } | { actions: Action[] })
 
 /** Space kept between the menu and the viewport edge. */
 const MARGIN = 8
@@ -33,11 +41,12 @@ const ITEM =
 /**
  * The keyboard path for every move, and for the rest of what a card can do. Opens at `at` with the first item
  * focused; arrows move between items; Escape, a pointer down outside or choosing an item closes it and the focus
- * goes back to the card. "Move to…" swaps the list for every zone the card can go to.
+ * goes back to the card. Submenus swap the list: Activate, Manage counters (one list per kind), Move card and its
+ * "Move to a different zone" with every zone the card can go to.
  */
-export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile, onClose, xyz = false }: CardMenuProps) => {
+export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNewKind, onTag, onPile, onClose, xyz = false }: CardMenuProps) => {
   const t = useTranslations('Simulator')
-  const [view, setView] = useState<'main' | 'move'>('main')
+  const [view, setView] = useState<View>('main')
   const root = useRef<HTMLDivElement>(null)
 
   /** Where a move chosen here sends the card: its pile has no `[data-card]` on the board, so the pile's own button takes the focus. */
@@ -100,26 +109,68 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile,
   const field = isSlot(where.zone) && where.index === 0
   const monster = field && isMonsterSlot(where.zone)
   const slot = where.zone
+  const back: Entry = { key: 'back', label: t('menu.back'), go: 'main' }
 
   const main: Entry[] = [
-    { key: 'activate', label: t('menu.activate'), actions: [{ t: 'activate', card, targets: [] }] },
-    { key: 'activateTargets', label: t('menu.activateTargets'), run: () => onTargets(card) },
+    { key: 'activate', label: t('menu.activate'), go: 'activate' },
     ...(field
       ? [
-          { key: 'flip', label: t('menu.flip'), actions: [{ t: 'flip', card, face: state.face === 'up' ? 'down' : 'up', pos: state.pos } as const] },
+          { key: 'flip', label: t(state.face === 'up' ? 'menu.flipDown' : 'menu.flipUp'), actions: [{ t: 'flip', card, face: state.face === 'up' ? 'down' : 'up', pos: state.pos } as const] },
           ...(monster ? [{ key: 'position', label: t('menu.position'), actions: [{ t: 'flip', card, face: state.face, pos: state.pos === 'atk' ? 'def' : 'atk' } as const] }] : []),
           { key: 'negate', label: t('menu.negate'), actions: [{ t: 'negate', card, on: !state.negated } as const] },
-          ...(state.counters < LIMITS.counters ? [{ key: 'counterUp', label: t('menu.counterUp'), actions: [{ t: 'counter', card, delta: 1 } as const] }] : []),
-          ...(state.counters > 0 ? [{ key: 'counterDown', label: t('menu.counterDown'), actions: [{ t: 'counter', card, delta: -1 } as const] }] : []),
+          { key: 'counters', label: t('menu.counters'), go: 'counters' as const },
         ]
       : []),
     ...(field && isMonsterSlot(slot) && board.zones[slot].length > 1 ? [{ key: 'materials', label: t('menu.materials'), run: () => onPile(slot) }] : []),
     { key: 'moveTo', label: t('menu.moveTo'), go: 'move' },
-    { key: 'details', label: t('menu.details'), run: () => onDetails(card) },
+    { key: 'tag', label: t(state.tag ? 'menu.retag' : 'menu.tag'), run: () => onTag(card) },
   ]
 
+  const activate: Entry[] = [
+    back,
+    { key: 'activateNow', label: t('menu.activateNow'), actions: [{ t: 'activate', card, targets: [] }] },
+    { key: 'activateTargets', label: t('menu.activateTargets'), run: () => onTargets(card) },
+  ]
+
+  /** The plain counter first, then the kinds on offer and any the card already carries. */
+  const every = [PLAIN, ...new Set([...kinds, ...Object.keys(state.counters)].filter((kind) => kind !== PLAIN))]
+  const nameOf = (kind: string) => kind || t('menu.counterPlain')
+  const counters: Entry[] = [
+    back,
+    ...every.map((kind) => {
+      const n = state.counters[kind] ?? 0
+      return { key: `kind:${kind}`, label: n ? t('menu.counterKind', { kind: nameOf(kind), n }) : nameOf(kind), go: { kind } }
+    }),
+    { key: 'newKind', label: t('menu.newKind'), run: () => onNewKind(card) },
+  ]
+  const ofKind = (kind: string): Entry[] => {
+    const n = state.counters[kind] ?? 0
+    const delta = (d: number): Action => ({ t: 'counter', card, delta: d, ...(kind && { kind }) })
+    return [
+      { key: 'back', label: t('menu.back'), go: 'counters' },
+      ...(n < LIMITS.counters ? [{ key: 'counterUp', label: t('menu.counterUp'), actions: [delta(1)] }] : []),
+      ...(n > 0 ? [{ key: 'counterDown', label: t('menu.counterDown'), actions: [delta(-1)] }] : []),
+    ]
+  }
+
+  /** A move that lands somewhere else than where the card is, and that the board accepts. */
+  const to = (key: string, label: string, action: Extract<Action, { t: 'move' }>, then: (after: Board) => Action[] = () => []): Entry[] =>
+    action.to !== where.zone && isValid(board, action) ? [{ key, label, actions: [action, ...then(apply(board, action))] }] : []
+  const home: ZoneId = extra ? 'extra' : 'hand'
   const move: Entry[] = [
-    { key: 'back', label: t('menu.back'), go: 'main' },
+    back,
+    { key: 'moveZone', label: t('menu.moveZone'), go: 'zones' },
+    ...to('toGy', t('menu.toGy'), { t: 'move', card, to: 'gy' }),
+    ...to('banish', t('menu.banish'), { t: 'move', card, to: 'banished' }),
+    ...to('destroy', t('menu.destroy'), { t: 'move', card, to: 'gy', destroy: true }),
+    ...to('destroyBanish', t('menu.destroyBanish'), { t: 'move', card, to: 'banished', destroy: true }),
+    ...to('toHand', t(extra ? 'menu.toExtra' : 'menu.toHand'), { t: 'move', card, to: home }),
+    // an Extra Deck card has no order to shuffle into: its "Hand" entry already returns it there
+    ...(extra ? [] : to('shuffleDeck', t('menu.shuffleDeck'), { t: 'move', card, to: 'deck' }, (after) => [shuffleAction(after)])),
+  ]
+
+  const zones: Entry[] = [
+    { key: 'back', label: t('menu.back'), go: 'move' },
     ...moveOptions(board, card, xyz)
       // A plain move to the card's own pile moves nothing; the deck's top and bottom, and the other variants, reposition it.
       .filter(({ zone, variant }) => variant !== 'plain' || zone !== where.zone)
@@ -129,6 +180,14 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile,
         actions: [action],
       })),
   ]
+
+  const list =
+    view === 'main' ? main
+    : view === 'activate' ? activate
+    : view === 'counters' ? counters
+    : view === 'move' ? move
+    : view === 'zones' ? zones
+    : ofKind(view.kind)
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Tab') {
@@ -157,7 +216,7 @@ export const CardMenu = ({ board, card, at, onAct, onTargets, onDetails, onPile,
       style={{ left: at.x, top: at.y }}
       className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-52 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift"
     >
-      {(view === 'main' ? main : move).map((entry) => (
+      {list.map((entry) => (
         <button key={entry.key} type="button" role="menuitem" tabIndex={-1} onClick={() => choose(entry)} className={ITEM}>
           {entry.label}
         </button>

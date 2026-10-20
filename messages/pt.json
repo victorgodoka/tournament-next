@@ -1118,7 +1118,9 @@
       "saveAs": "Salvar como…",
       "myCombos": "Meus combos",
       "share": "Compartilhar",
-      "unsaved": "Alterações não salvas"
+      "unsaved": "Alterações não salvas",
+      "more": "Mais",
+      "history": "Histórico"
     },
     "confirm": {
       "title": "Descartar esta linha?",
@@ -1225,17 +1227,46 @@
     "faceDown": "Com a face para baixo",
     "menu": {
       "label": "Ações da carta",
-      "activate": "Ativar",
-      "activateTargets": "Ativar com alvos…",
-      "flip": "Virar",
-      "position": "ATK / DEF",
+      "activate": "Ativar…",
+      "activateNow": "Agora",
+      "activateTargets": "Com alvos…",
+      "flipUp": "Virar para cima",
+      "flipDown": "Virar para baixo",
+      "position": "Mudar posição",
       "negate": "Negar",
-      "counterUp": "Adicionar contador",
-      "counterDown": "Remover contador",
+      "counters": "Gerenciar contadores…",
+      "counterPlain": "Contador",
+      "counterKind": "{kind} ×{n}",
+      "newKind": "Novo tipo de contador…",
+      "counterUp": "Adicionar",
+      "counterDown": "Remover",
       "materials": "Matérias",
-      "moveTo": "Mover para…",
-      "details": "Detalhes",
+      "moveTo": "Mover carta…",
+      "moveZone": "Mover para outra zona…",
+      "toGy": "Enviar ao Cemitério",
+      "banish": "Banir",
+      "destroy": "Destruir",
+      "destroyBanish": "Destruir e banir",
+      "toHand": "Mão",
+      "toExtra": "Devolver ao Extra Deck",
+      "shuffleDeck": "Embaralhar no Deck",
+      "tag": "Marcar com texto…",
+      "retag": "Mudar o texto…",
       "back": "Voltar"
+    },
+    "lock": {
+      "lock": "Travar o painel em {name}",
+      "unlock": "Destravar o painel de {name}"
+    },
+    "counterKind": {
+      "title": "Novo tipo de contador",
+      "label": "Nome do contador",
+      "confirm": "Adicionar um"
+    },
+    "tagDialog": {
+      "title": "Marcar {name}",
+      "label": "Poucas palavras sobre esta carta (vazio remove a marca)",
+      "confirm": "Marcar"
     },
     "move": {
       "set": "Baixada",
@@ -1268,7 +1299,8 @@
     },
     "cardPanel": {
       "title": "Carta",
-      "empty": "Selecione uma carta para lê-la."
+      "empty": "Passe o mouse sobre uma carta para lê-la; o cadeado a mantém aqui.",
+      "unlock": "Destravar o painel"
     },
     "tabs": {
       "label": "Carta e histórico",
@@ -1284,8 +1316,11 @@
       "activate": "{n, plural, =0 {Ativou {card}} other {Ativou {card} → {targets}}}",
       "flip": "{to, select, up {Virou {card} para cima} down {Virou {card} para baixo} atk {{card} em posição de ataque} other {{card} em posição de defesa}}",
       "negate": "{to, select, on {Negou {card}} other {{card} deixou de ser negada}}",
-      "counter": "Marcadores em {card}: {delta}",
+      "counter": "{kind} em {card}: {delta}",
+      "destroy": "Destruiu {card} → {to}",
+      "tag": "{has, select, yes {Marcou {card}: {text}} other {Removeu a marca de {card}}}",
       "endTurn": "Fim do turno {turn}",
+      "close": "Fechar histórico",
       "replayFromHere": "O replay começa aqui",
       "startMark": "Início do replay"
     },

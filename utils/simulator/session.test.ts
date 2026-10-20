@@ -13,7 +13,17 @@ const DECK_ID = 'abcdefabcdefabcd'
 
 describe('simulator session', () => {
   it('emptySession: empty deck, no name, no actions, cursor and start at 0, no deck id, no saved combo', () => {
-    expect(emptySession()).toEqual({ deck: { main: [], extra: [], side: [] }, name: '', actions: [], cursor: 0, start: 0, deckId: null, combo: null })
+    expect(emptySession()).toEqual({ deck: { main: [], extra: [], side: [] }, name: '', actions: [], cursor: 0, start: 0, deckId: null, combo: null, counterTypes: [] })
+  })
+
+  it('counterType adds a trimmed kind once, ignores an empty one and stops at the limit', () => {
+    const one = sessionReducer(session(), { type: 'counterType', name: '  Spell ' })
+    expect(one.counterTypes).toEqual(['Spell'])
+    expect(sessionReducer(one, { type: 'counterType', name: 'Spell' })).toBe(one)
+    expect(sessionReducer(one, { type: 'counterType', name: '   ' })).toBe(one)
+    expect(sessionReducer(one, { type: 'counterType', name: 'x'.repeat(30) }).counterTypes[1]).toBe('x'.repeat(LIMITS.kind))
+    const full = session({ counterTypes: Array.from({ length: LIMITS.kinds }, (_, i) => `k${i}`) })
+    expect(sessionReducer(full, { type: 'counterType', name: 'more' })).toBe(full)
   })
 
   it('act drops the future and advances the cursor', () => {
@@ -106,7 +116,7 @@ describe('simulator session', () => {
 
   it('reset keeps deck, name and deck id, clears the log and the saved combo', () => {
     const s = session({ deck, name: 'combo', actions: [a, b], cursor: 2, start: 1, deckId: DECK_ID, combo: ref })
-    expect(sessionReducer(s, { type: 'reset' })).toEqual({ deck, name: 'combo', actions: [], cursor: 0, start: 0, deckId: DECK_ID, combo: null })
+    expect(sessionReducer(s, { type: 'reset' })).toEqual({ deck, name: 'combo', actions: [], cursor: 0, start: 0, deckId: DECK_ID, combo: null, counterTypes: [] })
     const fresh = session({ deck, name: 'combo', deckId: DECK_ID })
     expect(sessionReducer(fresh, { type: 'reset' })).toBe(fresh)
     // a saved combo with no steps is still something to let go of

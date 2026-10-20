@@ -1118,7 +1118,9 @@
       "saveAs": "Save as…",
       "myCombos": "My combos",
       "share": "Share",
-      "unsaved": "Unsaved changes"
+      "unsaved": "Unsaved changes",
+      "more": "More",
+      "history": "History"
     },
     "confirm": {
       "title": "Discard this line?",
@@ -1225,17 +1227,46 @@
     "faceDown": "Face-down",
     "menu": {
       "label": "Card actions",
-      "activate": "Activate",
-      "activateTargets": "Activate with targets…",
-      "flip": "Flip",
-      "position": "ATK / DEF",
+      "activate": "Activate…",
+      "activateNow": "Now",
+      "activateTargets": "With targets…",
+      "flipUp": "Flip face-up",
+      "flipDown": "Flip face-down",
+      "position": "Change position",
       "negate": "Negate",
-      "counterUp": "Add counter",
-      "counterDown": "Remove counter",
+      "counters": "Manage counters…",
+      "counterPlain": "Counter",
+      "counterKind": "{kind} ×{n}",
+      "newKind": "New counter type…",
+      "counterUp": "Add",
+      "counterDown": "Remove",
       "materials": "Materials",
-      "moveTo": "Move to…",
-      "details": "Details",
+      "moveTo": "Move card…",
+      "moveZone": "Move to a different zone…",
+      "toGy": "Send to GY",
+      "banish": "Banish",
+      "destroy": "Destroy",
+      "destroyBanish": "Destroy and banish",
+      "toHand": "Hand",
+      "toExtra": "Return to Extra Deck",
+      "shuffleDeck": "Shuffle into Deck",
+      "tag": "Tag it…",
+      "retag": "Change tag…",
       "back": "Back"
+    },
+    "lock": {
+      "lock": "Lock the card panel on {name}",
+      "unlock": "Unlock the card panel from {name}"
+    },
+    "counterKind": {
+      "title": "New counter type",
+      "label": "Name of the counter",
+      "confirm": "Add one"
+    },
+    "tagDialog": {
+      "title": "Tag {name}",
+      "label": "A few words about this card (empty clears the tag)",
+      "confirm": "Tag"
     },
     "move": {
       "set": "Set",
@@ -1268,7 +1299,8 @@
     },
     "cardPanel": {
       "title": "Card",
-      "empty": "Select a card to read it."
+      "empty": "Hover a card to read it; its lock keeps it here.",
+      "unlock": "Unlock the card panel"
     },
     "tabs": {
       "label": "Card and history",
@@ -1284,8 +1316,11 @@
       "activate": "{n, plural, =0 {Activated {card}} other {Activated {card} → {targets}}}",
       "flip": "{to, select, up {Flipped {card} face-up} down {Flipped {card} face-down} atk {{card} to Attack Position} other {{card} to Defense Position}}",
       "negate": "{to, select, on {Negated {card}} other {{card} no longer negated}}",
-      "counter": "Counters on {card}: {delta}",
+      "counter": "{kind} on {card}: {delta}",
+      "destroy": "Destroyed {card} → {to}",
+      "tag": "{has, select, yes {Tagged {card}: {text}} other {Cleared the tag on {card}}}",
       "endTurn": "End of turn {turn}",
+      "close": "Close history",
       "replayFromHere": "Replay starts here",
       "startMark": "Replay start"
     },

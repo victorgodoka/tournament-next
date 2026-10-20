@@ -7,11 +7,10 @@ import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
-import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import type { SharedCombo } from '@utils/combos'
-import { initial, isMonsterSlot, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
+import { destroyedBy, initial, isMonsterSlot, kindsIn, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
@@ -23,7 +22,7 @@ import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
-import { History } from './history'
+import { History, HistoryDrawer } from './history'
 import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar } from './replay-bar'
@@ -32,6 +31,7 @@ import { Toolbar, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 import { useReplay } from './use-replay'
 import { useSave } from './use-save'
+import { VideoDialog } from './video-dialog'
 
 const DRAFT_DELAY_MS = 300
 /** A key typed here is the field's, never a shortcut. */
@@ -68,6 +68,58 @@ const Simulator = () => {
   return <Loaded boot={boot} />
 }
 
+/** A short text asked in a small dialog: the name of a new counter kind, or a card's tag. */
+const TextDialog = ({ open, title, label, initial, maxLength, confirm, onConfirm, onClose }: { open: boolean; title: string; label: string; initial: string; maxLength: number; confirm: string; onConfirm(text: string): void; onClose(): void }) => {
+  const t = useTranslations('Simulator')
+  const [text, setText] = useState(initial)
+  const field = useRef<HTMLDivElement>(null)
+  // After `showModal`, which runs in the dialog's own effect and would otherwise leave the focus on its Close button.
+  useEffect(() => {
+    if (open) field.current?.querySelector('input')?.focus()
+  }, [open])
+  return (
+    <Dialog
+      size="sm"
+      open={open}
+      onClose={onClose}
+      title={title}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} className={TOUCH}>
+            {t('confirm.cancel')}
+          </Button>
+          <Button
+            onClick={() => {
+              onConfirm(text.trim())
+              onClose()
+            }}
+            className={TOUCH}
+          >
+            {confirm}
+          </Button>
+        </>
+      }
+    >
+      <div ref={field}>
+        <TextInput
+          aria-label={label}
+          placeholder={label}
+          maxLength={maxLength}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            onConfirm(text.trim())
+            onClose()
+          }}
+          plateClassName={TOUCH}
+        />
+      </div>
+    </Dialog>
+  )
+}
+
 const Loaded = ({ boot }: { boot: Boot }) => {
   const t = useTranslations('Simulator')
   const [session, dispatch] = useReducer(sessionReducer, boot.session)
@@ -80,15 +132,22 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [choosing, setChoosing] = useState(false)
   /** The My combos list is open. */
   const [listing, setListing] = useState(false)
-  /** The card the card panel shows: an instance id, so every reset of the board clears it. */
+  /** The last card clicked or shown by the replay: an instance id, so every reset of the board clears it. */
   const [selected, setSelected] = useState<number | null>(null)
+  /** The card under the pointer, and the one the card panel is locked on. The panel shows the locked one, else the hovered one, else the selected one. */
+  const [hovered, setHovered] = useState<number | null>(null)
+  const [locked, setLocked] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
-  /** The pile (or the monster slot, for its Xyz materials) whose panel is open. */
-  const [pile, setPile] = useState<Pile | MonsterSlot | null>(null)
-  /** Below `lg` the card panel and the history share the space under the board as two tabs. */
-  const [tab, setTab] = useState<'card' | 'history'>('card')
+  /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
+  const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  /** The card a new counter kind is being named for, and the card being tagged. */
+  const [naming, setNaming] = useState<number | null>(null)
+  const [tagging, setTagging] = useState<number | null>(null)
+  /** The hash of the session a video was asked for: the dialog opens once that very line is saved, and a step since drops the ask. */
+  const [videoFor, setVideoFor] = useState<string | null>(null)
   const [lookupAttempt, setLookupAttempt] = useState(0)
   const { cards, failed, ensure } = useCardCache()
 
@@ -103,6 +162,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   )
   /** The cards the step on screen played: the board marks them. */
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
+  const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
+  /** The counter kinds the menu offers: those added by hand and those the log already uses. */
+  const kinds = useMemo(() => [...new Set([...session.counterTypes, ...kindsIn(session.actions)])], [session.counterTypes, session.actions])
 
   useEffect(() => {
     ensure([...session.deck.main, ...session.deck.extra]).catch(() => {})
@@ -152,10 +214,13 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
   const discard = (ask: boolean, run: () => void) => (ask ? setPending(() => run) : run())
   const hasActions = session.actions.length > 0
-  /** The card the panel shows and a pick in progress mean nothing on a new board. */
+  /** The cards the panel shows, the open pile windows and a pick in progress mean nothing on a new board. */
   const unpick = () => {
     setSelected(null)
+    setLocked(null)
+    setPiles([])
     setTargeting(null)
+    setVideoFor(null)
   }
   // A reload clears the save alert itself before it opens the combo.
   const saves = useSave(session, dispatch, unpick)
@@ -164,6 +229,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     unpick()
     saves.dismiss()
   }
+  /** The video is cut from the saved combo, so an unsaved line is saved first (the title dialog and all); the dialog opens once it is tied. */
+  const askVideo = () => {
+    setVideoFor(saves.hash)
+    if (session.combo === null || saves.unsaved) saves.save()
+  }
+  const videoOpen = videoFor === saves.hash && session.combo !== null && !saves.unsaved && !saves.busy && saves.asking === null && saves.conflict === null
 
   /** A combo from the list replaces the session, tied to it. A damaged one loads nothing and says so; no question for that. */
   const openCombo = (combo: SharedCombo) => {
@@ -220,6 +291,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   /** An Xyz monster, by its looked-up card: summoned over cards, it comes in on top of them. */
   const isXyz = (id: number) => !!cards.get(board.cards[id]?.code ?? -1)?.monsterTypes.includes('xyz')
+  /** One of the Extra Deck's cards: it never goes to the hand or into the Main Deck. */
+  const isExtra = (id: number) => id >= session.deck.main.length
   /** The card a drag just dropped: it is already where the pointer let go, so the board does not slide it there. */
   const droppedRef = useRef<number | null>(null)
   // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
@@ -264,11 +337,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return () => window.removeEventListener('keydown', listener)
   }, [])
 
-  /** The card panel shows `id`; below `lg` its tab comes forward. */
-  const show = (id: number) => {
-    setSelected(id)
-    setTab('card')
-  }
   const openMenu = (id: number, at: { x: number; y: number }) => {
     if (playing) return
     setSelected(id)
@@ -285,10 +353,25 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setTargeting(null)
   }
   /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. While picking targets, any click picks. */
-  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : show(id))
+  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
     if (!targeting) openMenu(id, anchor(e))
+  }
+  /** Opens a pile's window, or closes it when it is open. */
+  const togglePile = (zone: Pile | MonsterSlot) => setPiles((open) => (open.includes(zone) ? open.filter((z) => z !== zone) : [...open, zone]))
+  /** Locks the panel on the card, or lets go when it is already locked on it. */
+  const toggleLock = (id: number) => setLocked((now) => (now === id ? null : id))
+
+  /** A counter of a kind named just now: the kind is kept for the menu, and one of it goes on the card. */
+  const addKind = (card: number, name: string) => {
+    const kind = name.slice(0, LIMITS.kind)
+    if (!kind) return
+    dispatch({ type: 'counterType', name: kind })
+    perform([{ t: 'counter', card, delta: 1, kind }])
+  }
+  const tagCard = (card: number, text: string) => {
+    if ((board.cards[card]?.tag ?? '') !== text) perform([{ t: 'tag', card, text }])
   }
 
   const nameOf = (id: number) => {
@@ -296,12 +379,14 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return cards.get(code)?.name ?? String(code)
   }
 
-  // A materials panel needs a stack of two or more. When a move, Undo or Reset leaves fewer it closes for good,
-  // here in render: an effect would paint one frame of "×0", and leaving the state set would bring the panel back
+  // A materials window needs a stack of two or more. When a move, Undo or Reset leaves fewer it closes for good,
+  // here in render: an effect would paint one frame of "×0", and leaving the state set would bring the window back
   // the next time something is stacked there.
-  if (pile !== null && isMonsterSlot(pile) && board.zones[pile].length < 2) setPile(null)
+  const open = piles.filter((zone) => !isMonsterSlot(zone) || board.zones[zone].length >= 2)
+  if (open.length !== piles.length) setPiles(open)
 
-  const picked = selected === null ? undefined : board.cards[selected]
+  const inPanel = locked ?? hovered ?? selected
+  const picked = inPanel === null ? undefined : board.cards[inPanel]
   const code = picked?.code ?? null
   /** Only this deck's cards: an id that failed for an earlier deck is not this one's problem. */
   const lookupFailed = [...session.deck.main, ...session.deck.extra].some((id) => failed.has(id))
@@ -366,8 +451,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         onSaveAs={saves.saveAs}
         onMyCombos={() => saves.gate(() => setListing(true))}
         onShare={saves.share}
+        onVideo={askVideo}
+        historyOpen={historyOpen}
+        onHistory={() => setHistoryOpen((o) => !o)}
       />
       <MyCombos open={listing} onClose={() => setListing(false)} onOpen={openCombo} onDeleted={comboDeleted} />
+      <VideoDialog open={videoOpen} onClose={() => setVideoFor(null)} comboId={session.combo?.id ?? ''} actions={session.actions} start={session.start} />
       <ReplayBar
         cursor={cursor}
         end={end}
@@ -406,6 +495,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             selected={selected}
             activation={activation}
             marked={marked}
+            destroyed={destroyed}
+            tags={cursor === end}
             step={{ cursor, actions: session.actions }}
             droppedRef={droppedRef}
             flipMs={FLIP_MS / Math.max(1, speed)}
@@ -413,8 +504,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onMenu={onMenu}
             onLongPress={(id, at) => !targeting && openMenu(id, at)}
             onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
+            onHover={setHovered}
+            locked={locked}
+            onLock={toggleLock}
             drag={drag}
-            onPile={(zone) => setPile((open) => (open === zone ? null : zone))}
+            onPile={togglePile}
           />
           {/* The caption of the step on screen: a field to write it in by hand, its text alone while a replay plays. */}
           {cursor === 0 ? null : playing ? (
@@ -430,48 +524,40 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             />
           )}
         </div>
-        <div className="flex flex-col gap-4">
-          {pile ? (
-            <PilePanel
-              board={board}
-              zone={pile}
-              cards={cards}
-              activation={activation}
-              picking={targeting !== null}
-              onCard={onCard}
-              onMenu={onMenu}
-              drag={drag}
-              onClose={() => setPile(null)}
-            />
-          ) : null}
-          {/* Below `lg` the card panel and the history are two tabs under the board; from `lg` the column stacks both. */}
-          <TabBar
-            tabs={[
-              { id: 'card', label: t('tabs.card') },
-              { id: 'history', label: t('tabs.history') },
-            ]}
-            active={tab}
-            onSelect={setTab}
-            label={t('tabs.label')}
-            idPrefix="simulator-side"
-            className="lg:hidden"
-          />
-          <div {...tabPanelProps('simulator-side', 'card')} className={tab === 'card' ? undefined : 'max-lg:hidden'}>
-            <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
-          </div>
-          <div {...tabPanelProps('simulator-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
-            <History
-              session={session}
-              boards={boards}
-              cards={cards}
-              nameOf={nameOf}
-              disabled={playing || targetMode}
-              onSeek={step}
-              onSetStart={(start) => dispatch({ type: 'setStart', start })}
-            />
-          </div>
-        </div>
+        {/* The side column is the card panel alone: it follows the pointer over the board, or stays on the card it is locked on. */}
+        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="lg:sticky lg:top-24" />
       </div>
+
+      {/* Each open pile in its own window, the last opened on top. */}
+      {piles.map((zone, index) => (
+        <PilePanel
+          key={zone}
+          board={board}
+          zone={zone}
+          cards={cards}
+          activation={activation}
+          picking={targeting !== null}
+          index={index}
+          onCard={onCard}
+          onMenu={onMenu}
+          onHover={setHovered}
+          drag={drag}
+          onClose={() => togglePile(zone)}
+        />
+      ))}
+
+      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)}>
+        <History
+          session={session}
+          boards={boards}
+          cards={cards}
+          nameOf={nameOf}
+          disabled={playing || targetMode}
+          onSeek={step}
+          onSetStart={(start) => dispatch({ type: 'setStart', start })}
+          className="max-h-none"
+        />
+      </HistoryDrawer>
 
       <DragGhost card={dragging === null ? undefined : board.cards[dragging]} cards={cards} ghostRef={drag.ghostRef} />
 
@@ -482,16 +568,47 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           board={board}
           card={menu.card}
           at={menu.at}
+          kinds={kinds}
+          extra={isExtra(menu.card)}
           onAct={perform}
           onTargets={(source) => setTargeting({ source, targets: [] })}
-          onDetails={show}
-          onPile={setPile}
+          onNewKind={setNaming}
+          onTag={setTagging}
+          onPile={togglePile}
           onClose={() => setMenu(null)}
           xyz={isXyz(menu.card)}
         />
       ) : null}
 
       {choosing ? <HandPicker board={initial(session.deck)} cards={cards} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
+
+      {/* Keyed by the card: each asks afresh, with that card's own tag filled in. */}
+      {naming !== null ? (
+        <TextDialog
+          key={`kind:${naming}`}
+          open
+          title={t('counterKind.title')}
+          label={t('counterKind.label')}
+          initial=""
+          maxLength={LIMITS.kind}
+          confirm={t('counterKind.confirm')}
+          onConfirm={(name) => addKind(naming, name)}
+          onClose={() => setNaming(null)}
+        />
+      ) : null}
+      {tagging !== null ? (
+        <TextDialog
+          key={`tag:${tagging}`}
+          open
+          title={t('tagDialog.title', { name: nameOf(tagging) })}
+          label={t('tagDialog.label')}
+          initial={board.cards[tagging]?.tag ?? ''}
+          maxLength={LIMITS.tag}
+          confirm={t('tagDialog.confirm')}
+          onConfirm={(text) => tagCard(tagging, text)}
+          onClose={() => setTagging(null)}
+        />
+      ) : null}
 
       <Dialog
         size="sm"

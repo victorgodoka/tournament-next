@@ -36,4 +36,5 @@ export const operateFrom = (p: ComboPayload, k: number): Session => ({
   start: Math.min(p.start, k),
   deckId: null,
   combo: null,
+  counterTypes: [],
 })

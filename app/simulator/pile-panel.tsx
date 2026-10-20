@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { Icon } from '@ui/icon'
@@ -23,46 +23,90 @@ export type PilePanelProps = {
   activation: Activation | null
   /** Target mode: a tap picks the card, as a click does, instead of opening its menu. */
   picking: boolean
+  /** Its place among the open windows: each one opens a little further down and in from the last. */
+  index: number
   onCard(id: number, e: React.MouseEvent): void
   onMenu(id: number, e: React.MouseEvent): void
+  onHover?(id: number | null): void
   drag: Drag
   onClose(): void
 }
 
+/** The window's width from `lg`, and the space kept from the viewport edges. */
+const WIDTH = 320
+const EDGE = 16
+/** Each window opens this far down and in from the one before. */
+const CASCADE = 28
+
 /**
- * A non-modal list of one pile (or of a monster's Xyz materials), the board still in view. On desktop it sits
- * at the top of the side column; below `lg` it is fixed to the bottom and scrolls. A touch tap opens the menu
- * instead of dragging, which would fight the list's scroll (in target mode it picks the card); a mouse or pen drags
- * a card out onto the board.
+ * A non-modal list of one pile (or of a monster's Xyz materials), the board still in view. From `lg` it is a floating
+ * window over the page, dragged by its header anywhere on screen; below `lg` it is fixed to the bottom and scrolls. A
+ * touch tap opens the menu instead of dragging, which would fight the list's scroll (in target mode it picks the card);
+ * a mouse or pen drags a card out onto the board.
  */
-export const PilePanel = ({ board, zone, cards, activation, picking, onCard, onMenu, drag, onClose }: PilePanelProps) => {
+export const PilePanel = ({ board, zone, cards, activation, picking, index, onCard, onMenu, onHover, drag, onClose }: PilePanelProps) => {
   const t = useTranslations('Simulator')
   const touch = useRef(false)
   const stack = isMonsterSlot(zone)
   const ids = stack ? board.zones[zone].slice(1) : board.zones[zone]
   const name = stack ? t('pile.materials', { count: ids.length }) : t(`zones.${zone}`)
 
+  // Where the window sits, from `lg`: opened over the side column, then wherever its header was dragged to.
+  const [pos, setPos] = useState(() => ({ x: Math.max(EDGE, window.innerWidth - WIDTH - EDGE - index * CASCADE), y: 120 + index * CASCADE }))
+  /** The pointer's offset from the window's corner while its header is held. */
+  const held = useRef<{ dx: number; dy: number } | null>(null)
+  const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    if (e.button !== 0 || (e.target as Element).closest('button')) return
+    held.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    const h = held.current
+    if (!h) return
+    setPos({
+      x: Math.max(EDGE, Math.min(e.clientX - h.dx, window.innerWidth - WIDTH - EDGE)),
+      y: Math.max(EDGE, Math.min(e.clientY - h.dy, window.innerHeight - 80)),
+    })
+  }
+  const release = () => {
+    held.current = null
+  }
+
   return (
     <Panel
       tone="framed"
-      title={name}
-      meta={stack ? t(`zones.${zone}`) : ids.length}
-      actions={
+      label={name}
+      style={{ '--x': `${pos.x}px`, '--y': `${pos.y}px` } as React.CSSProperties}
+      className={twMerge(
+        'flex flex-col p-0 min-[720px]:p-0',
+        'max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-(--z-dock) max-lg:max-h-[45dvh]',
+        'lg:fixed lg:top-(--y) lg:left-(--x) lg:z-(--z-dock-window) lg:w-80 lg:max-h-[60dvh] lg:shadow-lift',
+      )}
+    >
+      {/* The handle: held and moved with the pointer (`touch-none`, so the finger moves the window, not the page). */}
+      <header
+        data-handle
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={release}
+        onPointerCancel={release}
+        className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-2 select-none lg:cursor-move lg:touch-none"
+      >
+        <h3 className="display-3">{name}</h3>
+        <span className="ml-auto text-ink-muted signal-sm">{stack ? t(`zones.${zone}`) : ids.length}</span>
         <Button variant="ghost" size="icon-sm" aria-label={t('pile.close')} onClick={onClose} className="max-lg:size-11">
           <Icon name="close" />
         </Button>
-      }
-      className="p-4 min-[720px]:p-4 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-(--z-dock) max-lg:flex max-lg:max-h-[45dvh] max-lg:flex-col"
-    >
+      </header>
       {/* The list scrolls, not the panel: the chamfer is drawn on the panel and would scroll away with it. */}
-      <div className="min-h-0 overflow-y-auto lg:max-h-[55dvh]">
+      <div className="min-h-0 overflow-y-auto p-4">
         {ids.length ? (
           <ul aria-label={name} className="grid grid-cols-[repeat(auto-fill,64px)] gap-1">
             {ids.map((id) => {
               const card = board.cards[id]!
               const move = drag.bind(id, false) // not for a finger: it scrolls the list
               return (
-                <li key={id} className="relative">
+                <li key={id} className="relative" onPointerEnter={() => onHover?.(id)} onPointerLeave={() => onHover?.(null)}>
                   <CardTile
                     id={card.code}
                     card={cards.get(card.code)}

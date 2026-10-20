@@ -14,6 +14,7 @@ const draft: Session = {
   start: 0,
   deckId: null,
   combo: null,
+  counterTypes: [],
 }
 
 /** A storage holding `draft` (or `text`) under the draft key, whose reads are counted. */

@@ -19,8 +19,10 @@ export type SessionEvent =
   | { type: 'unlink'; id: string }
   /** Replaces the whole session, as opening a saved combo does. */
   | { type: 'open'; session: Session }
+  /** A counter kind added by hand: trimmed, cut to its limit; one already there, or an empty one, changes nothing. */
+  | { type: 'counterType'; name: string }
 
-export const emptySession = (): Session => ({ deck: EMPTY_DECK, name: '', actions: [], cursor: 0, start: 0, deckId: null, combo: null })
+export const emptySession = (): Session => ({ deck: EMPTY_DECK, name: '', actions: [], cursor: 0, start: 0, deckId: null, combo: null, counterTypes: [] })
 
 /** A whole number in 0..max; NaN counts as 0. */
 const clamp = (n: number, max: number) => Math.min(max, Math.max(0, Math.trunc(n) || 0))
@@ -63,5 +65,10 @@ export function sessionReducer(s: Session, e: SessionEvent): Session {
       return s.combo?.id === e.id ? { ...s, combo: null } : s
     case 'open':
       return e.session
+    case 'counterType': {
+      const name = e.name.trim().slice(0, LIMITS.kind)
+      if (!name || s.counterTypes.includes(name) || s.counterTypes.length >= LIMITS.kinds) return s
+      return { ...s, counterTypes: [...s.counterTypes, name] }
+    }
   }
 }

@@ -48,9 +48,25 @@ const open = async (url: string) => {
 }
 
 const zone = (key: string) => screen.getByRole('group', { name: `zones.${key}` })
-const hand = () => within(zone('hand')).queryAllByRole('button')
+/** The card buttons of a zone: each card also carries a lock button for the card panel, which is not a card. */
+const cardButtons = (el: HTMLElement) => within(el).queryAllByRole('button').filter((b) => b.hasAttribute('data-card'))
+const hand = () => cardButtons(zone('hand'))
 const button = (name: string) => screen.getByRole<HTMLButtonElement>('button', { name })
 const click = (name: string) => act(async () => fireEvent.click(button(name)))
+/** Save as, My combos and Share sit behind the toolbar's More button. */
+const more = async (name: string) => {
+  await click('toolbar.more')
+  await act(async () => fireEvent.click(screen.getByRole('menuitem', { name })))
+}
+/** Whether the session is tied to a saved combo: Save as is offered under More only then. */
+const tied = async () => {
+  await click('toolbar.more')
+  const yes = screen.queryByRole('menuitem', { name: 'toolbar.saveAs' }) !== null
+  await click('toolbar.more')
+  return yes
+}
+/** The history is a drawer: open once per test, then the rows are on the page. */
+const openHistory = () => click('toolbar.history')
 
 const menu = () => screen.getByRole('menu')
 const names = () => within(menu()).getAllByRole('menuitem').map((el) => el.textContent)
@@ -58,7 +74,7 @@ const choose = (name: string) => act(async () => fireEvent.click(within(menu()).
 const rightClick = (el: HTMLElement) => act(async () => void fireEvent.contextMenu(el))
 /** A mouse click on the element: `detail` 1, as a browser sends it (the default is a keyboard click, 0). */
 const mouseClick = (el: HTMLElement) => act(async () => void fireEvent.click(el, { detail: 1 }))
-const cardsIn = (key: string) => within(zone(key)).getAllByRole('button')
+const cardsIn = (key: string) => cardButtons(zone(key))
 /** The counter badges in a zone. A card prints its own passcode (a number too) inside its button, so those are left out. */
 const counters = (key: string) =>
   within(zone(key))
@@ -66,12 +82,21 @@ const counters = (key: string) =>
     .filter((el) => !el.closest('button'))
     .map((el) => el.textContent)
 
-/** New hand, then the first card of the hand through Move to… into `to`. */
+/** New hand, then the first card of the hand through Move card… › Move to a different zone… into `to`. */
 const play = async (to: string) => {
   await rightClick(hand()[0]!)
   await choose('menu.moveTo')
+  await choose('menu.moveZone')
   await choose(to)
 }
+/** Manage counters… › the plain counter (right after Back; it says its count once it has one) › Add or Remove. */
+const counter = async (what: 'menu.counterUp' | 'menu.counterDown') => {
+  await choose('menu.counters')
+  await act(async () => fireEvent.click(within(menu()).getAllByRole('menuitem')[1]!))
+  await choose(what)
+}
+const MAIN_HAND = ['menu.activate', 'menu.moveTo', 'menu.tag']
+const MAIN_FIELD = ['menu.activate', 'menu.flipDown', 'menu.position', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag']
 
 /** The callbacks of every ResizeObserver the board made, so a test can fire the one that is watching. */
 let resized: (() => void)[] = []
@@ -283,14 +308,21 @@ describe('Simulator card menu', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
-    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.moveTo', 'menu.details'])
+    expect(names()).toEqual(MAIN_HAND)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     await choose('zones.m0')
     await rightClick(cardsIn('m0')[0]!)
-    // no counters yet: no counterDown
-    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.flip', 'menu.position', 'menu.negate', 'menu.counterUp', 'menu.moveTo', 'menu.details'])
+    expect(names()).toEqual(MAIN_FIELD)
+    await choose('menu.counters')
+    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'menu.newKind'])
+    await choose('menu.counterPlain')
+    expect(names()).toEqual(['menu.back', 'menu.counterUp']) // no counters yet: no Remove
     await choose('menu.counterUp')
     await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.counters')
+    expect(names()).toContain('menu.counterKind') // the plain counter now says its count
+    await choose('menu.counterKind')
     expect(names()).toContain('menu.counterDown')
   })
 
@@ -299,7 +331,89 @@ describe('Simulator card menu', () => {
     await click('toolbar.newHand')
     await play('zones.s0')
     await rightClick(cardsIn('s0')[0]!)
-    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.flip', 'menu.negate', 'menu.counterUp', 'menu.moveTo', 'menu.details'])
+    expect(names()).toEqual(['menu.activate', 'menu.flipDown', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag'])
+  })
+
+  it('Move card offers GY, banish, destroy, hand and a shuffle into the deck; an Extra Deck card goes back to the Extra Deck instead', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.moveTo')
+    expect(names()).toEqual(['menu.back', 'menu.moveZone', 'menu.toGy', 'menu.banish', 'menu.destroy', 'menu.destroyBanish', 'menu.shuffleDeck']) // in hand: no "Hand"
+    await choose('menu.destroy')
+    expect(hand()).toHaveLength(4)
+    expect(within(zone('gy')).getByText('1')).toBeTruthy()
+    expect(document.querySelectorAll('[data-destroyed]').length).toBeGreaterThan(0) // the step on screen: cracks on the GY
+    await click('toolbar.undo')
+    expect(document.querySelector('[data-destroyed]')).toBeNull()
+    await rightClick(hand()[0]!)
+    await choose('menu.moveTo')
+    await choose('menu.shuffleDeck')
+    expect(hand()).toHaveLength(4)
+    await openHistory()
+    expect(steps().slice(-2)).toEqual(['history.move', 'history.shuffle'])
+    // the extra card, from its pile: Hand sends it back to the Extra Deck, and there is no deck to shuffle it into
+    const extra = within(await openPile('extra')).getAllByRole('button')[0]!
+    await rightClick(extra)
+    await choose('menu.moveTo')
+    expect(names()).toEqual(['menu.back', 'menu.moveZone', 'menu.toGy', 'menu.banish', 'menu.destroy', 'menu.destroyBanish'])
+    await choose('menu.toGy')
+    await rightClick(within(await openPile('gy')).getAllByRole('button')[0]!)
+    await choose('menu.moveTo')
+    expect(names()).toContain('menu.toExtra')
+    expect(names()).not.toContain('menu.toHand')
+    expect(names()).not.toContain('menu.shuffleDeck')
+    await choose('menu.toExtra')
+    expect(within(zone('extra')).getByText('1')).toBeTruthy()
+  })
+
+  it('a counter kind named in the dialog goes on the card and is offered from then on', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.counters')
+    await choose('menu.newKind')
+    const field = screen.getByRole<HTMLInputElement>('textbox', { name: 'counterKind.label' })
+    await act(async () => void fireEvent.change(field, { target: { value: ' Spell ' } }))
+    await click('counterKind.confirm')
+    expect(within(zone('m0')).getByText('SPE 1')).toBeTruthy()
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.counters')
+    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'menu.counterKind', 'menu.newKind'])
+    // the kind is offered on another card too, and stays through a reload (the draft keeps it)
+    await play('zones.m1')
+    cleanup()
+    await open('/simulator')
+    await rightClick(cardsIn('m1')[0]!)
+    await choose('menu.counters')
+    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'Spell', 'menu.newKind']) // none on this card yet: the kind's name alone
+  })
+
+  it('a tag shows over the card on the last step, and an empty one clears it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.tag')
+    const field = screen.getByRole<HTMLInputElement>('textbox', { name: 'tagDialog.label' })
+    await act(async () => void fireEvent.change(field, { target: { value: 'Negates once' } }))
+    await click('tagDialog.confirm')
+    expect(within(zone('m0')).getByText('Negates once')).toBeTruthy()
+    await click('toolbar.undo') // not the last step any more: no tags
+    expect(screen.queryByText('Negates once')).toBeNull()
+    await click('toolbar.redo')
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.moveTo')
+    await choose('menu.toGy') // the tag goes with the card: the GY shows it on its top
+    expect(within(zone('gy')).getByText('Negates once')).toBeTruthy()
+    await click('toolbar.undo')
+    await rightClick(cardsIn('m0')[0]!)
+    expect(names()).toContain('menu.retag')
+    await choose('menu.retag')
+    await act(async () => void fireEvent.change(screen.getByRole('textbox', { name: 'tagDialog.label' }), { target: { value: '' } }))
+    await click('tagDialog.confirm')
+    expect(screen.queryByText('Negates once')).toBeNull()
   })
 
   it('focus goes to the pile button when the keyboard moved the card into a pile', async () => {
@@ -311,6 +425,7 @@ describe('Simulator card menu', () => {
       card.focus()
       await act(async () => void fireEvent.click(card)) // detail 0: Enter on the focused card
       await choose('menu.moveTo')
+      await choose('menu.moveZone')
       await choose(item)
       expect(screen.queryByRole('menu')).toBeNull()
       expect(document.activeElement).toBe(within(zone(pile)).getByRole('button', { name: `zones.${pile}` }))
@@ -329,7 +444,7 @@ describe('Simulator card menu', () => {
     await choose('menu.negate')
     expect(within(zone('m0')).getByRole('img', { name: 'negated' })).toBeTruthy()
     await rightClick(top())
-    await choose('menu.flip')
+    await choose('menu.flipDown')
     await click('toolbar.undo') // the flip only: the card is still there, still negated and sideways
     expect(cardsIn('m0')).toHaveLength(1)
     expect(within(zone('m0')).getByRole('img', { name: 'negated' })).toBeTruthy()
@@ -344,12 +459,12 @@ describe('Simulator card menu', () => {
     await play('zones.m2')
     expect(counters('m2')).toEqual([])
     await rightClick(cardsIn('m2')[0]!)
-    await choose('menu.counterUp')
+    await counter('menu.counterUp')
     await rightClick(cardsIn('m2')[0]!)
-    await choose('menu.counterUp')
+    await counter('menu.counterUp')
     expect(counters('m2')).toEqual(['2'])
     await rightClick(cardsIn('m2')[0]!)
-    await choose('menu.counterDown')
+    await counter('menu.counterDown')
     expect(counters('m2')).toEqual(['1'])
   })
 
@@ -358,23 +473,50 @@ describe('Simulator card menu', () => {
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     const moves = names()
     expect(moves[0]).toBe('menu.back')
     expect(moves).not.toContain('zones.hand')
     expect(moves).toEqual(expect.arrayContaining(['zones.deck — move.top', 'zones.deck — move.bottom', 'zones.gy', 'zones.m0', 'zones.m0 — move.set', 'zones.s0 — move.set']))
     await choose('menu.back')
+    expect(names()).toContain('menu.moveZone')
+    await choose('menu.back')
     expect(names()).toContain('menu.moveTo')
   })
 
-  it('Details shows the card in the card panel', async () => {
+  it('Activate opens its own list: now, or with targets', async () => {
     await open(DECK)
     await click('toolbar.newHand')
-    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
     const card = hand()[1]!
     await rightClick(card)
-    await choose('menu.details')
-    expect(screen.queryByText('cardPanel.empty')).toBeNull()
-    expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
+    await choose('menu.activate')
+    expect(names()).toEqual(['menu.back', 'menu.activateNow', 'menu.activateTargets'])
+    await choose('menu.activateNow')
+    expect(card.dataset.active).toBe('true')
+  })
+})
+
+describe('Simulator card panel lock', () => {
+  it('the panel follows the pointer over the cards; the lock keeps it on one, and the panel’s own lock lets go', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    const [first, second] = hand() as [HTMLElement, HTMLElement]
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+    await act(async () => void fireEvent.pointerEnter(first.parentElement!.parentElement!))
+    expect(screen.getByRole('heading', { name: first.title })).toBeTruthy()
+    await act(async () => void fireEvent.pointerLeave(first.parentElement!.parentElement!))
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
+    // the lock button is the sibling of the tile's wrapper
+    await act(async () => void fireEvent.click(within(first.parentElement!.parentElement!).getByRole('button', { name: 'lock.lock' })))
+    expect(screen.getByRole('heading', { name: first.title })).toBeTruthy()
+    await act(async () => void fireEvent.pointerEnter(second.parentElement!.parentElement!))
+    expect(screen.getByRole('heading', { name: first.title })).toBeTruthy() // locked: the hover changes nothing
+    expect(within(first.parentElement!.parentElement!).getByRole('button', { name: 'lock.unlock' })).toBeTruthy()
+    await click('cardPanel.unlock')
+    expect(screen.getByRole('heading', { name: second.title })).toBeTruthy() // still hovered
+    await act(async () => void fireEvent.pointerLeave(second.parentElement!.parentElement!))
+    await click('toolbar.newHand') // a new board clears the lock too
+    expect(screen.getByText('cardPanel.empty')).toBeTruthy()
   })
 })
 
@@ -413,6 +555,7 @@ describe('Simulator pile panel', () => {
     expect(cards).toHaveLength(1)
     await rightClick(cards[0]!)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     await choose('zones.hand')
     expect(hand()).toHaveLength(6)
     expect(screen.getByText('pile.empty')).toBeTruthy()
@@ -448,8 +591,9 @@ describe('Simulator pile panel', () => {
     expect(materials).toHaveLength(1)
     await rightClick(materials[0]!)
     // a material is not a field card: no flip, position, negate or counters
-    expect(names()).toEqual(['menu.activate', 'menu.activateTargets', 'menu.moveTo', 'menu.details'])
+    expect(names()).toEqual(MAIN_HAND)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     await choose('zones.gy')
     expect(within(zone('gy')).getAllByRole('button').length).toBeGreaterThan(0)
     expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
@@ -473,6 +617,7 @@ describe('Simulator pile panel', () => {
     await play('zones.m0')
     await rightClick(within(await openMaterials('m0')).getAllByRole('button')[0]!)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     await choose('zones.gy') // the last material leaves: the slot is a lone monster again
     expect(screen.queryByRole('list', { name: 'pile.materials' })).toBeNull()
     expect(screen.queryByText('pile.empty')).toBeNull()
@@ -488,6 +633,7 @@ const targetMode = async () => {
   await play('zones.m0')
   const source = hand()[0]!
   await rightClick(source)
+  await choose('menu.activate')
   await choose('menu.activateTargets')
   return { source, field: cardsIn('m0')[0]! }
 }
@@ -536,6 +682,7 @@ describe('Simulator targets', () => {
     await click('toolbar.newHand')
     await play('zones.gy')
     await rightClick(hand()[0]!)
+    await choose('menu.activate')
     await choose('menu.activateTargets')
     const card = within(await openPile('gy')).getAllByRole('button')[0]!
     await act(async () => void fireEvent.pointerDown(card, { pointerType: 'touch' }))
@@ -635,6 +782,7 @@ describe('Simulator targets', () => {
       await play('zones.gy') // the first card of the hand goes to the graveyard
       const source = hand()[0]!
       await rightClick(source)
+      await choose('menu.activate')
       await choose('menu.activateTargets')
       at[source.getAttribute('data-card')!] = 0
       at.gy = 300
@@ -769,6 +917,7 @@ describe('Simulator gestures', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
+    await choose('menu.activate')
     await choose('menu.activateTargets')
     await drag(hand()[1]!, zone('m0'))
     expect(within(zone('m0')).queryAllByRole('button')).toHaveLength(0)
@@ -807,6 +956,9 @@ describe('Simulator history and replay', () => {
   it('history lists steps and seeking shows that moment', async () => {
     await open(DECK)
     await click('toolbar.newHand')
+    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull() // a drawer, closed until asked
+    await openHistory()
+    expect(button('toolbar.history').getAttribute('aria-pressed')).toBe('true')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
     expect(rows().map((row) => row.querySelector('[data-step-number]')?.textContent ?? null)).toEqual([null, '#1', '#2'])
     expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
@@ -814,11 +966,14 @@ describe('Simulator history and replay', () => {
     await click('history.shuffle')
     expect(hand()).toHaveLength(0)
     expect(button('history.shuffle').getAttribute('aria-current')).toBe('step')
+    await click('history.close')
+    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull()
   })
 
   it('acting after a seek drops the later steps', async () => {
     await open(DECK)
     await click('toolbar.newHand')
+    await openHistory()
     await click('history.shuffle')
     await click('toolbar.draw')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
@@ -829,6 +984,7 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await click('toolbar.draw')
+    await openHistory()
     await replayFrom(1) // the shuffle
     await replayFrom(2) // back to the draw of 5
     expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy()
@@ -904,6 +1060,7 @@ describe('Simulator history and replay', () => {
     await click('toolbar.newHand')
     const card = hand()[0]!
     await play('zones.m0')
+    await openHistory()
     expect(steps()[3]).toBe('history.move')
     const thumb = rows()[3]!.querySelector('[data-tile]')
     expect(thumb?.getAttribute('title')).toBe(card.title)
@@ -1037,6 +1194,7 @@ describe('Simulator replay bar', () => {
     await click('toolbar.newHand')
     await play('zones.m0')
     await play('zones.m1')
+    await openHistory()
     await replayFrom(3) // after the first move
     vi.useFakeTimers()
     await click('replay.play')
@@ -1060,6 +1218,7 @@ describe('Simulator replay bar', () => {
     const moved = hand()[1]!
     await rightClick(moved)
     await choose('menu.moveTo')
+    await choose('menu.moveZone')
     await choose('zones.m0')
     await click('replay.prev') // the draw of 5: the panel shows the first of its cards; cards in the hand carry no brackets
     expect(hand().some((card) => card.dataset.step)).toBe(false)
@@ -1127,6 +1286,7 @@ describe('Simulator board details', () => {
     const card = within(screen.getByRole('list', { name: 'zones.gy' })).getByRole('button', { name: first })
     await rightClick(card)
     await choose('menu.activate')
+    await choose('menu.activateNow')
     const top = within(zone('gy')).getByRole('button')
     expect(top.title).toBe(first)
     expect(top.dataset.active).toBe('true')
@@ -1143,6 +1303,7 @@ describe('Simulator board details', () => {
     await click('handPicker.confirm')
     expect(hand().map((card) => card.title)).toEqual(['2', '5'])
     expect(within(zone('deck')).getByText('4')).toBeTruthy()
+    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.move', 'history.move'])
     expect(within(rows()[3]!).getByText('history.startMark')).toBeTruthy()
   })
@@ -1153,6 +1314,7 @@ describe('Simulator board details', () => {
     await play('zones.m0')
     const caption = () => screen.queryByRole<HTMLInputElement>('textbox', { name: 'caption.label' })
     await act(async () => void fireEvent.change(caption()!, { target: { value: 'Normal Summon' } }))
+    await openHistory()
     expect(rows()[3]!.textContent).toContain('Normal Summon')
     await click('toolbar.endTurn') // a step after it, so the replay is still playing when it shows the caption
     expect(caption()!.value).toBe('')
@@ -1239,14 +1401,14 @@ describe('Simulator save and share', () => {
   it('Save as new always posts: from the first save, and from a tied session through Save as', async () => {
     await open(NAMED)
     await click('toolbar.newHand')
-    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // nothing to save as yet
+    expect(await tied()).toBe(false) // nothing to save as yet
     await click('toolbar.save')
     await click('combos.saveAsNew')
     expect(saveCombo).toHaveBeenCalledTimes(1)
 
     vi.mocked(saveCombo).mockResolvedValue({ id: 'c2', revision: 1 })
     await click('toolbar.draw')
-    await click('toolbar.saveAs')
+    await more('toolbar.saveAs')
     expect(titleField().value).toBe('Line') // the combo's title
     await retitle('Line, again')
     await click('combos.saveAsNew')
@@ -1261,7 +1423,7 @@ describe('Simulator save and share', () => {
 
   it('Save in the Save as dialog renames the tied combo', async () => {
     await saved()
-    await click('toolbar.saveAs')
+    await more('toolbar.saveAs')
     await retitle('Renamed')
     await click('combos.save')
     expect(updateCombo).toHaveBeenCalledWith('c1', expect.objectContaining({ title: 'Renamed' }), 1)
@@ -1313,7 +1475,7 @@ describe('Simulator save and share', () => {
 
   it('a rename that meets a conflict keeps its title: Save as new posts it', async () => {
     await saved()
-    await click('toolbar.saveAs')
+    await more('toolbar.saveAs')
     await retitle('Renamed')
     vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(2))
     await click('combos.save')
@@ -1352,8 +1514,9 @@ describe('Simulator save and share', () => {
   it('Share on a tied line that has not changed copies its link in the click and sends nothing', async () => {
     const writeText = clipboard(async () => {})
     await saved()
+    await click('toolbar.more')
     await act(async () => {
-      fireEvent.click(button('toolbar.share'))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'toolbar.share' }))
       expect(writeText).toHaveBeenCalledWith(LINK('c1')) // before anything is awaited: still inside the user's gesture
     })
     expect(screen.getByText('combos.copied')).toBeTruthy()
@@ -1365,7 +1528,7 @@ describe('Simulator save and share', () => {
       throw new Error('denied')
     })
     await saved()
-    await click('toolbar.share')
+    await more('toolbar.share')
     expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
     expect(updateCombo).not.toHaveBeenCalled()
   })
@@ -1383,7 +1546,7 @@ describe('Simulator save and share', () => {
     cleanup() // the draft is written as the simulator unmounts
     await open('/simulator')
     expect(cardsIn('m2')).toHaveLength(1)
-    expect(button('toolbar.saveAs')).toBeTruthy() // tied
+    expect(await tied()).toBe(true)
     expect(unsaved()).toBe(false)
   })
 
@@ -1391,28 +1554,57 @@ describe('Simulator save and share', () => {
     const writeText = clipboard(async () => {})
     await open(NAMED)
     await click('toolbar.newHand')
-    await click('toolbar.share')
+    await more('toolbar.share')
     expect(writeText).not.toHaveBeenCalled() // the title first
     await click('combos.save')
     expect(saveCombo).toHaveBeenCalledTimes(1)
     expect(writeText).toHaveBeenCalledWith(LINK('c1'))
     expect(screen.getByText('combos.copied')).toBeTruthy()
 
-    await click('toolbar.share')
+    await more('toolbar.share')
     expect(writeText).toHaveBeenCalledTimes(2)
     expect(updateCombo).not.toHaveBeenCalled()
 
     await click('toolbar.draw')
-    await click('toolbar.share')
+    await more('toolbar.share')
     expect(updateCombo).toHaveBeenCalledTimes(1)
     expect(writeText).toHaveBeenCalledTimes(3)
+  })
+
+  it('Download video saves an unsaved line first, then opens the video dialog; a step since drops the ask', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await more('video.open')
+    expect(screen.queryByRole('heading', { name: 'video.title' })).toBeNull() // the title first
+    await click('combos.save')
+    expect(saveCombo).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { name: 'video.title' })).toBeTruthy()
+    await click('Close')
+    expect(screen.queryByRole('heading', { name: 'video.title' })).toBeNull()
+
+    await more('video.open') // tied and unchanged: at once, nothing sent
+    expect(screen.getByRole('heading', { name: 'video.title' })).toBeTruthy()
+    expect(updateCombo).not.toHaveBeenCalled()
+    await click('Close')
+
+    // changed since: the tied combo is updated first (no dialog for that), then the video dialog opens
+    await click('toolbar.draw')
+    await more('video.open')
+    expect(updateCombo).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { name: 'video.title' })).toBeTruthy()
+    await click('Close')
+    // a new board drops the ask: a later Save opens nothing by itself
+    await click('toolbar.newHand')
+    await click('confirm.discard')
+    await click('toolbar.save')
+    expect(screen.queryByRole('heading', { name: 'video.title' })).toBeNull()
   })
 
   it('a plain Save copies nothing, and closing the title dialog drops the share', async () => {
     const writeText = clipboard(async () => {})
     await open(NAMED)
     await click('toolbar.newHand')
-    await click('toolbar.share')
+    await more('toolbar.share')
     await click('Close')
     await click('toolbar.save')
     await click('combos.save')
@@ -1426,7 +1618,7 @@ describe('Simulator save and share', () => {
     })
     await open(NAMED)
     await click('toolbar.newHand')
-    await click('toolbar.share')
+    await more('toolbar.share')
     await click('combos.save')
     expect(screen.getByText('combos.copyFailed')).toBeTruthy()
     expect(screen.getByDisplayValue<HTMLInputElement>(LINK('c1')).readOnly).toBe(true)
@@ -1523,8 +1715,7 @@ describe('Simulator save and share', () => {
     vi.useFakeTimers()
     await click('replay.play')
     expect(button('toolbar.save').disabled).toBe(true)
-    expect(button('toolbar.saveAs').disabled).toBe(true)
-    expect(button('toolbar.share').disabled).toBe(true)
+    expect(button('toolbar.more').disabled).toBe(true) // Save as and Share with it
   })
 })
 
@@ -1546,7 +1737,7 @@ describe('Simulator my combos', () => {
   const listing = (...titles: string[]) =>
     vi.mocked(listMyCombos).mockResolvedValueOnce({ combos: titles.map((title, i) => summary(`c${i + 1}`, title)), nextCursor: null })
   const showList = async () => {
-    await click('toolbar.myCombos')
+    await more('toolbar.myCombos')
     await wait(10)
   }
   const list = () => within(screen.getByRole('list', { name: 'myCombos.title' }))
@@ -1593,6 +1784,7 @@ describe('Simulator my combos', () => {
     expect(getCombo).toHaveBeenCalledWith('c1')
     expect(listShown()).toBe(false)
     expect(hand()).toHaveLength(4)
+    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.draw', 'history.draw'])
     expect(unsaved()).toBe(false) // the hash is of the session as parsed, not of the payload as the server ordered it
 
@@ -1651,12 +1843,12 @@ describe('Simulator my combos', () => {
     await removeRow(1) // c2 is not the tied one
     expect(deleteCombo).toHaveBeenLastCalledWith('c2')
     expect(list().getAllByRole('listitem')).toHaveLength(1)
-    expect(button('toolbar.saveAs')).toBeTruthy()
+    expect(await tied()).toBe(true)
 
     await removeRow(0)
     expect(deleteCombo).toHaveBeenLastCalledWith('c1')
     expect(list().queryAllByRole('listitem')).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull()
+    expect(await tied()).toBe(false)
     expect(unsaved()).toBe(true)
     await click('Close')
 
@@ -1678,7 +1870,7 @@ describe('Simulator my combos', () => {
     await removeRow(0)
     expect(screen.queryByText('myCombos.deleteFailed')).toBeNull()
     expect(list().queryAllByRole('listitem')).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: 'toolbar.saveAs' })).toBeNull() // untied
+    expect(await tied()).toBe(false) // untied
     expect(unsaved()).toBe(true)
   })
 
@@ -1812,13 +2004,14 @@ describe('Simulator my combos', () => {
     await click('Close')
     await act(async () => arrive(stored('c1')))
     expect(hand()).toHaveLength(0)
+    await openHistory()
     expect(steps()).toEqual(['history.start'])
   })
 
   it('signed out, My combos asks to sign in and lists nothing', async () => {
     vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
     await open(DECK)
-    await click('toolbar.myCombos')
+    await more('toolbar.myCombos')
     expect(screen.getByText('combos.signIn')).toBeTruthy()
     expect(listShown()).toBe(false)
     expect(listMyCombos).not.toHaveBeenCalled()
@@ -1830,6 +2023,6 @@ describe('Simulator my combos', () => {
     await click('toolbar.draw')
     vi.useFakeTimers()
     await click('replay.play')
-    expect(button('toolbar.myCombos').disabled).toBe(true)
+    expect(button('toolbar.more').disabled).toBe(true) // My combos is under it
   })
 })

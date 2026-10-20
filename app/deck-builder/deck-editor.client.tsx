@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
@@ -58,15 +58,17 @@ type Toast = { tone: 'positive' | 'negative' | 'warn'; text: string }
 /** A .ydk is a few KB; anything far bigger isn't one. */
 const MAX_IMPORT_BYTES = 64 * 1024
 
-/** Runs once (client only): `?d=` wins over the local draft; a damaged link opens an empty deck. */
-const boot = (deckId: string | null): { state: EditorState; notice: Notice | null; today: string } => {
+/**
+ * Runs once (client only): `?d=` wins over the local draft; a damaged link opens an empty deck.
+ * `params` is the router's query: on a client navigation `window.location` still shows the previous page while this runs.
+ */
+const boot = (deckId: string | null, params: Pick<URLSearchParams, 'get' | 'has'>): { state: EditorState; notice: Notice | null; today: string } => {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` // local date
   const load = (deck: Deck, name = '', format: number | null = null, revision: number | null = null) =>
     editorReducer(initialEditorState(), { type: 'load', deck, name, format, deckId, revision, dirty: true })
 
-  const params = new URLSearchParams(window.location.search)
   // Set by the redirect away from a deck that doesn't exist or isn't the user's; `carried`: its draft came along.
   const missing: Notice | null = params.has('missing') ? (params.get('missing') === 'carried' ? 'deckCarried' : 'deckMissing') : null
   // URLSearchParams turns an unencoded `+` into a space; base64 has no spaces, so put them back.
@@ -130,8 +132,9 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   const t = useTranslations('DeckEditor')
   const locale = useLocale()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
-  const [{ state: bootState, notice: bootNotice, today }] = useState(() => boot(deckId))
+  const [{ state: bootState, notice: bootNotice, today }] = useState(() => boot(deckId, searchParams))
   const [state, dispatch] = useReducer(editorReducer, bootState)
   const [notice, setNotice] = useState(bootNotice)
   /** A saved deck reads from the server before it can be saved again. */

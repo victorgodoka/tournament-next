@@ -10,6 +10,7 @@ type PanelProps = {
   tone?: 'raised' | 'steel' | 'sunken' | 'framed'
   label?: string
   className?: string
+  style?: React.CSSProperties
   children?: React.ReactNode
 }
 
@@ -22,9 +23,10 @@ const TONE = {
 }
 
 /** The container: a hairline-edged block, notched at its top-right corner. */
-export const Panel = ({ title, meta, actions, tone = 'raised', label, className, children }: PanelProps) => (
+export const Panel = ({ title, meta, actions, tone = 'raised', label, className, style, children }: PanelProps) => (
   <section
     aria-label={title ? undefined : label}
+    style={style}
     className={twMerge('cut notch p-4 text-ink [--cut:var(--cut-lg)] min-[720px]:p-6', TONE[tone], className)}
   >
     {title ? (

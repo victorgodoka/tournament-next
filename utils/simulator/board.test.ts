@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
-import { apply, initial, isMonsterSlot, isSlot, isValid, locate, shuffleAction, stepCards, timeline, validRun } from './board'
+import { apply, destroyedBy, initial, isMonsterSlot, isSlot, isValid, kindsIn, locate, shuffleAction, stepCards, timeline, validRun } from './board'
 import type { Action, Board, Face, Pos, ZoneId } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202, 203], side: [] }
@@ -26,7 +26,7 @@ describe('simulator board', () => {
   it('initial: main top-first in deck, extra face-down, turn 1', () => {
     expect(b0.zones.deck).toEqual(ids.slice(0, 10))
     expect(b0.zones.extra).toEqual([10, 11, 12])
-    expect(b0.cards[0]).toEqual({ id: 0, code: 101, face: 'up', pos: 'atk', counters: 0, negated: false })
+    expect(b0.cards[0]).toEqual({ id: 0, code: 101, face: 'up', pos: 'atk', counters: {}, negated: false })
     expect(b0.cards[10]!.face).toBe('down')
     expect(b0.cards[10]!.code).toBe(201)
     expect(b0.turn).toBe(1)
@@ -124,19 +124,38 @@ describe('simulator board', () => {
 
   it('leaving the field clears counters and negate and resets pos to atk', () => {
     const field = run(draw(1), mv(0, 'm0', { pos: 'def' }), counter(0, 3), negate(0, true))
-    expect(field.cards[0]).toMatchObject({ pos: 'def', counters: 3, negated: true })
+    expect(field.cards[0]).toMatchObject({ pos: 'def', counters: { '': 3 }, negated: true })
     for (const to of ['hand', 'gy', 'deck', 'banished', 'extra'] as const) {
-      expect(apply(field, mv(0, to)).cards[0]).toMatchObject({ pos: 'atk', counters: 0, negated: false })
+      expect(apply(field, mv(0, to)).cards[0]).toMatchObject({ pos: 'atk', counters: {}, negated: false })
     }
-    expect(apply(field, mv(0, 'm1')).cards[0]).toMatchObject({ counters: 3, negated: true })
+    expect(apply(field, mv(0, 'm1')).cards[0]).toMatchObject({ counters: { '': 3 }, negated: true })
   })
 
   it('a card under a stack is reset like one that left the field', () => {
     const b = run(draw(2), mv(0, 'm0', { pos: 'def' }), counter(0, 2), negate(0, true), mv(1, 'm1'), mv(0, 'm1'))
-    expect(b.cards[0]).toMatchObject({ face: 'up', pos: 'atk', counters: 0, negated: false })
+    expect(b.cards[0]).toMatchObject({ face: 'up', pos: 'atk', counters: {}, negated: false })
     const over = run(draw(2), mv(0, 'm0'), counter(0, 2), mv(1, 'm0', { at: 'top' }))
     expect(over.zones.m0).toEqual([1, 0])
-    expect(over.cards[0]!.counters).toBe(0)
+    expect(over.cards[0]!.counters).toEqual({})
+  })
+
+  it('a destroy is a move to the GY or Banished, marked as one; anywhere else, or with another flag, it is refused', () => {
+    const b = run(draw(1), mv(0, 'm0'))
+    expect(apply(b, { t: 'move', card: 0, to: 'gy', destroy: true }).zones.gy).toEqual([0])
+    expect(apply(b, { t: 'move', card: 0, to: 'banished', destroy: true }).zones.banished).toEqual([0])
+    expect(destroyedBy({ t: 'move', card: 0, to: 'gy', destroy: true }, b)).toEqual({ card: 0, from: 'm0' })
+    expect(destroyedBy(mv(0, 'gy'), b)).toBeNull()
+    rejects(b, { t: 'move', card: 0, to: 'hand', destroy: true })
+    rejects(b, { t: 'move', card: 0, to: 'gy', destroy: false as unknown as true })
+  })
+
+  it('a tag stays on the card through moves and off the field; an empty one takes it off', () => {
+    const b = run(draw(1), { t: 'tag', card: 0, text: 'Negates once' })
+    expect(b.cards[0]!.tag).toBe('Negates once')
+    expect(run(draw(1), { t: 'tag', card: 0, text: 'x' }, mv(0, 'm0'), mv(0, 'gy')).cards[0]!.tag).toBe('x')
+    expect(apply(b, { t: 'tag', card: 0, text: '' }).cards[0]).not.toHaveProperty('tag')
+    rejects(b0, { t: 'tag', card: 99, text: 'x' })
+    rejects(b0, { t: 'tag', card: 0, text: 'x'.repeat(41) })
   })
 
   it('face per destination: gy, hand and deck up; banished up unless down; extra down unless up', () => {
@@ -177,16 +196,25 @@ describe('simulator board', () => {
 
   it('counter clamps to 0..99 and only touches a field card that is not a material', () => {
     const on = run(draw(2), mv(0, 'm0'), mv(1, 'm0'))
-    expect(apply(on, counter(0, 5)).cards[0]!.counters).toBe(5)
-    expect(apply(apply(on, counter(0, 5)), counter(0, -99)).cards[0]!.counters).toBe(0)
-    expect(apply(apply(on, counter(0, 99)), counter(0, 99)).cards[0]!.counters).toBe(99)
+    expect(apply(on, counter(0, 5)).cards[0]!.counters).toEqual({ '': 5 })
+    expect(apply(apply(on, counter(0, 5)), counter(0, -99)).cards[0]!.counters).toEqual({})
+    expect(apply(apply(on, counter(0, 99)), counter(0, 99)).cards[0]!.counters).toEqual({ '': 99 })
     rejects(on, counter(0, 100))
     rejects(on, counter(0, 0))
     rejects(on, counter(0, 1.5))
     rejects(on, counter(1, 1))
     rejects(b0, counter(0, 1))
     const spell = run(draw(1), mv(0, 's2'), counter(0, 2))
-    expect(spell.cards[0]!.counters).toBe(2)
+    expect(spell.cards[0]!.counters).toEqual({ '': 2 })
+  })
+
+  it('counters of a kind are counted apart from the plain ones, and a kind at 0 is dropped', () => {
+    const on = run(draw(1), mv(0, 'm0'), counter(0, 2), { t: 'counter', card: 0, delta: 1, kind: 'Spell' })
+    expect(on.cards[0]!.counters).toEqual({ '': 2, Spell: 1 })
+    expect(apply(on, { t: 'counter', card: 0, delta: -1, kind: 'Spell' }).cards[0]!.counters).toEqual({ '': 2 })
+    expect(kindsIn([counter(0, 1), { t: 'counter', card: 0, delta: 1, kind: 'Spell' }, { t: 'counter', card: 0, delta: 1, kind: 'Spell' }, { t: 'counter', card: 0, delta: 1, kind: 'Ice' }])).toEqual(['Spell', 'Ice'])
+    rejects(on, { t: 'counter', card: 0, delta: 1, kind: '' })
+    rejects(on, { t: 'counter', card: 0, delta: 1, kind: 'x'.repeat(21) })
   })
 
   it('negate and flip only touch a field card that is not a material', () => {

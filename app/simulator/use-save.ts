@@ -120,6 +120,8 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
   }
 
   return {
+    /** The session as it stands, hashed: what a save would tie. */
+    hash,
     unsaved,
     busy,
     asking,

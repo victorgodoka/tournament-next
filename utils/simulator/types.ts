@@ -15,19 +15,29 @@ export type ZoneId = Pile | Slot
 /** Every zone, piles first, then monster slots, then spell slots. */
 export const ZONES: readonly ZoneId[] = [...PILES, ...MONSTER_SLOTS, ...SPELL_SLOTS]
 
-/** Every copy is an instance; `id` is its index in `[...deck.main, ...deck.extra]`. */
-export type Card = { id: number; code: number; face: Face; pos: Pos; counters: number; negated: boolean }
+/**
+ * Every copy is an instance; `id` is its index in `[...deck.main, ...deck.extra]`. `counters` is one count per kind
+ * (`''` is the plain counter); a kind at 0 is not kept. `tag` is a short free text that stays on the card wherever it goes.
+ */
+export type Card = { id: number; code: number; face: Face; pos: Pos; counters: Record<string, number>; negated: boolean; tag?: string }
+
+/** The plain counter's kind. */
+export const PLAIN = ''
 
 /** Every zone is an ordered list of card ids. In a monster slot, `[0]` is the monster and the rest are its Xyz materials; in a pile, `[0]` is the top. */
 export type Board = { cards: Card[]; zones: Record<ZoneId, number[]>; turn: number }
 
 /** Every action may carry a caption (≤ 100 characters), shown under the field while its step is on screen. */
 export type Action = (
-  | { t: 'move'; card: number; to: ZoneId; at?: 'top' | 'bottom'; face?: Face; pos?: Pos }
+  /** `destroy`: the move is a destruction (to the GY or Banished), shown as one. */
+  | { t: 'move'; card: number; to: ZoneId; at?: 'top' | 'bottom'; face?: Face; pos?: Pos; destroy?: true }
   | { t: 'flip'; card: number; face: Face; pos: Pos }
   | { t: 'activate'; card: number; targets: number[] }
   | { t: 'negate'; card: number; on: boolean }
-  | { t: 'counter'; card: number; delta: number }
+  /** No `kind` is the plain counter. */
+  | { t: 'counter'; card: number; delta: number; kind?: string }
+  /** An empty `text` takes the tag off. */
+  | { t: 'tag'; card: number; text: string }
   | { t: 'shuffle'; order: number[] }
   | { t: 'draw'; n: number }
   | { t: 'endTurn' }
@@ -43,9 +53,19 @@ export type SavedRef = { id: string; title: string; revision: number; saved: str
  * `cursor` is the step shown on the board; a replay plays from `start` to the end. `deckId` is the saved deck the session
  * was picked from and `combo` the saved combo it is tied to; each is null for a session that came from nowhere saved.
  */
-export type Session = { deck: Deck; name: string; actions: Action[]; cursor: number; start: number; deckId: string | null; combo: SavedRef | null }
+export type Session = {
+  deck: Deck
+  name: string
+  actions: Action[]
+  cursor: number
+  start: number
+  deckId: string | null
+  combo: SavedRef | null
+  /** The counter kinds added in this session, offered in the menu besides the plain one and those the log already uses. */
+  counterTypes: string[]
+}
 
-export const LIMITS = { actions: 2000, name: 80, title: 80, counters: 99, draw: 60, note: 100 } as const
+export const LIMITS = { actions: 2000, name: 80, title: 80, counters: 99, draw: 60, note: 100, kind: 20, kinds: 20, tag: 40 } as const
 
 /** A deck or combo id: 16 lowercase hex characters, as the server issues them. */
 export const ID = /^[0-9a-f]{16}$/

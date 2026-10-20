@@ -1,5 +1,5 @@
 import type { Deck } from '@utils/deck/types'
-import { LIMITS, MONSTER_SLOTS, SPELL_SLOTS, ZONES } from './types'
+import { LIMITS, MONSTER_SLOTS, PLAIN, SPELL_SLOTS, ZONES } from './types'
 import type { Action, Board, Card, Face, MonsterSlot, Slot, ZoneId } from './types'
 
 type Move = Extract<Action, { t: 'move' }>
@@ -7,8 +7,21 @@ type Shuffle = Extract<Action, { t: 'shuffle' }>
 
 const MONSTER = new Set<ZoneId>(MONSTER_SLOTS)
 const SLOTS = new Set<ZoneId>([...MONSTER_SLOTS, ...SPELL_SLOTS])
-/** What a card is once it is off the field or under a stack: nothing on it, ATK, face-up. */
-const BLANK = { face: 'up', pos: 'atk', counters: 0, negated: false } as const
+/** What a card is once it is off the field or under a stack: nothing on it, ATK, face-up. Its tag stays. */
+const BLANK = { face: 'up', pos: 'atk', counters: {}, negated: false } as const
+
+/** A counter kind as the log carries it: absent for the plain counter, else 1 to 20 characters. */
+const isKind = (kind: unknown): kind is string | undefined => kind === undefined || (typeof kind === 'string' && kind.length >= 1 && kind.length <= LIMITS.kind)
+
+/** Every counter kind the log uses, once each, the plain one left out. */
+export const kindsIn = (actions: readonly Action[]): string[] => [...new Set(actions.flatMap((a) => (a.t === 'counter' && a.kind ? [a.kind] : [])))]
+
+/** The card a step destroyed and where it was: what the board marks while that step is on screen. */
+export const destroyedBy = (a: Action | undefined, before: Board): { card: number; from: ZoneId } | null => {
+  if (a?.t !== 'move' || !a.destroy) return null
+  const from = locate(before, a.card)
+  return from && { card: a.card, from: from.zone }
+}
 
 export const isMonsterSlot = (zone: ZoneId): zone is MonsterSlot => MONSTER.has(zone)
 export const isSlot = (zone: ZoneId): zone is Slot => SLOTS.has(zone)
@@ -19,7 +32,7 @@ export function initial(deck: Deck): Board {
   const zones = Object.fromEntries(ZONES.map((z) => [z, [] as number[]])) as Record<ZoneId, number[]>
   zones.deck = main.map((_, i) => i)
   zones.extra = extra.map((_, i) => main.length + i)
-  const cards = [...main, ...extra].map((code, id): Card => ({ id, code, face: id < main.length ? 'up' : 'down', pos: 'atk', counters: 0, negated: false }))
+  const cards = [...main, ...extra].map((code, id): Card => ({ id, code, face: id < main.length ? 'up' : 'down', pos: 'atk', counters: {}, negated: false }))
   return { cards, zones, turn: 1 }
 }
 
@@ -51,6 +64,8 @@ export function isValid(board: Board, a: Action): boolean {
     case 'move': {
       const from = locate(board, a.card)
       if (!from || !ZONES.includes(a.to)) return false
+      // a destruction ends in the GY or Banished
+      if (a.destroy !== undefined && (a.destroy !== true || (a.to !== 'gy' && a.to !== 'banished'))) return false
       if (!isSlot(a.to)) return true
       return a.to !== from.zone && (isMonsterSlot(a.to) || board.zones[a.to].length === 0)
     }
@@ -58,7 +73,9 @@ export function isValid(board: Board, a: Action): boolean {
     case 'negate':
       return onField(board, a.card)
     case 'counter':
-      return onField(board, a.card) && Number.isInteger(a.delta) && a.delta !== 0 && Math.abs(a.delta) <= LIMITS.counters
+      return onField(board, a.card) && Number.isInteger(a.delta) && a.delta !== 0 && Math.abs(a.delta) <= LIMITS.counters && isKind(a.kind)
+    case 'tag':
+      return known(a.card) && typeof a.text === 'string' && a.text.length <= LIMITS.tag
     case 'activate':
       return known(a.card) && a.targets.every(known)
     case 'shuffle': {
@@ -82,8 +99,21 @@ export function apply(board: Board, a: Action): Board {
       return edit(board, a.card, { face: a.face, pos: a.pos })
     case 'negate':
       return edit(board, a.card, { negated: a.on })
-    case 'counter':
-      return edit(board, a.card, { counters: Math.min(LIMITS.counters, Math.max(0, board.cards[a.card]!.counters + a.delta)) })
+    case 'counter': {
+      const kind = a.kind ?? PLAIN
+      const { [kind]: had = 0, ...rest } = board.cards[a.card]!.counters
+      const now = Math.min(LIMITS.counters, Math.max(0, had + a.delta))
+      return edit(board, a.card, { counters: now ? { ...rest, [kind]: now } : rest })
+    }
+    case 'tag': {
+      if (a.text) return edit(board, a.card, { tag: a.text })
+      // `patched` merges, which would keep the tag: the card is copied and the tag taken off
+      const untagged = { ...board.cards[a.card]! }
+      delete untagged.tag
+      const cards = [...board.cards]
+      cards[a.card] = untagged
+      return { ...board, cards }
+    }
     case 'shuffle':
       return { ...board, zones: { ...board.zones, deck: [...a.order] } }
     case 'draw': {

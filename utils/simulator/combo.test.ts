@@ -11,7 +11,7 @@ const ref: SavedRef = { id: '0123456789abcdef', title: 'Dragão line', revision:
 
 describe('payloadOf', () => {
   it('is the session minus cursor, deckId and combo, built in the order the hash depends on', () => {
-    const s: Session = { ...payload, cursor: 2, deckId: 'abcdefabcdefabcd', combo: ref }
+    const s: Session = { ...payload, cursor: 2, deckId: 'abcdefabcdefabcd', combo: ref, counterTypes: [] }
     expect(payloadOf(s)).toEqual(payload)
     expect(Object.keys(payloadOf(s))).toEqual(['deck', 'name', 'actions', 'start'])
   })
@@ -50,7 +50,7 @@ describe('hashPayload', () => {
 describe('sessionOf', () => {
   it('rebuilds a session at the end of the log, tied to the combo and deck', () => {
     const s = sessionOf(payload, ref, 'abcdefabcdefabcd')
-    expect(s).toEqual({ deck, name: 'Dragão', actions, cursor: 4, start: 3, deckId: 'abcdefabcdefabcd', combo: ref })
+    expect(s).toEqual({ deck, name: 'Dragão', actions, cursor: 4, start: 3, deckId: 'abcdefabcdefabcd', combo: ref, counterTypes: [] })
     expect(sessionOf(payload, null, null)).toMatchObject({ deckId: null, combo: null })
   })
 
@@ -58,7 +58,7 @@ describe('sessionOf', () => {
     const reordered = JSON.parse(
       '{"start":1,"name":"Dragão","actions":[{"n":1,"t":"draw"},{"to":"m0","card":9,"t":"move"}],"deck":{"side":[],"extra":[201,202],"main":[101,102,103,104,105,106,107,108,109,110]}}',
     ) as ComboPayload
-    expect(sessionOf(reordered, null, null)).toEqual({ deck, name: 'Dragão', actions: [{ t: 'draw', n: 1 }, { t: 'move', card: 9, to: 'm0' }], cursor: 2, start: 1, deckId: null, combo: null })
+    expect(sessionOf(reordered, null, null)).toEqual({ deck, name: 'Dragão', actions: [{ t: 'draw', n: 1 }, { t: 'move', card: 9, to: 'm0' }], cursor: 2, start: 1, deckId: null, combo: null, counterTypes: [] })
   })
 
   it('is null when the log is damaged: an action invalid at its step', () => {
@@ -102,7 +102,7 @@ describe('comboSession', () => {
 describe('operateFrom', () => {
   it('keeps the first k steps, the cursor at k, start pulled back to k, and no ties', () => {
     const s = operateFrom(payload, 2)
-    expect(s).toEqual({ deck, name: 'Dragão', actions: actions.slice(0, 2), cursor: 2, start: 2, deckId: null, combo: null })
+    expect(s).toEqual({ deck, name: 'Dragão', actions: actions.slice(0, 2), cursor: 2, start: 2, deckId: null, combo: null, counterTypes: [] })
   })
 
   it('leaves start alone when it is already before k, and takes the whole log at its length', () => {

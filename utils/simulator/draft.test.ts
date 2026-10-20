@@ -21,7 +21,7 @@ const actions: Action[] = [
   { t: 'endTurn' },
 ]
 const combo: SavedRef = { id: '0123456789abcdef', title: 'Snake-Eye line', revision: 3, saved: 'deadbeef' }
-const session: Session = { deck, name: 'Combo', actions, cursor: 9, start: 2, deckId: 'abcdefabcdefabcd', combo }
+const session: Session = { deck, name: 'Combo', actions, cursor: 9, start: 2, deckId: 'abcdefabcdefabcd', combo, counterTypes: [] }
 
 /** A map-backed stand-in for localStorage. */
 const memory = () => {
@@ -184,9 +184,31 @@ describe('simulator draft', () => {
 
   it('keeps only the session fields', () => {
     const parsed = parseSession({ ...payload(), role: 'admin', actions: [...actions.slice(0, 2), { ...actions[2]!, extra: 1 }], cursor: 3 })!
-    expect(Object.keys(parsed).sort()).toEqual(['actions', 'combo', 'cursor', 'deck', 'deckId', 'name', 'start'])
+    expect(Object.keys(parsed).sort()).toEqual(['actions', 'combo', 'counterTypes', 'cursor', 'deck', 'deckId', 'name', 'start'])
     expect(parsed.actions[2]).toEqual(actions[2])
     expect(Object.keys(parseSession(payload({ combo: { ...combo, role: 'admin' } }))!.combo!).sort()).toEqual(['id', 'revision', 'saved', 'title'])
+  })
+
+  it('keeps the counter kinds, once each, and refuses a damaged list', () => {
+    expect(parseSession(payload({ counterTypes: ['Spell', 'Ice', 'Spell'] }))!.counterTypes).toEqual(['Spell', 'Ice'])
+    expect(parseSession(payload({ counterTypes: ['x'.repeat(21)] }))).toBeNull()
+    expect(parseSession(payload({ counterTypes: [''] }))).toBeNull()
+    expect(parseSession(payload({ counterTypes: 'Spell' }))).toBeNull()
+    expect(parseSession(payload({ counterTypes: Array.from({ length: 21 }, (_, i) => `k${i}`) }))).toBeNull()
+  })
+
+  it('reads a counter kind, a destroy and a tag, and refuses their damaged forms', () => {
+    const at = (a: unknown) => parseSession(payload({ actions: [{ t: 'draw', n: 1 }, { t: 'move', card: 0, to: 'm0' }, a], cursor: 3, start: 0 }))
+    expect(at({ t: 'counter', card: 0, delta: 1, kind: 'Spell' })!.actions[2]).toEqual({ t: 'counter', card: 0, delta: 1, kind: 'Spell' })
+    expect(at({ t: 'counter', card: 0, delta: 1, kind: '' })).toBeNull()
+    expect(at({ t: 'counter', card: 0, delta: 1, kind: 3 })).toBeNull()
+    expect(at({ t: 'move', card: 0, to: 'gy', destroy: true })!.actions[2]).toEqual({ t: 'move', card: 0, to: 'gy', destroy: true })
+    expect(at({ t: 'move', card: 0, to: 'gy', destroy: 1 })).toBeNull()
+    expect(at({ t: 'move', card: 0, to: 'hand', destroy: true })).toBeNull()
+    expect(at({ t: 'tag', card: 0, text: 'Negates once' })!.actions[2]).toEqual({ t: 'tag', card: 0, text: 'Negates once' })
+    expect(at({ t: 'tag', card: 0, text: '' })!.actions[2]).toEqual({ t: 'tag', card: 0, text: '' })
+    expect(at({ t: 'tag', card: 0, text: 'x'.repeat(41) })).toBeNull()
+    expect(at({ t: 'tag', card: 0 })).toBeNull()
   })
 
   it('null storage reads null and writes nothing', () => {
