@@ -152,7 +152,10 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
         <p className="shrink-0 text-ink-muted signal">{t('render.brand')}</p>
       </header>
       <div ref={room} className="flex min-h-0 flex-1 flex-col justify-center">
+        {/* Keyed by the width: drawn anew once fitted, before the first paint, so the places its slides start from and its
+            arrows are taken at the fitted size, never at the probe's. */}
         <BoardView
+          key={cardW ?? 'probe'}
           board={board}
           cards={cards}
           selected={null}

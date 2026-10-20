@@ -42,6 +42,19 @@ const open = async (speed: 0.5 | 1 | 2 | 3 = 1) => {
 const page = () => window.__render!
 const seek = (ms: number) => act(() => page().seek(ms))
 const inM0 = () => within(screen.getByRole('group', { name: 'zones.m0' })).queryByRole('button')
+/**
+ * A layout for `getBoundingClientRect`, happy-dom having none. Every zone spans the whole board at the probe width,
+ * 724 × 640, and the room around it is 1200 × 560, so the board fits at 87px. A card button is one card wide at the
+ * board's `--card-w`, in the hand row (4 widths down) or in m0, so where it is shows the width it was measured at.
+ */
+function layout(this: Element) {
+  if (this.hasAttribute('data-card')) {
+    const w = parseFloat((this.closest('[style*="--card-w"]') as HTMLElement).style.getPropertyValue('--card-w'))
+    const hand = this.closest('[data-zone]')!.getAttribute('data-zone') === 'hand'
+    return hand ? new DOMRect(0, 4 * w, w, w) : new DOMRect(w, w, w, w)
+  }
+  return this.hasAttribute('data-zone') ? new DOMRect(0, 0, 724, 640) : new DOMRect(0, 0, 1200, 560)
+}
 /** Whether `p` has settled by the time pending work has run. */
 const settled = async (p: Promise<unknown>) => {
   let done = false
@@ -97,14 +110,22 @@ describe('ComboRender', () => {
   })
 
   it('fits the board to the room it has and asks for its images at that width', async () => {
-    // At the probe width every zone spans the whole board, 724 × 640; the room around it is 1200 × 560.
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-      return this.hasAttribute('data-zone') ? new DOMRect(0, 0, 724, 640) : new DOMRect(0, 0, 1200, 560)
-    })
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(layout)
     await open()
     const root = screen.getByRole('group', { name: 'zones.hand' }).parentElement!
     expect(root.style.getPropertyValue('--card-w')).toBe('87px')
     expect(document.querySelector('img[src="/back.webp"]')!.getAttribute('sizes')).toBe('87px')
+  })
+
+  it('the first slide starts where the card was at the fitted width, not the probe', async () => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(layout)
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+    await open()
+    await page().ready
+    await seek(1000) // the move: card 0 slides from the hand to m0
+    // At 87px, from the hand's centre (43.5, 391.5) to m0's (130.5, 130.5); the probe's 100px would give -80.5px 319.5px.
+    const [keyframes] = vi.mocked(Element.prototype.animate).mock.calls[0]!
+    expect((keyframes as Keyframe[])[0]!.translate).toBe('-87px 261px')
   })
 
   it('ready gives the revision and the length of the video at its speed', async () => {
