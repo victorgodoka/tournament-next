@@ -55,6 +55,11 @@ describe('AdBanner', () => {
     expect((container.firstElementChild as HTMLElement).className).toContain('max-lg:hidden')
   })
 
+  it('pins to the bottom of the scrolling aside, which would otherwise keep it below the fold', () => {
+    const { container } = render(<AdBanner id="ad-aside" placement="aside" />)
+    expect((container.firstElementChild as HTMLElement).className).toMatch(/lg:sticky.*lg:bottom-0/)
+  })
+
   it('shows our VIP promo when Nitro is blocked', async () => {
     vi.mocked(createNitroPlacement).mockRejectedValueOnce(new Error('blocked'))
     vi.spyOn(console, 'warn').mockImplementation(() => {})

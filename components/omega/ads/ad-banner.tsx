@@ -33,7 +33,15 @@ export const AdBanner = ({ id, placement, className }: AdBannerProps) => {
   if (mode !== 'all') return null
 
   return (
-    <div className={twMerge('flex flex-col items-center gap-1.5', placement === 'aside' && 'max-lg:hidden', className)}>
+    <div
+      className={twMerge(
+        'flex flex-col items-center gap-1.5',
+        // The wiki aside scrolls on its own and is taller than the screen: pinned to its bottom edge the
+        // unit stays in view while the contents above it stay readable.
+        placement === 'aside' && 'bg-space-000 p-5 max-lg:hidden lg:sticky lg:bottom-0',
+        className,
+      )}
+    >
       <span className="text-ink-muted signal-sm">{t('label')}</span>
       <div className="flex min-h-[250px] w-full items-center justify-center">
         {failed ? <VipPromo className="w-full" /> : <div id={id} />}

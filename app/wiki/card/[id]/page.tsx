@@ -20,6 +20,8 @@ import {
   WikiSection,
   WikiTable,
 } from '@omega/wiki'
+import { AdBanner } from '@omega/ads/ad-banner'
+import { AdVideo } from '@omega/ads/ad-video'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
@@ -183,6 +185,10 @@ const CardRoute = async ({ params }: CardRouteProps) => {
               </p>
             </header>
 
+            <div className={WIKI_PAD}>
+              <AdVideo id="ad-video" className="mt-8" />
+            </div>
+
             <WikiSection index="01" title="Card text">
               <div className="mt-4 border border-line bg-surface-100 p-5.5">
                 <p className="whitespace-pre-line text-ink body">{card.description}</p>
@@ -323,6 +329,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
                 <Prose>This card belongs to no archetype and supports none.</Prose>
               )}
             </WikiSection>
+            <AdBanner id="ad-bottom" placement="content" className={twMerge('py-8', WIKI_PAD)} />
           </article>
 
           <aside className={twMerge(WIKI_ASIDE, 'border-t border-line lg:border-t-0')}>
@@ -340,6 +347,8 @@ const CardRoute = async ({ params }: CardRouteProps) => {
             <AsideBlock label="Quick facts">
               <FactRows facts={quickFacts(card)} />
             </AsideBlock>
+
+            <AdBanner id="ad-aside" placement="aside" />
 
             <AsideBlock label="Play it">
               <div className="mt-2.75 flex flex-col gap-2.25">
