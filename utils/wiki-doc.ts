@@ -22,6 +22,12 @@ export type WikiAsset = {
   focal?: { x: number; y: number }
 }
 
+/**
+ * The credits the image picker offers. A new upload starts on Duelists Unite; the other two are the
+ * Yu-Gi-Oh! lines (the original manga, the later anime series). Any other credit is typed in by hand.
+ */
+export const WIKI_CREDITS: readonly string[] = ['Duelists Unite', '©1996 KAZUKI TAKAHASHI', '©2020 Studio Dice/SHUEISHA, TV TOKYO, KONAMI']
+
 /** `left`/`right` float beside the text that follows; `wide` spans the column; `center` sits narrower. */
 export type FigureAlign = 'left' | 'right' | 'center' | 'wide'
 
@@ -338,6 +344,7 @@ export const validateDoc = (doc: WikiDoc): string[] => {
   if (assets.length > DOC_LIMITS.assets) problems.push(`The library holds more than ${DOC_LIMITS.assets} images.`)
   for (const asset of assets) {
     if (!asset.alt.trim()) problems.push(`Image "${asset.id}" needs alt text.`)
+    plain(asset.credit, `credit of image "${asset.id}"`, DOC_LIMITS.short)
     if (!isAllowedSrc(asset.src)) problems.push(`Image "${asset.id}" comes from a host the wiki can't serve.`)
   }
 

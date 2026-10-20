@@ -6,12 +6,11 @@ import { twMerge } from 'tailwind-merge'
 import { uploadWikiAsset } from '@utils/articles'
 import { searchCardArts, type CardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
-import { imageSource, type WikiAsset } from '@utils/wiki-doc'
+import { DOC_LIMITS, WIKI_CREDITS, imageSource, type WikiAsset } from '@utils/wiki-doc'
 import { FIELD, HELP, failure } from '../ArticleForm'
 import { MINI } from './fields'
 
-/** The only credits a Yu-Gi-Oh! artwork may carry: the original manga, or the later anime series. */
-const YUGIOH_CREDITS: readonly string[] = ['©1996 KAZUKI TAKAHASHI', '©2020 Studio Dice/SHUEISHA, TV TOKYO, KONAMI']
+const isPreset = (credit: string | undefined) => !!credit && WIKI_CREDITS.includes(credit)
 
 /** The last answer the server gave, tagged with the query that asked for it. */
 type Answer = { query: string; cards: CardArts[]; failed: boolean }
@@ -114,17 +113,17 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Card art is Konami's, so it carries the manga credit; uploads start on Duelists Unite.
   const addCard = (id: number, name: string) =>
-    onAdd({ id: `card-${id}`, src: CARD_ART_URL(id), width: 624, height: 624, alt: `${name} artwork`, credit: YUGIOH_CREDITS[0] })
+    onAdd({ id: `card-${id}`, src: CARD_ART_URL(id), width: 624, height: 624, alt: `${name} artwork`, credit: WIKI_CREDITS[1] })
 
   const upload = async (file: File | undefined) => {
     if (!file) return
     setBusy(true)
     setError(null)
     try {
-      // The select shows the first credit by default; store it so the page prints what the editor saw.
       const asset = await uploadWikiAsset(file, file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '))
-      onAdd({ ...asset, credit: asset.credit || YUGIOH_CREDITS[0] })
+      onAdd({ ...asset, credit: asset.credit || WIKI_CREDITS[0] })
     } catch (cause) {
       console.error(cause)
       setError(failure(cause))
@@ -192,18 +191,29 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
                   onChange={(event) => onChange({ ...asset, alt: event.target.value })}
                   className={twMerge(FIELD, 'mt-1.5 py-1.5', !asset.alt.trim() && 'border-cyan')}
                 />
+                {/* "Other" (value "") holds any credit that isn't a preset, and no credit at all. */}
                 <select
                   aria-label={`Credit for ${asset.id}`}
-                  value={asset.credit ?? YUGIOH_CREDITS[0]}
-                  onChange={(event) => onChange({ ...asset, credit: event.target.value })}
+                  value={isPreset(asset.credit) ? asset.credit : ''}
+                  onChange={(event) => onChange({ ...asset, credit: event.target.value || undefined })}
                   className={twMerge(FIELD, 'mt-1.5 py-1.5')}
                 >
-                  {/* An older article may carry another credit; keep it visible until someone picks. */}
-                  {asset.credit && !YUGIOH_CREDITS.includes(asset.credit) ? <option>{asset.credit}</option> : null}
-                  {YUGIOH_CREDITS.map((credit) => (
+                  {WIKI_CREDITS.map((credit) => (
                     <option key={credit}>{credit}</option>
                   ))}
+                  <option value="">Other…</option>
                 </select>
+                {isPreset(asset.credit) ? null : (
+                  <input
+                    aria-label={`Custom credit for ${asset.id}`}
+                    placeholder="Type the credit"
+                    maxLength={DOC_LIMITS.short}
+                    value={asset.credit ?? ''}
+                    // A blank credit is no credit: the server refuses an empty one.
+                    onChange={(event) => onChange({ ...asset, credit: event.target.value.trim() ? event.target.value : undefined })}
+                    className={twMerge(FIELD, 'mt-1.5 py-1.5')}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => onRemove(asset.id)}
