@@ -1,3 +1,4 @@
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
@@ -34,7 +35,9 @@ const LeaderboardPageRoute = async () => {
             title="Leaderboard"
             lead="The top duelists of each ranked ladder, by Elo. TCG and Genesys rank separately, each from its own number one."
           />
+          <AdBanner id="ad-top" placement="content" />
           <LeaderboardBrowser initial={{ tcg, genesys }} />
+          <AdBanner id="ad-bottom" placement="content" />
         </main>
       </div>
       <Footer />

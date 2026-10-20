@@ -5,6 +5,7 @@ import { getFormatter, getTranslations } from 'next-intl/server'
 import { twMerge } from 'tailwind-merge'
 import { Breadcrumbs } from '@ui/breadcrumbs'
 import { buttonClasses } from '@ui/button'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
@@ -170,6 +171,8 @@ const CardBanlist = ({ card, current }: { card: number; current: Banlist }) => {
             </dl>
           </section>
 
+          <AdBanner id="ad-top" placement="content" />
+
           <section aria-labelledby="bl-history" className="flex flex-col gap-5">
             <SectionHead ruled num="01" id="bl-history" end={t('card.historyMeta', { count: changes.length })}>
               {t('history.heading')}
@@ -178,6 +181,8 @@ const CardBanlist = ({ card, current }: { card: number; current: Banlist }) => {
               <CardStrip card={card} selected={current.index} />
             </div>
           </section>
+
+          <AdBanner id="ad-bottom" placement="content" />
 
           <section aria-labelledby="bl-faq" className="flex flex-col gap-5">
             <SectionHead ruled num="02" id="bl-faq">{t('faq.heading')}</SectionHead>

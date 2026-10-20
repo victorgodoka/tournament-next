@@ -7,6 +7,7 @@ import { LocalTime } from '@omega/profile/local-time'
 import { DAY_YEAR, TIME_ONLY, banlistLabel, formatTone } from '@omega/tournament/labels'
 import { Chip } from '@ui/chip/chip.component'
 import { Eyebrow } from '@ui/eyebrow/eyebrow'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
@@ -81,6 +82,8 @@ const ScheduledPage = ({ page }: { page: ScheduledTournament }) => {
               {tournament.rewardTp ? <Chip tone="gold">{t('tp')}</Chip> : null}
             </div>
           </header>
+
+          <AdBanner id="ad-top" placement="content" />
 
           <Registration initial={page} />
         </div>
