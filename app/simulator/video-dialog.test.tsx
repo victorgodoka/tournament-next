@@ -1,20 +1,13 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ComboApiError, getRender, renderFileUrl, startRender, type RenderInfo } from '@utils/combos'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import type { Action } from '@utils/simulator/types'
-import { VideoDialog } from './video-dialog'
+import { popupFeatures, VideoDialog } from './video-dialog'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
 vi.mock('@iconify/react', () => ({ Icon: () => null }))
-vi.mock('@utils/combos', async (original) => ({
-  ...(await original<typeof import('@utils/combos')>()),
-  startRender: vi.fn(),
-  getRender: vi.fn(),
-  renderFileUrl: vi.fn((id: string, format: string) => `https://api.test/combos/renders/${id}/${format}`),
-}))
 
 const move: Action = { t: 'move', card: 0, to: 'm0' }
 const draw: Action = { t: 'draw', n: 1 }
@@ -22,46 +15,18 @@ const endTurn: Action = { t: 'endTurn' }
 /** `moves` steps of 1200 ms at 1x and `ends` of 700 ms. */
 const line = (moves: number, ends = 0): Action[] => [...Array<Action>(moves).fill(move), ...Array<Action>(ends).fill(endTurn)]
 
-const info = (over: Partial<RenderInfo> = {}): RenderInfo => ({
-  id: 'r1',
-  status: 'queued',
-  shape: 'landscape',
-  speed: 1,
-  framesDone: 0,
-  framesTotal: null,
-  position: 0,
-  expiresAt: null,
-  ...over,
-})
-
 const onClose = vi.fn()
 type Props = Partial<React.ComponentProps<typeof VideoDialog>>
-const element = (props: Props = {}) => <VideoDialog open onClose={onClose} comboId="c1" actions={line(35)} start={0} {...props} />
 const mount = async (props: Props = {}) => {
-  const view = render(element(props))
+  render(<VideoDialog open onClose={onClose} comboId="c1" actions={line(35)} start={0} {...props} />)
   await act(async () => {})
-  return { ...view, again: (next: Props) => view.rerender(element({ ...props, ...next })) }
 }
 const button = (name: string) => screen.getByRole<HTMLButtonElement>('button', { name })
-const click = (name: string) => act(async () => void fireEvent.click(button(name)))
-const tick = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)))
 const pressed = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-pressed')
-/** A promise settled by hand, for a request that has not answered yet. */
-const deferred = <T,>() => {
-  let resolve!: (value: T) => void
-  const promise = new Promise<T>((r) => (resolve = r))
-  return { promise, resolve }
-}
 
-beforeEach(() => {
-  // A clock of its own, so the `expiresAt` of the renders below is always 30 min to an hour away.
-  vi.useFakeTimers({ now: new Date('2026-10-19T00:00:00Z') })
-  vi.mocked(startRender).mockReset()
-  vi.mocked(getRender).mockReset()
-})
 afterEach(() => {
   cleanup()
-  vi.useRealTimers()
+  vi.unstubAllGlobals()
   vi.clearAllMocks()
 })
 
@@ -72,7 +37,6 @@ describe('VideoDialog choices', () => {
     expect(pressed('9:16')).toBe('false')
     expect(pressed('1x')).toBe('true')
     expect(pressed('0.5x')).toBe('false')
-    expect(button('video.generate')).toBeTruthy()
   })
 
   it('shows the length of the timeline from the start of the replay, in seconds', async () => {
@@ -98,255 +62,59 @@ describe('VideoDialog choices', () => {
   })
 })
 
-describe('VideoDialog render', () => {
-  it('Generate posts the shape and the speed chosen', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
+describe('VideoDialog recording', () => {
+  let open: MockInstance<typeof window.open>
+
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getDisplayMedia: vi.fn() } })
+    vi.stubGlobal('RestrictionTarget', { fromElement: vi.fn() })
+    open = vi.spyOn(window, 'open').mockImplementation(() => ({}) as Window)
+  })
+  afterEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined })
+    vi.restoreAllMocks()
+  })
+
+  it('popupFeatures sizes the popup to the shape', () => {
+    expect(popupFeatures('landscape', 1040)).toBe('popup,width=1280,height=768')
+    expect(popupFeatures('portrait', 1040)).toBe('popup,width=513,height=960')
+    expect(popupFeatures('portrait', 1440)).toBe('popup,width=720,height=1328')
+  })
+
+  it('Record opens the render page in the combo-video popup', async () => {
     await mount()
     fireEvent.click(button('9:16'))
     fireEvent.click(button('2x'))
-    await click('video.generate')
-    expect(startRender).toHaveBeenCalledExactlyOnceWith('c1', { shape: 'portrait', speed: 2 })
+    fireEvent.click(button('video.record'))
+    expect(open).toHaveBeenCalledExactlyOnceWith('/simulator/c/c1/render?shape=portrait&speed=2', 'combo-video', popupFeatures('portrait', window.screen.availHeight))
+    expect(screen.getByText('video.opened')).toBeTruthy()
   })
 
-  it('goes from the queue to rendering to the two links, polling every 2 s', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ position: 2 }))
-    vi.mocked(getRender)
-      .mockResolvedValueOnce(info({ status: 'running', framesDone: 34, framesTotal: 100 }))
-      .mockResolvedValueOnce(info({ status: 'ready', framesDone: 100, framesTotal: 100, expiresAt: '2026-10-19T01:00:00Z' }))
+  it('another choice after opening drops the note', async () => {
     await mount()
-    await click('video.generate')
-    expect(screen.getByText('video.queued {"position":2}')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'video.generate' })).toBeNull()
-    await tick(1999)
-    expect(getRender).not.toHaveBeenCalled()
-    await tick(1)
-    expect(getRender).toHaveBeenCalledExactlyOnceWith('r1')
-    expect(screen.getByText('video.running {"percent":34}')).toBeTruthy()
-    await tick(2000)
-    expect(getRender).toHaveBeenCalledTimes(2)
-    const mp4 = screen.getByRole('link', { name: 'video.downloadMp4' })
-    const webp = screen.getByRole('link', { name: 'video.downloadWebp' })
-    expect(mp4.getAttribute('href')).toBe(renderFileUrl('r1', 'mp4'))
-    expect(webp.getAttribute('href')).toBe(renderFileUrl('r1', 'webp'))
-    expect(screen.queryByText(/video\.running/)).toBeNull()
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(2) // ready is the end of the polling
-  })
-
-  it('a render without a total yet shows 0%', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ status: 'running' }))
-    await mount()
-    await click('video.generate')
-    expect(screen.getByText('video.running {"percent":0}')).toBeTruthy()
-  })
-
-  it('the next poll waits for the answer to the last one: never an interval', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    const slow = deferred<RenderInfo | null>()
-    vi.mocked(getRender).mockReturnValueOnce(slow.promise).mockResolvedValue(info({ status: 'running', framesDone: 1, framesTotal: 10 }))
-    await mount()
-    await click('video.generate')
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-    await act(async () => slow.resolve(info({ position: 1 })))
-    await tick(1999)
-    expect(getRender).toHaveBeenCalledTimes(1)
-    await tick(1)
-    expect(getRender).toHaveBeenCalledTimes(2)
-  })
-
-  it('a render that is ready as the POST answers (made before) shows the links and never polls', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ status: 'ready', framesDone: 90, framesTotal: 90, expiresAt: '2026-10-19T01:00:00Z' }))
-    await mount()
-    await click('video.generate')
-    expect(screen.getByRole('link', { name: 'video.downloadMp4' }).getAttribute('href')).toBe(renderFileUrl('r1', 'mp4'))
-    expect(screen.getByRole('link', { name: 'video.downloadWebp' }).getAttribute('href')).toBe(renderFileUrl('r1', 'webp'))
-    await tick(10_000)
-    expect(getRender).not.toHaveBeenCalled()
-  })
-
-  it('an answer for the choice that was dropped does not bring its render back', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    const slow = deferred<RenderInfo | null>()
-    vi.mocked(getRender).mockReturnValue(slow.promise)
-    await mount()
-    await click('video.generate')
-    await tick(2000)
-    fireEvent.click(button('3x')) // the poll has not answered
-    await act(async () => slow.resolve(info({ status: 'ready' })))
-    await tick(10_000)
-    expect(screen.queryByRole('link')).toBeNull()
-    expect(button('video.generate')).toBeTruthy()
-    expect(getRender).toHaveBeenCalledTimes(1)
-  })
-
-  it('a ready render goes back to Generate when its files expire, and never polls', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ status: 'ready', framesDone: 90, framesTotal: 90, expiresAt: '2026-10-19T00:30:00Z' }))
-    await mount()
-    await click('video.generate')
-    await tick(30 * 60_000 - 1)
-    expect(screen.getByRole('link', { name: 'video.downloadMp4' })).toBeTruthy()
-    await tick(1)
-    expect(screen.queryByRole('link')).toBeNull()
-    expect(button('video.generate')).toBeTruthy()
-    expect(screen.queryByText('video.ready')).toBeNull()
-    expect(getRender).not.toHaveBeenCalled()
-  })
-
-  it('the expiry of a render dropped by another choice does not reach the next one', async () => {
-    vi.mocked(startRender)
-      .mockResolvedValueOnce(info({ status: 'ready', expiresAt: '2026-10-19T00:30:00Z' }))
-      .mockResolvedValue(info({ id: 'r2', status: 'ready', expiresAt: '2026-10-19T01:00:00Z' }))
-    await mount()
-    await click('video.generate')
+    fireEvent.click(button('video.record'))
     fireEvent.click(button('3x'))
-    await click('video.generate')
-    await tick(45 * 60_000) // past the first render's expiry, not the second's
-    expect(screen.getByRole('link', { name: 'video.downloadMp4' }).getAttribute('href')).toBe(renderFileUrl('r2', 'mp4'))
+    expect(screen.queryByText('video.opened')).toBeNull()
   })
 
-  it('changing a choice drops the render shown and offers Generate again', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ status: 'ready' }))
+  it('a blocked popup asks to allow pop-ups', async () => {
+    open.mockReturnValueOnce(null)
     await mount()
-    await click('video.generate')
-    expect(screen.getByRole('link', { name: 'video.downloadMp4' })).toBeTruthy()
-    fireEvent.click(button('3x'))
-    expect(screen.queryByRole('link')).toBeNull()
-    expect(button('video.generate')).toBeTruthy()
+    fireEvent.click(button('video.record'))
+    expect(screen.getByText('video.popupBlocked')).toBeTruthy()
   })
-})
 
-describe('VideoDialog errors', () => {
-  it('a full queue (503 QUEUE_FULL) says so', async () => {
-    vi.mocked(startRender).mockRejectedValue(new ComboApiError(503, 'QUEUE_FULL'))
+  it('a browser without Element Capture gets the message instead of the button', async () => {
+    vi.stubGlobal('RestrictionTarget', undefined)
+    delete (globalThis as { RestrictionTarget?: unknown }).RestrictionTarget
     await mount()
-    await click('video.generate')
-    expect(screen.getByText('video.queueFull')).toBeTruthy()
-    expect(getRender).not.toHaveBeenCalled()
+    expect(screen.getByText('video.unsupported')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'video.record' })).toBeNull()
   })
 
-  it('two renders already going (429 RENDER_BUSY) says so, and so does the rate limit (429 RATE_LIMITED)', async () => {
-    vi.mocked(startRender).mockRejectedValue(new ComboApiError(429, 'RENDER_BUSY'))
+  it('a browser without screen capture gets the message too', async () => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined })
     await mount()
-    await click('video.generate')
-    expect(screen.getByText('video.busy')).toBeTruthy()
-    vi.mocked(startRender).mockRejectedValue(new ComboApiError(429, 'RATE_LIMITED'))
-    await click('video.tryAgain')
-    expect(screen.getByText('video.busy')).toBeTruthy()
-  })
-
-  it('any other failure of the POST is the generic one, and Try again posts again', async () => {
-    vi.mocked(startRender).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue(info({ position: 1 }))
-    await mount()
-    await click('video.generate')
-    expect(screen.getByText('video.failed')).toBeTruthy()
-    await click('video.tryAgain')
-    expect(startRender).toHaveBeenCalledTimes(2)
-    expect(screen.getByText('video.queued {"position":1}')).toBeTruthy()
-    expect(screen.queryByText('video.failed')).toBeNull()
-  })
-
-  it('a render that failed says so, and Try again posts again', async () => {
-    vi.mocked(startRender).mockResolvedValueOnce(info()).mockResolvedValue(info({ id: 'r2', position: 0 }))
-    vi.mocked(getRender).mockResolvedValueOnce(info({ status: 'failed' }))
-    await mount()
-    await click('video.generate')
-    await tick(2000)
-    expect(screen.getByText('video.failed')).toBeTruthy()
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1) // failed is the end of the polling
-    await click('video.tryAgain')
-    expect(startRender).toHaveBeenCalledTimes(2)
-    expect(startRender).toHaveBeenLastCalledWith('c1', { shape: 'landscape', speed: 1 })
-    expect(screen.getByText('video.queued {"position":0}')).toBeTruthy()
-  })
-
-  it('a poll that cannot reach the API ends in the generic failure', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    vi.mocked(getRender).mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    await mount()
-    await click('video.generate')
-    await tick(2000)
-    expect(screen.getByText('video.failed')).toBeTruthy()
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-  })
-
-  it('a render that expired (404 on the poll) goes back to Generate', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    vi.mocked(getRender).mockResolvedValue(null)
-    await mount()
-    await click('video.generate')
-    await tick(2000)
-    expect(button('video.generate')).toBeTruthy()
-    expect(screen.queryByText(/video\.(queued|running|failed)/)).toBeNull()
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('VideoDialog closing', () => {
-  it('stops the polling: no request after the dialog closes', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    vi.mocked(getRender).mockResolvedValue(info({ status: 'running', framesDone: 1, framesTotal: 10 }))
-    const { again } = await mount()
-    await click('video.generate')
-    await tick(2000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-    again({ open: false })
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-  })
-
-  it('stops the polling when the dialog goes away with the page', async () => {
-    vi.mocked(startRender).mockResolvedValue(info())
-    vi.mocked(getRender).mockResolvedValue(info({ status: 'running', framesDone: 1, framesTotal: 10 }))
-    const { unmount } = await mount()
-    await click('video.generate')
-    unmount()
-    await tick(10_000)
-    expect(getRender).not.toHaveBeenCalled()
-  })
-
-  it('an answer that arrives after the close starts nothing', async () => {
-    const post = deferred<RenderInfo>()
-    const poll = deferred<RenderInfo | null>()
-    vi.mocked(startRender).mockReturnValue(post.promise)
-    vi.mocked(getRender).mockReturnValue(poll.promise)
-    const { again } = await mount()
-    await click('video.generate') // the POST has not answered
-    again({ open: false })
-    await act(async () => post.resolve(info()))
-    await tick(10_000)
-    expect(getRender).not.toHaveBeenCalled()
-
-    // And a poll that has not answered when it closes.
-    vi.mocked(startRender).mockResolvedValue(info())
-    again({ open: true })
-    await click('video.generate')
-    await tick(2000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-    again({ open: false })
-    await act(async () => poll.resolve(info({ position: 1 })))
-    await tick(10_000)
-    expect(getRender).toHaveBeenCalledTimes(1)
-  })
-
-  it('opens again on the defaults and Generate: the POST hands back the render of the same choices', async () => {
-    vi.mocked(startRender).mockResolvedValue(info({ status: 'ready' }))
-    const { again } = await mount()
-    fireEvent.click(button('9:16'))
-    await click('video.generate')
-    again({ open: false })
-    again({ open: true })
-    expect(pressed('16:9')).toBe('true')
-    expect(screen.queryByRole('link')).toBeNull()
-    expect(button('video.generate')).toBeTruthy()
-  })
-
-  it('the close button asks the page to close', async () => {
-    await mount()
-    fireEvent.click(button('Close'))
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('video.unsupported')).toBeTruthy()
   })
 })
