@@ -1181,7 +1181,16 @@
       "replace": "Seu simulador tem uma linha em andamento. Abrir esta a substitui."
     },
     "render": {
-      "brand": "YGO Omega Combo Simulator"
+      "brand": "YGO Omega Combo Simulator",
+      "record": "Gravar",
+      "hint": "Escolha “Esta aba” no aviso do navegador. Você pode trocar de aba enquanto grava; mantenha esta janela aberta.",
+      "recording": "Gravando {elapsed} s de {total} s",
+      "cancel": "Cancelar",
+      "download": "Baixar {format}",
+      "again": "Gravar de novo",
+      "stopped": "A gravação foi interrompida.",
+      "loadFailed": "Não foi possível carregar o combo.",
+      "failed": "Não foi possível gravar o vídeo."
     },
     "video": {
       "open": "Baixar vídeo",
@@ -1189,16 +1198,10 @@
       "aspect": "Proporção",
       "speed": "Velocidade",
       "length": "Duração estimada: {length}",
-      "generate": "Gerar",
-      "tryAgain": "Tentar de novo",
-      "queued": "Na fila ({position} à frente)",
-      "running": "Gerando {percent}%",
-      "ready": "Seu vídeo está pronto.",
-      "downloadMp4": "Baixar MP4",
-      "downloadWebp": "Baixar WebP",
-      "queueFull": "A fila está cheia, tente de novo em alguns minutos.",
-      "busy": "Você já tem vídeos sendo gerados, espere por eles.",
-      "failed": "Não foi possível gerar o vídeo."
+      "record": "Gravar",
+      "opened": "A gravação continua na janela que abriu.",
+      "popupBlocked": "O navegador bloqueou a janela. Permita pop-ups deste site e tente de novo.",
+      "unsupported": "Gravar vídeo funciona no Chrome ou no Edge, no computador."
     },
     "damagedLink": "O link deste deck está corrompido, então o simulador abriu vazio.",
     "dismiss": "Fechar",

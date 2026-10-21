@@ -1,7 +1,7 @@
 # Combo simulator: replay video download (MP4 and WebP) — design
 
 Date: 2026-10-19
-Status: approved in brainstorming, awaiting spec review
+Status: superseded by `2026-10-20-combo-video-client-capture-design.md` (recorded in the viewer's browser)
 Repos: `omega-server-v3` (table, routes, renderer service) and `tournament-next` (render page, download dialog).
 Builds on: `2026-10-19-combo-sharing-design.md` (saved combos, the `/simulator/c/<id>` player and its replay timing).
 

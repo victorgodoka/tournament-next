@@ -2,7 +2,7 @@
 
 import { loadIcons } from '@iconify/react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
@@ -17,18 +17,12 @@ import { BoardView, FLIP_MS, ZONE_ICONS } from './board'
 import type { Speed } from './replay-bar'
 import { useDrag } from './use-drag'
 
-/** How the video renderer drives the page: it awaits `ready`, then seeks to each frame's time and takes a screenshot. */
-type RenderHandle = {
+/** How the recorder drives the frame: it awaits `ready`, then seeks to the replay's time on every frame it records. */
+export type RenderHandle = {
   /** Settles once the combo is on screen, fitted, with every image decoded (or broken), the zone marks and the fonts loaded. */
-  ready: Promise<{ revision: number; durationMs: number }>
+  ready: Promise<{ title: string; durationMs: number }>
   /** Shows the frame `ms` into the video. Forward only: a time before the last one rejects. */
   seek(ms: number): Promise<void>
-}
-
-declare global {
-  interface Window {
-    __render?: RenderHandle
-  }
 }
 
 /** The card width the board is first drawn at, to be measured. */
@@ -49,7 +43,7 @@ const loadCombo = async (id: string): Promise<Loaded> => {
 /** A combo that cannot be drawn: `ready` rejects with why. */
 const failed = (error: unknown): RenderHandle => {
   const ready = Promise.reject(error)
-  // Handled here: the renderer awaits it later, and a rejection nobody awaits yet would be a page error.
+  // Handled here: the recorder awaits it later, and a rejection nobody awaits yet would be a page error.
   ready.catch(() => {})
   return { ready, seek: () => ready }
 }
@@ -69,19 +63,23 @@ const iconsLoaded = () =>
   })
 const none = () => {}
 
+type RenderProps = { id: string; speed: Speed; onReady(handle: RenderHandle): void }
+
 /**
- * The page the video renderer opens (`/simulator/c/<id>/render`): one frame of the replay filling the viewport, the title
- * strip over the board and the caption under it, moved through the video's time by `window.__render.seek`.
+ * What the recording popup (`/simulator/c/<id>/render`) records: one frame of the replay filling its box, the title strip
+ * over the board and the caption under it, moved through the video's time by the `seek` of the handle given to `onReady`.
  */
-export const ComboRender = ({ id, speed }: { id: string; speed: Speed }) => {
+export const ComboRender = ({ id, speed, onReady }: RenderProps) => {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
+  // An effect event: a parent's new callback on every render never loads the combo again.
+  const report = useEffectEvent(onReady)
 
   useEffect(() => {
     let live = true
     loadCombo(id).then(
       (l) => live && setLoaded(l),
       (error) => {
-        if (live) window.__render = failed(error)
+        if (live) report(failed(error))
       },
     )
     return () => {
@@ -89,10 +87,10 @@ export const ComboRender = ({ id, speed }: { id: string; speed: Speed }) => {
     }
   }, [id])
 
-  return loaded ? <Frame {...loaded} speed={speed} /> : null
+  return loaded ? <Frame {...loaded} speed={speed} onReady={onReady} /> : null
 }
 
-const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed }) => {
+const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<RenderProps, 'id'>) => {
   const t = useTranslations('Simulator')
   const [session, dispatch] = useReducer(sessionReducer, opened)
   /** Null while the board is drawn at `PROBE` to be measured. */
@@ -102,6 +100,7 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
   // Read-only: nothing drags and nothing drops.
   const drag = useDrag({ enabled: false, onDrop: none })
   const droppedRef = useRef<number | null>(null)
+  const report = useEffectEvent(onReady)
 
   const boards = useMemo(() => timeline(session.deck, session.actions), [session.deck, session.actions])
   const board = boards[session.cursor]!
@@ -125,15 +124,15 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
     setCardW(fitCardWidth(PROBE, measured, { width, height: height - (caption.current!.getBoundingClientRect().bottom - bottom) }))
   }, [])
 
-  // Handed to the renderer once the board is fitted: the images `ready` waits on are the ones the frames show.
+  // Handed to the recorder once the board is fitted: the images `ready` waits on are the ones the frames show.
   useEffect(() => {
     if (cardW === null) return
     const ready = Promise.all([decoded(), iconsLoaded()])
       .then(() => document.fonts.ready)
-      .then(() => ({ revision: combo.revision, durationMs: video.durationMs }))
+      .then(() => ({ title: combo.title, durationMs: video.durationMs }))
     let cursor = opened.cursor
     let last = -Infinity
-    window.__render = {
+    report({
       ready,
       async seek(ms) {
         if (ms < last) throw new RangeError(`seek(${ms}) after seek(${last}): the video only goes forward`)
@@ -148,14 +147,14 @@ const Frame = ({ combo, session: opened, cards, speed }: Loaded & { speed: Speed
           await frame()
           await decoded()
         }
-        // Every slide and glow held at the time inside the step, whatever the screenshot costs.
+        // Every slide and glow held at the time inside the step, however late the frame comes.
         for (const animation of document.getAnimations()) {
           animation.pause()
           animation.currentTime = at.offset
         }
       },
-    }
-  }, [cardW, combo.revision, opened.cursor, video])
+    })
+  }, [cardW, combo.title, opened.cursor, video])
 
   const w = cardW ?? PROBE
   return (

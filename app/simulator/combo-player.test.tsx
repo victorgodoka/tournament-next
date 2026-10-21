@@ -186,7 +186,7 @@ describe('ComboPlayer', () => {
     expect(screen.queryByRole('heading', { name: 'video.title' })).toBeNull()
     await click('video.open')
     expect(screen.getByRole('heading', { name: 'video.title' })).toBeTruthy()
-    expect(button('video.generate')).toBeTruthy()
+    expect(screen.getByText('video.unsupported')).toBeTruthy() // happy-dom has no screen capture
   })
 
   it('Edit shows only for the owner, and loads the combo tied to it', async () => {

@@ -7,7 +7,7 @@ import { getCombo, type SharedCombo } from '@utils/combos'
 import type { CardData } from '@utils/deck/types'
 import { renderTimeline } from '@utils/simulator/timing'
 import { ZONE_ICONS } from './board'
-import { ComboRender } from './combo-render'
+import { ComboRender, type RenderHandle } from './combo-render'
 
 // A real <img>, so the page has images to decode.
 // eslint-disable-next-line @next/next/no-img-element
@@ -43,12 +43,14 @@ type Stub = { pause: ReturnType<typeof vi.fn>; currentTime: number | null }
 const stub = (): Stub => ({ pause: vi.fn(), currentTime: null })
 /** What `document.getAnimations()` returns: a glow and a slide already running, and whatever `animate` starts. */
 let animations: Stub[]
+/** What the page handed to `onReady`. */
+let handle: RenderHandle | undefined
 
 const open = async (speed: 0.5 | 1 | 2 | 3 = 1) => {
-  render(<ComboRender id="c1" speed={speed} />)
+  render(<ComboRender id="c1" speed={speed} onReady={(h) => (handle = h)} />)
   await act(async () => {})
 }
-const page = () => window.__render!
+const page = () => handle!
 const seek = (ms: number) => act(() => page().seek(ms))
 const inM0 = () => within(screen.getByRole('group', { name: 'zones.m0' })).queryByRole('button')
 /**
@@ -79,6 +81,7 @@ const settled = async (p: Promise<unknown>) => {
 
 beforeEach(() => {
   animations = [stub(), stub()]
+  handle = undefined
   Object.defineProperty(document, 'getAnimations', { configurable: true, value: () => animations })
   Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: Promise.resolve() } })
   Element.prototype.animate = vi.fn(() => {
@@ -92,7 +95,6 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  delete window.__render
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -140,9 +142,18 @@ describe('ComboRender', () => {
     expect((keyframes as Keyframe[])[0]!.translate).toBe('-87px 261px')
   })
 
-  it('ready gives the revision and the length of the video at its speed', async () => {
+  it('ready gives the title and the length of the video at its speed', async () => {
     await open(2)
-    await expect(page().ready).resolves.toEqual({ revision: 3, durationMs: renderTimeline([...actions], 2, 2).durationMs })
+    await expect(page().ready).resolves.toEqual({ title: 'Opening line', durationMs: renderTimeline([...actions], 2, 2).durationMs })
+  })
+
+  it('calls onReady once, however often the parent re-renders with a new callback', async () => {
+    const onReady = vi.fn()
+    const view = render(<ComboRender id="c1" speed={1} onReady={onReady} />)
+    await act(async () => {})
+    view.rerender(<ComboRender id="c1" speed={1} onReady={(h) => onReady(h)} />)
+    await act(async () => {})
+    expect(onReady).toHaveBeenCalledTimes(1)
   })
 
   it('ready waits for every image to decode', async () => {
@@ -171,7 +182,7 @@ describe('ComboRender', () => {
   it('an image that fails to decode does not hold ready back', async () => {
     vi.spyOn(HTMLImageElement.prototype, 'decode').mockRejectedValueOnce(new Error('404')).mockResolvedValue(undefined)
     await open()
-    await expect(page().ready).resolves.toMatchObject({ revision: 3 })
+    await expect(page().ready).resolves.toMatchObject({ title: 'Opening line' })
   })
 
   it('ready rejects for a combo that does not exist', async () => {

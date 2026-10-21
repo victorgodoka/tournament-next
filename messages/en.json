@@ -1181,7 +1181,16 @@
       "replace": "Your simulator has a line in progress. Opening this one replaces it."
     },
     "render": {
-      "brand": "YGO Omega Combo Simulator"
+      "brand": "YGO Omega Combo Simulator",
+      "record": "Record",
+      "hint": "Choose “This tab” in the browser's prompt. You can switch tabs while it records; keep this window open.",
+      "recording": "Recording {elapsed} s of {total} s",
+      "cancel": "Cancel",
+      "download": "Download {format}",
+      "again": "Record again",
+      "stopped": "The recording was interrupted.",
+      "loadFailed": "Could not load the combo.",
+      "failed": "Could not record the video."
     },
     "video": {
       "open": "Download video",
@@ -1189,16 +1198,10 @@
       "aspect": "Aspect ratio",
       "speed": "Speed",
       "length": "Estimated length: {length}",
-      "generate": "Generate",
-      "tryAgain": "Try again",
-      "queued": "In queue ({position} ahead)",
-      "running": "Rendering {percent}%",
-      "ready": "Your video is ready.",
-      "downloadMp4": "Download MP4",
-      "downloadWebp": "Download WebP",
-      "queueFull": "The queue is full, try again in a few minutes.",
-      "busy": "You already have videos rendering, wait for them.",
-      "failed": "Could not generate the video."
+      "record": "Record",
+      "opened": "The recording goes on in the window that opened.",
+      "popupBlocked": "Your browser blocked the window. Allow pop-ups for this site and try again.",
+      "unsupported": "Recording a video works in Chrome or Edge on a computer."
     },
     "damagedLink": "This deck link is damaged, so the simulator opened empty.",
     "dismiss": "Dismiss",
