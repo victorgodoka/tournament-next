@@ -14,6 +14,10 @@ export const formatRate = (rate: number | null, locale = 'en') =>
 export const formatRecord = ({ wins, loses, draws }: { wins: number; loses: number; draws: number }) =>
   `${wins}–${loses}–${draws}`
 
+/** Win rate of a record: a draw is not a win. `null` with nothing played. */
+export const recordRate = ({ wins, loses, draws }: { wins: number; loses: number; draws: number }) =>
+  wins + loses + draws ? wins / (wins + loses + draws) : null
+
 /** Whole minutes between two ISO dates, never negative. */
 export const minutesBetween = (from: string, to: string) =>
   Math.max(0, Math.round((Date.parse(to) - Date.parse(from)) / 60_000))
