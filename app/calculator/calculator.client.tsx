@@ -22,7 +22,7 @@ import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { BuildTabs } from './build-tabs'
-import { calculatorReducer, initialState } from './calculator.reducer'
+import { calculatorReducer, initialState, type CalcAction } from './calculator.reducer'
 import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
@@ -108,6 +108,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setBaseline(view.result.any.p)
     clearTimeout(baselineTimer.current)
     baselineTimer.current = setTimeout(() => setBaseline(null), 4000)
+  }
+  /** An action that changes which build or deck is shown: the baseline was measured on the old one. */
+  const showBuild = (action: CalcAction) => {
+    clearTimeout(baselineTimer.current)
+    setBaseline(null)
+    dispatch(action)
   }
 
   useEffect(() => {
@@ -272,7 +278,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         open={picker !== null}
         onClose={() => setPicker(null)}
         lookup={ensure}
-        onPick={(b, s) => dispatch(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })}
+        onPick={(b, s) => showBuild(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })}
       />
 
       {notice ? (
@@ -320,10 +326,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       <BuildTabs
         builds={state.calc.builds}
         active={state.active}
-        onSelect={(index) => dispatch({ type: 'setActive', index })}
+        onSelect={(index) => showBuild({ type: 'setActive', index })}
         onAdd={() => setPicker('add')}
-        onDuplicate={() => dispatch({ type: 'duplicateBuild', name: t('builds.copyOf', { name: build.name || t('builds.untitled', { n: state.active + 1 }) }) })}
-        onRemove={() => dispatch({ type: 'removeBuild', index: state.active })}
+        onDuplicate={() => showBuild({ type: 'duplicateBuild', name: t('builds.copyOf', { name: build.name || t('builds.untitled', { n: state.active + 1 }) }) })}
+        onRemove={() => showBuild({ type: 'removeBuild', index: state.active })}
       />
 
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">

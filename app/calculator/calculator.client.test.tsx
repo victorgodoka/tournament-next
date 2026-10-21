@@ -243,6 +243,30 @@ describe('Calculator', () => {
     })
     expect(screen.queryByText(/▲/)).toBeNull()
   })
+  it("switching build tabs drops the arrow: the baseline was measured on the other build's odds", async () => {
+    const main = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    const code = await encodeShare({
+      builds: [
+        { name: 'A', deck: { main, extra: [], side: [] }, roles: new Map(), format: null, deckId: null },
+        { name: 'B', deck: { main, extra: [], side: [] }, roles: new Map([[1, ['Starter']]]), format: null, deckId: null },
+      ],
+      analysis: { hands: [{ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!) // Starter
+    // A has no Starter: painting card 2 raises it from 0%, so the arrow shows.
+    await act(async () => {
+      fireEvent.pointerDown(screen.getAllByRole('button', { name: /tags\.tile/ })[1]!, { button: 0, buttons: 1, pointerType: 'mouse' })
+      fireEvent.pointerUp(window)
+    })
+    expect(screen.getByText(/▲/)).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('tab')[1]!) // B's odds are not A's odds plus the paint
+    expect(screen.queryByText(/[▲▼]/)).toBeNull()
+  })
   it('a hand size above the deck shows tooFewCards and the URL carries ?c=', async () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3], extra: [], side: [] }))}`)
     await act(async () => fireEvent.change(screen.getByLabelText('draw.handSize'), { target: { value: '20' } }))
