@@ -132,6 +132,20 @@ export type PlayerStatisticsData = Omit<Statistics, 'season' | 'syncedDays' | 'm
   season: Statistics['season'] | null
   formats: ('TCG' | 'Genesys')[]
   matches: { analyzed: number; total: number }
+  record: PersonalRecord
+}
+
+export type Tally3 = { wins: number; losses: number; draws: number }
+
+/**
+ * The duelist's own record, mirrors in (STATISTICS_API.md §6). Counts only; a deck nobody could name is
+ * in `matches`/`games` only. `decks` and `matchups` come by matches, most first.
+ */
+export type PersonalRecord = {
+  matches: Tally3
+  games: Tally3
+  decks: { archetype: ArchetypeKey; name: string | null; matches: Tally3; games: Tally3 }[]
+  matchups: { archetype: ArchetypeKey; opponent: ArchetypeKey; name: string | null; opponentName: string | null; matches: Tally3; games: Tally3 }[]
 }
 
 /**
