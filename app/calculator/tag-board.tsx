@@ -64,7 +64,7 @@ export const TagBoard = (p: TagBoardProps) => {
   const [menu, setMenu] = useState<{ id: number; anchor: HTMLElement | null } | null>(null)
   const [creating, setCreating] = useState(false)
   /** A mouse stroke in progress: every tile it enters goes the way the first one went. */
-  const stroke = useRef<{ on: boolean } | null>(null)
+  const stroke = useRef<{ on: boolean; end(): void } | null>(null)
   const { bind, kind } = useLongPress()
 
   const total = p.rows.reduce((sum, row) => sum + row.copies, 0)
@@ -98,7 +98,7 @@ export const TagBoard = (p: TagBoardProps) => {
     return on
   }
   const startStroke = (row: DeckCard, role: string) => {
-    stroke.current = { on: paint(row, role) }
+    stroke.current?.end() // one whose release never arrived
     const end = () => {
       stroke.current = null
       window.removeEventListener('pointerup', end)
@@ -106,6 +106,7 @@ export const TagBoard = (p: TagBoardProps) => {
     }
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
+    stroke.current = { on: paint(row, role), end }
   }
 
   const onKey = useEffectEvent((e: KeyboardEvent) => {
@@ -247,7 +248,10 @@ export const TagBoard = (p: TagBoardProps) => {
                   }}
                   onPointerEnter={(e) => {
                     const live = stroke.current
-                    if (brush === null || !live || e.pointerType !== 'mouse' || !(e.buttons & 1) || has(row, brush) === live.on) return
+                    if (!live || e.pointerType !== 'mouse') return
+                    // The button is up: the window never saw its release (alt-tab, an OS gesture). That stroke is over.
+                    if (!(e.buttons & 1)) return live.end()
+                    if (brush === null || has(row, brush) === live.on) return
                     p.onSetRole(row.id, brush, live.on)
                     p.onTour?.('paint')
                   }}

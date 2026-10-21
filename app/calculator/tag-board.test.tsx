@@ -74,12 +74,28 @@ describe('TagBoard', () => {
     fireEvent.click(pills()[3]!) // Brick
     const [a, b] = tiles()
     fireEvent.pointerDown(a!, { button: 0, buttons: 1, pointerType: 'mouse' })
-    fireEvent.pointerEnter(b!, { buttons: 0, pointerType: 'mouse' }) // released outside the window: no paint
     fireEvent.pointerEnter(b!, { buttons: 1, pointerType: 'mouse' })
     expect(onSetRole.mock.calls).toEqual([
       [1, 'Brick', true],
       [2, 'Brick', true],
     ])
+    expect(onPainted).toHaveBeenCalledTimes(1)
+  })
+
+  it('a mouse enter with the button up ends a stroke whose release the window never saw', () => {
+    const onSetRole = vi.fn()
+    const onPainted = vi.fn()
+    renderBoard({ onSetRole, onPainted })
+    fireEvent.click(pills()[3]!) // Brick
+    const [a, b] = tiles()
+    fireEvent.pointerDown(a!, { button: 0, buttons: 1, pointerType: 'mouse' })
+    const off = vi.spyOn(window, 'removeEventListener')
+    fireEvent.pointerEnter(b!, { buttons: 0, pointerType: 'mouse' }) // released outside the window
+    expect(off).toHaveBeenCalledWith('pointerup', expect.any(Function))
+    expect(off).toHaveBeenCalledWith('pointercancel', expect.any(Function))
+    off.mockRestore()
+    fireEvent.pointerEnter(b!, { buttons: 1, pointerType: 'mouse' }) // a later drag that began off the tiles
+    expect(onSetRole.mock.calls).toEqual([[1, 'Brick', true]])
     expect(onPainted).toHaveBeenCalledTimes(1)
   })
 
