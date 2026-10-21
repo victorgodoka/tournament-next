@@ -1,17 +1,16 @@
 export const FORMATS_SUPPORTED = [
   { title: "TCG", text: "Current Konami wording, resolved the way official tournaments call it." },
   { title: "OCG", text: "Japan's rulings, scripted separately whenever they diverge from the English text." },
+  { title: "WCS", text: "Konami's World Championship list, with more Forbidden cards than the TCG one." },
   { title: "GOAT", text: "2005 Master Rules, pre-errata cards, the format's original power level intact." },
   { title: "EDISON", text: "2010 format on old rules and old text; Six Samurai and Blackwings as they broke the game." },
-  { title: "GENESYS", text: "Konami's points format: every card has a cost, and the whole deck stays under the cap." },
+  { title: "GENESYS", text: "Konami's points format: every card has a cost, and the whole deck stays under the cap. Caps from 0 to 200, on the TCG or OCG pool." },
   { title: "SPEED DUEL", text: "4-card hands, 20 Life Points, a Skill Card in play; its own rulebook, its own scripts." },
   { title: "DUEL LINKS", text: "Konami's mobile ruleset: 3 Main Monster Zones, no Link Zones, EX cap enforced." },
   { title: "MASTER DUEL", text: "Konami's current digital ruleset, matched card for card, restriction for restriction." },
   { title: "RUSH DUEL", text: "One Normal Summon suspended, a hand no one plays face-down; a different game, scripted true to it." },
-  { title: "TRADITIONAL", text: "No Forbidden list. Every banned card back on the field, full strength." },
-  { title: "CUSTOM BANLISTS", text: "Write your own list, ban or limit anything, and Omega enforces it card for card." },
-  { title: "HISTORICAL BANLISTS", text: "Any list from any month since the game began; pick the date, duel that era." },
-  { title: "ANIME CARDS", text: "Effects straight off the screen, never printed, scripted the way the show played them." }
+  { title: "TRADITIONAL", text: "No Forbidden list: every banned card comes back, Limited to one copy. On the TCG or OCG list." },
+  { title: "RETRO FORMATS", text: "The 2002 original list, TeleDad, TenguPlant, VFD, HAT, Burning Abyss, Link Zoo, TOSS and October 2019: each era on its own list." }
 ]
 
 export const HOME_FAQ_ALTERNATIVE = [
@@ -200,20 +199,19 @@ export const HOME_META_DECKS = [
 
 export const HOME_TOOLS = [
   { title: "Deck Builder", text: "Visual builder with live filters, format legality and shareable lists." },
-  { title: "Banlist Builder", text: "Write your own list card by card, or ban an entire card type in one click." },
   { title: "Small World Resolver", text: "Feed it your deck and it maps every legal bridge, so you stop drawing the chart by hand." },
 ]
 
 export const HOME_MODES = [
   { title: "Automatic", text: "The engine tracks life points, chains, timing windows and priority. You choose plays, the core resolves them to the ruling of your chosen format." },
-  { title: "Manual", text: "One Move button replaces ten stacked ones. Chat commands like /help stay out of your way. Custom cards and custom banlists work here too." },
+  { title: "Manual", text: "One Move button replaces ten stacked ones. Chat commands like /help stay out of your way. Custom cards work here too." },
 ]
 
 export const HOME_FAQ = [
   { question: "Is Omega free?", answer: "Yes. Every card is unlocked, ranked play is open and tournaments cost nothing. No currency, no crafting, no packs." },
   { question: "Does it run in a browser?", answer: "No. Omega runs through a launcher on Windows, macOS, Linux and Android. The install takes under two minutes." },
   { question: "Which rulings does it follow, TCG or OCG?", answer: "Both. Omega runs the official Fluorohydride core with fixes to damage calculation and TCG rulings, and scripts a card twice when the two texts disagree." },
-  { question: "Can I play manually?", answer: "Yes, in the same client, with chat commands, custom cards and custom banlists." },
+  { question: "Can I play manually?", answer: "Yes, in the same client, with chat commands and custom cards." },
   { question: "Is there an offline AI opponent?", answer: "Not yet. Offline AI depends on donations, and it has no release date. Duels run against people." },
   { question: "How fast do new cards get scripted?", answer: "Between three hours and a week, depending on who is free to write the script." },
 ]

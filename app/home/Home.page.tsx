@@ -325,7 +325,7 @@ const Formats = () => (
     <Rail num="04">Yugioh formats and banlists</Rail>
     <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
       <div className="flex flex-[1_1_560px] flex-col gap-5">
-        <h2 className={twMerge(BAND_TITLE, "max-w-[16ch]")}>{FORMATS_SUPPORTED.length} formats, and every banlist the game has ever had</h2>
+        <h2 className={twMerge(BAND_TITLE, "max-w-[16ch]")}>{FORMATS_SUPPORTED.length} formats, from the first list in 2002 to the current one</h2>
         <p className={twMerge(BAND_LEAD, "max-w-[56ch]")}>Switch era between duels. Nothing to buy, nothing to unlock, no second client to install.</p>
       </div>
       <Download variant="secondary" />
