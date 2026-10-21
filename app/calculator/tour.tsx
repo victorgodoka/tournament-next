@@ -93,6 +93,7 @@ export const Tour = ({ state, onBack, onNext, onClose }: TourProps) => {
   const progress = t('tour.progress', { n: step, total: TOUR_STEPS.length })
 
   // One frame loop follows the anchor through the scroll it causes, later scrolls and resizes; it writes styles on refs, never state.
+  // Keyed on the anchor, not the step: steps 2 and 3 share the grid, and a second scroll under a held drag would paint tiles the player did not mean to.
   useEffect(() => {
     const anchor = document.querySelector<HTMLElement>(`[data-tour="${name}"]`)
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -104,7 +105,7 @@ export const Tour = ({ state, onBack, onNext, onClose }: TourProps) => {
     }
     follow()
     return () => cancelAnimationFrame(frame)
-  }, [name, step])
+  }, [name])
 
   return (
     <>

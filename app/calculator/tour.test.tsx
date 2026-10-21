@@ -91,6 +91,24 @@ describe('Tour', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('scrolls the anchor into view only when it differs from the previous step: grid → grid stays put', () => {
+    const scrolls = Object.fromEntries(['grid', 'odds'].map((name) => [name, vi.fn()]))
+    for (const [name, scroll] of Object.entries(scrolls)) {
+      const el = document.createElement('div')
+      el.dataset.tour = name
+      el.scrollIntoView = scroll!
+      document.body.append(el)
+    }
+    const tour = (step: number) => <Tour state={{ step, paints: 0 }} onBack={noop} onNext={noop} onClose={noop} />
+    const { rerender } = render(tour(2))
+    expect(scrolls.grid).toHaveBeenCalledTimes(1) // the first step always scrolls
+    rerender(tour(3)) // grid → grid, as when step 2's second paint lands mid-drag
+    expect(scrolls.grid).toHaveBeenCalledTimes(1)
+    rerender(tour(4)) // grid → odds
+    expect(scrolls.odds).toHaveBeenCalledTimes(1)
+    expect(scrolls.grid).toHaveBeenCalledTimes(1)
+  })
+
   it('the spotlight sits over the anchor with 8px of padding; no anchor hides it', () => {
     const anchor = document.createElement('div')
     anchor.dataset.tour = 'strip'

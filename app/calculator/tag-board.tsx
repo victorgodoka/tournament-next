@@ -24,7 +24,7 @@ const PIPS = 4
 
 // Sticky under the site header from `lg`; below it, a bar fixed to the bottom of the viewport that scrolls sideways.
 const STRIP =
-  'z-(--z-sticky) border-line bg-space-000 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:border-t max-lg:pb-[env(safe-area-inset-bottom)] lg:sticky lg:top-[calc(var(--header-h,64px)+8px)] lg:border-b'
+  'z-(--z-sticky) border-line bg-space-000 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:border-t max-lg:pb-[env(safe-area-inset-bottom)] lg:sticky lg:top-[var(--header-h,64px)] lg:border-b'
 
 export type TourEvent = 'brush' | 'paint' | 'menu'
 
@@ -110,8 +110,8 @@ export const TagBoard = (p: TagBoardProps) => {
   }
 
   const onKey = useEffectEvent((e: KeyboardEvent) => {
-    // Shift is no modifier here: AZERTY types its digits with it.
-    if (typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return
+    // Shift is no modifier here: AZERTY types its digits with it. A held key repeats: it must not toggle the brush on and off.
+    if (e.repeat || typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return
     if (e.key === 'Escape') return menu ? setMenu(null) : setBrush(null)
     const role = /^[1-9]$/.test(e.key) ? shown[Number(e.key) - 1] : undefined
     if (role !== undefined) pick(role)
@@ -153,7 +153,7 @@ export const TagBoard = (p: TagBoardProps) => {
   }
   const group = (title: string, roles: string[], suggest: boolean) =>
     roles.length ? (
-      <div className="flex shrink-0 items-center gap-1 lg:flex-wrap">
+      <div className="flex shrink-0 items-center gap-1 lg:shrink lg:flex-wrap">
         <span className="mr-1 text-ink-muted signal-sm">{title}</span>
         {roles.map((role) => pill(role, suggest))}
       </div>
@@ -199,7 +199,18 @@ export const TagBoard = (p: TagBoardProps) => {
             className={TOUCH}
           />
           {p.onHelp ? (
-            <Button variant="ghost" size="icon-sm" aria-label={t('tags.help')} onClick={p.onHelp} className={twMerge('ml-auto shrink-0', TOUCH)}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('tags.help')}
+              // The tour's first step waits for a pick: a brush already in hand would make the highlighted pill a put-down.
+              onClick={() => {
+                stroke.current?.end()
+                setBrush(null)
+                p.onHelp?.()
+              }}
+              className={twMerge('ml-auto shrink-0', TOUCH)}
+            >
               ?
             </Button>
           ) : null}

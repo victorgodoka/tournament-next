@@ -208,6 +208,13 @@ describe('TagBoard', () => {
     expect(pills()[2]!.getAttribute('aria-pressed')).toBe('true')
   })
 
+  it('a held key (auto-repeat) does not toggle the brush off', () => {
+    renderBoard()
+    fireEvent.keyDown(window, { key: '1' })
+    fireEvent.keyDown(window, { key: '1', repeat: true })
+    expect(pills()[0]!.getAttribute('aria-pressed')).toBe('true')
+  })
+
   it('a new tag in another case becomes the default brush; a fresh custom tag keeps a pressed pill', () => {
     renderBoard()
     fireEvent.click(screen.getByText('tags.newTag'))
@@ -278,5 +285,15 @@ describe('TagBoard', () => {
     renderBoard({ onHelp })
     fireEvent.click(screen.getByRole('button', { name: 'tags.help' }))
     expect(onHelp).toHaveBeenCalledTimes(1)
+  })
+
+  it('the help button puts the brush down first, so the tour can see the next pick', () => {
+    const onHelp = vi.fn()
+    renderBoard({ onHelp })
+    fireEvent.click(pills()[0]!)
+    expect(pills()[0]!.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'tags.help' }))
+    expect(onHelp).toHaveBeenCalledTimes(1)
+    expect(pills().some((p) => p.getAttribute('aria-pressed') === 'true')).toBe(false)
   })
 })
