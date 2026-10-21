@@ -40,7 +40,7 @@ more than those tools do:
 
 `['Starter', 'Extender', 'Hand Trap', 'Board Breaker', 'Brick', 'Non-Engine', 'Searcher', 'Needs Normal Summon']`
 
-The first four keep their spelling and order, so existing decks and links read the same. `palette(roles)`
+The original four keep their spelling (Brick moves from fourth to fifth; order only affects palette display), so existing decks and links read the same. `palette(roles)`
 already returns the defaults then the custom tags in use, so the strip order is the palette order.
 
 ### Tag metadata (`app/calculator/tags.ts`)
@@ -109,7 +109,7 @@ viewport below `lg` (horizontal scroll, safe-area padding, the grid gets matchin
 - Two groups. **In your hands**: tags any rule of any hand references (`rule.subject.kind === 'role'`,
   `sameRole`). **Labels**: the rest of the palette. A group with no tags is not rendered.
 - Each pill: glyph in the tag's tone, name, copies carrying it in the main deck (`subjectCopies`), and the
-  key hint `1`–`9` for the first nine palette entries (`lg` only). `aria-pressed` when it is the brush.
+  key hint `1`–`9` for the first nine pills in display order ('In your hands' first, then 'Labels') (`lg` only). `aria-pressed` when it is the brush.
   Clicking the active pill puts the brush down.
 - A label with a suggested rule shows a small `+` button "Use in hands" (`aria-label` names the rule).
 - `+ New tag`: an inline text field (≤ 24 chars, `normalizeRole`); Enter makes it the brush. It joins the
