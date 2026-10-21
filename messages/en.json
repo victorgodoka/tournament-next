@@ -1098,6 +1098,53 @@
       "rejected": "The server refused the roles.",
       "failed": "Could not save the roles.",
       "signIn": "Sign in to save roles to your deck."
+    },
+    "tags": {
+      "title": "Tags",
+      "inHands": "In your hands",
+      "labels": "Labels",
+      "brush": "{role} brush, {count} in deck",
+      "useInHands": "Use {role} in your hands",
+      "newTag": "New tag",
+      "newTagPlaceholder": "Tag name",
+      "untagged": "Untagged {count}",
+      "untaggedHint": "Dim the cards that already have a tag",
+      "help": "How tagging works",
+      "painting": "Painting {role}",
+      "stop": "Esc to stop",
+      "custom": "Custom tag",
+      "toggle": "{role} on {name}",
+      "tile": "{name}, {count} in deck",
+      "desc": {
+        "starter": "Opens a full combo by itself.",
+        "extender": "Adds to a combo already under way.",
+        "handTrap": "Interrupts the opponent straight from your hand.",
+        "boardBreaker": "Answers a set-up board when you go second.",
+        "brick": "Can't do anything when drawn.",
+        "nonEngine": "Not part of the combo: staples, techs, siding.",
+        "searcher": "Finds other cards: searches, draws, excavates.",
+        "needsNormalSummon": "Spends your one Normal Summon for the turn."
+      }
+    },
+    "menu": { "copies": "Copies", "tags": "Tags", "close": "Close" },
+    "odds": { "playable": "Playable hand", "noHands": "Add a playable hand to see the odds", "up": "Up {points} points", "down": "Down {points} points" },
+    "tour": {
+      "progress": "{n} / {total}",
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "done": "Done",
+      "doIt": "Do it to continue",
+      "s1Title": "Pick a brush",
+      "s1": "Click a tag: it becomes your brush. Keys 1–9 work too.",
+      "s2Title": "Paint your cards",
+      "s2": "Click cards to paint the tag on, click again to take it off. Hold and drag to paint several.",
+      "s3Title": "Every card has a menu",
+      "s3": "Press Esc to put the brush down, then click a card: its tags and copies are there. Right-click opens it any time.",
+      "s4Title": "Watch the odds",
+      "s4": "Each paint moves the playable-hand odds; the arrow shows by how much.",
+      "s5Title": "Your playable hand",
+      "s5": "A playable hand is a set of rules. Tags it uses sit under “In your hands”; the + on a label adds it."
     }
   },
   "Simulator": {

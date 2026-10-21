@@ -1098,6 +1098,53 @@
       "rejected": "O servidor recusou as funções.",
       "failed": "Não foi possível salvar as funções.",
       "signIn": "Entre para salvar funções no seu deck."
+    },
+    "tags": {
+      "title": "Tags",
+      "inHands": "Nas suas mãos",
+      "labels": "Rótulos",
+      "brush": "Pincel {role}, {count} no deck",
+      "useInHands": "Usar {role} nas suas mãos",
+      "newTag": "Nova tag",
+      "newTagPlaceholder": "Nome da tag",
+      "untagged": "Sem tag {count}",
+      "untaggedHint": "Esmaecer as cartas que já têm tag",
+      "help": "Como funcionam as tags",
+      "painting": "Pintando {role}",
+      "stop": "Esc para parar",
+      "custom": "Tag personalizada",
+      "toggle": "{role} em {name}",
+      "tile": "{name}, {count} no deck",
+      "desc": {
+        "starter": "Abre um combo completo sozinha.",
+        "extender": "Soma a um combo já em andamento.",
+        "handTrap": "Interrompe o oponente direto da sua mão.",
+        "boardBreaker": "Responde a um campo montado quando você joga em segundo.",
+        "brick": "Não faz nada quando comprada.",
+        "nonEngine": "Fora do combo: staples, techs, side.",
+        "searcher": "Encontra outras cartas: busca, compra, escava.",
+        "needsNormalSummon": "Gasta a sua única Invocação-Normal do turno."
+      }
+    },
+    "menu": { "copies": "Cópias", "tags": "Tags", "close": "Fechar" },
+    "odds": { "playable": "Mão jogável", "noHands": "Adicione uma mão jogável para ver as chances", "up": "Subiu {points} pontos", "down": "Caiu {points} pontos" },
+    "tour": {
+      "progress": "{n} / {total}",
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "done": "Pronto",
+      "doIt": "Faça para continuar",
+      "s1Title": "Escolha um pincel",
+      "s1": "Clique numa tag: ela vira o seu pincel. As teclas 1–9 também servem.",
+      "s2Title": "Pinte as suas cartas",
+      "s2": "Clique nas cartas para pintar a tag, clique de novo para tirar. Segure e arraste para pintar várias.",
+      "s3Title": "Toda carta tem um menu",
+      "s3": "Aperte Esc para largar o pincel e clique numa carta: as tags e as cópias estão lá. O botão direito abre a qualquer momento.",
+      "s4Title": "Veja as chances",
+      "s4": "Cada pintura mexe nas chances de mão jogável; a seta mostra quanto.",
+      "s5Title": "A sua mão jogável",
+      "s5": "Uma mão jogável é um conjunto de regras. As tags que ela usa ficam em “Nas suas mãos”; o + num rótulo adiciona."
     }
   },
   "Simulator": {
