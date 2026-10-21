@@ -1,6 +1,6 @@
 import { canonicalOf, withCopies } from '@utils/combo/deck-cards'
 import { randomSeed } from '@utils/combo/rng'
-import { addRole, toggleRole } from '@utils/combo/roles'
+import { addRole, removeRole, toggleRole } from '@utils/combo/roles'
 import { DEFAULT_DRAW, DEFAULT_EFFECTS, EFFECT_IDS, LIMITS, type Banish, type Build, type Calculation, type Draw, type Hand, type Roles, type Rule, type Subject } from '@utils/combo/types'
 import { EMPTY_DECK, MAX_COPIES, type CardMap, type Deck } from '@utils/deck/types'
 
@@ -34,6 +34,8 @@ export type CalcAction =
   | { type: 'rename'; name: string }
   | { type: 'setFormat'; format: number | null }
   | { type: 'toggleRole'; id: number; role: string }
+  /** Puts the tag on the card (`on`) or takes it off; the same state back when it is already so. */
+  | { type: 'setRole'; id: number; role: string; on: boolean }
   | { type: 'setCopies'; id: number; copies: number; passcode: number; cards: CardMap }
   | { type: 'restoreDeck' }
   | { type: 'addHand'; hand?: Hand }
@@ -151,6 +153,10 @@ export const calculatorReducer = (s: CalcState, a: CalcAction): CalcState => {
       return patchBuild(s, { format: a.format })
     case 'toggleRole': {
       const roles = toggleRole(build(s).roles, a.id, a.role)
+      return roles === build(s).roles ? s : patchBuild(s, { roles })
+    }
+    case 'setRole': {
+      const roles = (a.on ? addRole : removeRole)(build(s).roles, a.id, a.role)
       return roles === build(s).roles ? s : patchBuild(s, { roles })
     }
     case 'setCopies': {

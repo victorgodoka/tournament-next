@@ -51,6 +51,15 @@ describe('calculator reducer', () => {
     expect(calculatorReducer(s1, { type: 'rename', name: 'x'.repeat(90) }).calc.builds[0]!.name).toHaveLength(80)
     expect(calculatorReducer(s1, { type: 'setFormat', format: 4 }).calc.builds[0]!.format).toBe(4)
   })
+  it('setRole adds or removes in the asked direction and is a no-op when already there', () => {
+    const s0 = initialState({ ...emptyCalculation(), builds: [build({ main: [1] }, new Map([[1, ['Starter']]]))] })
+    const on = calculatorReducer(s0, { type: 'setRole', id: 1, role: 'brick', on: true })
+    expect(on.calc.builds[0]!.roles).toEqual(new Map([[1, ['Starter', 'Brick']]]))
+    expect(calculatorReducer(on, { type: 'setRole', id: 1, role: 'Brick', on: true })).toBe(on)
+    const off = calculatorReducer(on, { type: 'setRole', id: 1, role: 'Starter', on: false })
+    expect(off.calc.builds[0]!.roles).toEqual(new Map([[1, ['Brick']]]))
+    expect(calculatorReducer(off, { type: 'setRole', id: 1, role: 'Starter', on: false })).toBe(off)
+  })
   it('clamps rules and draw settings', () => {
     const s0 = calculatorReducer(initialState(emptyCalculation()), { type: 'addHand' })
     expect(s0.calc.analysis.hands[0]).toEqual({ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] })

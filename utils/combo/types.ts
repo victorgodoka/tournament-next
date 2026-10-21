@@ -24,7 +24,7 @@ export type Effects = { resolve: number[]; prosperity: Banish; extravagance: Ban
 /** `seed` (32-bit) drives the hand simulator, so a shared link deals the same hand. */
 export type Calculation = { builds: Build[]; analysis: Analysis; draw: Draw; focus: Subject | null; seed: number; effects: Effects }
 
-export const DEFAULT_ROLES: readonly string[] = ['Starter', 'Extender', 'Hand Trap', 'Brick']
+export const DEFAULT_ROLES: readonly string[] = ['Starter', 'Extender', 'Hand Trap', 'Board Breaker', 'Brick', 'Non-Engine', 'Searcher', 'Needs Normal Summon']
 export const DEFAULT_DRAW: Draw = { going: 'first', handSize: null, extraDraws: 0, turn: 1 }
 export const DEFAULT_EFFECTS: Effects = { resolve: [], prosperity: 6, extravagance: 6 }
 
