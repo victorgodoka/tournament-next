@@ -296,17 +296,7 @@ const CardDetail = ({ card, searched }: { card: MostUsedCard; searched: boolean 
   )
 }
 
-/** Both sides of a turn split as one rate: the duelist's own win rate. */
-const overall = ({ first, second }: TurnSplit) => {
-  const games = first.games + second.games
-  return games ? ((first.winRate ?? 0) * first.games + (second.winRate ?? 0) * second.games) / games : null
-}
-
-/**
- * `player`: one duelist's side (`/profile/:id/statistics`). No unique duelists, no daily trends, and
- * the season-wide searches stay off: they read the whole server.
- */
-export const Report = ({ data, player = false }: { data: Statistics; player?: boolean }) => {
+const Report = ({ data }: { data: Statistics }) => {
   const [showAll, setShowAll] = useState(false)
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const [remoteSeason, setRemoteSeason] = useState<string | null>(null) // season whose search shows a pick outside the page data
@@ -332,16 +322,10 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
   }
 
   const glance = (
-    <Section num="01" label={player ? 'At a glance' : 'Season at a glance'} stamp={player ? undefined : `${data.syncedDays.count} days synced`}>
+    <Section num="01" label="Season at a glance" stamp={`${data.syncedDays.count} days synced`}>
       <StatGrid
         columns={5}
-        items={player ? [
-          { label: 'Deck-games', value: num(totals.games), hint: 'Each game of a match counted' },
-          { label: 'Matches', value: num(totals.matches), hint: 'Ranked' },
-          { label: 'Win rate', value: pct(overall(turnOrder.all)), hint: 'Every game, mirrors in' },
-          { label: 'Decks', value: num(totals.archetypes), hint: 'Archetypes played' },
-          { label: 'Going first', value: pct(turnOrder.all.first.winRate), hint: `${num(turnOrder.all.first.games)} games` },
-        ] : [
+        items={[
           { label: 'Deck-games', value: num(totals.games), hint: 'Each game counted once a side' },
           { label: 'Matches', value: num(totals.matches), hint: 'Ranked' },
           { label: 'Unique Duelists', value: num(totals.players), hint: 'Accounts that played ranked' },
@@ -364,19 +348,15 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
       <>
         {closed}
         {glance}
-        <Panel title="No games yet" meta={player ? 'Nothing played' : 'Nothing swept'} className="mt-6">
+        <Panel title="No games yet" meta="Nothing swept" className="mt-6">
           <p className="text-ink-dim body">
-            {player
-              ? 'No ranked game with a known deck here yet.'
-              : <>No archetype has {minSamples} ranked deck-games in this season yet. The first numbers appear after tonight&apos;s sweep.</>}
+            No archetype has {minSamples} ranked deck-games in this season yet. The first numbers appear after tonight&apos;s sweep.
           </p>
         </Panel>
       </>
     )
 
   /* 03 · archetypes: General rows; a season frozen before modes (`views` null) keeps the main ones */
-  /* One duelist has no "unique duelists" column. */
-  const archCols = player ? ARCH_COLS.replace('repeat(4,', 'repeat(3,') : ARCH_COLS
   const top: readonly LeanArchetype[] = views?.general ?? arch
   const maxShare = top[0]?.metaShare || 1
   /* The dot color: a main key's place in `arch`, the order trends (04) colors. */
@@ -420,7 +400,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
     const name = parent ? `+ ${otherName(a, parent)}` : nameOf(a)
     const face = faceOf((other !== undefined && byKey.get(String(other))) || a)
     return (
-      <div key={key} role="row" className={twMerge(ROW, nested && 'bg-surface-200')} style={{ gridTemplateColumns: archCols }}>
+      <div key={key} role="row" className={twMerge(ROW, nested && 'bg-surface-200')} style={{ gridTemplateColumns: ARCH_COLS }}>
         <span role="cell" className={twMerge(NUM, 'font-mono text-xs text-ink-muted')}>{listRank.get(a)}</span>
         <span role="cell" className={twMerge('flex min-w-0 items-center gap-2.5', nested && 'pl-5')}>
           <span className="size-2 flex-none" style={{ background: rank && rank <= TREND_DECKS ? PALETTE[rank - 1] : 'var(--color-line-mid)' }} />
@@ -442,7 +422,7 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
         <span role="cell"><Bar value={a.metaShare} max={maxShare} label={pct(a.metaShare)} /></span>
         <span role="cell" className={twMerge(NUM, 'font-bold text-ink')}>{pct(a.winRate)}</span>
         <span role="cell" className={NUM}>{num(a.games)}</span>
-        {player ? null : <span role="cell" className={NUM}>{num(a.players)}</span>}
+        <span role="cell" className={NUM}>{num(a.players)}</span>
         <span role="cell" className={NUM}>{pct(a.mirrorShare)}</span>
       </div>
     )
@@ -497,11 +477,11 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
       {closed}
       {glance}
 
-      <Section num="02" label="Turn order" stamp={player ? 'Every game · mirrors and unknown decks in' : 'Whole server · mirrors and unknown decks in'}>
+      <Section num="02" label="Turn order" stamp="Whole server · mirrors and unknown decks in">
         <div className={THIRDS}>
-          <TurnBlock title="All games" meta="Mirrors in" split={turnOrder.all} player={player} />
-          <TurnBlock title="Game 1" meta="Before siding" split={turnOrder.game1} player={player} />
-          <TurnBlock title="Games 2–3" meta="After siding" split={turnOrder.postSide} player={player} />
+          <TurnBlock title="All games" meta="Mirrors in" split={turnOrder.all} />
+          <TurnBlock title="Game 1" meta="Before siding" split={turnOrder.game1} />
+          <TurnBlock title="Games 2–3" meta="After siding" split={turnOrder.postSide} />
         </div>
       </Section>
 
@@ -509,15 +489,15 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
 
       <Section
         num="03"
-        label={player ? 'Decks' : 'Archetypes'}
-        stamp={views ? `${views.generalCount} archetypes · general: pure + the mixes each one leads · by deck-games` : `${pure.length} archetypes + ${arch.length - pure.length} mixes${player ? '' : ` of the top ${arch.length}`} · by deck-games`}
+        label="Archetypes"
+        stamp={views ? `${views.generalCount} archetypes · general: pure + the mixes each one leads · by deck-games` : `${pure.length} archetypes + ${arch.length - pure.length} mixes of the top ${arch.length} · by deck-games`}
       >
         <div className="overflow-x-auto">
           <div role="table" aria-label="Archetypes by deck-games" className="min-w-240 border border-line">
             <SortHeads
-              cols={archCols}
-              labels={player ? ['#', 'Archetype', 'Share', 'Win rate', 'Deck-games', 'Mirrors'] : ['#', 'Archetype', 'Meta share', 'Win rate', 'Deck-games', 'Unique Duelists', 'Mirrors']}
-              keys={player ? [null, 'name', 'metaShare', 'winRate', 'games', 'mirrorShare'] : [null, 'name', 'metaShare', 'winRate', 'games', 'players', 'mirrorShare']}
+              cols={ARCH_COLS}
+              labels={['#', 'Archetype', 'Meta share', 'Win rate', 'Deck-games', 'Unique Duelists', 'Mirrors']}
+              keys={[null, 'name', 'metaShare', 'winRate', 'games', 'players', 'mirrorShare']}
               sort={archSort}
               onSort={sortArch}
               right={(i) => i === 0 || i > 2}
@@ -596,22 +576,18 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
               <span />
               <div aria-hidden className="flex items-end justify-between font-mono text-[10px] leading-3 tracking-[0.08em] text-ink-muted">
                 <span>0%</span>
-                <span>{player ? 'Share' : 'Meta share'}</span>
+                <span>Meta share</span>
                 <span>{tick(xMax)}</span>
               </div>
             </div>
             <p className={twMerge(NOTE, 'mt-4')}>Hollow dots are small samples. Above the dashed line the deck wins more than it loses.</p>
           </Panel>
-          {player ? (
-            <BarList title="Deck-games" subtitle="Most played decks" items={top.slice(0, 8).map((a) => ({ label: nameOf(a), value: a.games }))} format={num} />
-          ) : (
-            <BarList
-              title="Unique Duelists"
-              subtitle="Players per deck"
-              items={[...top].sort((a, b) => b.players - a.players).slice(0, 8).map((a) => ({ label: nameOf(a), value: a.players }))}
-              format={num}
-            />
-          )}
+          <BarList
+            title="Unique Duelists"
+            subtitle="Players per deck"
+            items={[...top].sort((a, b) => b.players - a.players).slice(0, 8).map((a) => ({ label: nameOf(a), value: a.players }))}
+            format={num}
+          />
         </div>
       </Section>
 
@@ -640,18 +616,16 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
 
       <Section num="05" id="deep-dive" label="Archetype deep dive" stamp="Mirrors out · up to 15 tracked cards">
         {/* Keyed by season: a new one starts a new search, and unmounting aborts the old one's requests. */}
-        {player ? null : (
-          <DeepDiveSearch
-            key={`${season.code}:${searchRound}`}
-            season={season}
-            mode={ddMode}
-            onMode={setDdMode}
-            request={request}
-            onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)}
-            onRemote={(on) => setRemoteSeason(on ? season.code : null)}
-            onBusy={setSearchBusy}
-          />
-        )}
+        <DeepDiveSearch
+          key={`${season.code}:${searchRound}`}
+          season={season}
+          mode={ddMode}
+          onMode={setDdMode}
+          request={request}
+          onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)}
+          onRemote={(on) => setRemoteSeason(on ? season.code : null)}
+          onBusy={setSearchBusy}
+        />
         {searchBusy || ddMode !== 'pure' ? null : <Segmented
           label="Archetype"
           options={picks.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))}
@@ -663,12 +637,12 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
           }}
         />}
 
-        {ddMode !== 'pure' || remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} player={player} />}
+        {ddMode !== 'pure' || remoteSeason === season.code ? null : <DeepDive archetype={focus} rank={rank} />}
       </Section>
 
-      <Section num="06" label="Most used cards" stamp={player ? 'Generic cards · all deck-games' : 'Generic cards in 2+ archetypes · all deck-games'}>
+      <Section num="06" label="Most used cards" stamp="Generic cards in 2+ archetypes · all deck-games">
         {/* Keyed by season like the deep dive's search: a new season starts empty. */}
-        {player ? null : <CardSearch key={season.code} season={season} onLocal={pickListed} onCard={setSearched} />}
+        <CardSearch key={season.code} season={season} onLocal={pickListed} onCard={setSearched} />
         <TabBar
           label="Deck part"
           fit
@@ -724,17 +698,8 @@ export const Report = ({ data, player = false }: { data: Statistics; player?: bo
 
       <section aria-label="Method" className="mt-12 min-[720px]:mt-16">
         <Notice title="How it's counted" date={data.syncedDays.last ? day(data.syncedDays.last) : undefined} mark>
-          {player ? (
-            <>
-              Only this duelist&apos;s side: every game of a match is one deck-game. Deck win rates leave mirrors and unfinished games out, like
-              the meta report; the overall win rate keeps mirrors in. Read live from the duels, the newest 1000 matches at most.
-            </>
-          ) : (
-            <>
-              Every game counts once per deck, so one Bo3 adds up to six deck-games. Win rates leave mirrors and unfinished games out; meta share keeps them in.
-              The lists only hold decks with {minSamples} or more deck-games, so their shares don&apos;t add up to 100%.
-            </>
-          )}
+          Every game counts once per deck, so one Bo3 adds up to six deck-games. Win rates leave mirrors and unfinished games out; meta share keeps them in.
+          The lists only hold decks with {minSamples} or more deck-games, so their shares don&apos;t add up to 100%.
         </Notice>
       </section>
     </>
