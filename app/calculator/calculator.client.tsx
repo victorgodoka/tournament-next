@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
@@ -26,6 +26,7 @@ import { calculatorReducer, initialState } from './calculator.reducer'
 import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
+import { OddsHeadline } from './odds-headline'
 import { DrawSettings, FocusPanel } from './results'
 import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
@@ -98,6 +99,16 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return row?.card?.name ?? cards.get(id)?.name ?? String(row?.passcode ?? id)
   }
   const [lookupAttempt, setLookupAttempt] = useState(0)
+  /** `any.p` as the last paint stroke began, for 4 s: what the headline's arrow measures from. */
+  const [baseline, setBaseline] = useState<number | null>(null)
+  const baselineTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(baselineTimer.current), [])
+  const onPainted = () => {
+    if ('error' in view.result) return
+    setBaseline(view.result.any.p)
+    clearTimeout(baselineTimer.current)
+    baselineTimer.current = setTimeout(() => setBaseline(null), 4000)
+  }
 
   useEffect(() => {
     ensure(allIds).catch(() => {})
@@ -379,6 +390,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onCopies={(id, copies, passcode) => dispatch({ type: 'setCopies', id, copies, passcode, cards })}
             onRestore={() => dispatch({ type: 'restoreDeck' })}
             onSuggest={suggest}
+            onPainted={onPainted}
           />
           <div data-tour="hands">
             <HandBuilder
@@ -412,6 +424,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
+          <OddsHeadline result={view.result} hasHands={state.calc.analysis.hands.length > 0} baseline={baseline} />
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />
           <FocusPanel
             subjects={subjects}

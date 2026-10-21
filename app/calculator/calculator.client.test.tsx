@@ -96,6 +96,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
 })
@@ -217,6 +218,30 @@ describe('Calculator', () => {
         ],
       },
     ])
+  })
+  it('painting Starter on a card raises the odds: the headline shows the arrow for 4 s, then drops it', async () => {
+    const code = await encodeShare({
+      builds: [{ name: 'Shared', deck: { main: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], extra: [], side: [] }, roles: new Map(), format: null, deckId: null }],
+      analysis: { hands: [{ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/▲/)).toBeNull()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!) // Starter: in the hand, so first
+    act(() => {
+      fireEvent.pointerDown(screen.getAllByRole('button', { name: /tags\.tile/ })[0]!, { button: 0, buttons: 1, pointerType: 'mouse' })
+      fireEvent.pointerUp(window)
+    })
+    expect(screen.getByText(/▲/)).toBeTruthy()
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    expect(screen.queryByText(/▲/)).toBeNull()
   })
   it('a hand size above the deck shows tooFewCards and the URL carries ?c=', async () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3], extra: [], side: [] }))}`)
