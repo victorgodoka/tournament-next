@@ -17,7 +17,9 @@ import type { ArchetypeStat, CardStat, GameRecord, MatchupStat, PlayerTournament
 const rate = (value: number | null) => formatRate(value, 'en')
 const ratio = (wins: number, games: number) => (games ? wins / games : null)
 const gamesRecord = ({ wins, loses, draws }: CardStat) => `${wins}–${loses}${draws ? `–${draws}` : ''}`
-const gameCount = ({ wins, loses, draws }: GameRecord) => wins + loses + draws
+/** `games` is absent from an API older than the field: no rate and no count, not a crash. */
+const gameRate = (games?: GameRecord) => rate(games ? recordRate(games) : null)
+const gameCount = (games?: GameRecord) => (games ? games.wins + games.loses + games.draws : '—')
 const cardLabel = (row: CardStat) => row.name ?? `Card #${row.id}`
 const Scroll = ({ children }: { children: React.ReactNode }) => <div className="min-w-0 overflow-x-auto">{children}</div>
 
@@ -40,12 +42,12 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
     <>
       <Section num={n(0)} label="Tournaments" stamp="Finished tournaments · their matches only">
         <StatGrid
-          columns={6}
+          columns={3}
           items={[
             { label: 'Tournaments', value: tournaments, hint: `${titles} ${titles === 1 ? 'title' : 'titles'}` },
             { label: 'Match record', value: formatRecord(record), hint: `${matches.games} games` },
             { label: 'Match win rate', value: rate(recordRate(record)), hint: 'Matches, byes out' },
-            { label: 'Game win rate', value: rate(recordRate(record.games)), hint: `${gameCount(record.games)} games` },
+            { label: 'Game win rate', value: gameRate(record.games), hint: record.games && `${gameCount(record.games)} games` },
             { label: 'Going first', value: rate(ratio(turnOrder.first.wins, turnOrder.first.games)), hint: `Game 1 · ${turnOrder.first.games} games` },
             { label: 'Going second', value: rate(ratio(turnOrder.second.wins, turnOrder.second.games)), hint: `Game 1 · ${turnOrder.second.games} games` },
           ]}
@@ -69,7 +71,7 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
                 { key: 'record', label: 'Record', numeric: true, render: (row) => <RecordBar {...row} /> },
                 { key: 'winRate', label: 'Match WR', numeric: true, strong: true, render: (row) => rate(row.winRate) },
                 { key: 'games', label: 'Games', numeric: true, render: (row) => gameCount(row.games) },
-                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => rate(recordRate(row.games)) },
+                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => gameRate(row.games) },
               ]}
               rows={archetypes}
             />
@@ -88,7 +90,7 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
                 { key: 'opponent', label: 'Opponent' },
                 { key: 'record', label: 'Record', numeric: true, render: (row) => <RecordBar {...row} /> },
                 { key: 'winRate', label: 'Match WR', numeric: true, strong: true, render: (row) => rate(recordRate(row)) },
-                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => rate(recordRate(row.games)) },
+                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => gameRate(row.games) },
                 { key: 'matches', label: 'Matches', numeric: true, render: (row) => row.wins + row.loses + row.draws },
               ]}
               rows={matchups}

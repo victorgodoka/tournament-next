@@ -508,14 +508,14 @@ export type ArchetypeStat = {
   winRate: number | null
   /** Only on `GET /tournaments/stats`. */
   tournamentWins?: number
-  games: GameRecord
+  games?: GameRecord
 }
 
-/** Games won, lost and drawn in a row's matches, from the row's deck. */
+/** Games won, lost and drawn in a row's matches, from the row's deck. Absent from an API older than the field. */
 export type GameRecord = { wins: number; loses: number; draws: number }
 
 /** `games` from `archetype`'s side, like the match record. */
-export type MatchupStat = { archetype: string; opponent: string; wins: number; loses: number; draws: number; games: GameRecord }
+export type MatchupStat = { archetype: string; opponent: string; wins: number; loses: number; draws: number; games?: GameRecord }
 
 /** Per-zone counts, so "staple of main" and "staple of side" can be separate lists. */
 export type CardZoneStat = { decks: number; copies: number }
@@ -598,7 +598,7 @@ export type PlayerTournamentStats = TournamentStats & {
   tournaments: number
   titles: number
   /** Their played matches, byes out; unclassified decks in (unlike `archetypes`). `games`: the games of those matches. */
-  record: { wins: number; loses: number; draws: number; games: GameRecord }
+  record: { wins: number; loses: number; draws: number; games?: GameRecord }
   /** Their game 1s by who went first. */
   turnOrder: Record<'first' | 'second', { games: number; wins: number }>
 }
