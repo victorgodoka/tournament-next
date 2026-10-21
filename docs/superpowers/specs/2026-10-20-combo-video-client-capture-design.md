@@ -114,10 +114,10 @@ Cancel, or closing the popup, drops the recording; nothing is saved.
 
 1. **Front first.** The new dialog never calls the render routes, so the old server can run meanwhile. Push to `main`
    on GitLab.
-2. **Server.** Push the image and re-pull it in Portainer. The boot drops the table.
+2. **Renderer out, then the server, in one sitting.** Remove the `renderer` service from the Portainer stack first,
+   then push the API image and re-pull it. The boot drops the table, and a renderer still running would fail every
+   poll from then on and, once restarted, crash-loop on its boot query.
 3. **By hand, on the host:**
-   - remove the `renderer` service from the Portainer stack;
-   - remove the `renders` volume;
    - remove the `victorgodoka/omega-renderer` image, and its Docker Hub repository if wanted;
    - remove `API_URL` from `.env.prod`.
 
