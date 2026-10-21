@@ -43,6 +43,8 @@ let fromElement: ReturnType<typeof vi.fn>
 let supported: string[]
 let hidden: boolean
 let urls: number
+/** What the recorder hands over when it stops. */
+let recorded: BlobPart[]
 
 class FakeRecorder {
   static instances: FakeRecorder[] = []
@@ -50,6 +52,7 @@ class FakeRecorder {
   state: RecordingState = 'inactive'
   ondataavailable: ((event: { data: Blob }) => void) | null = null
   onstop: (() => void) | null = null
+  onerror: ((event: Event) => void) | null = null
   constructor(
     public stream: unknown,
     public options: MediaRecorderOptions,
@@ -61,7 +64,7 @@ class FakeRecorder {
   resume = vi.fn(() => void (this.state = 'recording'))
   stop = vi.fn(() => {
     this.state = 'inactive'
-    this.ondataavailable?.({ data: new Blob(['frames']) })
+    this.ondataavailable?.({ data: new Blob(recorded) })
     this.onstop?.()
   })
 }
@@ -102,7 +105,8 @@ beforeEach(() => {
   state.handles = []
   state.failFrom = Infinity
   FakeRecorder.instances = []
-  supported = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']
+  recorded = ['frames']
+  supported =['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm']
   track = Object.assign(new EventTarget(), { stop: vi.fn(), restrictTo: vi.fn(async () => {}) })
   getDisplayMedia = vi.fn(async () => ({ getVideoTracks: () => [track], getTracks: () => [track] }))
   Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getDisplayMedia } })
@@ -241,6 +245,31 @@ describe('ComboRecorder', () => {
     expect(screen.getByText('render.failed')).toBeTruthy()
     expect(track.stop).toHaveBeenCalled()
     expect(FakeRecorder.instances).toHaveLength(0)
+  })
+
+  it('an encoder error mid-take says the video could not be recorded and offers no file', async () => {
+    await mount()
+    await click('render.record')
+    await tick(1500)
+    const recorder = FakeRecorder.instances[0]!
+    // Chrome stops the recorder itself, then reports the error.
+    await act(async () => {
+      recorder.state = 'inactive'
+      recorder.onerror?.(new Event('error'))
+    })
+    await tick(3000)
+    expect(screen.getByText('render.failed')).toBeTruthy()
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('a recording that comes back empty says the video could not be recorded', async () => {
+    recorded = []
+    await mount()
+    await recordToTheEnd()
+    expect(screen.getByText('render.failed')).toBeTruthy()
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
   })
 
   it('hidden pauses the recorder and the clock, visible resumes both', async () => {

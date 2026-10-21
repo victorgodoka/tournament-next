@@ -12,8 +12,11 @@ import type { Action } from '@utils/simulator/types'
 import { SPEEDS, type Speed } from './replay-bar'
 import { TOUCH } from './toolbar'
 
-/** One popup for every recording: a second Record loads the new choices into it. */
-const POPUP = 'combo-video'
+/**
+ * One popup per shape: a second Record of the same shape loads the new choices into it. The other shape gets its own,
+ * since a browser reusing a window by name keeps its size.
+ */
+const popupName = (shape: Shape) => `combo-video-${shape}`
 /** Room above the frame for Chrome's "sharing this tab" bar, which shows once the capture starts. */
 const BAR = 48
 
@@ -76,7 +79,7 @@ const Body = ({ comboId, actions, start }: Pick<VideoDialogProps, 'comboId' | 'a
   // Opened right in the click, or the popup blocker steps in.
   const record = () => {
     const query = new URLSearchParams({ shape, speed: String(speed) })
-    const popup = window.open(`/simulator/c/${encodeURIComponent(comboId)}/render?${query}`, POPUP, popupFeatures(shape, window.screen.availHeight))
+    const popup = window.open(`/simulator/c/${encodeURIComponent(comboId)}/render?${query}`, popupName(shape), popupFeatures(shape, window.screen.availHeight))
     setNote(popup ? 'opened' : 'popupBlocked')
   }
 

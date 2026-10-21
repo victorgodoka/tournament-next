@@ -86,8 +86,20 @@ describe('VideoDialog recording', () => {
     fireEvent.click(button('9:16'))
     fireEvent.click(button('2x'))
     fireEvent.click(button('video.record'))
-    expect(open).toHaveBeenCalledExactlyOnceWith('/simulator/c/c1/render?shape=portrait&speed=2', 'combo-video', popupFeatures('portrait', window.screen.availHeight))
+    expect(open).toHaveBeenCalledExactlyOnceWith(
+      '/simulator/c/c1/render?shape=portrait&speed=2',
+      'combo-video-portrait',
+      popupFeatures('portrait', window.screen.availHeight),
+    )
     expect(screen.getByText('video.opened')).toBeTruthy()
+  })
+
+  it("each shape gets its own popup, so a second Record never inherits the other shape's size", async () => {
+    await mount()
+    fireEvent.click(button('video.record'))
+    fireEvent.click(button('9:16'))
+    fireEvent.click(button('video.record'))
+    expect(open.mock.calls.map(([, name]) => name)).toEqual(['combo-video-landscape', 'combo-video-portrait'])
   })
 
   it('another choice after opening drops the note', async () => {

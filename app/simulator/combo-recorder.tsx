@@ -131,6 +131,8 @@ export const ComboRecorder = ({ id, shape, speed }: { id: string; shape: Shape; 
       const mimeType = MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type))!
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITS_PER_SECOND })
       run.recorder = recorder
+      // An encoder that gives up stops the recorder itself: the take ends there, never with a broken file.
+      recorder.onerror = () => end(run, 'failed')
       const chunks: Blob[] = []
       recorder.ondataavailable = (event) => chunks.push(event.data)
       const stopped = new Promise((resolve) => (recorder.onstop = resolve))
@@ -173,8 +175,10 @@ export const ComboRecorder = ({ id, shape, speed }: { id: string; shape: Shape; 
       recorder.stop()
       stream.getTracks().forEach((each) => each.stop())
       await stopped
+      const blob = new Blob(chunks, { type: mimeType })
+      if (!blob.size) return setPhase({ kind: 'idle', message: 'failed' })
       const mp4 = mimeType.startsWith('video/mp4')
-      file.current = URL.createObjectURL(new Blob(chunks, { type: mimeType }))
+      file.current = URL.createObjectURL(blob)
       setPhase({ kind: 'done', url: file.current, name: `${videoName(video.title)}.${mp4 ? 'mp4' : 'webm'}`, format: mp4 ? 'MP4' : 'WebM' })
     } catch {
       end(run, 'failed')
