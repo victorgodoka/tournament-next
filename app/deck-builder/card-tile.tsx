@@ -71,7 +71,9 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
       )}
     >
       <span className="sr-only">{label ?? name}</span>
-      {card && !failed ? (
+      {/* The scan is asked by passcode alone, before the card's data arrives: the lookup and the image load side by side,
+          and an id with no scan falls back to the plate through `onError`. */}
+      {!failed ? (
         <Image src={CARD_IMAGE_URL(id)} alt="" fill sizes={sizes} draggable={false} onError={() => setFailed(true)} className="object-cover" />
       ) : (
         <span
