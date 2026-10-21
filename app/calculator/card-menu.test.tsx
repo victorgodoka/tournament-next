@@ -16,6 +16,24 @@ const row = (id: number, copies: number, card: CardData | null): DeckCard => ({ 
 const noop = () => {}
 const closed = () => Object.assign(new Event('toggle'), { newState: 'closed' })
 
+/** The menu's own size: happy-dom lays nothing out. */
+const size = (width: number, height: number) => {
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width)
+  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
+}
+const viewport = (width: number, height: number) => {
+  vi.stubGlobal('innerWidth', width)
+  vi.stubGlobal('innerHeight', height)
+}
+const tile = (rect: Partial<DOMRect>) => ({ getBoundingClientRect: () => rect }) as HTMLElement
+/** The inline top/left a menu opened from `anchor` gets. */
+const place = (anchor: HTMLElement) => {
+  render(<CardMenu row={row(1, 1, magician)} roles={new Map()} palette={[]} anchor={anchor} changed={false} banlist={null} onToggle={noop} onCopies={noop} onClose={noop} />)
+  const { top, left } = screen.getByRole('dialog').style
+  cleanup()
+  return { top, left }
+}
+
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
@@ -87,22 +105,23 @@ describe('CardMenu', () => {
   })
 
   it('opens under the tile, flips above when there is no room, and stays inside the viewport', () => {
-    const size = (width: number, height: number) => {
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width)
-      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height)
-    }
-    const tile = (rect: Partial<DOMRect>) => ({ getBoundingClientRect: () => rect }) as HTMLElement
-    const place = (anchor: HTMLElement) => {
-      render(<CardMenu row={row(1, 1, magician)} roles={new Map()} palette={[]} anchor={anchor} changed={false} banlist={null} onToggle={noop} onCopies={noop} onClose={noop} />)
-      const { top, left } = screen.getByRole('dialog').style
-      cleanup()
-      return { top, left }
-    }
-    vi.stubGlobal('innerWidth', 1000)
-    vi.stubGlobal('innerHeight', 700)
+    viewport(1000, 700)
     size(300, 400)
     expect(place(tile({ top: 100, bottom: 160, left: 50 }))).toEqual({ top: '160px', left: '50px' })
     expect(place(tile({ top: 500, bottom: 560, left: 900 }))).toEqual({ top: '100px', left: '692px' })
     expect(place(tile({ top: 100, bottom: 160, left: -20 })).left).toBe('8px')
+  })
+
+  it('keeps the top inside the viewport when neither side of the tile has room', () => {
+    viewport(1000, 650)
+    size(300, 380)
+    // Below: 360 + 380 > 650; above: 270 - 380 = -110.
+    expect(place(tile({ top: 270, bottom: 360, left: 50 })).top).toBe('8px')
+    // Taller than the viewport: the top edge wins.
+    size(300, 700)
+    expect(place(tile({ top: 270, bottom: 360, left: 50 })).top).toBe('8px')
+    // Fits below by less than the margin: pulled up to keep the bottom margin.
+    size(300, 400)
+    expect(place(tile({ top: 200, bottom: 250, left: 50 })).top).toBe('242px')
   })
 })

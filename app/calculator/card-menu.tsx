@@ -37,12 +37,13 @@ type CardMenuProps = {
   onClose(): void
 }
 
-/** Under the anchor, above it when the menu would run off the bottom; kept `EDGE` px inside the viewport's sides. */
+/** Under the anchor, above it when the menu would run off the bottom; kept `EDGE` px inside the viewport on every side (the top wins when it is taller than the viewport). */
 const place = (menu: HTMLElement, anchor: HTMLElement | null) => {
   if (!anchor) return
   const rect = anchor.getBoundingClientRect()
   const { offsetWidth, offsetHeight } = menu
-  menu.style.top = `${rect.bottom + offsetHeight > window.innerHeight ? rect.top - offsetHeight : rect.bottom}px`
+  const top = rect.bottom + offsetHeight > window.innerHeight ? rect.top - offsetHeight : rect.bottom
+  menu.style.top = `${Math.max(EDGE, Math.min(top, window.innerHeight - offsetHeight - EDGE))}px`
   menu.style.left = `${Math.max(EDGE, Math.min(rect.left, window.innerWidth - offsetWidth - EDGE))}px`
 }
 
