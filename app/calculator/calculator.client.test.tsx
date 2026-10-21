@@ -89,6 +89,13 @@ beforeEach(() => {
       disconnect() {}
     },
   )
+  // Node's own (flagged) localStorage shadows happy-dom's. The first-visit tour would cover the board; its own tests clear the flag.
+  const store = new Map<string, string>([['calc-tour', 'done']])
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  })
   auth.user = { id: 'u1' }
   vi.mocked(getDeck).mockResolvedValue(null)
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
@@ -329,5 +336,28 @@ describe('Calculator', () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [7], extra: [], side: [] }))}&name=Plain`)
     const asked = vi.mocked(cardsByIds).mock.calls.flatMap(([ids]) => ids)
     for (const id of Object.values(DRAW_EFFECTS)) expect(asked).toContain(id)
+  })
+  it('the tour opens on a first visit with a deck and advances as the board is used', async () => {
+    localStorage.removeItem('calc-tour')
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2], extra: [], side: [] }))}`)
+    expect(screen.getByText('tour.s1Title')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!))
+    expect(screen.getByText('tour.s2Title')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tour.skip' })))
+    expect(screen.queryByText('tour.s2Title')).toBeNull()
+    expect(localStorage.getItem('calc-tour')).toBe('done')
+  })
+  it('the tour waits for a deck: the picker starts it, and the ? button brings it back after Skip', async () => {
+    localStorage.removeItem('calc-tour')
+    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary(ID, 'Blue-Eyes')], nextCursor: null })
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, name: 'Blue-Eyes', main: [8, 8] }))
+    await open('/calculator')
+    expect(screen.queryByText('tour.s1Title')).toBeNull()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'picker.openNamed' })))
+    expect(screen.getByText('tour.s1Title')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tour.skip' })))
+    expect(screen.queryByText('tour.s1Title')).toBeNull()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tags.help' })))
+    expect(screen.getByText('tour.s1Title')).toBeTruthy()
   })
 })

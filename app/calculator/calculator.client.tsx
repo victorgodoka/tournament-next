@@ -32,6 +32,7 @@ import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
 import { TagBoard } from './tag-board'
 import { suggestedRule } from './tags'
+import { markTourSeen, Tour, tourAfter, tourSeen, type TourState } from './tour'
 import { useCalculations } from './use-calculation'
 
 const TOUCH = 'max-lg:min-h-11'
@@ -80,6 +81,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [toast, setToast] = useState<Toast | null>(null)
   /** The clipboard refused: the link shows in a field to copy by hand. */
   const [copyFallback, setCopyFallback] = useState<string | null>(null)
+  /** The hands-on tour opens by itself on a first visit with a deck; the board's `?` brings it back. */
+  const [tour, setTour] = useState<TourState>(() => (boot.calc.builds[0]!.deck.main.length > 0 && !tourSeen() ? { step: 1, paints: 0 } : null))
   const { cards, failed, ensure } = useCardCache()
   const build = state.calc.builds[state.active]!
   const original = state.originals[state.active]!
@@ -278,7 +281,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         open={picker !== null}
         onClose={() => setPicker(null)}
         lookup={ensure}
-        onPick={(b, s) => showBuild(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })}
+        onPick={(b, s) => {
+          showBuild(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })
+          if (tour === null && !tourSeen() && b.deck.main.length > 0) setTour({ step: 1, paints: 0 })
+        }}
       />
 
       {notice ? (
@@ -397,6 +403,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             onRestore={() => dispatch({ type: 'restoreDeck' })}
             onSuggest={suggest}
             onPainted={onPainted}
+            onTour={(event) => setTour((s) => tourAfter(s, event))}
+            onHelp={() => setTour({ step: 1, paints: 0 })}
           />
           <div data-tour="hands">
             <HandBuilder
@@ -442,6 +450,15 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
         </div>
       </div>
+
+      {tour ? (
+        <Tour
+          state={tour}
+          onBack={() => setTour({ step: tour.step - 1, paints: 0 })}
+          onNext={() => setTour({ step: tour.step + 1, paints: 0 })}
+          onClose={() => (markTourSeen(), setTour(null))}
+        />
+      ) : null}
 
       {toast ? (
         <div className="fixed inset-x-4 top-[calc(var(--header-h,64px)+12px)] z-(--z-toast) mx-auto max-w-120 drop-shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
