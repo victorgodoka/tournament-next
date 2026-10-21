@@ -65,6 +65,11 @@ const summary = (id: string, name: string): DeckSummary => ({
   label: null,
 })
 
+/** Opens the first tile's card menu (no brush picked: a click opens it). */
+const openMenu = () => act(async () => fireEvent.click(screen.getAllByRole('button', { name: /tags\.tile/ })[0]!))
+/** The first tag in the open menu: Starter. */
+const toggleFirstTag = () => act(async () => fireEvent.click(screen.getAllByRole('checkbox', { name: 'tags.toggle' })[0]!))
+
 /** Renders the calculator at `url` and lets the async boot, card lookups and deck read settle. */
 const open = async (url: string) => {
   window.history.replaceState(null, '', url)
@@ -84,6 +89,13 @@ beforeEach(() => {
       disconnect() {}
     },
   )
+  // Node's own (flagged) localStorage shadows happy-dom's. The first-visit tour would cover the board; its own tests clear the flag.
+  const store = new Map<string, string>([['calc-tour', 'done']])
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+    removeItem: (k: string) => void store.delete(k),
+  })
   auth.user = { id: 'u1' }
   vi.mocked(getDeck).mockResolvedValue(null)
   vi.mocked(listMyDecks).mockResolvedValue({ decks: [], nextCursor: null })
@@ -91,6 +103,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
 })
@@ -111,7 +124,8 @@ describe('Calculator', () => {
     vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [1], tags: {}, revision: 2, ownerId: 'u1' }))
     vi.mocked(updateDeck).mockRejectedValueOnce(new DeckConflictError(server({ revision: 3 })))
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!)) // Starter, first in the palette
+    await openMenu()
+    await toggleFirstTag()
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 2) // three arguments: no explicit `force`
     expect(screen.getByText('save.changed')).toBeTruthy()
@@ -134,9 +148,10 @@ describe('Calculator', () => {
       effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
-    const chips = screen.getAllByRole('button', { name: 'deck.roleOf' })
-    expect(chips[0]!.getAttribute('aria-pressed')).toBe('true') // Starter, from the link
-    expect(chips[3]!.getAttribute('aria-pressed')).toBe('false') // Brick, from the saved deck: not adopted
+    await openMenu()
+    const boxes = screen.getAllByRole('checkbox', { name: 'tags.toggle' }) as HTMLInputElement[]
+    expect(boxes[0]!.checked).toBe(true) // Starter, from the link
+    expect(boxes[4]!.checked).toBe(false) // Brick, from the saved deck: not adopted
     expect(screen.getByText('save.roles')).toBeTruthy() // the owner's revision was learned
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 7)
@@ -163,7 +178,8 @@ describe('Calculator', () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
     await act(async () => fireEvent.click(screen.getByText('pickDeck')))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'picker.openNamed' })))
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!))
+    await openMenu()
+    await toggleFirstTag()
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(OTHER, { tags: { '2': ['Starter'] } }, 1)
     await act(async () => fireEvent.click(screen.getByText('save.reload')))
@@ -173,11 +189,90 @@ describe('Calculator', () => {
     vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [1, 2], tags: {}, revision: 2, ownerId: 'u1' }))
     vi.mocked(updateDeck).mockResolvedValue(server({ id: ID, main: [1, 2], tags: { '1': ['Starter'] }, revision: 3 }))
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2], extra: [], side: [] }))}&deck=${ID}`)
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!)) // Starter on card 1
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.fewer' })[0]!)) // card 1 to 0 copies
+    await openMenu() // card 1
+    await toggleFirstTag() // Starter on card 1
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'deck.fewer' }))) // card 1 to 0 copies
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 2)
     expect(screen.getByText('save.saved')).toBeTruthy()
+  })
+  it('Use in hands starts a hand with the rule, then adds the next rule to it', async () => {
+    const code = await encodeShare({
+      builds: [{ name: 'Shared', deck: { main: [1], extra: [], side: [] }, roles: new Map(), format: null, deckId: null }],
+      analysis: { hands: [] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    const suggestions = () => screen.queryAllByRole('button', { name: 'tags.useInHands' })
+    expect(suggestions()).toHaveLength(2) // Starter, Brick
+    await act(async () => fireEvent.click(suggestions()[1]!)) // Brick: no hands yet, so a new one
+    expect(suggestions()).toHaveLength(1) // Brick moved to In your hands
+    await act(async () => fireEvent.click(suggestions()[0]!)) // Starter joins that hand
+    expect(suggestions()).toHaveLength(0)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    const { analysis } = await decodeShare(new URLSearchParams(location.search).get('c')!)
+    expect(analysis.hands).toEqual([
+      {
+        name: '',
+        rules: [
+          { subject: { kind: 'role', role: 'Brick' }, min: 0, max: 0 },
+          { subject: { kind: 'role', role: 'Starter' }, min: 1, max: null },
+        ],
+      },
+    ])
+  })
+  it('painting Starter on a card raises the odds: the headline shows the arrow for 4 s, then drops it', async () => {
+    const code = await encodeShare({
+      builds: [{ name: 'Shared', deck: { main: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], extra: [], side: [] }, roles: new Map(), format: null, deckId: null }],
+      analysis: { hands: [{ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/▲/)).toBeNull()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!) // Starter: in the hand, so first
+    act(() => {
+      fireEvent.pointerDown(screen.getAllByRole('button', { name: /tags\.tile/ })[0]!, { button: 0, buttons: 1, pointerType: 'mouse' })
+      fireEvent.pointerUp(window)
+    })
+    expect(screen.getByText(/▲/)).toBeTruthy()
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    expect(screen.queryByText(/▲/)).toBeNull()
+  })
+  it("switching build tabs drops the arrow: the baseline was measured on the other build's odds", async () => {
+    const main = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    const code = await encodeShare({
+      builds: [
+        { name: 'A', deck: { main, extra: [], side: [] }, roles: new Map(), format: null, deckId: null },
+        { name: 'B', deck: { main, extra: [], side: [] }, roles: new Map([[1, ['Starter']]]), format: null, deckId: null },
+      ],
+      analysis: { hands: [{ name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!) // Starter
+    // A has no Starter: painting card 2 raises it from 0%, so the arrow shows.
+    await act(async () => {
+      fireEvent.pointerDown(screen.getAllByRole('button', { name: /tags\.tile/ })[1]!, { button: 0, buttons: 1, pointerType: 'mouse' })
+      fireEvent.pointerUp(window)
+    })
+    expect(screen.getByText(/▲/)).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('tab')[1]!) // B's odds are not A's odds plus the paint
+    expect(screen.queryByText(/[▲▼]/)).toBeNull()
   })
   it('a hand size above the deck shows tooFewCards and the URL carries ?c=', async () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3], extra: [], side: [] }))}`)
@@ -213,7 +308,8 @@ describe('Calculator', () => {
     await act(async () => fireEvent.click(screen.getByText('builds.duplicate')))
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['A · First', 'B · builds.copyOf'])
     expect(screen.queryByText('save.roles')).toBeNull() // the copy is not the saved deck
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.fewer' })[0]!))
+    await openMenu()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'deck.fewer' })))
     const copies = () => within(screen.getByRole('group', { name: 'deck.copiesOf' })).getByText(/^\d$/).textContent
     expect(copies()).toBe('1') // the copy's row: 1 copy
     fireEvent.click(screen.getAllByRole('tab')[0]!)
@@ -240,5 +336,30 @@ describe('Calculator', () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [7], extra: [], side: [] }))}&name=Plain`)
     const asked = vi.mocked(cardsByIds).mock.calls.flatMap(([ids]) => ids)
     for (const id of Object.values(DRAW_EFFECTS)) expect(asked).toContain(id)
+  })
+  it('the tour opens on a first visit with a deck and advances as the board is used', async () => {
+    localStorage.removeItem('calc-tour')
+    await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2], extra: [], side: [] }))}`)
+    // Fixed on screen, but first in the DOM: Skip and Next come before the board's controls in the tab order.
+    const dialog = screen.getByText('tour.s1Title').closest('[role="dialog"]')!
+    expect(dialog.compareDocumentPosition(screen.getByLabelText('deckName')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!))
+    expect(screen.getByText('tour.s2Title')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tour.skip' })))
+    expect(screen.queryByText('tour.s2Title')).toBeNull()
+    expect(localStorage.getItem('calc-tour')).toBe('done')
+  })
+  it('the tour waits for a deck: the picker starts it, and the ? button brings it back after Skip', async () => {
+    localStorage.removeItem('calc-tour')
+    vi.mocked(listMyDecks).mockResolvedValue({ decks: [summary(ID, 'Blue-Eyes')], nextCursor: null })
+    vi.mocked(getDeck).mockResolvedValue(server({ id: ID, name: 'Blue-Eyes', main: [8, 8] }))
+    await open('/calculator')
+    expect(screen.queryByText('tour.s1Title')).toBeNull()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'picker.openNamed' })))
+    expect(screen.getByText('tour.s1Title')).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tour.skip' })))
+    expect(screen.queryByText('tour.s1Title')).toBeNull()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tags.help' })))
+    expect(screen.getByText('tour.s1Title')).toBeTruthy()
   })
 })

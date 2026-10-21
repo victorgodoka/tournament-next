@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CardData } from '@utils/deck/types'
-import { addRole, normalizeRole, palette, rolesFromTags, sameRole, tagsFromRoles, toggleRole } from './roles'
+import { addRole, normalizeRole, palette, removeRole, rolesFromTags, sameRole, tagsFromRoles, toggleRole } from './roles'
 
 const magician = { id: 46986414, idOriginal: 46986414, idTcg: null, alias: null, ruleId: null, alternateArts: [46986431], name: 'Dark Magician' } as unknown as CardData
 const cards = new Map<number, CardData>([
@@ -40,6 +40,13 @@ describe('roles', () => {
     expect(addRole(one, 1, 'Engine').get(1)).toEqual(['Starter', 'Engine'])
   })
   it('palette: defaults first, then the roles in use', () => {
-    expect(palette(new Map([[1, ['Engine', 'starter']], [2, ['Board Breaker']]]))).toEqual(['Starter', 'Extender', 'Hand Trap', 'Brick', 'Board Breaker', 'Engine'])
+    expect(palette(new Map([[1, ['Engine', 'starter']], [2, ['board breaker']]]))).toEqual(['Starter', 'Extender', 'Hand Trap', 'Board Breaker', 'Brick', 'Non-Engine', 'Searcher', 'Needs Normal Summon', 'Engine'])
+  })
+  it('removeRole drops any spelling and keeps the same map when absent', () => {
+    const roles = new Map([[1, ['Starter', 'Brick']]])
+    expect(removeRole(roles, 1, 'brick')).toEqual(new Map([[1, ['Starter']]]))
+    expect(removeRole(new Map([[1, ['Brick']]]), 1, 'Brick')).toEqual(new Map())
+    expect(removeRole(roles, 1, 'Extender')).toBe(roles)
+    expect(removeRole(roles, 2, 'Starter')).toBe(roles)
   })
 })

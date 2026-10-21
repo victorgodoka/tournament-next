@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
@@ -13,7 +13,7 @@ import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { useAuth } from '@hooks/index'
 import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
-import { rolesFromTags, tagsFromRoles } from '@utils/combo/roles'
+import { rolesFromTags, sameRole, tagsFromRoles } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
 import { EFFECT_IDS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
@@ -22,14 +22,17 @@ import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { BuildTabs } from './build-tabs'
-import { calculatorReducer, initialState } from './calculator.reducer'
-import { CardRoles } from './card-roles'
+import { calculatorReducer, initialState, type CalcAction } from './calculator.reducer'
 import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
+import { OddsHeadline } from './odds-headline'
 import { DrawSettings, FocusPanel } from './results'
 import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
+import { TagBoard } from './tag-board'
+import { suggestedRule } from './tags'
+import { markTourSeen, Tour, tourAfter, tourSeen, type TourState } from './tour'
 import { useCalculations } from './use-calculation'
 
 const TOUCH = 'max-lg:min-h-11'
@@ -78,6 +81,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [toast, setToast] = useState<Toast | null>(null)
   /** The clipboard refused: the link shows in a field to copy by hand. */
   const [copyFallback, setCopyFallback] = useState<string | null>(null)
+  /** The hands-on tour opens by itself on a first visit with a deck; the board's `?` brings it back. */
+  const [tour, setTour] = useState<TourState>(() => (boot.calc.builds[0]!.deck.main.length > 0 && !tourSeen() ? { step: 1, paints: 0 } : null))
   const { cards, failed, ensure } = useCardCache()
   const build = state.calc.builds[state.active]!
   const original = state.originals[state.active]!
@@ -97,6 +102,22 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return row?.card?.name ?? cards.get(id)?.name ?? String(row?.passcode ?? id)
   }
   const [lookupAttempt, setLookupAttempt] = useState(0)
+  /** `any.p` as the last paint stroke began, for 4 s: what the headline's arrow measures from. */
+  const [baseline, setBaseline] = useState<number | null>(null)
+  const baselineTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(baselineTimer.current), [])
+  const onPainted = () => {
+    if ('error' in view.result) return
+    setBaseline(view.result.any.p)
+    clearTimeout(baselineTimer.current)
+    baselineTimer.current = setTimeout(() => setBaseline(null), 4000)
+  }
+  /** An action that changes which build or deck is shown: the baseline was measured on the old one. */
+  const showBuild = (action: CalcAction) => {
+    clearTimeout(baselineTimer.current)
+    setBaseline(null)
+    dispatch(action)
+  }
 
   useEffect(() => {
     ensure(allIds).catch(() => {})
@@ -226,6 +247,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return unused
   }, [state.calc.analysis.hands, view.rows, build.roles])
 
+  /** A tag's suggested rule joins every hand that has no rule on it yet; with no hands, it starts one. */
+  const suggest = (role: string) => {
+    const rule = suggestedRule(role)
+    if (!rule) return
+    const hands = state.calc.analysis.hands
+    if (!hands.length) return dispatch({ type: 'addHand', hand: { name: '', rules: [rule] } })
+    hands.forEach((hand, i) => {
+      if (!hand.rules.some((r) => r.subject.kind === 'role' && sameRole(r.subject.role, role))) dispatch({ type: 'addRule', hand: i, rule })
+    })
+  }
+
   return (
     <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-8 pb-24">
       <PageHeader
@@ -245,11 +277,23 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           </>
         }
       />
+      {/* Fixed on screen, so its place here only sets the tab order: Skip and Next come before the board, not after the Simulator. */}
+      {tour ? (
+        <Tour
+          state={tour}
+          onBack={() => setTour({ step: tour.step - 1, paints: 0 })}
+          onNext={() => setTour({ step: tour.step + 1, paints: 0 })}
+          onClose={() => (markTourSeen(), setTour(null))}
+        />
+      ) : null}
       <DeckPicker
         open={picker !== null}
         onClose={() => setPicker(null)}
         lookup={ensure}
-        onPick={(b, s) => dispatch(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })}
+        onPick={(b, s) => {
+          showBuild(picker === 'add' ? { type: 'addBuild', build: b, saved: s } : { type: 'load', build: b, saved: s, cards })
+          if (tour === null && !tourSeen() && b.deck.main.length > 0) setTour({ step: 1, paints: 0 })
+        }}
       />
 
       {notice ? (
@@ -297,10 +341,10 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       <BuildTabs
         builds={state.calc.builds}
         active={state.active}
-        onSelect={(index) => dispatch({ type: 'setActive', index })}
+        onSelect={(index) => showBuild({ type: 'setActive', index })}
         onAdd={() => setPicker('add')}
-        onDuplicate={() => dispatch({ type: 'duplicateBuild', name: t('builds.copyOf', { name: build.name || t('builds.untitled', { n: state.active + 1 }) }) })}
-        onRemove={() => dispatch({ type: 'removeBuild', index: state.active })}
+        onDuplicate={() => showBuild({ type: 'duplicateBuild', name: t('builds.copyOf', { name: build.name || t('builds.untitled', { n: state.active + 1 }) }) })}
+        onRemove={() => showBuild({ type: 'removeBuild', index: state.active })}
       />
 
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
@@ -354,29 +398,37 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               }
             />
           ) : null}
-          <CardRoles
+          <TagBoard
             rows={view.rows}
             roles={build.roles}
             palette={view.palette}
+            hands={state.calc.analysis.hands}
             originalCopies={originalCopies}
             banlist={banlist}
             notDrawn={build.deck.extra.length + build.deck.side.length}
+            onSetRole={(id, role, on) => dispatch({ type: 'setRole', id, role, on })}
             onToggle={(id, role) => dispatch({ type: 'toggleRole', id, role })}
             onCopies={(id, copies, passcode) => dispatch({ type: 'setCopies', id, copies, passcode, cards })}
             onRestore={() => dispatch({ type: 'restoreDeck' })}
+            onSuggest={suggest}
+            onPainted={onPainted}
+            onTour={(event) => setTour((s) => tourAfter(s, event))}
+            onHelp={() => setTour({ step: 1, paints: 0 })}
           />
-          <HandBuilder
-            analysis={state.calc.analysis}
-            subjects={subjects}
-            result={view.result}
-            unusedRoles={unusedRoles}
-            onAdd={(hand) => dispatch({ type: 'addHand', hand })}
-            onRemove={(index) => dispatch({ type: 'removeHand', index })}
-            onRename={(index, name) => dispatch({ type: 'renameHand', index, name })}
-            onRule={(hand, index, rule) => dispatch({ type: 'setRule', hand, index, rule })}
-            onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
-            onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
-          />
+          <div data-tour="hands">
+            <HandBuilder
+              analysis={state.calc.analysis}
+              subjects={subjects}
+              result={view.result}
+              unusedRoles={unusedRoles}
+              onAdd={(hand) => dispatch({ type: 'addHand', hand })}
+              onRemove={(index) => dispatch({ type: 'removeHand', index })}
+              onRename={(index, name) => dispatch({ type: 'renameHand', index, name })}
+              onRule={(hand, index, rule) => dispatch({ type: 'setRule', hand, index, rule })}
+              onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
+              onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
+            />
+          </div>
           {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
           <Sweeps rows={view.rows} roles={build.roles} analysis={state.calc.analysis} draw={state.calc.draw} banlist={banlist} focus={state.calc.focus} nameOf={nameOf} />
           <Simulator
@@ -395,6 +447,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
         </div>
         <div className="order-1 flex flex-col gap-6 lg:sticky lg:top-24 lg:order-2">
+          <OddsHeadline result={view.result} hasHands={state.calc.analysis.hands.length > 0} baseline={baseline} />
           <DrawSettings draw={state.calc.draw} deckSize={build.deck.main.length} onChange={(draw) => dispatch({ type: 'setDraw', draw })} />
           <FocusPanel
             subjects={subjects}
