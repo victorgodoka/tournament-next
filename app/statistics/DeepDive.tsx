@@ -190,26 +190,23 @@ const Groups = ({ title, items, color }: { title: string; items: CardGroup[]; co
 )
 
 /** `rank` is the deck's place by deck-games. Sorting the cards table is local, so switching decks keeps it. */
-/** `player`: one duelist's deck, so its share is of their games and there are no unique duelists. */
-export const DeepDive = ({ archetype: focus, rank, player = false }: { archetype: StatArchetype; rank: number; player?: boolean }) => {
+export const DeepDive = ({ archetype: focus, rank }: { archetype: StatArchetype; rank: number }) => {
   const [cardSort, sortCards] = useSort<CardSortKey>()
   const nullCardRates = focus.cards.some((c) => c.winRateWhenUsed == null || c.winRateInDeck == null)
 
   return (
     <>
-      <Panel tone="steel" title={nameOf(focus)} meta={player ? `#${rank} by deck-games` : `#${rank} by deck-games · ${num(focus.players)} unique duelists`}>
+      <Panel tone="steel" title={nameOf(focus)} meta={`#${rank} by deck-games · ${num(focus.players)} unique duelists`}>
         <div className="flex flex-wrap items-center gap-8">
           <Art card={faceOf(focus)} size={148} className="size-37 max-[720px]:hidden" />
           <div className="min-w-0 flex-[999_1_560px]">
             <StatGrid
               columns={4}
               items={[
-                { label: player ? 'Share' : 'Meta share', value: pct(focus.metaShare), hint: `${num(focus.games)} deck-games` },
+                { label: 'Meta share', value: pct(focus.metaShare), hint: `${num(focus.games)} deck-games` },
                 { label: 'Win rate', value: pct(focus.winRate), hint: `Wilson low ${pct(focus.wilsonLower)}` },
                 { label: 'Mirrors', value: pct(focus.mirrorShare), hint: 'Out of the win rate' },
-                player
-                  ? { label: 'Record', value: `${num(focus.wins)}–${num(focus.losses)}`, hint: focus.draws ? `${num(focus.draws)} draws` : 'Mirrors out' }
-                  : { label: 'Unique Duelists', value: num(focus.players), hint: `${(focus.games / (focus.players || 1)).toFixed(1)} games each` },
+                { label: 'Unique Duelists', value: num(focus.players), hint: `${(focus.games / (focus.players || 1)).toFixed(1)} games each` },
               ]}
             />
           </div>

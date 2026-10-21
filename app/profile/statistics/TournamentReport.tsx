@@ -6,24 +6,26 @@
  * Decklists only: tournament duels have no play log, so a card's record is "games with it in the list".
  */
 
-import { formatRate, formatRecord } from '@omega/tournament/labels'
+import { formatRate, formatRecord, recordRate } from '@omega/tournament/labels'
 import { RecordBar, ShareCell, ShareStack, WinRateBars } from '@omega/tournament/stats-charts'
 import { DataTable } from '@ui/data-table'
 import { Panel } from '@ui/panel'
 import { StatGrid } from '@ui/stat-grid'
 import { Section } from '@app/statistics/MetaStatistics'
-import type { ArchetypeStat, CardStat, MatchupStat, PlayerTournamentStats } from '@utils/types'
+import type { ArchetypeStat, CardStat, GameRecord, MatchupStat, PlayerTournamentStats } from '@utils/types'
 
 const rate = (value: number | null) => formatRate(value, 'en')
 const ratio = (wins: number, games: number) => (games ? wins / games : null)
 const gamesRecord = ({ wins, loses, draws }: CardStat) => `${wins}–${loses}${draws ? `–${draws}` : ''}`
+/** `games` is absent from an API older than the field: no rate and no count, not a crash. */
+const gameRate = (games?: GameRecord) => rate(games ? recordRate(games) : null)
+const gameCount = (games?: GameRecord) => (games ? games.wins + games.loses + games.draws : '—')
 const cardLabel = (row: CardStat) => row.name ?? `Card #${row.id}`
 const Scroll = ({ children }: { children: React.ReactNode }) => <div className="min-w-0 overflow-x-auto">{children}</div>
 
 export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentStats; first?: number }) => {
   const { tournaments, titles, record, turnOrder, matches, archetypes, matchups, cards } = data
   const n = (k: number) => String(first + k).padStart(2, '0')
-  const played = record.wins + record.loses + record.draws
 
   if (!tournaments)
     return (
@@ -40,11 +42,12 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
     <>
       <Section num={n(0)} label="Tournaments" stamp="Finished tournaments · their matches only">
         <StatGrid
-          columns={5}
+          columns={3}
           items={[
             { label: 'Tournaments', value: tournaments, hint: `${titles} ${titles === 1 ? 'title' : 'titles'}` },
             { label: 'Match record', value: formatRecord(record), hint: `${matches.games} games` },
-            { label: 'Win rate', value: rate(ratio(record.wins, played)), hint: 'Matches, byes out' },
+            { label: 'Match win rate', value: rate(recordRate(record)), hint: 'Matches, byes out' },
+            { label: 'Game win rate', value: gameRate(record.games), hint: record.games && `${gameCount(record.games)} games` },
             { label: 'Going first', value: rate(ratio(turnOrder.first.wins, turnOrder.first.games)), hint: `Game 1 · ${turnOrder.first.games} games` },
             { label: 'Going second', value: rate(ratio(turnOrder.second.wins, turnOrder.second.games)), hint: `Game 1 · ${turnOrder.second.games} games` },
           ]}
@@ -66,7 +69,9 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
                 { key: 'players', label: 'Tournaments', numeric: true, render: decks },
                 { key: 'tournamentWins', label: 'Titles', numeric: true, render: (row) => row.tournamentWins ?? 0 },
                 { key: 'record', label: 'Record', numeric: true, render: (row) => <RecordBar {...row} /> },
-                { key: 'winRate', label: 'Win rate', numeric: true, strong: true, render: (row) => rate(row.winRate) },
+                { key: 'winRate', label: 'Match WR', numeric: true, strong: true, render: (row) => rate(row.winRate) },
+                { key: 'games', label: 'Games', numeric: true, render: (row) => gameCount(row.games) },
+                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => gameRate(row.games) },
               ]}
               rows={archetypes}
             />
@@ -84,6 +89,8 @@ export const TournamentReport = ({ data, first = 1 }: { data: PlayerTournamentSt
                 { key: 'archetype', label: 'Deck', strong: true },
                 { key: 'opponent', label: 'Opponent' },
                 { key: 'record', label: 'Record', numeric: true, render: (row) => <RecordBar {...row} /> },
+                { key: 'winRate', label: 'Match WR', numeric: true, strong: true, render: (row) => rate(recordRate(row)) },
+                { key: 'gameRate', label: 'Game WR', numeric: true, strong: true, render: (row) => gameRate(row.games) },
                 { key: 'matches', label: 'Matches', numeric: true, render: (row) => row.wins + row.loses + row.draws },
               ]}
               rows={matchups}
