@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
@@ -56,15 +56,27 @@ export const CardMenu = (p: CardMenuProps) => {
   const mine = p.roles.get(p.row.id) ?? []
   const opt = p.row.card ? oncePerTurn(p.row.card.description) : null
 
+  const self = useRef<HTMLDivElement | null>(null)
   const show = useCallback(
     (menu: HTMLDivElement | null) => {
+      self.current = menu
       if (!menu) return
       // StrictMode attaches a ref twice, and showing an open popover throws.
       if (menu.showPopover && !menu.matches(':popover-open')) menu.showPopover()
       place(menu, p.anchor)
+      // The menu sits after the whole grid in the DOM: focus moves in, or the keyboard would tab through every tile to reach it.
+      // A second attach finds focus already inside and leaves it there.
+      if (!menu.contains(document.activeElement)) menu.querySelector<HTMLElement>('input[type="checkbox"]')?.focus({ preventScroll: true })
     },
     [p.anchor],
   )
+
+  /** Focus goes back to the tile the menu opened from, unless it has moved on to a control outside the menu (the click that light-dismissed it). */
+  const close = () => {
+    const active = document.activeElement
+    if (p.anchor?.isConnected && (!active || active === document.body || self.current?.contains(active))) p.anchor.focus()
+    p.onClose()
+  }
 
   return (
     <div
@@ -74,7 +86,7 @@ export const CardMenu = (p: CardMenuProps) => {
       aria-label={name}
       // Light dismiss and Escape close a popover without asking.
       onToggle={(e) => {
-        if (e.nativeEvent.newState === 'closed') p.onClose()
+        if (e.nativeEvent.newState === 'closed') close()
       }}
       className={MENU}
     >
@@ -88,7 +100,7 @@ export const CardMenu = (p: CardMenuProps) => {
               {p.changed ? <Chip tone="cyan">{t('deck.changed')}</Chip> : null}
             </span>
           </div>
-          <Button variant="ghost" size="icon-sm" aria-label={t('menu.close')} onClick={p.onClose} className={TOUCH}>
+          <Button variant="ghost" size="icon-sm" aria-label={t('menu.close')} onClick={close} className={TOUCH}>
             <Icon name="close" />
           </Button>
         </div>

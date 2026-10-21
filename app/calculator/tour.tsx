@@ -91,13 +91,17 @@ export const Tour = ({ state, onBack, onNext, onClose }: TourProps) => {
   const { anchor: name, key, waits } = TOUR_STEPS[step - 1]!
   const title = t(`tour.${key}Title`)
   const progress = t('tour.progress', { n: step, total: TOUR_STEPS.length })
+  // A touch screen has no Esc or right-click, its hold opens the menu and its drag scrolls: steps 2 and 3 say so.
+  const touch = (key === 's2' || key === 's3') && typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
 
   // One frame loop follows the anchor through the scroll it causes, later scrolls and resizes; it writes styles on refs, never state.
   // Keyed on the anchor, not the step: steps 2 and 3 share the grid, and a second scroll under a held drag would paint tiles the player did not mean to.
   useEffect(() => {
     const anchor = document.querySelector<HTMLElement>(`[data-tour="${name}"]`)
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    anchor?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
+    // Only an anchor not fully on screen: a needless scroll carries the page out from under the card menu step 3 leaves open.
+    const rect = anchor?.getBoundingClientRect()
+    if (rect && (rect.top < 0 || rect.bottom > window.innerHeight)) anchor?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
     let frame = 0
     const follow = () => {
       if (spot.current && card.current) place(spot.current, card.current, anchor)
@@ -133,7 +137,7 @@ export const Tour = ({ state, onBack, onNext, onClose }: TourProps) => {
             <Icon name="close" />
           </Button>
         </div>
-        <p className="text-ink-muted body-sm">{t(`tour.${key}`)}</p>
+        <p className="text-ink-muted body-sm">{t(touch ? `tour.${key}Touch` : `tour.${key}`)}</p>
         <div className="flex items-center gap-2">
           <span className="text-ink-muted signal-sm">{progress}</span>
           <span className="ml-auto flex items-center gap-2">

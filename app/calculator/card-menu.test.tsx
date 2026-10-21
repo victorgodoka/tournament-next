@@ -104,6 +104,34 @@ describe('CardMenu', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('moves focus to the first tag on open; ✕ closes it and gives focus back to the tile', () => {
+    const anchor = document.body.appendChild(document.createElement('button'))
+    const onClose = vi.fn()
+    render(<CardMenu row={row(1, 1, magician)} roles={new Map()} palette={['Starter', 'Brick']} anchor={anchor} changed={false} banlist={null} onToggle={noop} onCopies={noop} onClose={onClose} />)
+    expect(document.activeElement).toBe(screen.getAllByRole('checkbox')[0])
+    fireEvent.click(screen.getByRole('button', { name: 'menu.close' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(anchor)
+    anchor.remove()
+  })
+
+  it('a light dismiss gives focus back to the tile, unless it landed on another control', () => {
+    const anchor = document.body.appendChild(document.createElement('button'))
+    const other = document.body.appendChild(document.createElement('input'))
+    const menu = () =>
+      render(<CardMenu row={row(1, 1, magician)} roles={new Map()} palette={['Starter']} anchor={anchor} changed={false} banlist={null} onToggle={noop} onCopies={noop} onClose={noop} />)
+    menu()
+    screen.getByRole('dialog').dispatchEvent(closed())
+    expect(document.activeElement).toBe(anchor)
+    cleanup()
+    menu()
+    other.focus() // the click outside that dismissed the menu
+    screen.getByRole('dialog').dispatchEvent(closed())
+    expect(document.activeElement).toBe(other)
+    anchor.remove()
+    other.remove()
+  })
+
   it('opens under the tile, flips above when there is no room, and stays inside the viewport', () => {
     viewport(1000, 700)
     size(300, 400)

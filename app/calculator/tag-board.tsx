@@ -22,9 +22,10 @@ const DIM = 'opacity-(--opacity-dim)'
 /** Pips on a tile before the rest show as `+N`. */
 const PIPS = 4
 
-// Sticky under the site header from `lg`; below it, a bar fixed to the bottom of the viewport that scrolls sideways.
+// Sticky from `lg`: at the top while the site header scrolls away, under it once the header is fixed (`xl`, 60px tall); the
+// breathing room is the strip's own padding, on its opaque background. Below `lg`, a bar fixed to the bottom of the viewport that scrolls sideways.
 const STRIP =
-  'z-(--z-sticky) border-line bg-space-000 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:border-t max-lg:pb-[env(safe-area-inset-bottom)] lg:sticky lg:top-[var(--header-h,64px)] lg:border-b'
+  'z-(--z-sticky) border-line bg-space-000 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:border-t max-lg:pb-[env(safe-area-inset-bottom)] lg:sticky lg:top-0 lg:border-b xl:top-15'
 
 export type TourEvent = 'brush' | 'paint' | 'menu'
 
@@ -53,8 +54,8 @@ type TagBoardProps = {
   onHelp?(): void
 }
 
-/** Keys typed here belong to the field, not the board. */
-const typing = (target: EventTarget | null) => target instanceof Element && target.closest('input, textarea, select, [contenteditable]') !== null
+/** Keys typed here belong to the field or the open card menu, not the board: the menu's Escape is its own, and gives focus back to the tile. */
+const typing = (target: EventTarget | null) => target instanceof Element && target.closest('input, textarea, select, [contenteditable], [popover]') !== null
 
 /** A strip of tag brushes over a grid of the deck's cards: pick a brush, then click, drag or tap cards to paint it on. */
 export const TagBoard = (p: TagBoardProps) => {
@@ -122,9 +123,10 @@ export const TagBoard = (p: TagBoardProps) => {
   }, [])
 
   const pill = (role: string, suggest: boolean) => {
-    const { icon, tone } = tagMeta(role)
+    const { icon, tone, suggest: rule } = tagMeta(role)
     const n = shown.indexOf(role)
     const count = roleCopies(p.rows, p.roles, role)
+    const useInHands = t('tags.useInHands', { role, rule: t(rule === 'avoid' ? 'tags.ruleAvoid' : 'tags.ruleNeed') })
     return (
       <span key={role} className="flex shrink-0 items-center">
         <FilterChip
@@ -144,7 +146,7 @@ export const TagBoard = (p: TagBoardProps) => {
           className={TOUCH}
         />
         {suggest && suggestedRule(role) ? (
-          <Button variant="ghost" size="icon-sm" aria-label={t('tags.useInHands', { role })} onClick={() => p.onSuggest(role)} className={TOUCH}>
+          <Button variant="ghost" size="icon-sm" aria-label={useInHands} title={useInHands} onClick={() => p.onSuggest(role)} className={TOUCH}>
             <Icon name="plus" size={14} />
           </Button>
         ) : null}
@@ -237,7 +239,7 @@ export const TagBoard = (p: TagBoardProps) => {
         }
       >
         {p.notDrawn > 0 ? <p className="mb-3 text-ink-muted signal-sm">{t('deck.notDrawn', { count: p.notDrawn })}</p> : null}
-        <div data-tour="grid" className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-1.5 max-lg:pb-24 sm:grid-cols-[repeat(auto-fill,minmax(76px,1fr))]">
+        <div data-tour="grid" className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(76px,1fr))]">
           {p.rows.map((row) => {
             const name = row.card?.name ?? String(row.passcode)
             const mine = p.roles.get(row.id) ?? []
@@ -250,12 +252,15 @@ export const TagBoard = (p: TagBoardProps) => {
                   card={row.card ?? undefined}
                   sizes="80px"
                   count={row.copies}
-                  label={t('tags.tile', { name, count: row.copies })}
+                  label={mine.length ? t('tags.tileTags', { name, count: row.copies, tags: mine.join(', ') }) : t('tags.tile', { name, count: row.copies })}
+                  // With a brush, whether the tile carries it: the ring, for a screen reader.
+                  aria-pressed={brush === null ? undefined : has(row, brush)}
                   {...press}
-                  // Touch never paints here: a scroll that starts on a tile paints nothing.
+                  // Touch never paints here: a scroll that starts on a tile paints nothing. Nor does a Ctrl-click: on macOS
+                  // it is a right-click, and its contextmenu opens the menu.
                   onPointerDown={(e) => {
                     press.onPointerDown(e)
-                    if (brush !== null && e.pointerType === 'mouse' && e.button === 0) startStroke(row, brush)
+                    if (brush !== null && e.pointerType === 'mouse' && e.button === 0 && !e.ctrlKey) startStroke(row, brush)
                   }}
                   onPointerEnter={(e) => {
                     const live = stroke.current

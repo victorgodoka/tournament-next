@@ -277,6 +277,15 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           </>
         }
       />
+      {/* Fixed on screen, so its place here only sets the tab order: Skip and Next come before the board, not after the Simulator. */}
+      {tour ? (
+        <Tour
+          state={tour}
+          onBack={() => setTour({ step: tour.step - 1, paints: 0 })}
+          onNext={() => setTour({ step: tour.step + 1, paints: 0 })}
+          onClose={() => (markTourSeen(), setTour(null))}
+        />
+      ) : null}
       <DeckPicker
         open={picker !== null}
         onClose={() => setPicker(null)}
@@ -450,15 +459,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           />
         </div>
       </div>
-
-      {tour ? (
-        <Tour
-          state={tour}
-          onBack={() => setTour({ step: tour.step - 1, paints: 0 })}
-          onNext={() => setTour({ step: tour.step + 1, paints: 0 })}
-          onClose={() => (markTourSeen(), setTour(null))}
-        />
-      ) : null}
 
       {toast ? (
         <div className="fixed inset-x-4 top-[calc(var(--header-h,64px)+12px)] z-(--z-toast) mx-auto max-w-120 drop-shadow-[0_16px_40px_rgba(0,0,0,0.5)]">

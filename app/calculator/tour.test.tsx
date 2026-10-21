@@ -6,6 +6,7 @@ import { markTourSeen, Tour, tourAfter, tourSeen } from './tour'
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 
 const noop = () => {}
+const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) })
 const renderTour = (step: number, over: Partial<React.ComponentProps<typeof Tour>> = {}) =>
   render(<Tour state={{ step, paints: 0 }} onBack={noop} onNext={noop} onClose={noop} {...over} />)
 
@@ -97,6 +98,7 @@ describe('Tour', () => {
       const el = document.createElement('div')
       el.dataset.tour = name
       el.scrollIntoView = scroll!
+      el.getBoundingClientRect = () => rect(2000, 2400) // below the fold
       document.body.append(el)
     }
     const tour = (step: number) => <Tour state={{ step, paints: 0 }} onBack={noop} onNext={noop} onClose={noop} />
@@ -107,6 +109,32 @@ describe('Tour', () => {
     rerender(tour(4)) // grid → odds
     expect(scrolls.odds).toHaveBeenCalledTimes(1)
     expect(scrolls.grid).toHaveBeenCalledTimes(1)
+  })
+
+  it('scrolls only an anchor that is not fully on screen: the open card menu stays with its tile', () => {
+    vi.stubGlobal('innerHeight', 800)
+    const anchor = document.createElement('div')
+    anchor.dataset.tour = 'odds'
+    anchor.scrollIntoView = vi.fn()
+    document.body.append(anchor)
+    const scrolled = (top: number, bottom: number) => {
+      anchor.getBoundingClientRect = () => rect(top, bottom)
+      vi.mocked(anchor.scrollIntoView).mockClear()
+      renderTour(4).unmount()
+      return vi.mocked(anchor.scrollIntoView).mock.calls.length > 0
+    }
+    expect(scrolled(100, 300)).toBe(false)
+    expect(scrolled(700, 900)).toBe(true) // runs off the bottom
+    expect(scrolled(-50, 150)).toBe(true) // runs off the top
+  })
+
+  it('on a touch screen, steps 2 and 3 speak of taps and a held finger', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(pointer: coarse)' }))
+    const two = renderTour(2)
+    expect(screen.getByText('tour.s2Touch')).toBeTruthy()
+    two.unmount()
+    renderTour(3)
+    expect(screen.getByText('tour.s3Touch')).toBeTruthy()
   })
 
   it('the spotlight sits over the anchor with 8px of padding; no anchor hides it', () => {

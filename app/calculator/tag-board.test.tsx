@@ -146,6 +146,27 @@ describe('TagBoard', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  it('a Ctrl-click (a right-click on macOS) does not paint or start a stroke; its contextmenu opens the menu', () => {
+    const onSetRole = vi.fn()
+    renderBoard({ onSetRole })
+    fireEvent.click(pills()[0]!)
+    const [a, b] = tiles()
+    fireEvent.pointerDown(a!, { button: 0, buttons: 1, pointerType: 'mouse', ctrlKey: true })
+    fireEvent.pointerEnter(b!, { buttons: 1, pointerType: 'mouse' })
+    fireEvent.contextMenu(a!, { ctrlKey: true })
+    expect(onSetRole).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Dark Magician' })).toBeTruthy()
+  })
+
+  it('a tagged tile names its tags; with a brush, every tile says whether it carries it', () => {
+    renderBoard({ roles: new Map([[2, ['Brick']]]) })
+    expect(screen.getAllByRole('button', { name: /tags\.tileTags/ })).toHaveLength(1)
+    expect(tiles()[1]!.textContent).toContain('tags.tileTags')
+    expect(tiles().map((tile) => tile.getAttribute('aria-pressed'))).toEqual([null, null])
+    fireEvent.click(pills()[3]!) // Brick
+    expect(tiles().map((tile) => tile.getAttribute('aria-pressed'))).toEqual(['false', 'true'])
+  })
+
   it('right-click opens the menu even with a brush, and does not paint', () => {
     const onSetRole = vi.fn()
     renderBoard({ onSetRole })
@@ -243,7 +264,9 @@ describe('TagBoard', () => {
   it('Use in hands calls onSuggest; Untagged dims tagged tiles', () => {
     const onSuggest = vi.fn()
     renderBoard({ onSuggest, roles: new Map([[1, ['Starter']]]) })
-    fireEvent.click(screen.getByRole('button', { name: 'tags.useInHands' }))
+    const use = screen.getByRole('button', { name: 'tags.useInHands' })
+    expect(use.title).toBe('tags.useInHands') // the rule shows on hover too
+    fireEvent.click(use)
     expect(onSuggest).toHaveBeenCalledWith('Brick')
     const [a, b] = tiles()
     const untagged = screen.getByRole('button', { name: 'tags.untagged' })

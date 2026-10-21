@@ -340,7 +340,9 @@ describe('Calculator', () => {
   it('the tour opens on a first visit with a deck and advances as the board is used', async () => {
     localStorage.removeItem('calc-tour')
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2], extra: [], side: [] }))}`)
-    expect(screen.getByText('tour.s1Title')).toBeTruthy()
+    // Fixed on screen, but first in the DOM: Skip and Next come before the board's controls in the tab order.
+    const dialog = screen.getByText('tour.s1Title').closest('[role="dialog"]')!
+    expect(dialog.compareDocumentPosition(screen.getByLabelText('deckName')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'tags.brush' })[0]!))
     expect(screen.getByText('tour.s2Title')).toBeTruthy()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'tour.skip' })))
