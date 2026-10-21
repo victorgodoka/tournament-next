@@ -9,10 +9,10 @@ import { Eyebrow } from "@ui/eyebrow";
 import { EmptyBox } from "@omega/profile/empty-box";
 import { PrivateNotice } from "@omega/profile/private-notice";
 import { Skeleton } from "@omega/analytics/primitives";
-import { Report } from "@app/statistics/MetaStatistics";
-import { getPlayerStatistics, type PlayerStatisticsData, type Statistics } from "@utils/statistics";
+import { getPlayerStatistics } from "@utils/statistics";
 import { getPlayerTournamentStats } from "@utils/tournaments";
 import type { Profile, RankedLadderId } from "@utils/types";
+import { RankedReport } from "./RankedReport";
 import { TournamentReport } from "./TournamentReport";
 
 export type SeasonChoice = { code: string; label: string; format: 'TCG' | 'Genesys'; open: boolean }
@@ -54,17 +54,8 @@ const Chip = ({ href, on, children }: { href: string; on: boolean; children: Rea
   </Link>
 )
 
-/** The meta report's page shape: a null season is "all seasons", and a duelist has no sweep or sample floor. */
-const asReport = (data: PlayerStatisticsData, label: string): Statistics => ({
-  ...data,
-  season: data.season ?? { id: 0, code: 'all', label, ladder: data.formats[0] === 'Genesys' ? 'genesys' : 'tcg', startsAt: '', endsAt: null },
-  syncedDays: { count: 0, first: null, last: null },
-  minSamples: 1,
-  views: null, // the old one-table 03 and a Pure deep dive: a duelist's side has no General/Combined views
-})
-
 /** The slow part (a few seconds cold): streamed behind a skeleton so the head and the pickers paint at once. */
-const RankedBody = async ({ playerId, query, label, cookie }: { playerId: string; query: { season?: string; ladder?: RankedLadderId }; label: string; cookie: string | null }) => {
+const RankedBody = async ({ playerId, query, cookie }: { playerId: string; query: { season?: string; ladder?: RankedLadderId }; cookie: string | null }) => {
   const result = await getPlayerStatistics(playerId, query, cookie)
   if (!result.ok) {
     if (result.status === 403) return <PrivateNotice />
@@ -84,7 +75,14 @@ const RankedBody = async ({ playerId, query, label, cookie }: { playerId: string
           {matches.total.toLocaleString('en-US')} matches here: only the newest {matches.analyzed.toLocaleString('en-US')} were analyzed.
         </p>
       ) : null}
-      <Report data={asReport(result.data, label)} player />
+      {/* No record: an API older than the field (the API ships first). */}
+      {result.data.record ? (
+        <RankedReport data={result.data} />
+      ) : (
+        <div className="pt-section">
+          <EmptyBox title="Couldn't read the statistics">The game server didn&apos;t answer. Try again in a moment.</EmptyBox>
+        </div>
+      )}
     </>
   )
 }
@@ -207,7 +205,7 @@ export const PlayerStatistics = ({ profile, choices, selection, cookie }: Player
             <>
               <h2 className="mt-12 text-ink display-4 min-[720px]:mt-16">Ranked · every season</h2>
               <Suspense fallback={<Loading label="Reading every ranked game…" />}>
-                <RankedBody playerId={profile.id} query={{}} label="All seasons" cookie={cookie} />
+                <RankedBody playerId={profile.id} query={{}} cookie={cookie} />
               </Suspense>
               <h2 className="mt-12 text-ink display-4 min-[720px]:mt-16">Tournaments · every format</h2>
               <Suspense fallback={<Loading label="Reading every tournament…" />}>
@@ -224,7 +222,6 @@ export const PlayerStatistics = ({ profile, choices, selection, cookie }: Player
               <RankedBody
                 playerId={profile.id}
                 query={ranked.season ? { season: ranked.season } : { ladder: ranked.ladder }}
-                label={`All ${ranked.ladder ? LADDER[ranked.ladder] : ''} seasons`}
                 cookie={cookie}
               />
             </Suspense>

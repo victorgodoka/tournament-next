@@ -186,7 +186,7 @@ const Failure = ({ status, format, season, past, onPast, onRetry }: { status: nu
  * ---------------------------------------------------------------- */
 
 /** `player`: one side, so first and second have their own game counts. */
-const TurnBlock = ({ title, meta, split, player }: { title: string; meta: string; split: TurnSplit; player?: boolean }) => {
+export const TurnBlock = ({ title, meta, split, player }: { title: string; meta: string; split: TurnSplit; player?: boolean }) => {
   const f = split.first.winRate, s = split.second.winRate
   const share = f != null && s != null && f + s > 0 ? (f / (f + s)) * 100 : 50
   return (
