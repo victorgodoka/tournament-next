@@ -130,6 +130,9 @@ type HastNode = {
 
 const VOID = new Set(['br', 'hr', 'img', 'input'])
 
+/** remark-rehype puts newlines between table rows and cells; HTML allows no text there, so React flags it at hydration. */
+const NO_TEXT = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr'])
+
 /** hast names `ariaHidden` / `dataFootnoteRef`; React wants `aria-hidden` / `data-footnote-ref`. */
 const propName = (name: string) => (/^(aria|data)[A-Z]/.test(name) ? name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`) : name)
 
@@ -139,7 +142,8 @@ const propName = (name: string) => (/^(aria|data)[A-Z]/.test(name) ? name.replac
  */
 const toReact = (node: HastNode, key?: number): ReactNode => {
   if (node.type === 'text') return node.value
-  const children = node.children?.map(toReact) ?? []
+  const kids = NO_TEXT.has(node.tagName ?? '') ? node.children?.filter((child) => child.type !== 'text' || child.value?.trim()) : node.children
+  const children = kids?.map(toReact) ?? []
   if (node.type === 'root') return createElement(Fragment, { key }, ...children)
   if (node.type !== 'element' || !node.tagName) return null
 
