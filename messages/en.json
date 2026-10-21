@@ -944,9 +944,6 @@
       "changed": "Changed",
       "restore": "Restore deck",
       "unknown": "Unknown card",
-      "addRole": "New role",
-      "addRolePlaceholder": "Role name",
-      "roleOf": "Toggle {role} on {name}",
       "opt": "OPT",
       "hopt": "HOPT",
       "optHint": "Once per turn: extra copies in hand are dead. Consider max 1 in the hand's rule."

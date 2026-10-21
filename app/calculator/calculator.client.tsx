@@ -13,7 +13,7 @@ import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { useAuth } from '@hooks/index'
 import { subjectCopies } from '@utils/combo/atoms'
 import { distinctCards } from '@utils/combo/deck-cards'
-import { rolesFromTags, tagsFromRoles } from '@utils/combo/roles'
+import { rolesFromTags, sameRole, tagsFromRoles } from '@utils/combo/roles'
 import { encodeShare } from '@utils/combo/share'
 import { EFFECT_IDS } from '@utils/combo/types'
 import { toYdke } from '@utils/deck/codecs/ydke'
@@ -23,13 +23,14 @@ import { getBanlists, type Banlist } from '@utils/wiki'
 import { bootState, type Boot } from './boot'
 import { BuildTabs } from './build-tabs'
 import { calculatorReducer, initialState } from './calculator.reducer'
-import { CardRoles } from './card-roles'
 import { Compare } from './compare'
 import { DeckPicker } from './deck-picker'
 import { HandBuilder } from './hand-builder'
 import { DrawSettings, FocusPanel } from './results'
 import { Simulator } from './simulator'
 import { Sweeps } from './sweeps'
+import { TagBoard } from './tag-board'
+import { suggestedRule } from './tags'
 import { useCalculations } from './use-calculation'
 
 const TOUCH = 'max-lg:min-h-11'
@@ -226,6 +227,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return unused
   }, [state.calc.analysis.hands, view.rows, build.roles])
 
+  /** A tag's suggested rule joins every hand that has no rule on it yet; with no hands, it starts one. */
+  const suggest = (role: string) => {
+    const rule = suggestedRule(role)
+    if (!rule) return
+    const hands = state.calc.analysis.hands
+    if (!hands.length) return dispatch({ type: 'addHand', hand: { name: '', rules: [rule] } })
+    hands.forEach((hand, i) => {
+      if (!hand.rules.some((r) => r.subject.kind === 'role' && sameRole(r.subject.role, role))) dispatch({ type: 'addRule', hand: i, rule })
+    })
+  }
+
   return (
     <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-8 pb-24">
       <PageHeader
@@ -354,29 +366,34 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               }
             />
           ) : null}
-          <CardRoles
+          <TagBoard
             rows={view.rows}
             roles={build.roles}
             palette={view.palette}
+            hands={state.calc.analysis.hands}
             originalCopies={originalCopies}
             banlist={banlist}
             notDrawn={build.deck.extra.length + build.deck.side.length}
+            onSetRole={(id, role, on) => dispatch({ type: 'setRole', id, role, on })}
             onToggle={(id, role) => dispatch({ type: 'toggleRole', id, role })}
             onCopies={(id, copies, passcode) => dispatch({ type: 'setCopies', id, copies, passcode, cards })}
             onRestore={() => dispatch({ type: 'restoreDeck' })}
+            onSuggest={suggest}
           />
-          <HandBuilder
-            analysis={state.calc.analysis}
-            subjects={subjects}
-            result={view.result}
-            unusedRoles={unusedRoles}
-            onAdd={(hand) => dispatch({ type: 'addHand', hand })}
-            onRemove={(index) => dispatch({ type: 'removeHand', index })}
-            onRename={(index, name) => dispatch({ type: 'renameHand', index, name })}
-            onRule={(hand, index, rule) => dispatch({ type: 'setRule', hand, index, rule })}
-            onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
-            onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
-          />
+          <div data-tour="hands">
+            <HandBuilder
+              analysis={state.calc.analysis}
+              subjects={subjects}
+              result={view.result}
+              unusedRoles={unusedRoles}
+              onAdd={(hand) => dispatch({ type: 'addHand', hand })}
+              onRemove={(index) => dispatch({ type: 'removeHand', index })}
+              onRename={(index, name) => dispatch({ type: 'renameHand', index, name })}
+              onRule={(hand, index, rule) => dispatch({ type: 'setRule', hand, index, rule })}
+              onAddRule={(hand) => dispatch({ type: 'addRule', hand, rule: { subject: { kind: 'role', role: view.palette[0] ?? 'Starter' }, min: 1, max: null } })}
+              onRemoveRule={(hand, index) => dispatch({ type: 'removeRule', hand, index })}
+            />
+          </div>
           {state.calc.builds.length > 1 ? <Compare builds={state.calc.builds} hands={state.calc.analysis.hands} results={views.map((v) => v.result)} /> : null}
           <Sweeps rows={view.rows} roles={build.roles} analysis={state.calc.analysis} draw={state.calc.draw} banlist={banlist} focus={state.calc.focus} nameOf={nameOf} />
           <Simulator

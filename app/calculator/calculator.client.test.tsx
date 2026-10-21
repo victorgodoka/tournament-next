@@ -65,6 +65,11 @@ const summary = (id: string, name: string): DeckSummary => ({
   label: null,
 })
 
+/** Opens the first tile's card menu (no brush picked: a click opens it). */
+const openMenu = () => act(async () => fireEvent.click(screen.getAllByRole('button', { name: /tags\.tile/ })[0]!))
+/** The first tag in the open menu: Starter. */
+const toggleFirstTag = () => act(async () => fireEvent.click(screen.getAllByRole('checkbox', { name: 'tags.toggle' })[0]!))
+
 /** Renders the calculator at `url` and lets the async boot, card lookups and deck read settle. */
 const open = async (url: string) => {
   window.history.replaceState(null, '', url)
@@ -111,7 +116,8 @@ describe('Calculator', () => {
     vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [1], tags: {}, revision: 2, ownerId: 'u1' }))
     vi.mocked(updateDeck).mockRejectedValueOnce(new DeckConflictError(server({ revision: 3 })))
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!)) // Starter, first in the palette
+    await openMenu()
+    await toggleFirstTag()
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 2) // three arguments: no explicit `force`
     expect(screen.getByText('save.changed')).toBeTruthy()
@@ -134,9 +140,10 @@ describe('Calculator', () => {
       effects: DEFAULT_EFFECTS,
     })
     await open(`/calculator?c=${code}`)
-    const chips = screen.getAllByRole('button', { name: 'deck.roleOf' })
-    expect(chips[0]!.getAttribute('aria-pressed')).toBe('true') // Starter, from the link
-    expect(chips[3]!.getAttribute('aria-pressed')).toBe('false') // Brick, from the saved deck: not adopted
+    await openMenu()
+    const boxes = screen.getAllByRole('checkbox', { name: 'tags.toggle' }) as HTMLInputElement[]
+    expect(boxes[0]!.checked).toBe(true) // Starter, from the link
+    expect(boxes[4]!.checked).toBe(false) // Brick, from the saved deck: not adopted
     expect(screen.getByText('save.roles')).toBeTruthy() // the owner's revision was learned
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 7)
@@ -163,7 +170,8 @@ describe('Calculator', () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1], extra: [], side: [] }))}&deck=${ID}`)
     await act(async () => fireEvent.click(screen.getByText('pickDeck')))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'picker.openNamed' })))
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!))
+    await openMenu()
+    await toggleFirstTag()
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(OTHER, { tags: { '2': ['Starter'] } }, 1)
     await act(async () => fireEvent.click(screen.getByText('save.reload')))
@@ -173,11 +181,42 @@ describe('Calculator', () => {
     vi.mocked(getDeck).mockResolvedValue(server({ id: ID, main: [1, 2], tags: {}, revision: 2, ownerId: 'u1' }))
     vi.mocked(updateDeck).mockResolvedValue(server({ id: ID, main: [1, 2], tags: { '1': ['Starter'] }, revision: 3 }))
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2], extra: [], side: [] }))}&deck=${ID}`)
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.roleOf' })[0]!)) // Starter on card 1
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.fewer' })[0]!)) // card 1 to 0 copies
+    await openMenu() // card 1
+    await toggleFirstTag() // Starter on card 1
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'deck.fewer' }))) // card 1 to 0 copies
     await act(async () => fireEvent.click(screen.getByText('save.roles')))
     expect(updateDeck).toHaveBeenCalledWith(ID, { tags: { '1': ['Starter'] } }, 2)
     expect(screen.getByText('save.saved')).toBeTruthy()
+  })
+  it('Use in hands starts a hand with the rule, then adds the next rule to it', async () => {
+    const code = await encodeShare({
+      builds: [{ name: 'Shared', deck: { main: [1], extra: [], side: [] }, roles: new Map(), format: null, deckId: null }],
+      analysis: { hands: [] },
+      draw: DEFAULT_DRAW,
+      focus: null,
+      seed: 1,
+      effects: DEFAULT_EFFECTS,
+    })
+    await open(`/calculator?c=${code}`)
+    const suggestions = () => screen.queryAllByRole('button', { name: 'tags.useInHands' })
+    expect(suggestions()).toHaveLength(2) // Starter, Brick
+    await act(async () => fireEvent.click(suggestions()[1]!)) // Brick: no hands yet, so a new one
+    expect(suggestions()).toHaveLength(1) // Brick moved to In your hands
+    await act(async () => fireEvent.click(suggestions()[0]!)) // Starter joins that hand
+    expect(suggestions()).toHaveLength(0)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400))
+    })
+    const { analysis } = await decodeShare(new URLSearchParams(location.search).get('c')!)
+    expect(analysis.hands).toEqual([
+      {
+        name: '',
+        rules: [
+          { subject: { kind: 'role', role: 'Brick' }, min: 0, max: 0 },
+          { subject: { kind: 'role', role: 'Starter' }, min: 1, max: null },
+        ],
+      },
+    ])
   })
   it('a hand size above the deck shows tooFewCards and the URL carries ?c=', async () => {
     await open(`/calculator?d=${encodeURIComponent(toYdke({ main: [1, 2, 3], extra: [], side: [] }))}`)
@@ -213,7 +252,8 @@ describe('Calculator', () => {
     await act(async () => fireEvent.click(screen.getByText('builds.duplicate')))
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['A · First', 'B · builds.copyOf'])
     expect(screen.queryByText('save.roles')).toBeNull() // the copy is not the saved deck
-    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'deck.fewer' })[0]!))
+    await openMenu()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'deck.fewer' })))
     const copies = () => within(screen.getByRole('group', { name: 'deck.copiesOf' })).getByText(/^\d$/).textContent
     expect(copies()).toBe('1') // the copy's row: 1 copy
     fireEvent.click(screen.getAllByRole('tab')[0]!)

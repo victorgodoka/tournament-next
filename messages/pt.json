@@ -944,9 +944,6 @@
       "changed": "Alterado",
       "restore": "Restaurar deck",
       "unknown": "Carta desconhecida",
-      "addRole": "Nova função",
-      "addRolePlaceholder": "Nome da função",
-      "roleOf": "Alternar {role} em {name}",
       "opt": "OPT",
       "hopt": "HOPT",
       "optHint": "Uma vez por turno: cópias extras na mão são mortas. Considere máx 1 na regra da mão."
