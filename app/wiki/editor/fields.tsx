@@ -3,7 +3,9 @@
 import Image from 'next/image'
 import { useId, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { Lookup, type LookupOption } from '@ui/lookup'
 import { API_URL } from '@utils/auth'
+import { searchCardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
 import { DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
@@ -186,7 +188,11 @@ export const AssetPicker = ({
   )
 }
 
-/** Passcode, name and note per card. A new passcode fills an empty name from the card API. */
+/** Module-level, so `Lookup` gets a stable search. A passcode of an alternate artwork resolves to its card. */
+const findCards = (text: string, signal: AbortSignal): Promise<LookupOption[]> =>
+  searchCardArts(text, 8, signal).then((cards) => cards.map((card) => ({ key: card.id, label: card.name, meta: card.id })))
+
+/** Passcode, name and note per card. A new passcode fills an empty name from the card API; the search adds a card by name. */
 const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards: WikiCardRef[]) => void }) => {
   const set = (i: number, patch: Partial<WikiCardRef>) =>
     onChange(cards.map((card, j) => (j === i ? { ...card, ...patch } : card)))
@@ -241,19 +247,22 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
           </li>
         ))}
       </ul>
-      <button
-        type="button"
-        disabled={cards.length >= DOC_LIMITS.cards}
-        onClick={() => onChange([...cards, { id: 0, name: '' }])}
-        className={twMerge(MINI, 'mt-2 px-3')}
-      >
-        + Card
-      </button>
+      {cards.length < DOC_LIMITS.cards ? (
+        <Lookup
+          label="Add card"
+          placeholder="Add a card by name or passcode"
+          search={findCards}
+          onPick={(option) =>
+            !cards.some((card) => card.id === option.key) && onChange([...cards, { id: Number(option.key), name: String(option.label) }])
+          }
+          className="mt-2"
+        />
+      ) : null}
     </div>
   )
 }
 
-const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path.'
+const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path · [card:passcode] shows the card name linked to its page.'
 
 /** Wrap the selection (or a placeholder) in Markdown, then put the caret back inside it. */
 type Edit = (text: string, start: number, end: number) => { text: string; start: number; end: number }
@@ -283,7 +292,7 @@ const TOOLS: { label: string; aria?: string; className?: string; edit: Edit }[] 
   { label: 'I', aria: 'Italic', className: 'w-8 px-0 italic', edit: wrap('*', '*', 'italic') },
   { label: 'Link', edit: wrap('[', '](https://)', 'text') },
   { label: 'Wiki link', edit: wrap('[', '](/wiki/)', 'article') },
-  { label: 'Card', edit: wrap('[', '](/wiki/card/)', 'card name') },
+  { label: 'Card', edit: wrap('[card:', ']', 'passcode') },
   { label: 'List', edit: listLines },
   { label: 'Table', edit: insert('| Column | Column |\n| --- | --- |\n| Cell | Cell |\n') },
 ]
@@ -431,6 +440,24 @@ export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFields
       return (
         <div className="flex flex-col gap-4">
           <CardRows cards={block.cards} onChange={(cards) => onChange({ ...block, cards })} />
+          <div className="flex flex-wrap gap-4">
+            <Segmented
+              label="Per row"
+              value={block.perRow ?? 4}
+              options={[2, 3, 4, 5, 6].map((n) => ({ value: n, label: String(n) }))}
+              onChange={(perRow) => onChange({ ...block, perRow })}
+            />
+            <Segmented
+              label="Short last row"
+              value={block.align ?? 'left'}
+              options={[
+                { value: 'left', label: 'Left' },
+                { value: 'center', label: 'Centre' },
+                { value: 'right', label: 'Right' },
+              ]}
+              onChange={(align) => onChange({ ...block, align })}
+            />
+          </div>
           <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
         </div>
       )

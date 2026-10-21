@@ -93,9 +93,10 @@ export const parseBio = (markdownText: string) => toHtml(markdownText, BIO_CLASS
  * The server rejects raw HTML and non-http(s) links on write; the sanitizer is the second wall.
  */
 const ARTICLE_CLASSES = {
-  'h1': 'mt-9 mb-3.5 text-ink display-3 first:mt-0',
-  'h2': 'mt-8 mb-3 text-ink display-4 first:mt-0',
-  'h3': 'mt-6 mb-2.5 text-ink display-5 first:mt-0',
+  // display-4 and display-5 share one size: H2 steps up to display-2 so the levels read apart.
+  'h1': 'mt-9 mb-3.5 text-ink display-2 first:mt-0',
+  'h2': 'mt-8 mb-3 text-ink display-2 first:mt-0',
+  'h3': 'mt-6 mb-2.5 text-ink display-4 first:mt-0',
   'h4': 'mt-5 mb-2 text-ink display-6 first:mt-0',
   'p': 'mb-4 last:mb-0 text-ink-dim body',
   'strong': 'font-bold text-ink',

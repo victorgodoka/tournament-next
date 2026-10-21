@@ -4,7 +4,9 @@
  * The contract, limits and endpoints are in omega-server-v3 WIKI_API.md §5.
  */
 import type { ReactNode } from 'react'
+import { cardsByIds } from '@utils/cards'
 import { renderArticle } from '@utils/remark'
+import type { WikiCard } from '@utils/wiki'
 
 /** Bump on any breaking change to a block; the reader migrates old docs up before rendering. */
 export const WIKI_DOC_VERSION = 1
@@ -35,6 +37,9 @@ export type GalleryLayout = 'grid' | 'masonry' | 'strip'
 
 export type CalloutTone = 'gold' | 'cyan' | 'negative'
 
+/** Where a short last row of cards sits. */
+export type CardsAlign = 'left' | 'center' | 'right'
+
 export type WikiCardRef = { id: number; name: string; note?: string }
 
 /** Every block carries a stable `id`: editors reorder and diff by it, and it anchors comments later. */
@@ -43,7 +48,8 @@ export type WikiBlock =
   | { id: string; type: 'heading'; level: 2 | 3; text: string; anchor: string }
   | { id: string; type: 'figure'; asset: string; align: FigureAlign; caption?: string }
   | { id: string; type: 'gallery'; layout: GalleryLayout; assets: string[]; caption?: string }
-  | { id: string; type: 'cards'; cards: WikiCardRef[]; caption?: string }
+  /** `perRow` 2–6 from 640px (absent = 4; phones show 2). `align` absent = `left`. */
+  | { id: string; type: 'cards'; cards: WikiCardRef[]; perRow?: number; align?: CardsAlign; caption?: string }
   | { id: string; type: 'callout'; tone: CalloutTone; title?: string; md: string }
   | { id: string; type: 'quote'; text: string; cite?: string }
   /**
@@ -441,19 +447,27 @@ export type DocHtml = Record<string, ReactNode>
 /** `html` key of one FAQ answer. */
 export const faqKey = (blockId: string, index: number) => `${blockId}:${index}`
 
+/** `[card:ID]` in wiki Markdown: the card's name, linking to its wiki page. */
+const CARD_TAG = /\[card:(\d+)\]/g
+
 /**
  * Markdown blocks rendered to sanitized HTML, by block id (FAQ answers by `faqKey`). Runs on the server for the page and in the
  * browser for the editor preview: the same pipeline, so the preview is the page.
+ * Card names for `[card:ID]` come from one lookup per doc; an unknown passcode (or a failed lookup) shows the passcode.
  */
 export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
-  const entries = await Promise.all(
-    doc.blocks.flatMap((block) =>
-      block.type === 'text' || block.type === 'callout'
-        ? [renderArticle(block.md).then((html) => [block.id, html] as const)]
-        : block.type === 'faq'
-          ? block.items.map((item, i) => renderArticle(item.md).then((html) => [faqKey(block.id, i), html] as const))
-          : [],
-    ),
+  const sources = doc.blocks.flatMap((block) =>
+    block.type === 'text' || block.type === 'callout'
+      ? [[block.id, block.md] as const]
+      : block.type === 'faq'
+        ? block.items.map((item, i) => [faqKey(block.id, i), item.md] as const)
+        : [],
   )
+  const ids = sources.flatMap(([, md]) => [...md.matchAll(CARD_TAG)].map((match) => Number(match[1])))
+  const cards = ids.length ? await cardsByIds(ids).catch(() => new Map<number, WikiCard>()) : new Map<number, WikiCard>()
+  const linkCards = (md: string) =>
+    md.replace(CARD_TAG, (_, id: string) => `[${(cards.get(Number(id))?.name ?? id).replace(/[\\[\]*_`]/g, '\\$&')}](/wiki/card/${id})`)
+
+  const entries = await Promise.all(sources.map(([key, md]) => renderArticle(linkCards(md)).then((html) => [key, html] as const)))
   return Object.fromEntries(entries)
 }

@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CARD_ART_URL } from '@utils/const'
-import { faqKey, imageSource, type CalloutTone, type DocHtml, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
+import { faqKey, imageSource, type CalloutTone, type CardsAlign, type DocHtml, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { Lightbox } from './lightbox'
 import { Video } from './video'
 
@@ -20,7 +20,9 @@ const CALLOUT: Record<CalloutTone, { box: string; dot: string; title: string }> 
   negative: { box: 'border-loss bg-ground-loss', dot: 'bg-loss', title: 'text-loss' },
 }
 
-const Caption = ({ children, credit }: { children?: React.ReactNode; credit?: string }) =>
+const CARDS_ALIGN: Record<CardsAlign, string> = { left: 'justify-start', center: 'justify-center', right: 'justify-end' }
+
+const Caption =({ children, credit }: { children?: React.ReactNode; credit?: string }) =>
   children || credit ? (
     <figcaption className="mt-2 border-l-2 border-cyan pl-2.5 text-ink-muted caption">
       {children}
@@ -45,7 +47,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
           id={block.anchor}
           className={twMerge(
             'scroll-mt-24 text-ink',
-            block.level === 2 ? 'clear-both mt-10 mb-3.5 border-t border-line pt-6 display-4' : 'mt-7 mb-2.5 display-5',
+            block.level === 2 ? 'clear-both mt-10 mb-3.5 border-t border-line pt-6 display-2' : 'mt-7 mb-2.5 display-4',
           )}
         >
           <a href={`#${block.anchor}`} className="text-ink hover:text-cyan">
@@ -81,19 +83,24 @@ const Block = ({ block, assets, html }: BlockProps) => {
         </figure>
       )
 
-    case 'cards':
+    case 'cards': {
+      const perRow = block.perRow ?? 4
+      // Each card draws its own 1px outline over a 1px gap, so a short last row leaves no empty cells behind.
       return (
         <figure className="clear-both my-7">
-          <ul className="grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4">
+          <ul
+            style={{ '--per-row': perRow } as React.CSSProperties}
+            className={twMerge('flex flex-wrap gap-px p-px [--cols:2] sm:[--cols:var(--per-row)]', CARDS_ALIGN[block.align ?? 'left'])}
+          >
             {block.cards.map((card) => (
-              <li key={card.id} className="bg-space-000">
+              <li key={card.id} className="w-[calc(100%/var(--cols)_-_1px)] bg-space-000 outline outline-line">
                 <Link href={`/wiki/card/${card.id}`} className="group block">
                   <span className="relative block aspect-square overflow-hidden">
                     <Image
                       src={CARD_ART_URL(card.id)}
                       alt={`${card.name} card artwork`}
                       fill
-                      sizes="(min-width: 640px) 190px, 50vw"
+                      sizes={`(min-width: 640px) ${Math.ceil(860 / perRow)}px, 50vw`}
                       className="object-cover transition-transform duration-300 group-hover:scale-[1.04] motion-reduce:transition-none"
                     />
                   </span>
@@ -108,6 +115,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
           <Caption>{block.caption}</Caption>
         </figure>
       )
+    }
 
     case 'callout': {
       const tone = CALLOUT[block.tone]

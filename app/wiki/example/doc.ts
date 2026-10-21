@@ -55,7 +55,7 @@ export const EXAMPLE_DOC: WikiDoc = {
     {
       id: 'b1',
       type: 'text',
-      md: '**Sky Striker** is an archetype built around a single Main Deck monster, **Sky Striker Ace - Raye**, and a large suite of Quick-Play and Normal Spells. Raye tags out into one of several Link monsters, and each Spell the player resolves feeds a graveyard count that powers them up.',
+      md: '**Sky Striker** is an archetype built around a single Main Deck monster, [card:26077387], and a large suite of Quick-Play and Normal Spells. Raye tags out into one of several Link monsters, and each Spell the player resolves feeds a graveyard count that powers them up.',
     },
     { id: 'b2', type: 'heading', level: 2, text: 'History', anchor: 'history' },
     { id: 'b3', type: 'figure', asset: 'card-63166095', align: 'right', caption: 'Engage! — the card that turns every turn into a draw.' },
@@ -88,6 +88,8 @@ export const EXAMPLE_DOC: WikiDoc = {
     {
       id: 'b12',
       type: 'cards',
+      perRow: 3,
+      align: 'center',
       caption: 'Each card links to its own wiki page.',
       cards: [
         { id: 26077387, name: 'Sky Striker Ace - Raye', note: 'Main Deck' },
