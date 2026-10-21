@@ -1181,7 +1181,16 @@
       "replace": "Your simulator has a line in progress. Opening this one replaces it."
     },
     "render": {
-      "brand": "YGO Omega Combo Simulator"
+      "brand": "YGO Omega Combo Simulator",
+      "record": "Record",
+      "hint": "Choose “This tab” in the browser's prompt. You can switch tabs while it records; keep this window open.",
+      "recording": "Recording {elapsed} s of {total} s",
+      "cancel": "Cancel",
+      "download": "Download {format}",
+      "again": "Record again",
+      "stopped": "The recording was interrupted.",
+      "loadFailed": "Could not load the combo.",
+      "failed": "Could not record the video."
     },
     "video": {
       "open": "Download video",

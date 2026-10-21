@@ -1,5 +1,8 @@
 import type { Action } from './types'
 
+/** The video's frame: 16:9 or 9:16. */
+export type Shape = 'landscape' | 'portrait'
+
 /** How long a step stays on screen at 1x: a move or a draw has a card to follow, the rest only changes in place. */
 export const stepMs = (a: Action | undefined) => (a?.t === 'move' || a?.t === 'draw' ? 1200 : 700)
 
