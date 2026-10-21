@@ -55,11 +55,16 @@ export const addRole = (roles: Roles, id: number, role: string): Roles => {
   return next === list ? roles : replace(roles, id, next)
 }
 
+/** Removes `role` (any spelling) when the card has it; the same map back when it does not. */
+export const removeRole = (roles: Roles, id: number, role: string): Roles => {
+  const list = roles.get(id) ?? []
+  return list.some((r) => sameRole(r, role)) ? replace(roles, id, list.filter((r) => !sameRole(r, role))) : roles
+}
+
 /** Removes `role` (any spelling) when the card has it, else adds it; the same map back when nothing changes. */
 export const toggleRole = (roles: Roles, id: number, role: string): Roles => {
-  const list = roles.get(id) ?? []
-  if (list.some((r) => sameRole(r, role))) return replace(roles, id, list.filter((r) => !sameRole(r, role)))
-  return addRole(roles, id, role)
+  const removed = removeRole(roles, id, role)
+  return removed === roles ? addRole(roles, id, role) : removed
 }
 
 /** The default roles, then every other role in use, sorted. */

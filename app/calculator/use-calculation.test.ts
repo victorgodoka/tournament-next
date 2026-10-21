@@ -24,6 +24,6 @@ describe('useCalculations', () => {
     rerender({ builds: [a, { ...b, roles: new Map([[2, ['Starter']]]) }] })
     expect(result.current[0]).toBe(viewA)
     expect(result.current[1]).not.toBe(viewB)
-    expect(result.current[1]!.palette).toEqual(['Starter', 'Extender', 'Hand Trap', 'Brick'])
+    expect(result.current[1]!.palette).toEqual(['Starter', 'Extender', 'Hand Trap', 'Board Breaker', 'Brick', 'Non-Engine', 'Searcher', 'Needs Normal Summon'])
   })
 })
