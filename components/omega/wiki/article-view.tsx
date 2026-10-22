@@ -78,7 +78,7 @@ export const ArticleView = ({ doc, slug, html, links, children, lead, bodyId, fo
 
         <div
           className={twMerge(
-            'mx-auto flex min-h-[clamp(260px,34vw,420px)] w-full max-w-page flex-col justify-end pt-16 pb-8',
+            'mx-auto flex min-h-[clamp(260px,34vw,420px)] w-full max-w-[1280px] flex-col justify-end pt-16 pb-8',
             WIKI_PAD,
           )}
         >
@@ -109,7 +109,7 @@ export const ArticleView = ({ doc, slug, html, links, children, lead, bodyId, fo
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-page grid-cols-1 border-line lg:grid-cols-[minmax(0,1fr)_340px] 2xl:border-x">
+      <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 border-line lg:grid-cols-[minmax(0,1fr)_340px] 2xl:border-x">
         <div className={twMerge('order-2 min-w-0 py-[clamp(24px,3vw,40px)] lg:order-1', WIKI_PAD)}>
           <article id={bodyId}>
             {lead}
