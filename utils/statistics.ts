@@ -10,6 +10,58 @@ export type ArchetypeKey = number[]
 export type Side = { games: number; winRate: number | null }
 export type TurnSplit = { first: Side; second: Side }
 
+export type WilsonInterval = { lower: number; upper: number; margin: number }
+export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
+export type RankingMode = 'mostPlayed' | 'highestWinRate' | 'rising' | 'sleeper' | 'consistent'
+export const RANKING_MODES: readonly RankingMode[] = ['mostPlayed', 'highestWinRate', 'rising', 'sleeper', 'consistent']
+
+export type MatchupOthers = {
+  games: number
+  wins: number
+  losses: number
+  draws: number
+  winRate: number | null
+  wilsonLower: number
+  ci: WilsonInterval
+  status: MatchupStatus
+  turnOrder: TurnSplit
+  sideboarding: { game1: Side; postSide: Side }
+}
+
+export type TierDistribution = {
+  tier1: { share: number; archetypes: number }
+  tier2: { share: number; archetypes: number }
+  tier3: { share: number; archetypes: number }
+  tier4: { share: number; archetypes: number }
+  others: { share: number; archetypes: number }
+}
+
+export type RankingsSummary = {
+  mostPlayed: ArchetypeKey[]
+  highestWinRate: ArchetypeKey[]
+  rising: ArchetypeKey[]
+  sleeper: ArchetypeKey[]
+  consistent: ArchetypeKey[]
+}
+
+export type CardCombination = {
+  card1: { id: number; name: string | null }
+  card2: { id: number; name: string | null }
+  archetypesCount: number
+  topArchetypes: string[]
+  averageInclusion: number
+  averageWinRate: number | null
+}
+
+export type MetaEvent = {
+  day: number
+  kind: 'rise' | 'drop' | 'milestone'
+  title: string
+  description: string
+  archetype?: ArchetypeKey
+  impact: 'positive' | 'negative' | 'neutral'
+}
+
 export type StatCard = {
   id: number
   name: string | null
@@ -29,15 +81,22 @@ export type StatArchetype = {
   name: string | null
   games: number
   metaShare: number
+  tier?: 1 | 2 | 3 | 4 | null
+  growth?: number
+  consistencyScore?: number
+  sleeperScore?: number
   wins: number
   losses: number
   draws: number
   winRate: number | null
   wilsonLower: number | null
+  ci?: WilsonInterval
   mirrorShare: number
   players: number
   turnOrder: TurnSplit
   sideboarding: { game1: Side; postSide: Side }
+  byGame?: { g1: Side; g2: Side; g3: Side }
+  matchupOthers?: MatchupOthers
   pace: { averageTurns: number | null; actionsPerTurn: number | null; turn1SpecialSummons: number | null; averageLongestChain: number | null }
   cards: StatCard[]
   engines: CardGroup[]
@@ -56,6 +115,10 @@ export type Matchup = {
   draws: number
   winRate: number | null
   wilsonLower: number | null
+  ci?: WilsonInterval
+  status?: MatchupStatus
+  turnOrder?: TurnSplit
+  sideboarding?: { game1: Side; postSide: Side }
 }
 
 /** Rates are 0–1; `null` is "not enough data" (days swept before the counters, or no denominator). */
@@ -68,6 +131,9 @@ export type MostUsedCard = {
   popularity: number
   usageRate: number | null
   winRateWhenUsed: number | null
+  winRateWith?: number | null
+  winRateWithout?: number | null
+  topArchetypes?: string[]
   detail: {
     decklists: { mainExtra: number | null; side: number | null }
     usage: { game1: number | null; postSide: number | null }
@@ -92,11 +158,15 @@ export type Statistics = {
   syncedDays: { count: number; first: string | null; last: string | null }
   minSamples: number
   totals: { games: number; matches: number; players: number; archetypes: number }
+  tierDistribution?: TierDistribution
+  rankings?: RankingsSummary
   turnOrder: { all: TurnSplit; game1: TurnSplit; postSide: TurnSplit }
   archetypes: StatArchetype[]
   matchups: Matchup[]
   /** Generic cards in 2+ archetypes, 30 a part, most popular first. */
   mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
+  cardCombinations?: CardCombination[]
+  metaEvents?: MetaEvent[]
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
   /**
@@ -113,8 +183,9 @@ export type StatisticsResult = { ok: true; data: Statistics } | { ok: false; sta
  * `season` (a code) wins over `ladder` server-side, so only one is sent. Cached 5 minutes like the
  * endpoint; a network failure comes back as status 0.
  */
-export const getStatistics = async ({ ladder, season }: { ladder: RankedLadderId; season?: string }): Promise<StatisticsResult> => {
+export const getStatistics = async ({ ladder, season, ranking }: { ladder: RankedLadderId; season?: string; ranking?: RankingMode }): Promise<StatisticsResult> => {
   const params = new URLSearchParams(season ? { season } : { ladder })
+  if (ranking) params.set('ranking', ranking)
   try {
     const res = await fetch(`${API_URL}/statistics?${params}`, { next: { revalidate: 300 } })
     return res.ok ? { ok: true, data: (await res.json()) as Statistics } : { ok: false, status: res.status }
