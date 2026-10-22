@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { ArticleCard } from '@omega/wiki/article'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { buttonClasses } from '@ui/button'
 import { listArticles, type ArticleQuery } from '@utils/articles'
 import type { ArticleIndex } from '@utils/types'
+import { adAfter } from './ad-breaks'
 
 type ArticleListProps = {
   first: ArticleIndex
@@ -44,9 +46,19 @@ export const ArticleList = ({ first, query, empty }: ArticleListProps) => {
   return (
     <>
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
+        {articles.map((article, i) => {
+          const ad = adAfter(i, articles.length)
+          return (
+            <Fragment key={article.id}>
+              <ArticleCard article={article} />
+              {ad ? (
+                <li className="col-span-full">
+                  <AdBanner id={`ad-list-${ad}`} placement="content" className="py-2" />
+                </li>
+              ) : null}
+            </Fragment>
+          )
+        })}
       </ul>
 
       <div className="mt-5 flex flex-wrap items-center gap-3.5">
