@@ -23,6 +23,7 @@ export const CardArt = ({ art, alt, sizes, className, imageClassName, priority, 
       alt={alt ?? (art.name ? `${art.name} card artwork` : 'Card artwork')}
       fill
       sizes={sizes}
+      quality={60}
       priority={priority}
       className={twMerge('object-cover object-center', imageClassName)}
     />

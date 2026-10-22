@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
@@ -87,32 +88,44 @@ const HERO_SLOTS = [
   { tilt: "rotate-9", edge: "[--edge:var(--color-line-strong)]", slot: "w-[34%] -ml-[10%] translate-y-[8%]" },
 ]
 
-/** Fanned card art, notched like the client's panels. */
-const CardFan = ({ cards }: { cards: Card[] }) => (
+type Ranked = Promise<Awaited<ReturnType<typeof getTopDecks>>>
+
+/** Fanned card art, notched like the client's panels. Without cards, the empty frames hold the space. */
+const CardFan = ({ cards = [] }: { cards?: Card[] }) => (
   <div className="flex flex-[0_1_460px] items-end justify-center px-6">
-    {cards.slice(0, 3).map((c, i) => ({ ...c, ...HERO_SLOTS[i] })).map((card) => (
-      <div key={card.id} className={card.slot}>
-        <div className={twMerge("cut notch aspect-11/16 w-full [--cut:18px] [--fill:var(--color-surface-200)]", card.edge, card.tilt)}>
-          <CardArt
-            art={{ id: card.id, name: card.name ?? "" }}
-            sizes="(min-width: 1280px) 190px, 30vw"
-            priority
-            className="absolute inset-px [clip-path:polygon(0_0,calc(100%-17px)_0,100%_17px,100%_100%,0_100%)]"
-          >
-            <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-space-000 to-transparent px-3 pt-8 pb-3 font-sans text-sm leading-4.5 font-bold text-ink">
-              {card.name}
-            </span>
-          </CardArt>
+    {HERO_SLOTS.map((slot, i) => {
+      const card = cards[i]
+      return (
+        <div key={i} className={slot.slot}>
+          <div className={twMerge("cut notch aspect-11/16 w-full [--cut:18px] [--fill:var(--color-surface-200)]", slot.edge, slot.tilt)}>
+            {card ? (
+              <CardArt
+                art={{ id: card.id, name: card.name ?? "" }}
+                sizes="(min-width: 1280px) 190px, 30vw"
+                priority
+                className="absolute inset-px [clip-path:polygon(0_0,calc(100%-17px)_0,100%_17px,100%_100%,0_100%)]"
+              >
+                <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-space-000 to-transparent px-3 pt-8 pb-3 font-sans text-sm leading-4.5 font-bold text-ink">
+                  {card.name}
+                </span>
+              </CardArt>
+            ) : null}
+          </div>
         </div>
-      </div>
-    ))}
+      )
+    })}
   </div>
 )
 
-const Hero = ({ cards }: { cards: Card[] }) => (
+const LiveCardFan = async ({ ranked }: { ranked: Ranked }) => {
+  const cards = (await ranked)?.[0]?.topCards
+  return <CardFan cards={cards?.length === 3 ? cards : HERO_FALLBACK} />
+}
+
+const Hero = ({ ranked }: { ranked: Ranked }) => (
   <section id="top" className="dots relative overflow-hidden border-b border-line pt-[calc(4rem+clamp(56px,8vw,120px))] pb-[clamp(64px,9vw,140px)]">
     <div aria-hidden className="absolute top-[-18%] right-[-12%] aspect-square w-[min(900px,90%)] rounded-round bg-[radial-gradient(circle,rgba(0,253,255,0.22)_0%,rgba(74,111,216,0.16)_35%,rgba(8,10,20,0)_68%)]" />
-    <Image src="/omega-mark.png" alt="" width={720} height={672} aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
+    <Image src="/omega-mark.png" alt="" width={720} height={672} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
       <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android">Free · every card unlocked</Eyebrow>
       <h1 className="font-display text-[clamp(52px,10.4vw,115px)] leading-[0.88] tracking-[-0.005em] uppercase text-balance">
@@ -128,7 +141,9 @@ const Hero = ({ cards }: { cards: Card[] }) => (
             <DownloadNote />
           </div>
         </div>
-        <CardFan cards={cards} />
+        <Suspense fallback={<CardFan />}>
+          <LiveCardFan ranked={ranked} />
+        </Suspense>
       </div>
       <ValueCards />
     </div>
@@ -146,11 +161,11 @@ const ELO_WALK = "4,64 28,58 52,62 76,50 100,54 124,42 148,46 172,36 196,40 220,
 
 /** Hero's two promises. Each loop rests on its last frame, which is all reduced motion sees. */
 const ValueCards = () => (
-  <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-4">
-    <div className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-gold)]")}>
+  <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-4">
+    <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-gold)]")}>
       <CardGlow tone="bg-[radial-gradient(circle,rgba(239,209,126,0.22)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
-        <dt className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-gold">$0</dt>
+        <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-gold">$0</p>
         <ul aria-hidden className="flex flex-col items-end gap-2.5">
           {["Currency", "Crafting", "Packs"].map((word, i) => (
             <li key={word} className="relative font-display text-[clamp(24px,2.6vw,34px)] leading-none text-ink-muted uppercase">
@@ -169,13 +184,13 @@ const ValueCards = () => (
           </li>
         ))}
       </ul>
-      <dd className="relative text-ink-dim signal">No currency, no crafting, no packs</dd>
-    </div>
+      <p className="relative text-ink-dim signal">No currency, no crafting, no packs</p>
+    </li>
 
-    <div className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
+    <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
       <CardGlow tone="bg-[radial-gradient(circle,rgba(0,253,255,0.18)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
-        <dt className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-cyan">Elo</dt>
+        <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-cyan">Elo</p>
         <span aria-hidden className="flex flex-col items-end gap-1.5">
           <span className="text-ink-muted signal-sm">Rating</span>
           <span className="elo-count animate-count font-mono text-[clamp(28px,3vw,40px)] leading-none font-bold text-ink" />
@@ -187,9 +202,9 @@ const ValueCards = () => (
         <polyline points={ELO_WALK} pathLength={1} fill="none" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" className="animate-draw stroke-cyan [stroke-dasharray:1]" />
         <circle cx="292" cy="12" r="5" className="origin-center animate-pop fill-cyan [transform-box:fill-box]" />
       </svg>
-      <dd className="relative text-ink-dim signal">A rating that moves with your results</dd>
-    </div>
-  </dl>
+      <p className="relative text-ink-dim signal">A rating that moves with your results</p>
+    </li>
+  </ul>
 )
 
 /** Every supported format in outsized Anton, alternating solid and outline, on a 40s loop. */
@@ -349,6 +364,13 @@ const Formats = () => (
   </Band>
 )
 
+/** The TCG ranking's top decks; the static picks when the API is down or has no open season. */
+const LiveMetaDecks = async ({ ranked }: { ranked: Ranked }) => {
+  const live = ((await ranked) ?? []).flatMap(({ topCards: [card], name, metaShare }) =>
+    card && name ? [{ id: card.id, name, note: `${(metaShare * 100).toFixed(1)}% of the meta` }] : [])
+  return <MetaDecks decks={live.length ? live : HOME_META_DECKS.map(({ id, name, style }) => ({ id, name, note: style }))} />
+}
+
 const MetaDecks = ({ decks }: { decks: MetaDeck[] }) => (
   <Band id="meta">
     <Rail num="05">Free Yugioh ranked online</Rail>
@@ -505,6 +527,11 @@ const Faq = () => (
   </Band>
 )
 
+const LatestWiki = async () => {
+  const articles = await getLatestArticles()
+  return articles.length ? <Wiki articles={articles} /> : null
+}
+
 const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
   <Band id="wiki">
     <Rail num="09">Yugioh wiki</Rail>
@@ -523,7 +550,7 @@ const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
 
 const ClosingCta = () => (
   <section className="relative mt-[clamp(80px,11vw,160px)] overflow-hidden border-t border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_50%_70%_at_50%_100%,rgba(0,253,255,0.18),rgba(0,0,0,0)_70%)] py-[clamp(72px,10vw,144px)]">
-    <Image src="/omega-mark.png" alt="" width={820} height={765} aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
+    <Image src="/omega-mark.png" alt="" width={820} height={765} sizes="min(820px, 120vw)" aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
     <div className={twMerge(WRAP, "relative flex flex-col items-center gap-8 text-center")}>
       <Image src="/omega-mark.png" alt="" width={88} height={82} />
       <h2 className="max-w-[16ch] font-display text-[clamp(44px,8vw,120px)] leading-[0.9] uppercase text-balance">
@@ -545,22 +572,20 @@ const ClosingCta = () => (
   </section>
 )
 
-/** Landing, rebuilt on the Omega Hub design system: hero, format ticker, eight numbered bands, closing call to action. */
-const HomePage = async () => {
-  // TCG ranking; the landing falls back to the static picks if the API is down or has no open season.
-  const [ranked, articles] = await Promise.all([ANALYTICS_ENABLED ? getTopDecks("tcg").catch(() => null) : null, getLatestArticles()])
-  const top = ranked ?? []
-  const heroCards = top[0]?.topCards.length === 3 ? top[0].topCards : HERO_FALLBACK
-  const live = top.flatMap(({ topCards: [card], name, metaShare }) =>
-    card && name ? [{ id: card.id, name, note: `${(metaShare * 100).toFixed(1)}% of the meta` }] : [])
-  const decks: MetaDeck[] = live.length ? live : HOME_META_DECKS.map(({ id, name, style }) => ({ id, name, note: style }))
+/**
+ * Landing, rebuilt on the Omega Hub design system: hero, format ticker, eight numbered bands, closing call to action.
+ * Sync on purpose: only the API-fed parts suspend, so the hero ships in the first chunk instead of behind `app/loading.tsx`.
+ */
+const HomePage = () => {
+  // TCG ranking, started once and awaited by the hero fan and the meta band.
+  const ranked: Ranked = ANALYTICS_ENABLED ? getTopDecks("tcg").catch(() => null) : Promise.resolve(null)
 
   return (
     <>
       <Header items={HOME_NAVBAR_ITEMS} />
       {/* The ticker, the carousel's bleed and the hero's glow reach the gutters: rails may sit over them. */}
       <main data-clear-gutters className="relative flex w-full flex-col overflow-x-clip">
-        <Hero cards={heroCards} />
+        <Hero ranked={ranked} />
         <FormatTicker />
         <Alternative />
         <Tournaments />
@@ -568,7 +593,9 @@ const HomePage = async () => {
         <AdBanner id="ad-top" placement="content" className={BAND_AD} />
         <Rulings />
         <Formats />
-        <MetaDecks decks={decks} />
+        <Suspense>
+          <LiveMetaDecks ranked={ranked} />
+        </Suspense>
         <AdBanner id="ad-mid" placement="content" className={BAND_AD} />
         <Tools />
         <Modes />
@@ -577,7 +604,9 @@ const HomePage = async () => {
         </NonVipOnly>
         <Faq />
         <AdBanner id="ad-bottom" placement="content" className={BAND_AD} />
-        {articles.length ? <Wiki articles={articles} /> : null}
+        <Suspense>
+          <LatestWiki />
+        </Suspense>
         <ClosingCta />
       </main>
       <Footer />

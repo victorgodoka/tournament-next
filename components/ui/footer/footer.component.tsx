@@ -28,6 +28,6 @@ export const Footer = ({ className }: { className?: string }) => (
       <CcpaOptOutLink />
       <ConsentManagementLink />
     </div>
-    <p className="mt-4 max-w-[72ch] text-ink-muted mono-note opacity-70">{FOOTER_MEDIA_NOTE}</p>
+    <p className="mt-4 max-w-[72ch] text-ink-muted mono-note">{FOOTER_MEDIA_NOTE}</p>
   </footer>
 )

@@ -8,6 +8,8 @@ import type { Cosmetics } from './types'
 
 export const API_URL =process.env.NEXT_PUBLIC_API_URL ?? ''
 
+export const SESSION_COOKIE = 'omega_session'
+
 export type Permission =
   | 'wiki.write'
   | 'wiki.delete'

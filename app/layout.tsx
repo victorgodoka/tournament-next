@@ -1,6 +1,8 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
+import { cookies } from 'next/headers'
 import type { Metadata, Viewport } from 'next'
+import { SESSION_COOKIE } from '@utils/auth'
 import {
   OG_IMAGE,
   SITE_DESCRIPTION,
@@ -57,7 +59,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const locale = await getLocale()
+  const [locale, jar] = await Promise.all([getLocale(), cookies()])
   return (
     <html lang={locale} className={FONTS_VARIABLES}>
       <head>
@@ -68,7 +70,7 @@ export default async function RootLayout({
       </head>
       <body className="relative" suppressHydrationWarning>
         <NextIntlClientProvider>
-          <AuthProvider>
+          <AuthProvider hasSession={jar.has(SESSION_COOKIE)}>
             <ModalProvider>
               <MessengerProvider>
                 {children}

@@ -27,13 +27,21 @@ const nextConfig: NextConfig = {
     { source: '/privacy', destination: 'https://forum.duelistsunite.org/t/privacy-policy/6', permanent: false },
   ],
   output: "standalone",
+  experimental: {
+    /**
+     * The CSS goes into the HTML as <style>, so first paint doesn't wait on three stylesheet
+     * requests (Lighthouse: render-blocking requests). Production builds only.
+     */
+    inlineCss: true,
+  },
   images: {
     /**
      * Every distinct `url`+`w`+`q` is a fresh sharp decode/encode on the Node server that
      * serves the pages, so the variant matrix stays small and the hosts stay narrow: a
      * wildcard pathname lets a stranger mint unlimited optimisation jobs from one URL.
      */
-    qualities: [75],
+    /** 60: card art (`CardArt`), detailed crops shown small, where 75 is bytes nobody sees. */
+    qualities: [60, 75],
     deviceSizes: [640, 828, 1080, 1920],
     imageSizes: [64, 128, 256],
     /** 31 days: a variant is worth keeping, recomputing it is the expensive part. */

@@ -14,11 +14,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
+/**
+ * `hasSession`: the session cookie reached the server. Without it `/auth/me` can only answer 401
+ * (a console error on every guest page view), so a guest starts signed out and it isn't asked.
+ */
+export function AuthProvider({ hasSession, children }: { hasSession: boolean; children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null | undefined>(hasSession ? undefined : null);
   const router = useRouter();
 
   useEffect(() => {
+    if (!hasSession) return;
     const controller = new AbortController();
     fetchMe(controller.signal)
       .then(setUser)
@@ -30,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       });
     return () => controller.abort();
-  }, []);
+  }, [hasSession]);
 
   // `redirect()` only works during render; in a handler it throws. The refresh drops
   // session-dependent server UI (editor tools, drafts) from the router cache.

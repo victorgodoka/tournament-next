@@ -78,8 +78,12 @@ const playMessageSound = () => {
  * viewer visible, so mount it once per page.
  */
 export const useMessenger = () => {
+  const { user } = useAuth()
+  /** Known signed out. Never asked: `GET /messenger` could only be a 401 in the console. */
+  const guest = user === null
+  const [loadedPanel, setPanel] = useState<Panel | null | undefined>(undefined)
   /** `undefined` while loading, `null` when signed out. */
-  const [panel, setPanel] = useState<Panel | null | undefined>(undefined)
+  const panel = guest ? null : loadedPanel
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
   const [requests, setRequests] = useState<Requests | null>(null)
   const [blocks, setBlocks] = useState<BlockedDuelist[] | null>(null)
@@ -111,6 +115,7 @@ export const useMessenger = () => {
   const signedIn = !!panel
 
   useEffect(() => {
+    if (guest) return
     let stream: EventSource | undefined
     let hiddenTimer: number | undefined
     let cancelled = false
@@ -194,10 +199,10 @@ export const useMessenger = () => {
       document.removeEventListener('visibilitychange', onVisibility)
       detach()
     }
-  }, [fail, loadPanel, patchChats])
+  }, [guest, fail, loadPanel, patchChats])
 
   // The stream never echoes the viewer's own equip; the auth refresh after it does, so refetch `me`.
-  const ownCosmetics = JSON.stringify(useAuth().user?.cosmetics ?? null)
+  const ownCosmetics = JSON.stringify(user?.cosmetics ?? null)
   const seenCosmetics = useRef(ownCosmetics)
   useEffect(() => {
     if (seenCosmetics.current === ownCosmetics) return
