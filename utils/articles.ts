@@ -216,7 +216,8 @@ export const getSocial = async (slug: string, cookie?: string | null): Promise<A
   try {
     return await request<ArticleSocial>(socialPath(slug, '/social'), withCookie(cookie))
   } catch (error) {
-    console.error(error)
+    // 404 is a draft or a missing article, read alongside the article itself: not worth a log line.
+    if (!(error instanceof WikiApiError && error.status === 404)) console.error(error)
     return null
   }
 }
