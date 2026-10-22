@@ -1,6 +1,6 @@
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import { cookies } from 'next/headers'
+import { ClientMessages } from '@i18n/client-messages'
 import type { Metadata, Viewport } from 'next'
 import { SESSION_COOKIE } from '@utils/auth'
 import {
@@ -69,7 +69,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="relative" suppressHydrationWarning>
-        <NextIntlClientProvider>
+        <ClientMessages>
           <AuthProvider hasSession={jar.has(SESSION_COOKIE)}>
             <ModalProvider>
               <MessengerProvider>
@@ -79,7 +79,7 @@ export default async function RootLayout({
               </MessengerProvider>
             </ModalProvider>
           </AuthProvider>
-        </NextIntlClientProvider>
+        </ClientMessages>
       </body>
     </html>
   )
