@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { BANLIST_CARDS, BANLISTS, banlistPath, cardChanges, cardPath } from '@utils/banlist'
 import { SITE_URL } from '@utils/config'
+import { LEGAL_UPDATED } from '@utils/const'
 
 /**
  * The site's own pages. Wiki articles have their own sitemap at /wiki/sitemap.xml (declared in robots.ts),
@@ -26,5 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     })),
+    { url: `${SITE_URL}/privacy`, lastModified: LEGAL_UPDATED.privacy, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${SITE_URL}/terms`, lastModified: LEGAL_UPDATED.terms, changeFrequency: 'yearly', priority: 0.3 },
   ]
 }

@@ -23,8 +23,6 @@ const nextConfig: NextConfig = {
     { source: '/profile/:id/explorations/:path*', destination: '/profile/:id/statistics', permanent: true },
     // NitroAds (site 2429) hosts the ads.txt; duelistsunite.org/ads.txt redirects there too.
     { source: '/ads.txt', destination: 'https://api.nitropay.com/v1/ads-2429.txt', permanent: true },
-    // The same policy duelistsunite.org/privacy points to.
-    { source: '/privacy', destination: 'https://forum.duelistsunite.org/t/privacy-policy/6', permanent: false },
   ],
   output: "standalone",
   experimental: {

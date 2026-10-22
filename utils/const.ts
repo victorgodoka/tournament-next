@@ -174,7 +174,11 @@ export const FOOTER_LINKS = [
   { item: "Discord", to: "https://discord.gg/duelistsunite" },
   { item: "Deck Builder", to: "/deck-builder" },
   { item: "Privacy", to: "/privacy" },
+  { item: "Terms", to: "/terms" },
 ]
+
+/** When each legal page last changed: the date at its top and its sitemap `lastModified`. */
+export const LEGAL_UPDATED = { privacy: "2026-10-22", terms: "2026-10-22" }
 
 export const FOOTER_DISCLAIMER = "Duelists Unite. A fan project, unaffiliated with Konami."
 export const FOOTER_MEDIA_NOTE =
