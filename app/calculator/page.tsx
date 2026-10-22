@@ -13,10 +13,10 @@ const CalculatorPage = () => (
   <>
     <Header />
     {/* Below `lg` the tag strip is fixed to the bottom of the viewport: the page's end scrolls clear of it. */}
-    <main className="min-h-dvh pt-16 max-lg:pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <main data-clear-gutters className="min-h-dvh pt-16 max-lg:pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <CalculatorLoader />
       {/* No footer on this page: our VIP pitch goes at the end instead. */}
-      <VipPromo className="mx-auto my-12 w-[min(1280px,calc(100%-32px))]" />
+      <VipPromo className="mx-auto my-12 w-[min(var(--container-page),calc(100%-32px))]" />
     </main>
   </>
 )

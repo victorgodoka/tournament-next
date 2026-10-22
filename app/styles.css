@@ -295,6 +295,17 @@
     }
   }
 
+  /*
+   * Laptops (1366, 1440, 1536): the page narrows so each Nitro rail, 160px wide and 10px off the
+   * edge, clears the content. A percentage, so it leaves out the scrollbar: use it on page-wide
+   * wrappers only. From 1620px the page is back to 1280px.
+   */
+  @media (1366px <= width < 1620px) {
+    :root {
+      --container-page: calc(100% - 340px);
+    }
+  }
+
   /* Deep space with a faint cyan and azure haze at the top. */
   body {
     min-height: 100dvh;

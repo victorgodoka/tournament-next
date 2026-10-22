@@ -3,7 +3,13 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthUser } from '@utils/auth'
 import { createNitroPlacement, removeNitroHost } from '@utils/nitro-ads'
-import { ANCHOR_AD_OPTIONS, ANCHOR_MOBILE_AD_OPTIONS, NITRO_AD_SLOT_IDS } from '@utils/nitro-ads.const'
+import {
+  ANCHOR_AD_OPTIONS,
+  ANCHOR_MOBILE_AD_OPTIONS,
+  NITRO_AD_SLOT_IDS,
+  RAIL_LEFT_AD_OPTIONS,
+  RAIL_RIGHT_AD_OPTIONS,
+} from '@utils/nitro-ads.const'
 import { Ads } from './ads'
 
 const auth: { user: AuthUser | null | undefined } = { user: undefined }
@@ -78,6 +84,21 @@ describe('Ads', () => {
     expect(created()).not.toContain(NITRO_AD_SLOT_IDS.railRight)
     expect(created()).toHaveLength(4)
     expect(optionsOf(NITRO_AD_SLOT_IDS.anchor)).toBe(ANCHOR_MOBILE_AD_OPTIONS)
+  })
+
+  it('keeps rails to 160x600 unless the body leaves a 300px rail its 310px', async () => {
+    await show(null, '/decks')
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railLeft)).toEqual({ ...RAIL_LEFT_AD_OPTIONS, sizes: [[160, 600]] })
+    cleanup()
+    vi.clearAllMocks()
+
+    Object.defineProperty(document.body, 'clientWidth', { configurable: true, value: 1903 })
+    try {
+      await show(null, '/decks')
+      expect(optionsOf(NITRO_AD_SLOT_IDS.railRight)).toBe(RAIL_RIGHT_AD_OPTIONS)
+    } finally {
+      delete (document.body as { clientWidth?: number }).clientWidth
+    }
   })
 
   it('drops the floating player on a page with an in-content video', async () => {

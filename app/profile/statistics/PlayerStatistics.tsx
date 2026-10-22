@@ -165,7 +165,7 @@ export const PlayerStatistics = ({ profile, choices, selection, cookie }: Player
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
+      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
         <div className="mx-auto w-full max-w-page px-gutter">
           <section className="pt-section">
             <Link href={`/profile/${profile.id}`} className="inline-flex min-h-11 items-center text-ink-muted signal hover:text-cyan">

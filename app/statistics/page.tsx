@@ -29,7 +29,7 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
       <Header />
       <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
         {/* 64px clears the fixed header. */}
-        <main style={{ width: 'min(1280px, calc(100% - 32px))', margin: '0 auto', padding: '104px 0 96px' }}>
+        <main style={{ width: 'min(var(--container-page), calc(100% - 32px))', margin: '0 auto', padding: '104px 0 96px' }}>
           <MetaStatistics ladder={ladder} season={season} past={past} result={result} omega={omega} />
         </main>
       </div>

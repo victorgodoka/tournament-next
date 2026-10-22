@@ -211,7 +211,7 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
 const ProfilePage = ({ profile }: { profile: Profile }) => (
   <>
     <Header />
-    <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16">
+    <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16">
       <div className="mx-auto flex w-full max-w-page flex-col gap-10 px-4 pt-10 pb-16 min-[1312px]:px-0">
         <ProfileBody profile={profile} />
       </div>

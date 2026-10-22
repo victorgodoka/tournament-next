@@ -47,7 +47,7 @@ const TournamentsPage = async () => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
+      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
         <TournamentBrowser live={await snapshot(live.tournaments[0])} first={first} />
       </main>
       <Footer />

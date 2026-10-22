@@ -14,10 +14,10 @@ const SimulatorPage = () => (
     <Header />
     {/* Clipped sideways at the viewport edge, not the board's: a card sliding in from a pile would widen the page for a
         moment, and the edge cards' focus rings still fit in the gutter. `clip` scrolls nothing and keeps `sticky` working. */}
-    <main className="min-h-dvh overflow-x-clip pt-16">
+    <main data-clear-gutters className="min-h-dvh overflow-x-clip pt-16">
       <SimulatorLoader />
       {/* No footer on this page: our VIP pitch goes at the end instead. */}
-      <VipPromo className="mx-auto my-12 w-[min(1280px,calc(100%-32px))]" />
+      <VipPromo className="mx-auto my-12 w-[min(var(--container-page),calc(100%-32px))]" />
     </main>
   </>
 )

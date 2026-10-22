@@ -411,6 +411,7 @@ const WelcomePage = async () => {
       <ReturnAfterSignIn />
       <Header />
       <main
+        data-clear-gutters
         className="flex min-h-dvh flex-col overflow-x-clip pt-16 pb-24"
         style={background ? { background: `linear-gradient(color-mix(in srgb, var(--color-space-000) 85%, transparent), var(--color-space-000)), url(${JSON.stringify(background)}) center / cover fixed` } : undefined}
       >

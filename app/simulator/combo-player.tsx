@@ -27,7 +27,7 @@ import { useReplay } from './use-replay'
 import { VideoDialog } from './video-dialog'
 
 const COUNTDOWN_S = 3
-const WIDTH = 'mx-auto w-[min(1280px,calc(100%-32px))]'
+const WIDTH = 'mx-auto w-[min(var(--container-page),calc(100%-32px))]'
 
 type Load = { kind: 'loading' | 'notFound' | 'damaged' | 'failed' } | { kind: 'ready'; combo: SharedCombo; session: Session }
 

@@ -16,7 +16,7 @@ const PublicDecksPage = async () => {
   return (
     <>
       <Header />
-      <main className="mx-auto flex min-h-dvh w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-24 pb-24">
+      <main className="mx-auto flex min-h-dvh w-[min(var(--container-page),calc(100%-32px))] flex-col gap-8 pt-24 pb-24">
         <PageHeader eyebrow="Deck Builder" title={t('title')} lead={t('meta')} />
         <AdBanner id="ad-top" placement="content" />
         <DeckBrowser />

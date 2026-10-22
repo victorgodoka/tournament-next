@@ -392,7 +392,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const lookupFailed = [...session.deck.main, ...session.deck.extra].some((id) => failed.has(id))
 
   return (
-    <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
+    <div className="mx-auto flex w-[min(var(--container-page),calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
       <PageHeader eyebrow={t('eyebrow')} eyebrowMeta={session.name || undefined} title={t('title')} />
       <DeckPicker
         open={picker}

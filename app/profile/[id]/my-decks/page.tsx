@@ -35,7 +35,7 @@ const MyDecksRoute = async ({ params }: MyDecksRouteProps) => {
   return (
     <>
       <Header />
-      <main className="mx-auto flex min-h-dvh w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-24 pb-24">
+      <main className="mx-auto flex min-h-dvh w-[min(var(--container-page),calc(100%-32px))] flex-col gap-8 pt-24 pb-24">
         <PageHeader eyebrow="Profile" title={t('userTitle', { name: nameOf(profile) })} />
         <AdBanner id="ad-top" placement="content" />
         <DeckBrowser userId={id} />

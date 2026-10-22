@@ -27,6 +27,8 @@ export interface NitroRailAdOptions {
   railVerticalAlign: 'top' | 'center'
   report: NitroAdReportOptions
   mediaQuery: string
+  /** Unset, Nitro picks from its own list whatever the free track holds. */
+  sizes?: NitroAdSizes
 }
 
 export interface NitroAnchorAdOptions {

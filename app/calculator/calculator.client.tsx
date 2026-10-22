@@ -57,7 +57,7 @@ const Calculator = () => {
   }, [])
   if (!boot) {
     return (
-      <p role="status" className="mx-auto w-[min(1280px,calc(100%-32px))] pt-8 text-ink-muted body">
+      <p role="status" className="mx-auto w-[min(var(--container-page),calc(100%-32px))] pt-8 text-ink-muted body">
         {t('loading')}
       </p>
     )
@@ -259,7 +259,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   }
 
   return (
-    <div className="mx-auto flex w-[min(1280px,calc(100%-32px))] flex-col gap-8 pt-8 pb-24">
+    <div className="mx-auto flex w-[min(var(--container-page),calc(100%-32px))] flex-col gap-8 pt-8 pb-24">
       <PageHeader
         eyebrow={t('eyebrow')}
         title={t('title')}

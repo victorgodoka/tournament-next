@@ -558,7 +558,8 @@ const HomePage = async () => {
   return (
     <>
       <Header items={HOME_NAVBAR_ITEMS} />
-      <main className="relative flex w-full flex-col overflow-x-clip">
+      {/* The ticker, the carousel's bleed and the hero's glow reach the gutters: rails may sit over them. */}
+      <main data-clear-gutters className="relative flex w-full flex-col overflow-x-clip">
         <Hero cards={heroCards} />
         <FormatTicker />
         <Alternative />

@@ -13,8 +13,9 @@ import {
   NITRO_AD_SLOT_IDS,
   RAIL_LEFT_AD_OPTIONS,
   RAIL_RIGHT_AD_OPTIONS,
+  RAIL_WIDE_MIN_WIDTH,
 } from '@utils/nitro-ads.const'
-import type { NitroAdOptions } from '@utils/nitro-ads.types'
+import type { NitroAdOptions, NitroRailAdOptions } from '@utils/nitro-ads.types'
 import { adsMode, isVideoPage } from './ads-mode'
 import { useNitroAd } from './use-nitro-ad'
 
@@ -26,10 +27,16 @@ const STUB =
  * None of the site-wide formats needs an element: an empty one only collides with the rail.
  * Unmounting (a page without ads, a VIP) takes Nitro's own host off the screen.
  */
-const Placement = ({ id, options }: { id: string; options: NitroAdOptions }) => {
+const Placement = ({ id, options }: { id: string; options: NitroAdOptions | (() => NitroAdOptions) }) => {
   useNitroAd(id, options, { remove: removeNitroHost })
   return null
 }
+
+/** Read when the rail asks, like Nitro's own collision check: it doesn't follow a resize either. */
+const fitRail = (options: NitroRailAdOptions) => (): NitroRailAdOptions =>
+  document.body.clientWidth >= RAIL_WIDE_MIN_WIDTH ? options : { ...options, sizes: [[160, 600]] }
+const RAIL_LEFT = fitRail(RAIL_LEFT_AD_OPTIONS)
+const RAIL_RIGHT = fitRail(RAIL_RIGHT_AD_OPTIONS)
 
 /**
  * The site-wide placements. A VIP, or anyone while /auth/me is in flight, gets nothing, not even
@@ -55,11 +62,11 @@ export const Ads = () => {
         data-spa="auto"
         data-demo={process.env.NODE_ENV === 'production' ? undefined : 'true'}
       />
-      <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={RAIL_LEFT_AD_OPTIONS} />
+      <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={RAIL_LEFT} />
       {mode === 'all' ? (
         <>
           {signedOut ? (
-            <Placement key={NITRO_AD_SLOT_IDS.railRight} id={NITRO_AD_SLOT_IDS.railRight} options={RAIL_RIGHT_AD_OPTIONS} />
+            <Placement key={NITRO_AD_SLOT_IDS.railRight} id={NITRO_AD_SLOT_IDS.railRight} options={RAIL_RIGHT} />
           ) : null}
           <Placement
             key={NITRO_AD_SLOT_IDS.anchor}

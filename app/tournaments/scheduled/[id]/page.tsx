@@ -46,7 +46,7 @@ const ScheduledPage = ({ page }: { page: ScheduledTournament }) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
+      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
         <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-gutter pt-8">
           <nav aria-label={tt('detail.breadcrumb')} className="flex items-center gap-2.5 text-ink-muted signal-sm">
             <Link href="/tournaments" className="underline decoration-1 underline-offset-3 hover:decoration-2">

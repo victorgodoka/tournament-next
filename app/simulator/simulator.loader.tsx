@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 const Loading = () => {
   const t = useTranslations('Simulator')
   return (
-    <p role="status" className="mx-auto w-[min(1280px,calc(100%-32px))] pt-8 text-ink-muted body">
+    <p role="status" className="mx-auto w-[min(var(--container-page),calc(100%-32px))] pt-8 text-ink-muted body">
       {t('loading')}
     </p>
   )

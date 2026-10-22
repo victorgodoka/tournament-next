@@ -137,7 +137,7 @@ const CardBanlist = ({ card, current }: { card: number; current: Banlist }) => {
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip pt-16 pb-24">
+      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-clip pt-16 pb-24">
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structured)} />
         <div className="mx-auto flex w-full max-w-page flex-col gap-section px-gutter">
           <div className="flex flex-col gap-2">

@@ -42,7 +42,7 @@ const CalendarPage = ({ from, prev, next, entries }: ReturnType<typeof monthOf> 
   return (
     <>
       <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
+      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-16">
         <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-gutter">
           <PageHeader
             eyebrow={t('eyebrow')}

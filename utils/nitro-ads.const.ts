@@ -31,26 +31,36 @@ export const AD_REPORT = {
 } as const satisfies NitroAdReportOptions
 
 /**
- * Content is 1280px wide, so 1620px leaves 170px per gutter: a 160x600 fits. No stack, so the
- * 160x600 and 300x600 skyscrapers stay in the auction. The header is 60px, hence the sticky top.
+ * Content is 1280px wide, so 1620px leaves 170px per gutter: a 160x600 fits. Between 1366px and
+ * 1620px `--container-page` narrows to keep those 170px. Nitro drops the rail when any element
+ * starts inside its track (a full-width `main` too) unless it or an ancestor is allowlisted.
+ * `data-clear-gutters` allowlists a full-width wrapper whose content keeps to `--container-page`:
+ * Nitro stops checking everything inside it, so a page with full-bleed content can't carry it. No stack, so
+ * the 300x600 stays in the auction where it fits. The header is 60px, hence the sticky top.
  */
 const RAIL = {
   format: 'rail',
   railOffsetTop: 100,
   railOffsetBottom: 220,
-  railCollisionWhitelist: ['#site-header', '#site-footer', '.oh-space'],
+  railCollisionWhitelist: ['#site-header', '#site-footer', '.oh-space', '[data-clear-gutters]'],
   railCloseColor: '#666666',
   railSpacing: 10,
   railStack: false,
   railStickyTop: 80,
   railVerticalAlign: 'center',
   report: AD_REPORT,
-  mediaQuery: '(min-width: 1620px)',
+  mediaQuery: '(min-width: 1366px)',
 } as const satisfies Omit<NitroRailAdOptions, 'rail'>
 
 export const RAIL_LEFT_AD_OPTIONS = { ...RAIL, rail: 'left' } as const satisfies NitroRailAdOptions
 
 export const RAIL_RIGHT_AD_OPTIONS = { ...RAIL, rail: 'right' } as const satisfies NitroRailAdOptions
+
+/**
+ * The body width from which a 300px rail, 10px off the edge, clears 1280px of content. Narrower, a
+ * page whose wrapper is allowlisted (`.oh-space`) would get one over its content: 160x600 only.
+ */
+export const RAIL_WIDE_MIN_WIDTH = 1280 + 2 * 310
 
 /** No close button: Nitro's advice for revenue. The background is the theme's #080a14. */
 export const ANCHOR_AD_OPTIONS = {
