@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
 import { Chip } from '@ui/chip'
 import type { ArticleSummary, WikiUser } from '@utils/types'
+import { imageSource } from '@utils/wiki-doc'
 
 export const ARTICLE_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
 
@@ -50,13 +51,31 @@ export const Byline = ({ user, size = 20, className }: { user: WikiUser | null; 
   </span>
 )
 
-/** Index card: title, summary, who wrote it, when it last moved, and whether it is live. */
+/**
+ * Index card: cover, title, summary, who wrote it, when it last moved, and whether it is live.
+ * No cover gets the same box, empty, so a row of cards lines up.
+ */
 export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
   <li className="flex">
     <Link
       href={`/wiki/${article.slug}`}
       className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-space-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
     >
+      {/* 1200×630, the share-image ratio; it bleeds over the card's padding to its edges. */}
+      <span className="relative -mx-4.5 -mt-4.5 block aspect-[40/21] overflow-hidden border-b border-line bg-surface-200">
+        {article.cover ? (
+          <Image
+            {...imageSource(article.cover, 640)}
+            alt=""
+            fill
+            sizes="(min-width: 1280px) 400px, (min-width: 640px) 50vw, 100vw"
+            style={{
+              objectPosition: article.cover.focal ? `${article.cover.focal.x}% ${article.cover.focal.y}%` : undefined,
+            }}
+            className="object-cover"
+          />
+        ) : null}
+      </span>
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0 text-ink body-strong">{article.title}</span>
         {article.publishedAt ? null : <StatusChip publishedAt={null} />}
