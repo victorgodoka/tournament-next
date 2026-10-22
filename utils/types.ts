@@ -2,7 +2,7 @@
  * Shapes returned by omega-server-v3 (see its PROFILE_API.md). Dates are ISO 8601 strings and
  * numbers are raw: format both at render time. An absent field was withheld; `null` means unset.
  */
-import type { WikiDoc } from '@utils/wiki-doc'
+import type { WikiAsset, WikiDoc } from '@utils/wiki-doc'
 
 export type CardArt = {
   /** Card passcode. The client builds the image URL. */
@@ -648,6 +648,8 @@ export type ArticleSummary = {
   title: string
   /** The doc's one-line summary; `''` on a legacy Markdown article. */
   summary: string
+  /** The image `doc.cover` points at. Only the index fills it; `null` without a cover. */
+  cover?: WikiAsset | null
   author: WikiUser
   /** `null` is a draft. */
   publishedAt: string | null
@@ -681,6 +683,32 @@ export type ArticleSeo = {
   /** Already transformed to 1200×630 when it is a large enough upload: never transform it again. */
   image: { src: string; width: number; height: number; alt: string } | null
   jsonLd: Record<string, unknown>
+}
+
+/** WIKI_API §4.15. `body` is plain text: render it as text, never as Markdown or HTML. */
+export type WikiComment = {
+  /** Bigint as a string. */
+  id: string
+  /** `null` on a thread; the thread's id on a reply. */
+  parentId: string | null
+  /** `null` once deleted. */
+  author: WikiUser | null
+  /** `''` once deleted. */
+  body: string
+  createdAt: string
+  /** A deleted thread still comes back while it has live replies: show "Comment deleted". */
+  deleted: boolean
+}
+
+/** Newest thread first; replies oldest first, one level deep. */
+export type WikiThread = WikiComment & { replies: WikiComment[] }
+
+export type ArticleSocial = {
+  views: number
+  likes: number
+  /** Whether the signed-in viewer likes it; `false` signed out. */
+  liked: boolean
+  comments: WikiThread[]
 }
 
 export type ArticleIndex = {

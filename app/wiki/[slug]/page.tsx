@@ -8,17 +8,19 @@ import { LocalTime } from '@omega/profile/local-time'
 import { AsideBlock, WIKI_ASIDE, WIKI_PAD, WikiBar } from '@omega/wiki'
 import { ARTICLE_DATE_TIME, ArticleBody, Byline, StatusChip, userName } from '@omega/wiki/article'
 import { ArticleView } from '@omega/wiki/article-view'
+import { ArticleBar } from '@omega/wiki/article-bar'
+import { Comments } from '@omega/wiki/comments'
 import { AdArticle } from '@omega/ads/ad-article'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
 import { WIKI_BODY_ID } from '@utils/nitro-ads.const'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
-import { getArticle } from '@utils/articles'
-import { SITE_NAME } from '@utils/config'
+import { getArticle, getSocial } from '@utils/articles'
+import { SITE_NAME, SITE_URL } from '@utils/config'
 import { jsonLd, pageMetadata } from '@utils/metadata'
 import { renderArticle } from '@utils/remark'
-import type { Article, ArticleSeo } from '@utils/types'
+import type { Article, ArticleSeo, ArticleSocial } from '@utils/types'
 import { renderDocHtml } from '@utils/wiki-doc'
 import { ArticleActions } from './ArticleActions'
 
@@ -29,6 +31,26 @@ type ArticleRouteProps = { params: Promise<{ slug: string }> }
  * `cache`: metadata and page share one request instead of two uncached fetches.
  */
 const loadArticle = cache(async (slug: string) => getArticle(slug, (await headers()).get('cookie')))
+
+/** Views, likes and comments, read beside the article. `null` for a draft, or when the API didn't answer. */
+const loadSocial = cache(async (slug: string) => getSocial(slug, (await headers()).get('cookie')))
+
+/** What a share points at: the canonical address, absolute. */
+const shareUrl = (article: Article) => new URL(article.seo?.canonical ?? `/wiki/${article.slug}`, SITE_URL).toString()
+
+type SocialProps = { article: Article; social: ArticleSocial | null }
+
+const Bar = ({ article, social }: SocialProps) => (
+  <ArticleBar slug={article.slug} url={shareUrl(article)} title={article.title} social={social} />
+)
+
+/** The banner sits between the article and the conversation, never inside either. */
+const Conversation = ({ article, social }: SocialProps) => (
+  <>
+    <AdBanner id="ad-comments" placement="content" className="mt-12" />
+    <Comments slug={article.slug} initial={social?.comments ?? null} />
+  </>
+)
 
 /**
  * The head comes whole from `article.seo`, which the server derives from the saved doc: recomputing it
@@ -112,38 +134,47 @@ const ArticleMeta = ({ article }: { article: Article }) => (
 )
 
 /** Legacy Markdown article: one body, rendered as it always was. */
-const MarkdownArticle = async ({ article }: { article: Article }) => {
+const MarkdownArticle = async ({ article, social }: SocialProps) => {
   const html = await renderArticle(article.body)
+  const published = !!article.publishedAt
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <article id={WIKI_BODY_ID} className={twMerge('py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
-        <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-          <Link href="/wiki" className="text-ink-muted hover:text-cyan">
-            Omega Wiki
-          </Link>{' '}
-          / {article.slug}
-        </nav>
+      <div className={twMerge('min-w-0 py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
+        <article id={WIKI_BODY_ID}>
+          <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
+            <Link href="/wiki" className="text-ink-muted hover:text-cyan">
+              Omega Wiki
+            </Link>{' '}
+            / {article.slug}
+          </nav>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2.5">
-          <StatusChip publishedAt={article.publishedAt} />
-          {article.publishedAt ? null : <span className="text-ink-muted signal-sm">Only editors can see this page</span>}
-        </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <StatusChip publishedAt={article.publishedAt} />
+            {article.publishedAt ? null : <span className="text-ink-muted signal-sm">Only editors can see this page</span>}
+          </div>
 
-        <h1 className="mt-3.5 text-ink display-2">{article.title}</h1>
+          <h1 className="mt-3.5 text-ink display-2">{article.title}</h1>
 
-        <p className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2 text-ink-muted body-sm">
-          <Byline user={article.author} />
-          <span aria-hidden>·</span>
-          <span>
-            updated <LocalTime iso={article.updatedAt} options={ARTICLE_DATE_TIME} />
-            {article.updatedBy ? ` by ${userName(article.updatedBy)}` : ''}
-          </span>
-        </p>
+          <p className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2 text-ink-muted body-sm">
+            <Byline user={article.author} />
+            <span aria-hidden>·</span>
+            <span>
+              updated <LocalTime iso={article.updatedAt} options={ARTICLE_DATE_TIME} />
+              {article.updatedBy ? ` by ${userName(article.updatedBy)}` : ''}
+            </span>
+          </p>
 
-        <AdVideo id="ad-video" className="mt-7" />
-        <ArticleBody html={html} className="mt-7" />
-      </article>
+          {published ? (
+            <div className="mt-7">
+              <Bar article={article} social={social} />
+            </div>
+          ) : null}
+          <AdVideo id="ad-video" className={published ? undefined : 'mt-7'} />
+          <ArticleBody html={html} className="mt-7" />
+        </article>
+        {published ? <Conversation article={article} social={social} /> : null}
+      </div>
       <AdArticle targetId={WIKI_BODY_ID} />
 
       <aside className={twMerge('border-line lg:border-l', WIKI_ASIDE)}>
@@ -156,11 +187,13 @@ const MarkdownArticle = async ({ article }: { article: Article }) => {
 
 const ArticleRoute = async ({ params }: ArticleRouteProps) => {
   const { slug } = await params
-  const article = await loadArticle(slug)
+  // Side by side: the social read answers 404 for a draft, which then simply shows none of it.
+  const [article, social] = await Promise.all([loadArticle(slug), loadSocial(slug)])
   if (!article) notFound()
   // The API answers a former address with 301 and `fetch` follows it: never serve the article at the old
   // URL (two indexed URLs split the ranking). Build the target from the body, not the relative Location.
   if (article.slug !== slug) permanentRedirect(`/wiki/${article.slug}`)
+  const published = !!article.publishedAt
 
   return (
     <>
@@ -182,7 +215,13 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
             html={await renderDocHtml(article.doc)}
             links={article.links}
             bodyId={WIKI_BODY_ID}
-            lead={<AdVideo id="ad-video" className="mb-8" />}
+            lead={
+              <>
+                {published ? <Bar article={article} social={social} /> : null}
+                <AdVideo id="ad-video" className="mb-8" />
+              </>
+            }
+            footer={published ? <Conversation article={article} social={social} /> : null}
           >
             {/* The Markdown page has a byline for this; the block page shows it here. */}
             <AsideBlock label="Updated">
@@ -196,7 +235,7 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
             <AdArticle targetId={WIKI_BODY_ID} />
           </ArticleView>
         ) : (
-          <MarkdownArticle article={article} />
+          <MarkdownArticle article={article} social={social} />
         )}
       </main>
       <Footer />

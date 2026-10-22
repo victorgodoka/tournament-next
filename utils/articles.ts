@@ -10,11 +10,13 @@ import type {
   ArticleDraft,
   ArticleIndex,
   ArticlePatch,
+  ArticleSocial,
   ArticleSummary,
   DocArticleDraft,
   DocArticlePatch,
   Revision,
   RevisionDetail,
+  WikiComment,
   WikiEditor,
   WikiUser,
 } from '@utils/types'
@@ -203,3 +205,50 @@ export const promoteEditor = (userId: string) =>
 /** Their articles stay; they simply can no longer write. */
 export const demoteEditor = (userId: string) =>
   request<void>(`/wiki/editors/${encodeURIComponent(userId)}`, json('DELETE'))
+
+const socialPath = (slug: string, rest = '') => `/wiki/${encodeURIComponent(slug)}${rest}`
+
+/**
+ * Views, likes and comments (WIKI_API §4.15). Published articles only. `null` on any failure:
+ * a broken social API must never take the article down with it.
+ */
+export const getSocial = async (slug: string, cookie?: string | null): Promise<ArticleSocial | null> => {
+  try {
+    return await request<ArticleSocial>(socialPath(slug, '/social'), withCookie(cookie))
+  } catch (error) {
+    // 404 is a draft or a missing article, read alongside the article itself: not worth a log line.
+    if (!(error instanceof WikiApiError && error.status === 404)) console.error(error)
+    return null
+  }
+}
+
+/**
+ * Browser only: on the server every reader would share the render's IP. The API counts a visitor
+ * once a day; a lost beacon is a lost view, never an error.
+ */
+export const countView = (slug: string): void => {
+  fetch(`${API_URL}${socialPath(slug, '/views')}`, { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {})
+}
+
+export const likeArticle = (slug: string) =>
+  request<{ likes: number; liked: boolean }>(socialPath(slug, '/like'), json('PUT'))
+
+export const unlikeArticle = (slug: string) =>
+  request<{ likes: number; liked: boolean }>(socialPath(slug, '/like'), json('DELETE'))
+
+/** `parentId` must be a live thread: replies go one level deep. */
+export const postComment = (slug: string, body: string, parentId?: string) =>
+  request<WikiComment>(socialPath(slug, '/comments'), json('POST', parentId ? { body, parentId } : { body }))
+
+export const deleteComment = (slug: string, id: string) =>
+  request<void>(socialPath(slug, `/comments/${encodeURIComponent(id)}`), json('DELETE'))
+
+/** Copy for a failed like or comment write. A `400` here is a rule the reader can act on, so its message shows. */
+export const socialError = (cause: unknown): string => {
+  if (!(cause instanceof WikiApiError)) return "Couldn't save that."
+  if (cause.status === 401) return 'Your session expired. Sign in again.'
+  if (cause.status === 429) return 'Slow down a moment.'
+  if (cause.status === 400) return cause.message
+  if (cause.status === 404) return 'This article or comment is gone. Reload the page.'
+  return "Couldn't save that."
+}
