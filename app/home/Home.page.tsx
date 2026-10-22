@@ -27,6 +27,7 @@ import { getTopDecks } from "@utils/global-explorer";
 import type { ArticleSummary } from "@utils/types";
 import { Carousel } from "@ui/carousel";
 import { useTranslations } from "next-intl";
+import { AdBanner } from "@omega/ads/ad-banner";
 import { NonVipOnly } from "@omega/ads/non-vip-only";
 import { VipPanel } from "@app/download/vip-panel";
 
@@ -38,6 +39,8 @@ const SECTION_GAP = "flex flex-col gap-[clamp(28px,4vw,48px)]"
 const BAND_TITLE = "font-display text-[clamp(40px,7vw,104px)] leading-[0.92] uppercase text-balance"
 const BAND_LEAD = "text-[clamp(16px,1.6vw,20px)] leading-[1.55] text-ink-dim"
 const NOTE = "text-ink-muted signal-sm"
+/** A banner between two bands, spaced like a band. */
+const BAND_AD = twMerge(WRAP, "pt-[clamp(72px,10vw,144px)]")
 /** Anton set as an outline only. */
 const OUTLINE = "text-transparent [-webkit-text-stroke:var(--stroke-w)_var(--stroke-c)]"
 
@@ -560,15 +563,19 @@ const HomePage = async () => {
         <FormatTicker />
         <Alternative />
         <Tournaments />
+        {/* Banners sit between bands, never in the hero or next to a Download button. */}
+        <AdBanner id="ad-top" placement="content" className={BAND_AD} />
         <Rulings />
         <Formats />
         <MetaDecks decks={decks} />
+        <AdBanner id="ad-mid" placement="content" className={BAND_AD} />
         <Tools />
         <Modes />
         <NonVipOnly>
           <Vip />
         </NonVipOnly>
         <Faq />
+        <AdBanner id="ad-bottom" placement="content" className={BAND_AD} />
         {articles.length ? <Wiki articles={articles} /> : null}
         <ClosingCta />
       </main>
