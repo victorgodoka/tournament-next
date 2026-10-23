@@ -1,11 +1,12 @@
 'use client'
 
 /**
- * Section 05's search: any archetype of the season, not only the ones the page ships. A deck outside
+ * The deep dive's search: any archetype of the season, not only the ones the page ships. A deck outside
  * the page's data is read from the API; if nobody calculated it yet, a signed-in viewer can start it.
  */
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@hooks/index'
 import { Button } from '@ui/button'
 import { Tag } from '@ui/chip'
@@ -19,20 +20,9 @@ import { DeepDive, NOTE, nameOf, num } from './DeepDive'
 const POLL_MS = 1000
 /** Archetype chips a mode shows. */
 export const PICKS = 8
-const MODES = [
-  { value: 'general', label: 'General' },
-  { value: 'pure', label: 'Pure' },
-  { value: 'combined', label: 'Combined' },
-] as const
-const SUFFIX = ['th', 'st', 'nd', 'rd']
-export const ordinal = (n: number) => n + (SUFFIX[((n % 100) - 20) % 10] ?? SUFFIX[n % 100] ?? 'th')
+const MODE_IDS = ['general', 'pure', 'combined'] as const
 export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 const isActive = (s: DeepDiveState | null) => s?.status === 'queued' || s?.status === 'running'
-const option = (e: IndexEntry): LookupOption => ({
-  key: e.archetype.join('-'),
-  label: nameOf(e),
-  meta: `${num(e.games)} deck-games · ${e.ready ? 'Ready' : 'Needs calculation'}`,
-})
 const match = (text: string, entries: IndexEntry[]) => {
   const q = text.toLowerCase()
   return entries.filter((e) => nameOf(e).toLowerCase().includes(q)).slice(0, 20)
@@ -40,23 +30,26 @@ const match = (text: string, entries: IndexEntry[]) => {
 
 /** `quiet`: opened by the search itself, so it loads without the Overlay. */
 type Picked = { mode: DeepDiveMode; archetype: number[]; name: string; quiet?: boolean }
-/** An archetype to open from outside (section 03). A new `nonce` sets the mode and loads it like a search pick. */
+/** An archetype to open from outside. A new `nonce` sets the mode and loads it like a search pick. */
 export type DeepDiveRequest = { mode: DeepDiveMode; archetype: number[]; name: string; nonce: number }
 
 /** Covers the page while a pick loads or calculates. `Cancel` only stops waiting: a running job still finishes server-side. */
-export const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => (
-  <div role="status" aria-live="polite" className="fixed inset-0 z-(--z-overlay) flex flex-col items-center justify-center gap-6 bg-scrim px-gutter text-center">
-    <span className="equalizer-bars scale-200" aria-hidden>
-      <span className="equalizer-bars__bar" />
-      <span className="equalizer-bars__bar" />
-      <span className="equalizer-bars__bar" />
-      <span className="equalizer-bars__bar" />
-    </span>
-    <p className="mt-4 text-ink display-3">{title}</p>
-    {detail ? <p className="max-w-[52ch] text-ink-dim body">{detail}</p> : null}
-    <Button size="sm" variant="secondary" onClick={onCancel}>Cancel</Button>
-  </div>
-)
+export const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => {
+  const t = useTranslations('Statistics.jobs')
+  return (
+    <div role="status" aria-live="polite" className="fixed inset-0 z-(--z-overlay) flex flex-col items-center justify-center gap-6 bg-scrim px-gutter text-center">
+      <span className="equalizer-bars scale-200" aria-hidden>
+        <span className="equalizer-bars__bar" />
+        <span className="equalizer-bars__bar" />
+        <span className="equalizer-bars__bar" />
+        <span className="equalizer-bars__bar" />
+      </span>
+      <p className="mt-4 text-ink display-3">{title}</p>
+      {detail ? <p className="max-w-[52ch] text-ink-dim body">{detail}</p> : null}
+      <Button size="sm" variant="secondary" onClick={onCancel}>{t('cancel')}</Button>
+    </div>
+  )
+}
 
 /** What the pick shows below the field. `signedIn`: `undefined` while auth loads, `false` for a guest. */
 const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }: {
@@ -68,43 +61,44 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }
   onCalculate: () => void
   onCancel: () => void
 }) => {
+  const t = useTranslations('Statistics.jobs')
   if (failed !== null)
     return (
-      <Panel title={name} meta="Couldn't read it">
+      <Panel title={name} meta={t('couldntRead')}>
         <div className="flex flex-col items-start gap-4">
           {failed === 401 ? (
             <>
-              <p className="text-ink-dim body">Your session expired. Sign in again.</p>
-              <Button size="sm" variant="secondary" href="/login">Sign in</Button>
+              <p className="text-ink-dim body">{t('sessionExpired')}</p>
+              <Button size="sm" variant="secondary" href="/login">{t('signIn')}</Button>
             </>
           ) : failed === 404 ? (
-            <p className="text-ink-dim body">Not enough games for this deck anymore.</p>
+            <p className="text-ink-dim body">{t('deckGone')}</p>
           ) : (
             <>
-              <p className="text-ink-dim body">The game server didn&apos;t answer. Try again in a moment.</p>
-              <Button size="sm" variant="secondary" onClick={onLoad}>Retry</Button>
+              <p className="text-ink-dim body">{t('serverDown')}</p>
+              <Button size="sm" variant="secondary" onClick={onLoad}>{t('retry')}</Button>
             </>
           )}
         </div>
       </Panel>
     )
-  if (!state) return <Overlay title={`Loading ${name}`} onCancel={onCancel} />
+  if (!state) return <Overlay title={t('loading', { name })} onCancel={onCancel} />
   switch (state.status) {
     case 'ready':
       return <DeepDive archetype={state.archetype} rank={state.archetype.rank} />
     case 'missing':
       if (signedIn === undefined) return null
       return (
-        <Panel title="Not calculated yet" meta={name}>
+        <Panel title={t('notCalculated')} meta={name}>
           <div className="flex flex-col items-start gap-4">
             <p className="text-ink-dim body">
-              {name} is outside the season build, so nobody has calculated it yet.
-              {signedIn ? ' Calculating adds up the whole season and can take up to a minute.' : ''}
+              {t('deckOutside', { name })}
+              {signedIn ? ` ${t('takesAMinute')}` : ''}
             </p>
             {signedIn ? (
-              <Button size="sm" onClick={onCalculate}>Calculate</Button>
+              <Button size="sm" onClick={onCalculate}>{t('calculate')}</Button>
             ) : (
-              <Button size="sm" variant="secondary" href="/login">Sign in to calculate</Button>
+              <Button size="sm" variant="secondary" href="/login">{t('signInToCalculate')}</Button>
             )}
           </div>
         </Panel>
@@ -113,26 +107,24 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }
     case 'running':
       return (
         <Overlay
-          title={state.status === 'queued' ? `${name}: ${ordinal(state.position)} in line` : `Calculating ${name}`}
-          detail="This adds up the whole season and can take up to a minute. Cancel stops waiting; the calculation still finishes and is ready next time."
+          title={state.status === 'queued' ? t('inLine', { name, position: state.position }) : t('calculating', { name })}
+          detail={t('calcDetail')}
           onCancel={onCancel}
         />
       )
     case 'failed':
       return (
-        <Panel title={name} meta="Failed">
+        <Panel title={name} meta={t('failed')}>
           <div className="flex flex-col items-start gap-4">
             <p className="text-ink-dim body">{state.error}</p>
-            <Button size="sm" variant="secondary" onClick={onCalculate}>Retry</Button>
+            <Button size="sm" variant="secondary" onClick={onCalculate}>{t('retry')}</Button>
           </div>
         </Panel>
       )
     case 'limited':
       return (
-        <Panel title={name} meta="Limit reached">
-          <p className="text-ink-dim body">
-            {state.retryAt ? `5 new calculations an hour. Try again at ${hhmm(state.retryAt)}` : 'Too many requests. Try again in a minute.'}
-          </p>
+        <Panel title={name} meta={t('limitReached')}>
+          <p className="text-ink-dim body">{state.retryAt ? t('deckLimit', { time: hhmm(state.retryAt) }) : t('tooMany')}</p>
         </Panel>
       )
   }
@@ -142,8 +134,9 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }
  * `onRemote(true)` while a pick outside the page's data is shown (the page hides its own deep dive then);
  * `onBusy(true)` while that pick loads or calculates (the page hides its archetype chips then).
  * `mode` lives in the page, so a remount of this search keeps it. `onLocal` is only asked in `pure`.
+ * The chips come before the result: the deck is picked first, then read.
  */
-export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemote, onBusy }: {
+export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemote, onBusy, children }: {
   season: Statistics['season']
   mode: DeepDiveMode
   onMode: (mode: DeepDiveMode) => void
@@ -151,7 +144,10 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   onLocal: (key: string) => boolean
   onRemote: (active: boolean) => void
   onBusy: (busy: boolean) => void
+  /** The page's own pick (Pure chips and its deep dive), shown where the result goes. */
+  children?: React.ReactNode
 }) => {
+  const t = useTranslations('Statistics.deepDiveSearch')
   const { user } = useAuth()
   const code = season.code
   const [picked, setPicked] = useState<Picked | null>(null)
@@ -230,13 +226,18 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     [indexOf],
   )
 
+  const option = useCallback(
+    (e: IndexEntry): LookupOption => ({ key: e.archetype.join('-'), label: nameOf(e), meta: t('optionMeta', { games: num(e.games), ready: String(e.ready) }) }),
+    [t],
+  )
+
   /*
    * General and Combined open on their first chip, quietly, until the viewer picks or cancels (a mode switch
    * allows it again). A season frozen before modes starts on Pure (the page picks the mode), so General there is just empty.
    */
   const auto = useRef(true)
 
-  const search = useCallback(async (text: string) => match(text, (await read(mode)) ?? []).map(option), [mode, read])
+  const search = useCallback(async (text: string) => match(text, (await read(mode)) ?? []).map(option), [mode, read, option])
 
   /* A lead's name is its General row: General A holds every A>X, so each lead has one. */
   const searchLead = useCallback(
@@ -244,12 +245,13 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
       const [general, combined] = await Promise.all([read('general'), read('combined')])
       const mixes = new Map<number, number>()
       for (const e of combined ?? []) mixes.set(e.archetype[0]!, (mixes.get(e.archetype[0]!) ?? 0) + 1)
-      return match(text, (general ?? []).filter((e) => mixes.has(e.archetype[0]!))).map((e) => {
-        const n = mixes.get(e.archetype[0]!)!
-        return { key: e.archetype[0]!, label: nameOf(e), meta: `${n} ${n === 1 ? 'mix' : 'mixes'}` }
-      })
+      return match(text, (general ?? []).filter((e) => mixes.has(e.archetype[0]!))).map((e) => ({
+        key: e.archetype[0]!,
+        label: nameOf(e),
+        meta: t('mixes', { count: mixes.get(e.archetype[0]!)! }),
+      }))
     },
-    [read],
+    [read, t],
   )
 
   /* Second lists the lead's pairs by their second name: "A with B" shows as B. */
@@ -262,7 +264,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
         .map((e) => ({ ...e, name: e.name?.startsWith(prefix) ? e.name.slice(prefix.length) : e.name }))
       return match(text, pairs).map(option)
     },
-    [lead, read],
+    [lead, read, option],
   )
 
   /** Runs `first`, then polls while the job is queued or running. A `missing` answer ends the poll. */
@@ -362,30 +364,35 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   const chips = entries?.slice(0, PICKS) ?? []
 
   return (
-    <div className="mb-6 flex flex-col gap-4">
-      <Segmented label="Deep dive mode" options={MODES} value={mode} onChange={switchMode} />
+    <div className="flex flex-col gap-4">
+      <Segmented label={t('modeLabel')} options={MODE_IDS.map((value) => ({ value, label: t(`modes.${value}`) }))} value={mode} onChange={switchMode} />
       {entries && !entries.length ? (
-        <p className={NOTE} role="status">
-          {list?.frozen ? 'This season was frozen before General and Combined existed.' : 'No mixed decks with a known lead in this season.'}
-        </p>
+        <p className={NOTE} role="status">{list?.frozen ? t('frozen') : t('noMixes')}</p>
       ) : mode === 'combined' ? (
         <div className="flex flex-wrap items-center gap-4">
           {lead ? (
-            <Tag note="Lead" onRemove={() => setLead(null)} removeLabel="Clear the lead">{lead.name}</Tag>
+            <Tag note={t('lead')} onRemove={() => setLead(null)} removeLabel={t('clearLead')}>{lead.name}</Tag>
           ) : (
-            <Lookup label="Lead" placeholder="Search the lead archetype" search={searchLead} onPick={({ key, label }) => setLead({ code: Number(key), name: String(label) })} className="w-full max-w-md" />
+            <Lookup label={t('lead')} placeholder={t('searchLead')} search={searchLead} onPick={({ key, label }) => setLead({ code: Number(key), name: String(label) })} className="w-full max-w-md" />
           )}
-          {lead ? <Lookup label="Second" placeholder="Search the second archetype" search={searchSecond} onPick={({ key, label }) => choose('combined', String(key).split('-').map(Number), `${lead.name} with ${label}`)} className="w-full max-w-md" /> : null}
+          {lead ? <Lookup label={t('second')} placeholder={t('searchSecond')} search={searchSecond} onPick={({ key, label }) => choose('combined', String(key).split('-').map(Number), `${lead.name} with ${label}`)} className="w-full max-w-md" /> : null}
         </div>
       ) : (
         /* Keyed by mode: each mode starts a fresh search, and a slow answer of the other mode can't land here. */
-        <Lookup key={mode} label="Search any archetype" placeholder="Search any archetype" search={search} onPick={onPick} className="max-w-md" />
+        <Lookup key={mode} label={t('search')} placeholder={t('search')} search={search} onPick={onPick} className="max-w-md" />
       )}
-      {indexFailed ? (
-        <p className={NOTE} role="status">The archetype list isn&apos;t available right now. Try again in a moment.</p>
+      {indexFailed ? <p className={NOTE} role="status">{t('indexDown')}</p> : null}
+      {chips.length && !busy ? (
+        <Segmented
+          label={t('archetype')}
+          /* A chip stays inside a 375px screen: "A with B" pairs run long. */
+          options={chips.map((e) => ({ value: archKey(e.archetype), label: <span title={nameOf(e)} className="block max-w-72 truncate">{nameOf(e)}</span> }))}
+          value={picked ? archKey(picked.archetype) : ''}
+          onChange={(key) => choose(mode, key.split('-').map(Number), nameOf(chips.find((e) => archKey(e.archetype) === key)!))}
+        />
       ) : null}
       {picked?.quiet && !state && failed === null ? (
-        <p className={NOTE} role="status">Loading {picked.name}…</p>
+        <p className={NOTE} role="status">{t('loading', { name: picked.name })}</p>
       ) : picked ? (
         <Result
           name={picked.name}
@@ -396,16 +403,9 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
           onCalculate={() => calculate(picked)}
           onCancel={cancel}
         />
-      ) : null}
-      {chips.length && !busy ? (
-        <Segmented
-          label="Archetype"
-          /* A chip stays inside a 375px screen: "A with B" pairs run long. */
-          options={chips.map((e) => ({ value: archKey(e.archetype), label: <span title={nameOf(e)} className="block max-w-72 truncate">{nameOf(e)}</span> }))}
-          value={picked ? archKey(picked.archetype) : ''}
-          onChange={(key) => choose(mode, key.split('-').map(Number), nameOf(chips.find((e) => archKey(e.archetype) === key)!))}
-        />
-      ) : null}
+      ) : (
+        children
+      )}
     </div>
   )
 }

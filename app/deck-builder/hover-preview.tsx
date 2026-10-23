@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import type { CardMap } from '@utils/deck/types'
 import { CARD_IMAGE_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { CardFacts } from './card-facts'
 
 const DELAY_MS = 300
@@ -78,7 +79,7 @@ export const HoverPreview = ({ cards }: { cards: CardMap }) => {
     >
       <div className="relative aspect-[59/86] w-full shrink-0 bg-surface-300">
         {/* 320 CSS px resolves to the 640 scan at 1x and 2x alike. */}
-        <Image src={CARD_IMAGE_URL(shown.id)} alt="" fill sizes={`${WIDTH}px`} className="object-cover" />
+        <Image loader={cardLoader} src={CARD_IMAGE_URL(shown.id)} alt="" fill sizes={`${WIDTH}px`} className="object-cover" />
       </div>
       <p className="text-ink body-strong">{card.name}</p>
       <CardFacts card={card} />

@@ -11,6 +11,7 @@ import { cardStatus } from '@utils/deck/rules'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
 import { CARD_IMAGE_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { CardFacts } from './card-facts'
 
 type CardDetailProps = {
@@ -64,7 +65,7 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
         <div className="flex flex-col gap-4">
           <div className="relative aspect-[59/86] w-full max-w-80 bg-surface-300">
             {/* 320 CSS px resolves to the 640 scan at 1x and 2x alike. */}
-            <Image src={CARD_IMAGE_URL(selected)} alt={card.name} fill sizes="320px" className="object-cover" />
+            <Image loader={cardLoader} src={CARD_IMAGE_URL(selected)} alt={card.name} fill sizes="320px" className="object-cover" />
           </div>
 
           {arts.length > 1 ? (
@@ -78,7 +79,7 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
                   onClick={() => setSelected(id)}
                   className={twMerge('relative aspect-[59/86] w-12 cursor-pointer bg-surface-300', id === selected && 'outline outline-2 outline-cyan')}
                 >
-                  <Image src={CARD_IMAGE_URL(id)} alt="" fill sizes="64px" className="object-cover" />
+                  <Image loader={cardLoader} src={CARD_IMAGE_URL(id)} alt="" fill sizes="64px" className="object-cover" />
                 </button>
               ))}
             </div>

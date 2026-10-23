@@ -275,6 +275,12 @@ const CardDetail = ({ card, searched }: { card: MostUsedCard; searched: boolean 
           </div>
         ))}
       </dl>
+      {card.topArchetypes?.length ? (
+        <p className="mt-3 text-[13px] leading-5 text-ink-dim">
+          <span className="text-ink-muted signal-sm">Most included in </span>
+          {card.topArchetypes.join(' · ')}
+        </p>
+      ) : null}
       <div className="mt-5 flex flex-col gap-5">
         <Meter title="In decklists" rows={[['Main / Extra', decklists.mainExtra], ['Side', decklists.side, 'series-3']]} />
         <Meter title="Usage rate" meta="When in deck" rows={[['Game 1', usage.game1], ['After side', usage.postSide, 'series-3']]} />

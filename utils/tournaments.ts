@@ -75,9 +75,21 @@ export const listPlayerTournaments = (
   signal?: AbortSignal,
 ) => get<PlayerTournamentPage>(`/tournaments/players/${encodeURIComponent(id)}${search(query)}`, 15, signal)
 
-/** One duelist's finished tournaments, their side only. `format`: a `TournamentSummary.format`, or every format. */
-export const getPlayerTournamentStats = (id: string, format?: string) =>
-  get<PlayerTournamentStats>(`/tournaments/players/${encodeURIComponent(id)}/stats${search({ format })}`, 300)
+/**
+ * One duelist's finished tournaments, their side only. `format`: a `TournamentSummary.format`, or every format.
+ * Owner-only: pass the incoming `cookie`, never shared through the fetch cache.
+ */
+export const getPlayerTournamentStats = async (id: string, cookie: string | null, format?: string): Promise<PlayerTournamentStats> => {
+  const res = await fetch(`${API_URL}/tournaments/players/${encodeURIComponent(id)}/stats${search({ format })}`, {
+    cache: 'no-store',
+    headers: cookie ? { cookie } : undefined,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new TournamentApiError(res.status, body.error, body.message)
+  }
+  return res.json()
+}
 
 /**
  * Aggregates across finished tournaments. The first uncached call takes seconds, so this is

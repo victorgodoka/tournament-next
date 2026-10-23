@@ -1,10 +1,17 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { NextIntlClientProvider } from 'next-intl'
+import messages from '../../../messages/en.json'
 import type { PlayerTournamentStats } from '@utils/types'
 import { TournamentReport } from './TournamentReport'
 
-const text = (data: PlayerTournamentStats) => renderToStaticMarkup(<TournamentReport data={data} />).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+const text = (data: PlayerTournamentStats) =>
+  renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+      <TournamentReport data={data} />
+    </NextIntlClientProvider>,
+  ).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
 
 /** Won 2:0 and 2:1, lost 1:2: 2–1 in matches, 5–3 in games. */
 const stats = (games: boolean): PlayerTournamentStats => ({

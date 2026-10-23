@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@hooks/index'
 import { createDeck, DeckApiError, DeckConflictError, updateDeck, type DeckMeta, type SavedDeck } from '@utils/decks'
+import { track } from '@utils/gtm'
 import { setReturnTo } from '@utils/return-to'
 import type { EditorAction, EditorState } from './deck-editor.reducer'
 import { clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
@@ -118,6 +119,7 @@ export const useSave = (
     try {
       const saved = deckId === null ? await createDeck(input) : await updateDeck(deckId, input, revision!, force)
       setMeta(metaOf(saved))
+      track('deck_save', { deck_new: deckId === null, deck_format: input.format, deck_visibility: saved.visibility })
       setSignInTab(false)
       if (user === null) void refresh() // signed in from another tab: the header catches up
       const now = latest.current

@@ -12,6 +12,10 @@ export type TurnSplit = { first: Side; second: Side }
 
 export type WilsonInterval = { lower: number; upper: number; margin: number }
 export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
+/** A matchup at or past `FAVORABLE` is favorable, under `UNFAVORABLE` unfavorable. The API's own `status` uses 55/45, so it's not read. */
+export const FAVORABLE = 0.52
+export const UNFAVORABLE = 0.49
+export const matchupStatus = (rate: number): MatchupStatus => (rate >= FAVORABLE ? 'favorable' : rate < UNFAVORABLE ? 'unfavorable' : 'neutral')
 export type RankingMode = 'mostPlayed' | 'highestWinRate' | 'rising' | 'sleeper' | 'consistent'
 export const RANKING_MODES: readonly RankingMode[] = ['mostPlayed', 'highestWinRate', 'rising', 'sleeper', 'consistent']
 
@@ -53,25 +57,31 @@ export type CardCombination = {
   averageWinRate: number | null
 }
 
+/** Share or win-rate shift between a block of days and the one before it; `from`/`to` are 0–1. The API sends no text. */
 export type MetaEvent = {
   day: number
-  kind: 'rise' | 'drop' | 'milestone'
-  title: string
-  description: string
-  archetype?: ArchetypeKey
-  impact: 'positive' | 'negative' | 'neutral'
+  kind: 'shareRise' | 'shareDrop' | 'winRateRise' | 'winRateDrop'
+  archetype: ArchetypeKey
+  from: number
+  to: number
+  games: number
 }
 
 export type StatCard = {
   id: number
   name: string | null
   inclusion: number
+  /** Deck-games with it in the registered side ÷ the deck's deck-games with a decklist. `null` before the sweep counted it; absent from an older server. */
+  sideRate?: number | null
   averageCopies: number
   playRate: number | null
   /** `null` when part of the season was recorded the old way: "not enough data". */
   winRateWhenUsed: number | null
   winRateInDeck: number | null
 }
+
+/** A generic card the opponent used against the deck. `games`: the deck's games where the other side used it; `rate`: of the deck's games; `winRate`: the deck's, in those games. */
+export type AgainstCard = { id: number; name: string | null; handTrap: boolean; games: number; rate: number | null; winRate: number | null }
 
 /** `cards`: every card of the group seen in the archetype. Absent from a server older than the field. */
 export type CardGroup = { id: number; name: string; inclusion: number; winRate: number | null; cards?: StatCard[] }
@@ -83,8 +93,10 @@ export type StatArchetype = {
   metaShare: number
   tier?: 1 | 2 | 3 | 4 | null
   growth?: number
-  consistencyScore?: number
-  sleeperScore?: number
+  /** Worst Wilson lower bound across day blocks; null without two blocks of sample. */
+  consistencyScore?: number | null
+  /** Wilson lower bound below 5% meta share, null above. */
+  sleeperScore?: number | null
   wins: number
   losses: number
   draws: number
@@ -98,13 +110,17 @@ export type StatArchetype = {
   byGame?: { g1: Side; g2: Side; g3: Side }
   matchupOthers?: MatchupOthers
   pace: { averageTurns: number | null; actionsPerTurn: number | null; turn1SpecialSummons: number | null; averageLongestChain: number | null }
+  /** Its own (archetype / Series) most included card: the deck's art. Absent from an older server. */
+  face?: { id: number; name: string | null }
   cards: StatCard[]
   engines: CardGroup[]
   techs: CardGroup[]
+  /** Generic cards the opponent used against the deck, most games first. `null`: swept before the block; absent from an older server. */
+  against?: AgainstCard[] | null
 }
 
 /** A section 03 row: no engines or techs, `cards` cut to the face card. */
-export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs'>
+export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs' | 'against'>
 
 export type Matchup = {
   archetype: ArchetypeKey
@@ -166,6 +182,8 @@ export type Statistics = {
   /** Generic cards in 2+ archetypes, 30 a part, most popular first. */
   mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
   cardCombinations?: CardCombination[]
+  /** Open season only, in the listed archetypes' order. Absent from an older server. */
+  sampleDecks?: SampleDeck[]
   metaEvents?: MetaEvent[]
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
   trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
@@ -217,7 +235,14 @@ export type PersonalRecord = {
   games: Tally3
   decks: { archetype: ArchetypeKey; name: string | null; matches: Tally3; games: Tally3 }[]
   matchups: { archetype: ArchetypeKey; opponent: ArchetypeKey; name: string | null; opponentName: string | null; matches: Tally3; games: Tally3 }[]
+  /** One per analyzed match, newest first. Absent from an API older than the field. */
+  timeline?: TimelineRow[]
+  /** Name of every deck key in `timeline`. */
+  deckNames?: Record<string, string | null>
 }
+
+/** [end ISO | null, match result, their deck key "1+2" | null, the opponent's, games won, lost, drawn]. */
+export type TimelineRow = [end: string | null, result: 'W' | 'L' | 'D' | null, deck: string | null, opponent: string | null, wins: number, losses: number, draws: number]
 
 /**
  * `season` wins over `ladder`; neither = every season of both ladders. Live from the duels (a few
@@ -346,3 +371,22 @@ export const getOmegaActivity = async (): Promise<OmegaActivity | null> => {
     return null
   }
 }
+
+/**
+ * A sample deck: not a played deck, the most included cards of the archetype at their usual copies,
+ * inside the current banlist. Rebuilt after every sweep; `deckId` is its public deck.
+ */
+export type SampleDeck = {
+  archetype: ArchetypeKey
+  name: string | null
+  /** Decklists it was built from. */
+  lists: number
+  deckId: string | null
+  coverCardId: number | null
+  createdAt: string
+  updatedAt: string
+  main: SampleCard[]
+  extra: SampleCard[]
+  side: SampleCard[]
+}
+export type SampleCard = { id: number; name: string | null; count: number }

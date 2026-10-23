@@ -5,6 +5,7 @@
  */
 
 import type { Cosmetics } from './types'
+import { LOGIN_PENDING_KEY, track } from './gtm'
 
 export const API_URL =process.env.NEXT_PUBLIC_API_URL ?? ''
 
@@ -43,7 +44,14 @@ export const loginErrorMessage = (code: string) =>
   LOGIN_ERRORS[code as keyof typeof LOGIN_ERRORS] ?? LOGIN_ERRORS.auth_failed
 
 /** The OAuth dance is a redirect chain, so it must be a full-page navigation, not a fetch. */
-export const signIn = () => window.location.assign(`${API_URL}/auth/discord`)
+export const signIn = () => {
+  track('login_start', { method: 'discord' })
+  // The tab comes back signed in: `Tracking` reads this to report the `login` / `sign_up`.
+  try {
+    sessionStorage.setItem(LOGIN_PENDING_KEY, '1')
+  } catch {}
+  window.location.assign(`${API_URL}/auth/discord`)
+}
 
 /** `null` means signed out (401). Anything else unexpected throws. */
 export const fetchMe = async (signal?: AbortSignal): Promise<AuthUser | null> => {

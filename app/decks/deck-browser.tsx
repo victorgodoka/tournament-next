@@ -13,6 +13,7 @@ import { Field, Select, TextInput } from '@ui/field'
 import { Lookup, type LookupOption } from '@ui/lookup'
 import { searchCards } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { DECK_TAGS, listPublicDecks, listUserDecks, type DeckFilters, type DeckSummary, type DeckTag } from '@utils/decks'
 import { getBanlists, type Banlist } from '@utils/wiki'
 
@@ -173,7 +174,7 @@ const DeckCard = ({ deck, format, showOwner }: { deck: DeckSummary; format?: str
     // The title link stretches over the card; the owner and the deck's links sit above it.
     <li className="relative flex flex-col border border-line bg-surface-100 hover:border-line-strong">
       <span className="relative aspect-[16/9] bg-surface-300">
-        {art ? <Image src={CARD_ART_URL(art)} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /> : null}
+        {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /> : null}
       </span>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h2 className="truncate text-ink body-strong">

@@ -7,6 +7,7 @@ import { Lookup, type LookupOption } from '@ui/lookup'
 import { API_URL } from '@utils/auth'
 import { searchCardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
 import { FieldHead, Frame, Help, INPUT, type Tone } from './ui'
@@ -215,7 +216,7 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
           <li key={i} className="grid grid-cols-[48px_110px_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
             <span className="relative aspect-square border border-line bg-surface-200">
               {card.id > 0 ? (
-                <Image src={CARD_ART_URL(card.id)} alt="" fill sizes="48px" className="object-cover" />
+                <Image loader={cardLoader} src={CARD_ART_URL(card.id)} alt="" fill sizes="48px" className="object-cover" />
               ) : null}
             </span>
             <input

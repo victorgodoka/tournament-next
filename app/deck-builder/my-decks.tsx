@@ -12,6 +12,7 @@ import { Button, buttonClasses } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { useAuth } from '@hooks/index'
 import { CARD_ART_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { deleteDeck, listMyDecks, type DeckSummary } from '@utils/decks'
 import { setReturnTo } from '@utils/return-to'
 
@@ -160,7 +161,7 @@ const DeckList = ({ currentId, onClose, onDeleted, deleteReplacesNew }: Pick<MyD
           return (
             <li key={d.id} className="flex items-center gap-3 border-b border-line py-2 last:border-b-0">
               <span className="relative aspect-[4/3] w-16 shrink-0 bg-surface-300">
-                {art ? <Image src={CARD_ART_URL(art)} alt="" fill sizes="64px" className="object-cover" /> : null}
+                {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill sizes="64px" className="object-cover" /> : null}
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="truncate text-ink body-strong">{d.name}</span>

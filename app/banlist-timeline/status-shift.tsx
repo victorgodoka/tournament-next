@@ -5,6 +5,7 @@ import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import { cardId, cardName, direction, STATUS_TONE, wikiPath, type BanStatus } from '@utils/banlist'
 import { CARD_IMAGE_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 
 /** A status as a pill: filled for where a card lands, outlined and struck through for where it was. */
 export const StatusPill = ({ code, was, short }: { code: BanStatus; was?: boolean; short?: boolean }) => {
@@ -50,7 +51,7 @@ export const CardTile = ({ card, from, to }: { card: number; from?: BanStatus; t
         )}
       >
         {/* 160 CSS px resolves to the common scan at 1x and 2x alike. */}
-        <Image src={CARD_IMAGE_URL(cardId(card))} alt={cardName(card)} fill sizes="160px" className="object-cover" />
+        <Image loader={cardLoader} src={CARD_IMAGE_URL(cardId(card))} alt={cardName(card)} fill sizes="160px" className="object-cover" />
         {from && to ? <StatusShift from={from} to={to} short className="absolute inset-x-0 bottom-0 justify-center bg-space-000/85 py-1.5" /> : null}
       </span>
       <span className="line-clamp-2 text-ink-dim body-sm group-hover:text-cyan">{cardName(card)}</span>

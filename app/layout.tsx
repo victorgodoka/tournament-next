@@ -16,6 +16,9 @@ import './styles.css'
 import { AuthProvider, ModalProvider } from '../contexts'
 import { MessengerDock, MessengerProvider } from '@omega/messenger'
 import { Ads } from '@omega/ads/ads'
+import { Tracking } from '@omega/tracking/tracking'
+import Script from 'next/script'
+import { GTM_BOOTSTRAP, GTM_SCRIPT_URL } from '@utils/gtm'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -67,6 +70,9 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LB_CONTEXT) }}
         />
+        {/* Consent defaults first: they must be on the dataLayer before gtm.js runs a tag. */}
+        <script dangerouslySetInnerHTML={{ __html: GTM_BOOTSTRAP }} />
+        <Script id="gtm" src={GTM_SCRIPT_URL} strategy="afterInteractive" />
       </head>
       <body className="relative" suppressHydrationWarning>
         <ClientMessages>
@@ -76,6 +82,7 @@ export default async function RootLayout({
                 {children}
                 <MessengerDock />
                 <Ads />
+                <Tracking />
               </MessengerProvider>
             </ModalProvider>
           </AuthProvider>

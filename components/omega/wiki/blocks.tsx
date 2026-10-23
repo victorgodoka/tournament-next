@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CARD_ART_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { faqKey, imageSource, type CalloutTone, type CardsAlign, type DocHtml, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { Lightbox } from './lightbox'
 import { Video } from './video'
@@ -98,6 +99,7 @@ const Block = ({ block, assets, html }: BlockProps) => {
                   <span className="relative block aspect-square overflow-hidden">
                     <Image
                       src={CARD_ART_URL(card.id)}
+                      loader={cardLoader}
                       alt={`${card.name} card artwork`}
                       fill
                       sizes={`(min-width: 640px) ${Math.ceil(860 / perRow)}px, 50vw`}

@@ -155,7 +155,8 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
       }
       actions={
         <>
-          {ANALYTICS_ENABLED && !profile.isPrivate ? (
+          {/* Statistics are owner-only, even on a public profile. */}
+          {ANALYTICS_ENABLED && isOwner ? (
             <Button variant="secondary" href={`/profile/${profile.id}/statistics`}><Icon name="chart" />Statistics</Button>
           ) : null}
           {/* Each deck's own visibility decides who sees it there; the owner sees all of them. */}

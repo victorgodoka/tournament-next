@@ -1,0 +1,503 @@
+{
+  "slug": "cards-api",
+  "published": false,
+  "doc": {
+    "v": 1,
+    "title": "Cards API: Developer Guide",
+    "summary": "How to use the public Duelists Unite Cards API: search every OCG and TCG card by name, text, archetype, stats, release date and banlist, read the card object field by field, and query archetypes and banlists.",
+    "tags": ["api", "cards", "developers", "banlist", "reference"],
+    "infobox": {
+      "asset": "card-26202165",
+      "caption": "Sangan, the card used in the examples on this page",
+      "facts": [
+        { "label": "Base URL", "value": "https://godokaapi.duelistsunite.org" },
+        { "label": "Methods", "value": "GET only" },
+        { "label": "Format", "value": "JSON (UTF-8)" },
+        { "label": "Authentication", "value": "None" },
+        { "label": "Endpoints", "value": "/cards, /cards/{id}, /archetypes, /banlists, /banlists/{id}" },
+        { "label": "Card pool", "value": "OCG + TCG, about 14,500 cards" },
+        { "label": "Languages", "value": "English, Portuguese, Japanese" },
+        { "label": "Data refresh", "value": "At most once a day" },
+        { "label": "Cache", "value": "5 min browser, 1 h CDN" },
+        { "label": "Max page size", "value": "100 results" }
+      ]
+    },
+    "blocks": [
+      {
+        "id": "intro",
+        "type": "text",
+        "md": "The **Cards API** is the public, read-only HTTP API behind every card search on Duelists Unite. The deck editor, the card wiki and the statistics pages all read from it, and you can too.\n\nIt serves the full **OCG and TCG** card pool (about 14,500 cards) with English, Portuguese and Japanese text, alternate artworks, erratas, archetypes, release dates per region and the five banlists we track: OCG, TCG, WCS, Genesys and Genesys OCG.\n\nEvery endpoint is a `GET` that returns JSON. There is no API key and no login. This page documents every endpoint, every parameter and every field, with examples you can paste straight into a terminal."
+      },
+      {
+        "id": "h-quick-start",
+        "type": "heading",
+        "level": 2,
+        "text": "Quick start",
+        "anchor": "quick-start"
+      },
+      {
+        "id": "quick-start",
+        "type": "text",
+        "md": "Search cards whose name contains \"sangan\":\n\n```bash\ncurl \"https://godokaapi.duelistsunite.org/cards?fname=sangan&limit=5\"\n```\n\nThe same from JavaScript (Node 18+, Deno, Bun or any server runtime):\n\n```js\nconst BASE = 'https://godokaapi.duelistsunite.org'\n\nconst res = await fetch(`${BASE}/cards?archetype=${encodeURIComponent('Sky Striker')}&kind=spell`)\nconst { cards, total } = await res.json()\n\nconsole.log(`${total} Sky Striker spells`)\nfor (const card of cards) console.log(card.id, card.name)\n```\n\nThat is all it takes: build a query string, send a `GET`, read JSON. The rest of this page explains what you can put in the query string and what comes back."
+      },
+      {
+        "id": "cors",
+        "type": "callout",
+        "tone": "cyan",
+        "title": "Calling the API from a web page",
+        "md": "The API only sends CORS headers for **our own site**. A `fetch` from JavaScript running on another website will be blocked by the browser, even though the request itself works.\n\nThis does not affect servers, scripts, Discord bots, spreadsheets or `curl`: CORS is a browser rule. If you are building a website, call the API from your backend (or a serverless function) and serve the result to your page from there. Your backend can also cache responses, which makes your site faster."
+      },
+      {
+        "id": "h-basics",
+        "type": "heading",
+        "level": 2,
+        "text": "The basics",
+        "anchor": "the-basics"
+      },
+      {
+        "id": "basics",
+        "type": "text",
+        "md": "| | |\n|---|---|\n| Base URL | `https://godokaapi.duelistsunite.org` |\n| Methods | `GET` only. Every route is read-only |\n| Authentication | None. No API key, no cookies, no headers required |\n| Response format | `application/json; charset=utf-8` |\n| Card scope | OCG and TCG cards. Rush Duel, Speed Duel, Duel Links, anime and video-game cards are **not** in the API |\n| Data freshness | Card data is copied from the game's card database whenever upstream publishes a new one, so it changes **at most once a day** |\n\n### Query string rules\n\n- **Every parameter is optional**, and parameters combine with **AND**: `kind=monster&attribute=dark` is dark monsters.\n- **Lists** take commas or repetition. `race=dragon,fiend` and `race=dragon&race=fiend` are the same query, and inside one list the values combine with **OR** (dragons or fiends). The one exception is noted where it applies.\n- **Booleans** are the literal strings `true` and `false`.\n- **Dates** are `YYYY-MM-DD`.\n- **URL-encode** every value. `Sky Striker` becomes `Sky%20Striker`, and `\"quoted text\"` becomes `%22quoted%20text%22`. Every HTTP library does this for you when you pass parameters as an object.\n- Values that are names of things (races, attributes, types) are **lowercase with underscores**: `winged_beast`, `semi_limited`, `top_left`."
+      },
+      {
+        "id": "h-caching",
+        "type": "heading",
+        "level": 3,
+        "text": "Caching",
+        "anchor": "caching"
+      },
+      {
+        "id": "caching",
+        "type": "text",
+        "md": "Every successful response carries:\n\n```http\nCache-Control: public, max-age=300, s-maxage=3600, stale-while-revalidate=86400\n```\n\nBrowsers reuse a response for 5 minutes and CDNs for an hour, then serve the stale copy for up to a day while they refresh it in the background. Since cards change at most daily, you can cache just as aggressively on your side. **Don't add cache-busting parameters**: an unknown parameter is an error anyway (see below)."
+      },
+      {
+        "id": "h-errors",
+        "type": "heading",
+        "level": 3,
+        "text": "Errors",
+        "anchor": "errors"
+      },
+      {
+        "id": "errors",
+        "type": "text",
+        "md": "Errors always have the same shape:\n\n```json\n{ \"error\": \"BAD_REQUEST\", \"message\": \"releasedBefore/releasedAfter require format\" }\n```\n\n| Status | `error` | When |\n|---|---|---|\n| `200` | | Success. An empty `cards` array means **no card matches**, never that a filter was ignored |\n| `400` | `BAD_REQUEST` | An unknown parameter, a value outside the allowed list or range, or a combination that makes no sense. `message` says which parameter and why |\n| `404` | `NOT_FOUND` | `GET /cards/{id}` or `GET /banlists/{id}` with an id that does not exist |\n| `5xx` | | Something broke on our side. Retry with a backoff |\n\nThe API **never silently drops a filter it does not understand**. A typo in a parameter name is a `400`, and the error lists every valid parameter in `details`, so you can spot the mistake at once:\n\n```json\n{\n  \"error\": \"BAD_REQUEST\",\n  \"message\": \"unknown query parameter: nmae. Valid parameters: id, name, fname, q, …\",\n  \"details\": {\n    \"unknownParams\": [\"nmae\"],\n    \"validParams\": [\"id\", \"name\", \"fname\", \"q\", \"archetype\", \"…\"]\n  }\n}\n```\n\nA bad **value** (`race=elf`) lists the allowed values in `message` instead."
+      },
+      {
+        "id": "h-search",
+        "type": "heading",
+        "level": 2,
+        "text": "GET /cards: search",
+        "anchor": "get-cards"
+      },
+      {
+        "id": "search",
+        "type": "text",
+        "md": "The search endpoint. With no parameters it returns the first page of every card, sorted by name.\n\n```json\n{\n  \"cards\": [ { \"id\": 26202165, \"name\": \"Sangan\", \"…\": \"…\" } ],\n  \"total\": 36,\n  \"page\": 1,\n  \"limit\": 30\n}\n```\n\n| Field | Meaning |\n|---|---|\n| `cards` | The page of results, each a full [card object](#the-card-object) |\n| `total` | How many cards match the whole query, across all pages |\n| `page` | The page you got |\n| `limit` | The page size you got |\n\nThe parameters below are grouped by what they filter. All of them can be mixed freely."
+      },
+      {
+        "id": "h-pagination",
+        "type": "heading",
+        "level": 3,
+        "text": "Pagination",
+        "anchor": "pagination"
+      },
+      {
+        "id": "pagination",
+        "type": "text",
+        "md": "| Param | Default | Range |\n|---|---|---|\n| `page` | `1` | `1` or more |\n| `limit` | `30` | `1`–`100` |\n\nThis is plain offset pagination: the number of pages is `ceil(total / limit)`. Card data only changes at the daily sync, so pages never shift while someone is reading them. To download a whole result set, request `limit=100` and walk `page` until `page * limit >= total`."
+      },
+      {
+        "id": "h-text",
+        "type": "heading",
+        "level": 3,
+        "text": "Identity and text",
+        "anchor": "identity-and-text"
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "md": "| Param | Matches | Example |\n|---|---|---|\n| `id` | One or more passcodes, comma-separated, at most 100 | `id=26202165,46986414` |\n| `name` | The **exact** card name, ignoring case | `name=Sangan` finds Sangan; `name=Sanga` finds nothing |\n| `fname` | The name **contains** the text, ignoring case | `fname=Sanga` finds Sangan and Sanga of the Thunder |\n| `q` | Full-text search over the name **and** the effect text | `q=negate destroy` |\n\n`name` and `fname` accept up to 100 characters. Neither splits on commas, because commas are part of real card names (\"Bixi, Water of the Yang Zing\" is one name). In `fname`, `%` and `_` are literal characters, not wildcards.\n\n`q` understands web-search syntax: `\"quoted phrases\"`, `-word` to exclude a word, and `or` between alternatives. When you use `q` without `sort`, results come back **ranked by relevance**.\n\nWhich one to use:\n\n- **A search box** typed by a user: `fname`.\n- **You already know the exact card**: `name`.\n- **\"Search card text\"**: `q`.\n- **You have passcodes** (from a deck file, for example): `id`."
+      },
+      {
+        "id": "h-by-id",
+        "type": "heading",
+        "level": 3,
+        "text": "Looking cards up by passcode",
+        "anchor": "lookup-by-passcode"
+      },
+      {
+        "id": "by-id",
+        "type": "text",
+        "md": "An `id` search is the way to turn a list of passcodes (a `.ydk` deck, a database export) into cards, up to 100 per request. It behaves a little differently from every other search:\n\n- **An alternate artwork resolves to its original card.** `id=46986431` (an alternate Dark Magician art) returns Dark Magician, `46986414`.\n- Every result carries **`idSearched`**, the passcode you asked for, so you can match results back to your request. `idSearched` exists **only** on `id` searches.\n- Several passcodes that resolve to the same card return it **once**.\n- It ignores the `alternateArts` and `preErrata` defaults: a passcode you asked for is returned even if it is a pre-errata version.\n- Passcodes that don't exist are simply missing from the result. Compare `idSearched` against your list to find them.\n\n```bash\ncurl \"https://godokaapi.duelistsunite.org/cards?id=46986431\"\n```\n\n```json\n{ \"cards\": [ { \"idSearched\": 46986431, \"id\": 46986414, \"name\": \"Dark Magician\", \"…\": \"…\" } ], \"total\": 1, \"page\": 1, \"limit\": 30 }\n```\n\nIf you want the alternate artwork **as itself** rather than the original, use [`GET /cards/{id}`](#get-card-by-id) instead."
+      },
+      {
+        "id": "h-double-script",
+        "type": "heading",
+        "level": 3,
+        "text": "Double-script cards",
+        "anchor": "double-script-cards"
+      },
+      {
+        "id": "double-script",
+        "type": "text",
+        "md": "A few cards exist as two prints with different passcodes: the OCG print and a TCG print that the game treats as the same card. The card object links them through `idOriginal` and `idTcg` (see [the card object](#the-card-object)).\n\nSearch returns **one print per card**: the TCG print when you pass `format=tcg`, the OCG print otherwise. An `id` search is the exception and returns exactly the print you asked for."
+      },
+      {
+        "id": "h-archetypes-filter",
+        "type": "heading",
+        "level": 3,
+        "text": "Archetypes",
+        "anchor": "archetype-filters"
+      },
+      {
+        "id": "archetypes-filter",
+        "type": "text",
+        "md": "| Param | Matches | Values |\n|---|---|---|\n| `archetype` | Cards that **belong** to an archetype | A name (`Sky Striker`), a hex code (`0x115`) or a decimal code (`277`). Comma-separated means any of them |\n| `archetypeMatch` | How membership is decided | `both` (default) · `setcode` · `name` |\n| `supports` | Cards that **support** an archetype: \"add 1 *Number* monster\", a Rank-Up-Magic for Utopia | Same format as `archetype` |\n\n**Why `both` is the default.** The game decides membership two ways: a card belongs if its *name* contains the archetype, or if the card database *tags* it with the archetype's code (`setcode`). Neither alone is complete. Blue-Eyes has 21 cards by name and 23 by tag, because two members don't have \"Blue-Eyes\" in their name. `both` is what a player means by \"Blue-Eyes cards\". Use `setcode` or `name` only when you need exactly one of the two rules.\n\n**Families include their branches.** `archetype=Sky Striker` also returns the Sky Striker Ace monsters, because *Sky Striker Ace* is a sub-archetype of *Sky Striker*. The reverse is not true: `archetype=Sky Striker Ace` returns only the Aces. That is how card effects read.\n\nUse [`GET /archetypes`](#get-archetypes) to find the exact names and codes."
+      },
+      {
+        "id": "h-type",
+        "type": "heading",
+        "level": 3,
+        "text": "Card type",
+        "anchor": "card-type-filters"
+      },
+      {
+        "id": "type",
+        "type": "text",
+        "md": "| Param | Values | A list means |\n|---|---|---|\n| `kind` | `monster` · `spell` · `trap` | any of them |\n| `types` | `normal` `effect` `fusion` `ritual` `synchro` `xyz` `pendulum` `link` `tuner` `flip` `toon` `spirit` `union` `gemini` `token` `special_summon` | **all** of them |\n| `spellTrapType` | `normal` `quickplay` `continuous` `equip` `field` `ritual` `counter` | any of them |\n| `extraDeck` | `true` · `false` | |\n\n`types` is the **only** list parameter that requires every value: `types=synchro,tuner` means Synchro Tuners, not \"Synchros plus Tuners\". An \"effect *or* tuner\" search would return almost every monster, so the AND reading is the useful one. To get Synchros *or* Xyz monsters, send two requests.\n\n`special_summon` matches monsters that cannot be Normal Summoned (Nomi and Semi-Nomi). It is a summoning condition, not a type printed on the card.\n\n`extraDeck=true` is Fusion, Synchro, Xyz and Link monsters. `extraDeck=false` means \"goes in the Main Deck\" and therefore **includes spells and traps**. Add `kind=monster` if you only want Main Deck monsters."
+      },
+      {
+        "id": "h-stats",
+        "type": "heading",
+        "level": 3,
+        "text": "Monster stats",
+        "anchor": "monster-stat-filters"
+      },
+      {
+        "id": "stats",
+        "type": "text",
+        "md": "| Param | Values |\n|---|---|\n| `race` | `warrior` `spellcaster` `fairy` `fiend` `zombie` `machine` `aqua` `pyro` `rock` `winged_beast` `plant` `insect` `thunder` `dragon` `beast` `beast_warrior` `dinosaur` `fish` `sea_serpent` `reptile` `psychic` `divine_beast` `creator_god` `wyrm` `cyberse` `illusion` (any) |\n| `attribute` | `earth` `water` `fire` `wind` `light` `dark` `divine` (any) |\n| `level`, `levelMin`, `levelMax` | Level, Rank or Link Rating, `0`–`13` |\n| `atk`, `atkMin`, `atkMax` | ATK. `-2` is `?` |\n| `def`, `defMin`, `defMax` | DEF. Link monsters have no DEF and never match |\n| `scale`, `scaleMin`, `scaleMax` | Pendulum Scale, `0`–`13` |\n| `linkMarkers` | `top` `top_left` `top_right` `left` `right` `bottom` `bottom_left` `bottom_right` (**all** of them) |\n\nThe exact parameter (`level=4`) and the range parameters (`levelMin=4&levelMax=6`) are inclusive. `level` covers Rank and Link Rating too, so combine it with `types=xyz` or `types=link` when you mean one of those.\n\n`linkMarkers` requires every listed arrow: `linkMarkers=left,right` is Links pointing both left **and** right.\n\nSpells and traps have no stats, so any stat filter leaves them out."
+      },
+      {
+        "id": "h-release",
+        "type": "heading",
+        "level": 3,
+        "text": "Release date",
+        "anchor": "release-filters"
+      },
+      {
+        "id": "release",
+        "type": "text",
+        "md": "| Param | Values |\n|---|---|\n| `format` | `tcg` · `ocg`: only cards released in that region |\n| `releasedAfter`, `releasedBefore` | `YYYY-MM-DD`, inclusive. **Require `format`** |\n\nA card has a separate release date in each region, often years apart (Blue-Eyes White Dragon: OCG 1999, TCG 2002), so a date on its own is ambiguous and the API rejects it with a `400`.\n\n`format=tcg&releasedBefore=2005-04-01` is the card pool of a GOAT-era deck."
+      },
+      {
+        "id": "h-banlist-filter",
+        "type": "heading",
+        "level": 3,
+        "text": "Banlists",
+        "anchor": "banlist-filters"
+      },
+      {
+        "id": "banlist-filter",
+        "type": "text",
+        "md": "| Param | Works with | Meaning |\n|---|---|---|\n| `banlist` | every list | The list id from [`GET /banlists`](#get-banlists). **Required** by every parameter below |\n| `status` | OCG · TCG · WCS | `forbidden` · `limited` · `semi_limited` · `unlimited` (any) |\n| `pointsMin`, `pointsMax` | Genesys · Genesys OCG | The card's Genesys point value |\n| `legal` | every list | `true` · `false` |\n\nThe two kinds of list work differently, and a filter from the wrong kind is a `400`, not an empty page:\n\n- **OCG, TCG and WCS** limit copies. A card that is not on the list is `unlimited`. `legal=true` means \"not Forbidden\".\n- **Genesys** gives cards a point value against a deck cap of 100 and bans whole monster types: Pendulum and Link monsters cannot be played at all. A card not on the list is worth `0` points. `legal=true` means \"not a banned type\".\n\nExamples:\n\n- `banlist=2&status=forbidden`: the TCG Forbidden list.\n- `banlist=2&status=limited,semi_limited`: everything Limited or Semi-Limited in the TCG.\n- `banlist=100&pointsMin=1`: every Genesys card that costs points.\n- `banlist=100&legal=true&types=xyz`: Xyz monsters you can play in Genesys."
+      },
+      {
+        "id": "h-variants",
+        "type": "heading",
+        "level": 3,
+        "text": "Alternate artworks and erratas",
+        "anchor": "variant-filters"
+      },
+      {
+        "id": "variants",
+        "type": "text",
+        "md": "| Param | Default | Effect |\n|---|---|---|\n| `alternateArts` | `false` | Return alternate artworks as separate results |\n| `preErrata` | `false` | Return the pre-errata version of errata'd cards as separate results |\n\nBy default a search returns **one result per card**, and that card lists its variants itself: `alternateArts` holds the passcode of every other artwork and `erratas` every older wording. Dark Magician alone has 19 alternate artworks; returning them as results would fill the first page with the same card. Turn these on only when the variant passcodes themselves are what you want."
+      },
+      {
+        "id": "h-sort",
+        "type": "heading",
+        "level": 3,
+        "text": "Sorting",
+        "anchor": "sorting"
+      },
+      {
+        "id": "sort",
+        "type": "text",
+        "md": "| Param | Values | Default |\n|---|---|---|\n| `sort` | `name` · `atk` · `def` · `level` · `released_tcg` · `released_ocg` · `id` | `name` |\n| `order` | `asc` · `desc` | `asc` |\n\nCards without a value for the sort key (spells when sorting by ATK, cards never released in the TCG when sorting by `released_tcg`) always go **last**, in both orders. Ties break by name, then by passcode, so the order is stable between pages.\n\nWith `q` and no `sort`, results are ranked by relevance instead."
+      },
+      {
+        "id": "h-card",
+        "type": "heading",
+        "level": 2,
+        "text": "The card object",
+        "anchor": "the-card-object"
+      },
+      {
+        "id": "card",
+        "type": "text",
+        "md": "Every endpoint that returns cards returns this same object, so you only need one parser.\n\n```json\n{\n  \"id\": 26202165,\n  \"idOriginal\": 26202165,\n  \"idTcg\": null,\n  \"name\": \"Sangan\",\n  \"description\": \"If this card is sent from the field to the GY: Add 1 monster with 1500 or less ATK from your Deck to your hand, but you cannot activate cards, or the effects of cards, with that name for the rest of this turn. You can only use this effect of \\\"Sangan\\\" once per turn.\",\n  \"kind\": \"monster\",\n  \"humanReadableCardType\": \"Effect Monster\",\n  \"monsterTypes\": [\"effect\"],\n  \"spellTrapType\": null,\n  \"race\": \"fiend\",\n  \"attribute\": \"dark\",\n  \"level\": 3,\n  \"scale\": null,\n  \"atk\": 1000,\n  \"def\": 600,\n  \"linkMarkers\": [],\n  \"archetypes\": [],\n  \"supports\": [],\n  \"ruleId\": null,\n  \"alias\": null,\n  \"alternateArts\": [],\n  \"erratas\": [\n    {\n      \"id\": 26202185,\n      \"description\": \"When this card is sent from the field to the Graveyard, add 1 monster with 1500 or less ATK from your Deck to your hand.\",\n      \"date\": \"2002-06-26\"\n    }\n  ],\n  \"released\": { \"ocg\": \"1999-11-18\", \"tcg\": \"2017-07-21\" },\n  \"banlists\": null,\n  \"i18n\": {\n    \"pt\": { \"name\": \"Sangan\", \"desc\": \"…\" },\n    \"jp\": { \"name\": \"クリッター\", \"desc\": \"…\" }\n  }\n}\n```"
+      },
+      {
+        "id": "h-fields",
+        "type": "heading",
+        "level": 3,
+        "text": "Fields",
+        "anchor": "card-fields"
+      },
+      {
+        "id": "fields",
+        "type": "text",
+        "md": "| Field | Type | Notes |\n|---|---|---|\n| `id` | number | The passcode. Use it for card art and to identify the card in a deck |\n| `idOriginal` | number | The passcode that counts for game rules. On the TCG print of a double-script card it is the OCG print's passcode; on every other card it equals `id`. Banlists and statistics key by this one |\n| `idTcg` | number or null | On **both** prints of a double-script card, the TCG print's passcode; `null` on every other card. Store this one for a TCG deck |\n| `name` | string | English name |\n| `description` | string | English card text, plain text with line breaks (`\\n`). Formatting markup from the card database is removed |\n| `kind` | string | `monster`, `spell` or `trap`. Always present: **branch on this first** |\n| `humanReadableCardType` | string | Display label such as `Synchro Tuner Effect Monster` or `Quick-Play Spell`. See below |\n| `monsterTypes` | string[] | The `types` values the card has, e.g. `[\"synchro\", \"tuner\", \"effect\"]`. Empty for spells and traps |\n| `spellTrapType` | string or null | `normal`, `quickplay`, `continuous`, `equip`, `field`, `ritual` or `counter`. `null` for monsters |\n| `race` | string or null | Monster type (`dragon`, `winged_beast`…). `null` for spells and traps |\n| `attribute` | string or null | `null` for spells and traps |\n| `level` | number or null | Level, **or** Rank for Xyz, **or** Link Rating for Link. Label it by `monsterTypes` |\n| `scale` | number or null | Pendulum Scale; `null` on non-Pendulum cards |\n| `atk` | number or null | `-2` means `?`: **display it as `?`**, never as a number. `null` for spells and traps |\n| `def` | number or null | `-2` means `?`. `null` for spells, traps **and Link monsters**: never show DEF on a Link |\n| `linkMarkers` | string[] | Arrow directions (`top`, `bottom_left`…). Empty unless Link |\n| `archetypes` | string[] | Archetype names the card **is**, e.g. `[\"Sky Striker\", \"Sky Striker Ace\"]` |\n| `supports` | string[] | Archetype names the card **helps**. Same shape |\n| `ruleId` | number or null | Passcode of the card this one is **always treated as** (Harpie Lady 1, 2 and 3 carry Harpie Lady's; A Legendary Ocean carries Umi's). Else `null` |\n| `alias` | number or null | On an alternate artwork, the original's passcode. `null` on the original |\n| `alternateArts` | number[] | Passcodes of **every other artwork** of the same card. On an alternate artwork this includes the original |\n| `erratas` | object[] | Older wordings, oldest first. Empty when there are none. See below |\n| `released` | object | `{ \"ocg\": \"YYYY-MM-DD\", \"tcg\": \"YYYY-MM-DD\" }`, each `null` if never released there |\n| `banlists` | object[] or null | The lists that restrict this card, or `null`. See below |\n| `i18n` | object | Portuguese and Japanese name and text. See below |\n| `idSearched` | number | Only on `id` searches: the passcode you asked for |\n\nFields that don't apply are `null` (or an empty array for list fields), never missing. You can rely on every key being present."
+      },
+      {
+        "id": "h-card-type",
+        "type": "heading",
+        "level": 3,
+        "text": "humanReadableCardType",
+        "anchor": "human-readable-card-type"
+      },
+      {
+        "id": "card-type",
+        "type": "text",
+        "md": "A ready-to-display label derived from `kind`, `monsterTypes` and `spellTrapType`, so it never disagrees with them. **Display** this string; **filter** on the structured fields.\n\nMonster labels follow the order of the type line printed on the card, ending in `Monster`:\n\n| Order | Words |\n|---|---|\n| 1. Summon type | `Fusion` `Ritual` `Synchro` `Xyz` `Link` |\n| 2. | `Pendulum` |\n| 3. Ability | `Flip` `Gemini` `Spirit` `Toon` `Union` |\n| 4. | `Tuner` |\n| 5. | `Normal` `Effect` |\n\nSo Accel Synchron reads `Synchro Tuner Effect Monster`, and you will also see `Xyz Pendulum Effect Monster`, `Pendulum Flip Effect Monster`, `Tuner Normal Monster` and `Fusion Monster` (a Fusion with no effect). Tokens read `Token`.\n\nSpells and traps read `{subtype} Spell` or `{subtype} Trap`: `Normal Spell`, `Quick-Play Spell`, `Continuous Spell`, `Equip Spell`, `Field Spell`, `Ritual Spell`, `Normal Trap`, `Continuous Trap`, `Counter Trap`.\n\nThe label is always English. If your interface is translated, build the label from `monsterTypes` and `spellTrapType` instead of parsing this string."
+      },
+      {
+        "id": "h-erratas",
+        "type": "heading",
+        "level": 3,
+        "text": "erratas",
+        "anchor": "erratas"
+      },
+      {
+        "id": "erratas",
+        "type": "text",
+        "md": "Each entry is a **previous version** of the card's text:\n\n| Field | Meaning |\n|---|---|\n| `id` | The old version's own passcode |\n| `description` | The text it had |\n| `date` | When that version was released in the TCG, or `null` if unknown |\n\n**An errata'd card's `released.tcg` is the date of its current wording**, not of its first printing. Sangan above shows `2017-07-21` (the first TCG product with today's text) while its 2002 debut is the errata's `date`. To answer \"when did this card first appear in the TCG\", take the oldest of `released.tcg` and every `erratas[].date`.\n\nOld versions are hidden from search unless you pass `preErrata=true`. Fetched on their own, they have `erratas: []` and a `ruleId` that points at the current card."
+      },
+      {
+        "id": "h-card-banlists",
+        "type": "heading",
+        "level": 3,
+        "text": "banlists",
+        "anchor": "card-banlists"
+      },
+      {
+        "id": "card-banlists",
+        "type": "text",
+        "md": "**Only the lists where the card is restricted.** A card that is unlimited on a list, or worth 0 points in Genesys, is simply absent from that list. A card restricted nowhere has `banlists: null`, not an empty array.\n\n```json\n\"banlists\": [\n  { \"name\": \"OCG 01.10.2026\", \"limitation\": 2 },\n  { \"name\": \"WCS 19.10.2026\", \"limitation\": 2 },\n  { \"name\": \"Genesys\", \"limitation\": 20 },\n  { \"name\": \"Genesys OCG\", \"limitation\": 20 }\n]\n```\n\n| List | `limitation` means |\n|---|---|\n| OCG, TCG, WCS | Copies allowed: `0` Forbidden, `1` Limited, `2` Semi-Limited |\n| Genesys, Genesys OCG | Points, `1`–`100` |\n\n`name` is the list's name exactly as in [`GET /banlists`](#get-banlists). Entries come in the order OCG, TCG, WCS, Genesys, Genesys OCG.\n\nGenesys bans Pendulum and Link monsters **by type**, and that is not a points entry, so a Link monster shows no Genesys line at all, exactly like a free card. Before telling someone a card is playable in Genesys, check its `monsterTypes` against the list's `bannedTypes`, or search with `banlist=100&legal=true`."
+      },
+      {
+        "id": "h-i18n",
+        "type": "heading",
+        "level": 3,
+        "text": "i18n",
+        "anchor": "i18n"
+      },
+      {
+        "id": "i18n",
+        "type": "text",
+        "md": "Portuguese (`pt`) and Japanese (`jp`) names and texts, cleaned the same way as the English ones:\n\n```json\n\"i18n\": {\n  \"pt\": { \"name\": \"Sangan\", \"desc\": \"…\" },\n  \"jp\": { \"name\": \"クリッター\", \"desc\": \"…\" }\n}\n```\n\nA language the card has no translation for is `null` instead of an object. About 7% of cards have no Portuguese text and under 1% have no Japanese, so always fall back to `name` and `description`:\n\n```js\nconst label = card.i18n.pt?.name ?? card.name\n```\n\nSearch and filters work on the **English** text only."
+      },
+      {
+        "id": "h-card-by-id",
+        "type": "heading",
+        "level": 2,
+        "text": "GET /cards/{id}: one card",
+        "anchor": "get-card-by-id"
+      },
+      {
+        "id": "card-by-id",
+        "type": "text",
+        "md": "```bash\ncurl \"https://godokaapi.duelistsunite.org/cards/26202165\"\n```\n\nReturns one [card object](#the-card-object), exactly as it appears in search, with no wrapper. There are no extra fields: alternate artworks and erratas are already on every card.\n\nThe difference from `GET /cards?id=` is how alternate artworks behave:\n\n| Request | An alternate artwork's passcode returns |\n|---|---|\n| `GET /cards?id=46986431` | The **original** card (Dark Magician `46986414`), with `idSearched` |\n| `GET /cards/46986431` | The **alternate artwork itself**, with `alias` pointing at the original |\n\nUse `?id=` when you want the canonical card, and `/cards/{id}` when you want that specific print. Any passcode that can appear in a duel deck resolves here, including both prints of a double-script card.\n\nAn unknown or non-numeric passcode is a `404`:\n\n```json\n{ \"error\": \"NOT_FOUND\", \"message\": \"Card not found.\" }\n```"
+      },
+      {
+        "id": "h-archetypes",
+        "type": "heading",
+        "level": 2,
+        "text": "GET /archetypes",
+        "anchor": "get-archetypes"
+      },
+      {
+        "id": "archetypes",
+        "type": "text",
+        "md": "Lists archetypes, for an autocomplete or to find the exact name or code to pass to `archetype=`.\n\n| Param | Default | Meaning |\n|---|---|---|\n| `q` | | Name contains the text, ranked by similarity. At most 60 characters |\n| `limit` | `50` | `1`–`700` |\n\nNo other parameter is accepted (anything else is a `400` with the valid list).\n\n```bash\ncurl \"https://godokaapi.duelistsunite.org/archetypes?q=sky%20striker\"\n```\n\n```json\n[\n  { \"code\": 277, \"hex\": \"0x115\", \"name\": \"Sky Striker\", \"cards\": 36 },\n  { \"code\": 4373, \"hex\": \"0x1115\", \"name\": \"Sky Striker Ace\", \"cards\": 15 }\n]\n```\n\n| Field | Meaning |\n|---|---|\n| `code` | The archetype's setcode, in decimal |\n| `hex` | The same setcode in hex, as card scripts write it |\n| `name` | The archetype's name |\n| `cards` | How many cards are tagged with it, sub-archetypes included |\n\nThe response is a plain array, not an object. Pass `name`, `code` or `hex` straight back as `archetype=` or `supports=`."
+      },
+      {
+        "id": "h-banlists",
+        "type": "heading",
+        "level": 2,
+        "text": "GET /banlists",
+        "anchor": "get-banlists"
+      },
+      {
+        "id": "banlists",
+        "type": "text",
+        "md": "The five lists the API covers, as a plain array:\n\n```json\n[\n  { \"id\": 1, \"name\": \"OCG 01.10.2026\", \"format\": \"ocg\", \"pointCap\": null, \"bannedTypes\": [], \"cards\": 202 },\n  { \"id\": 2, \"name\": \"TCG 19.10.2026\", \"format\": \"tcg\", \"pointCap\": null, \"bannedTypes\": [], \"cards\": 256 },\n  { \"id\": 3, \"name\": \"WCS 19.10.2026\", \"format\": \"wcs\", \"pointCap\": null, \"bannedTypes\": [], \"cards\": 304 },\n  { \"id\": 100, \"name\": \"Genesys\", \"format\": \"genesys\", \"pointCap\": 100, \"bannedTypes\": [\"pendulum\", \"link\"], \"cards\": 820 },\n  { \"id\": 101, \"name\": \"Genesys OCG\", \"format\": \"genesys_ocg\", \"pointCap\": 100, \"bannedTypes\": [\"pendulum\", \"link\"], \"cards\": 1100 }\n]\n```\n\n| Field | Meaning |\n|---|---|\n| `id` | Pass it as `banlist=` in a search, or to `GET /banlists/{id}` |\n| `name` | For OCG, TCG and WCS, includes the date the list took effect (`DD.MM.YYYY`) |\n| `format` | `ocg`, `tcg`, `wcs`, `genesys` or `genesys_ocg` |\n| `pointCap` | The deck's point budget on Genesys lists; `null` on the others |\n| `bannedTypes` | Monster types the list forbids entirely (`monsterTypes` values) |\n| `cards` | How many cards the list restricts |\n\n- **Tell the two kinds of list apart with `pointCap !== null`**, not by the id or the name.\n- **Ids are stable**, but the list *behind* an id is replaced when a new banlist comes out. `name` tells you which edition you are looking at. The names and counts above will be out of date by the time you read this; ask the API.\n- The ranked Genesys ladder on YGO Omega uses list `100`."
+      },
+      {
+        "id": "h-banlist",
+        "type": "heading",
+        "level": 3,
+        "text": "GET /banlists/{id}",
+        "anchor": "get-banlist-by-id"
+      },
+      {
+        "id": "banlist",
+        "type": "text",
+        "md": "One list with every card it restricts:\n\n```json\n{\n  \"id\": 2,\n  \"name\": \"TCG 19.10.2026\",\n  \"format\": \"tcg\",\n  \"pointCap\": null,\n  \"bannedTypes\": [],\n  \"cards\": 256,\n  \"entries\": [\n    { \"id\": 21044178, \"name\": \"Abyss Dweller\", \"kind\": \"monster\", \"limitation\": 0 }\n  ]\n}\n```\n\n`entries` is ordered Forbidden, Limited, Semi-Limited on normal lists, and by points (highest first) on Genesys, then by name. `limitation` means the same as on a card: copies on a normal list, points on Genesys.\n\nUnlimited and 0-point cards are not listed. To browse the whole legal pool of a list, use `GET /cards?banlist={id}&legal=true` instead. Every list, the TCG one included, stores a double-script card under its OCG passcode (`idOriginal`).\n\nAn unknown id is a `404` (`NOT_FOUND`)."
+      },
+      {
+        "id": "h-art",
+        "type": "heading",
+        "level": 2,
+        "text": "Card images",
+        "anchor": "card-images"
+      },
+      {
+        "id": "art",
+        "type": "text",
+        "md": "Images are not part of the API responses. Build the artwork URL from the passcode:\n\n```text\nhttps://ygopro.online/assets/card-arts/{id}.jpg\n```\n\nFor example `https://ygopro.online/assets/card-arts/26202165.jpg` is Sangan's artwork. These are the **cropped artworks** (624 × 624 pixels), not full card frames. For an alternate artwork, use its own passcode: the passcodes in `alternateArts` all have images."
+      },
+      {
+        "id": "examples-cards",
+        "type": "cards",
+        "cards": [
+          { "id": 26202165, "name": "Sangan", "note": "26202165" },
+          { "id": 46986414, "name": "Dark Magician", "note": "46986414" },
+          { "id": 14558127, "name": "Ash Blossom & Joyous Spring", "note": "14558127" },
+          { "id": 26077387, "name": "Sky Striker Ace - Raye", "note": "26077387" }
+        ],
+        "align": "center",
+        "caption": "Artworks served from the passcode, the same way any client can load them"
+      },
+      {
+        "id": "h-recipes",
+        "type": "heading",
+        "level": 2,
+        "text": "Recipes",
+        "anchor": "recipes"
+      },
+      {
+        "id": "recipes",
+        "type": "text",
+        "md": "Common questions and the query that answers them. Append each one to `https://godokaapi.duelistsunite.org/cards?`, URL-encoding the values.\n\n| Question | Query |\n|---|---|\n| Cards with \"blue-eyes\" in the name | `fname=blue-eyes` |\n| Traps whose text mentions negating and destroying | `q=negate destroy&kind=trap` |\n| Cards with an exact phrase in their text | `q=\"cannot be destroyed by battle\"` |\n| Every Sky Striker spell and trap | `archetype=Sky Striker&kind=spell,trap` |\n| Cards that search or support Utopia | `supports=Utopia` |\n| Level 4 or lower Synchro Tuners | `types=synchro,tuner&levelMax=4` |\n| LIGHT Dragons with 3000 ATK or more, strongest first | `race=dragon&attribute=light&atkMin=3000&sort=atk&order=desc` |\n| Link monsters pointing up and down | `types=link&linkMarkers=top,bottom` |\n| Main Deck monsters with `?` ATK | `kind=monster&extraDeck=false&atk=-2` |\n| Pendulums with Scale 8 or more | `types=pendulum&scaleMin=8` |\n| Field Spells | `spellTrapType=field` |\n| Cards that can't be Normal Summoned | `types=special_summon` |\n| The GOAT-format card pool | `format=tcg&releasedBefore=2005-04-01` |\n| Newest TCG releases | `format=tcg&sort=released_tcg&order=desc` |\n| The current TCG Forbidden list | `banlist=2&status=forbidden` |\n| Genesys cards worth 20 points or more | `banlist=100&pointsMin=20&sort=name` |\n| Xyz monsters legal in Genesys | `banlist=100&legal=true&types=xyz` |\n| Every artwork of Dark Magician as its own result | `name=Dark Magician&alternateArts=true` |\n| Several cards by passcode | `id=26202165,14558127,46986414` |"
+      },
+      {
+        "id": "h-code",
+        "type": "heading",
+        "level": 2,
+        "text": "Full examples",
+        "anchor": "full-examples"
+      },
+      {
+        "id": "h-code-js",
+        "type": "heading",
+        "level": 3,
+        "text": "JavaScript: resolve a deck list",
+        "anchor": "example-javascript"
+      },
+      {
+        "id": "code-js",
+        "type": "text",
+        "md": "Turns a list of passcodes (for example, the lines of a `.ydk` file) into cards, 100 per request, and reports passcodes that don't exist.\n\n```js\nconst BASE = 'https://godokaapi.duelistsunite.org'\n\nasync function getJson(path) {\n  const res = await fetch(BASE + path)\n  if (!res.ok) {\n    const { error, message } = await res.json()\n    throw new Error(`${res.status} ${error}: ${message}`)\n  }\n  return res.json()\n}\n\nexport async function resolvePasscodes(passcodes) {\n  const unique = [...new Set(passcodes)]\n  const byPasscode = new Map()\n\n  for (let i = 0; unique.length > i; i += 100) {\n    const chunk = unique.slice(i, i + 100)\n    const { cards } = await getJson(`/cards?id=${chunk.join(',')}&limit=100`)\n    for (const card of cards) {\n      byPasscode.set(card.idSearched, card)\n      // Passcodes of the same card come back once: map the other requested ones too.\n      for (const id of chunk) if ([card.id, ...card.alternateArts].includes(id)) byPasscode.set(id, card)\n    }\n  }\n\n  const missing = unique.filter((id) => !byPasscode.has(id))\n  return { byPasscode, missing }\n}\n\nconst { byPasscode, missing } = await resolvePasscodes([26202165, 46986431, 14558127])\nfor (const [id, card] of byPasscode) console.log(id, card.name, card.humanReadableCardType)\nif (missing.length) console.warn('Unknown passcodes:', missing)\n```"
+      },
+      {
+        "id": "h-code-py",
+        "type": "heading",
+        "level": 3,
+        "text": "Python: download every result of a search",
+        "anchor": "example-python"
+      },
+      {
+        "id": "code-py",
+        "type": "text",
+        "md": "Walks every page of a search. Uses the `requests` library (`pip install requests`).\n\n```python\nimport requests\n\nBASE = \"https://godokaapi.duelistsunite.org\"\n\n\ndef search(**filters):\n    \"\"\"Yields every card matching the filters, 100 per request.\"\"\"\n    page = 1\n    while True:\n        res = requests.get(f\"{BASE}/cards\", params={**filters, \"page\": page, \"limit\": 100}, timeout=15)\n        if not res.ok:\n            body = res.json()\n            raise RuntimeError(f\"{res.status_code} {body['error']}: {body['message']}\")\n        body = res.json()\n        yield from body[\"cards\"]\n        if page * body[\"limit\"] >= body[\"total\"]:\n            return\n        page += 1\n\n\n# Lists can be passed comma-separated, exactly as in the URL.\nfor card in search(banlist=2, status=\"forbidden,limited\"):\n    limit = next(entry[\"limitation\"] for entry in card[\"banlists\"] if entry[\"name\"].startswith(\"TCG\"))\n    print(limit, card[\"name\"])\n```"
+      },
+      {
+        "id": "h-code-shell",
+        "type": "heading",
+        "level": 3,
+        "text": "Shell: one-liners with curl and jq",
+        "anchor": "example-shell"
+      },
+      {
+        "id": "code-shell",
+        "type": "text",
+        "md": "```bash\n# Names of every Sky Striker card\ncurl -s \"https://godokaapi.duelistsunite.org/cards?archetype=Sky%20Striker&limit=100\" | jq -r '.cards[].name'\n\n# Portuguese name of a card, falling back to English\ncurl -s \"https://godokaapi.duelistsunite.org/cards/26202165\" | jq -r '.i18n.pt.name // .name'\n\n# How many cards are Forbidden in the TCG right now\ncurl -s \"https://godokaapi.duelistsunite.org/cards?banlist=2&status=forbidden&limit=1\" | jq '.total'\n\n# Id of the Genesys list\ncurl -s \"https://godokaapi.duelistsunite.org/banlists\" | jq '.[] | select(.format == \"genesys\") | .id'\n```"
+      },
+      {
+        "id": "good-practice",
+        "type": "callout",
+        "tone": "gold",
+        "title": "Be a good API citizen",
+        "md": "- **Debounce search boxes.** Send a request when the user stops typing (around 250 ms), not on every key. Settled queries are also far more likely to be served from cache.\n- **Cache on your side.** Card data changes at most once a day. Keeping responses for an hour costs you nothing.\n- **Batch passcode lookups** with `GET /cards?id=` (100 per request) instead of one `GET /cards/{id}` per card.\n- **Avoid unfiltered scans** when a filter would do. A plain `GET /cards` has to count every card; filtered searches answer in a few milliseconds.\n- **Read the `400` message.** It names the parameter and the allowed values, so most mistakes fix themselves.\n- **Handle `null`.** Stats, translations, release dates and banlists are `null` when they don't apply. Never assume a monster field exists on a spell."
+      },
+      {
+        "id": "h-faq",
+        "type": "heading",
+        "level": 2,
+        "text": "Frequently asked questions",
+        "anchor": "faq"
+      },
+      {
+        "id": "faq",
+        "type": "faq",
+        "items": [
+          {
+            "q": "Do I need an API key or an account?",
+            "md": "No. Every card, archetype and banlist endpoint is public. Send a plain `GET` with no headers."
+          },
+          {
+            "q": "Why does my website get a CORS error?",
+            "md": "The API only allows browser requests from our own site. Call it from your server, a serverless function or a script instead; CORS does not apply outside a browser."
+          },
+          {
+            "q": "Why did I get a different passcode than the one I asked for?",
+            "md": "`GET /cards?id=` resolves alternate artworks to the original card. Match results with `idSearched`, or use `GET /cards/{id}` to get the alternate artwork itself."
+          },
+          {
+            "q": "How do I get the card image?",
+            "md": "Use `https://ygopro.online/assets/card-arts/{id}.jpg` with the card's passcode. The API itself returns no image URLs."
+          },
+          {
+            "q": "How often is the data updated?",
+            "md": "Whenever upstream publishes a new card database, which is at most once a day. New cards, erratas and banlists show up after that sync."
+          },
+          {
+            "q": "Are Rush Duel, Speed Duel or anime cards included?",
+            "md": "No. The API covers OCG and TCG cards only. Pre-errata versions are included but hidden from search unless you pass `preErrata=true`."
+          },
+          {
+            "q": "How do I know if a card is playable in Genesys?",
+            "md": "Look at two things: its points (the `Genesys` entry in `banlists`, or `0` if absent) and its type (Pendulum and Link monsters are banned outright, see `bannedTypes` in `GET /banlists`). Searching with `banlist=100&legal=true` does both checks for you."
+          },
+          {
+            "q": "Why does my search return a 400 instead of an empty list?",
+            "md": "Because a parameter or value is wrong, and the API never ignores a filter silently. The `message` names the problem, and for an unknown parameter `details.validParams` lists the right names."
+          },
+          {
+            "q": "How do I search for Synchro or Xyz monsters in one request?",
+            "md": "You can't with `types`, which requires every value it lists. Send one request per type and merge the results, or use `extraDeck=true` if Fusion and Link monsters are welcome too."
+          }
+        ]
+      }
+    ],
+    "assets": {
+      "card-26202165": {
+        "id": "card-26202165",
+        "src": "https://ygopro.online/assets/card-arts/26202165.jpg",
+        "width": 624,
+        "height": 624,
+        "alt": "Sangan artwork: a small furry three-eyed fiend with clawed arms"
+      }
+    },
+    "seo": {
+      "title": "Cards API: search Yu-Gi-Oh! cards over HTTP",
+      "description": "How to use the free Duelists Unite Cards API: search every Yu-Gi-Oh! card by name, text, archetype, stats and banlist, with every field explained.",
+      "keyword": "yu-gi-oh card api",
+      "keywords": ["yugioh api", "card search api", "yugioh banlist api", "ygo card database"],
+      "schema": "HowTo"
+    }
+  }
+}

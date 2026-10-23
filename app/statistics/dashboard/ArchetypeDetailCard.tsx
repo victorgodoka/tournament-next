@@ -1,201 +1,159 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
-import { Icon } from '@iconify/react'
+import { Icon } from '@ui/icon'
 import { Panel } from '@ui/panel'
 import { TabBar } from '@ui/tab-bar'
-import { pct, num, nameOf, faceOf, Art, Bar, NOTE } from '../DeepDive'
-import type { StatArchetype } from '@utils/statistics'
-import { archKey } from '@utils/statistics'
+import { archKey, matchupStatus, type Matchup, type Side, type StatArchetype } from '@utils/statistics'
+import { Art, cardName, faceOf, nameOf, NOTE, num, pct } from '../DeepDive'
+import { isLoose, LOOSE_MARGIN } from './MatchupMatrix'
 
 type ArchetypeDetailCardProps = {
   archetype?: StatArchetype | null
+  /** Every listed archetype (names and art of the opponents) and the matchups among them. */
+  archetypes: StatArchetype[]
+  matchups: Matchup[]
   onOpenDeepDive?: (key: string) => void
 }
 
-const TABS = [
-  { id: 'performance' as const, label: 'Desempenho' },
-  { id: 'matchups' as const, label: 'Matchups' },
-  { id: 'lists' as const, label: 'Listas' },
-] as const
+type Tab = 'performance' | 'matchups' | 'cards'
+const MATCHUPS_A_SIDE = 5
 
-export const ArchetypeDetailCard = ({ archetype, onOpenDeepDive }: ArchetypeDetailCardProps) => {
-  const [tab, setTab] = useState<'performance' | 'matchups' | 'lists'>('performance')
+const TONE = { favorable: 'text-win', neutral: 'text-ink', unfavorable: 'text-loss' } as const
+const rateTone = (r: number | null) => (r == null ? 'text-ink' : TONE[matchupStatus(r)])
+
+const Tile = ({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) => (
+  <div className="flex flex-col border border-line bg-surface-200 p-3">
+    <span className="text-ink-muted signal-sm">{label}</span>
+    <span className="font-mono text-lg font-bold text-ink tabular-nums">{value}</span>
+    {hint ? <span className="font-mono text-[11px] text-ink-muted">{hint}</span> : null}
+  </div>
+)
+
+export const ArchetypeDetailCard = ({ archetype, archetypes, matchups, onOpenDeepDive }: ArchetypeDetailCardProps) => {
+  const t = useTranslations('Statistics.detail')
+  const [tab, setTab] = useState<Tab>('performance')
 
   if (!archetype) {
     return (
-      <Panel title="Análise de arquétipo" meta="Nenhum selecionado">
-        <p className={NOTE}>Selecione um arquétipo no ranking ou na tabela para ver a análise detalhada.</p>
+      <Panel title={t('title')}>
+        <p className={NOTE}>{t('empty')}</p>
       </Panel>
     )
   }
 
   const key = archKey(archetype.archetype)
-  const face = faceOf(archetype)
-  const name = nameOf(archetype)
+  // Seasons swept before the per-game split only have G1 / post-side.
+  const { byGame, sideboarding } = archetype
+  const phases: [string, Side][] = byGame
+    ? [['G1', byGame.g1], ['G2', byGame.g2], ['G3', byGame.g3]]
+    : [['G1', sideboarding.game1], [t('postSide'), sideboarding.postSide]]
 
-  const g1Wr = archetype.byGame?.g1?.winRate ?? archetype.sideboarding?.game1?.winRate
-  const g2Wr = archetype.byGame?.g2?.winRate
-  const g3Wr = archetype.byGame?.g3?.winRate ?? archetype.sideboarding?.postSide?.winRate
+  // Its matchups with a usable sample, weakest first: the two ends, no row in both when there are few.
+  const byKey = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
+  const own = matchups
+    .filter((m) => archKey(m.archetype) === key && m.winRate != null && !isLoose(m))
+    .sort((a, b) => a.winRate! - b.winRate!)
+  const worst = own.slice(0, MATCHUPS_A_SIDE)
+  const best = own.slice(Math.max(MATCHUPS_A_SIDE, own.length - MATCHUPS_A_SIDE)).reverse()
 
   return (
-    <Panel
-      title="Análise de arquétipo"
-      meta={archetype.tier ? `Tier ${archetype.tier}` : undefined}
-    >
-      <div className="flex flex-col gap-4">
-        {/* Header with Card Art & Title */}
-        <div className="flex items-start gap-3">
-          <Art card={face} size={54} className="size-14 rounded-xs border border-line flex-none" />
-          <div className="flex flex-col min-w-0 flex-1">
-            <h4 className="font-bold text-ink text-base truncate">{name}</h4>
-            <p className="text-xs text-ink-dim leading-snug line-clamp-2 mt-0.5">
-              Deck focado em consistência e grind game, com excelente capacidade de recuperação e pressão no meio jogo.
-            </p>
+    <Panel title={t('title')} meta={archetype.tier ? t('tier', { tier: archetype.tier }) : undefined}>
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center gap-4">
+          <Art card={faceOf(archetype)} size={56} className="size-14" />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h3 className="truncate text-lg font-bold text-ink">{nameOf(archetype)}</h3>
+            <p className="text-xs text-ink-dim">{t('sub', { games: num(archetype.games), mirrors: pct(archetype.mirrorShare) })}</p>
           </div>
+          {onOpenDeepDive ? (
+            <button type="button" onClick={() => onOpenDeepDive(key)} className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-cyan hover:underline">
+              {t('deepDive')} <Icon name="arrow" size={12} />
+            </button>
+          ) : null}
         </div>
 
-        {/* 4 Stat Tiles */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div className="flex flex-col p-2 bg-surface-200 border border-line rounded-xs">
-            <span className="text-[11px] text-ink-muted">Win rate</span>
-            <span className="font-bold text-ink text-sm font-mono tabular-nums">
-              {pct(archetype.winRate)}
-            </span>
-            {archetype.ci && (
-              <span className="text-[10px] text-ink-muted font-mono">
-                ±{(archetype.ci.margin * 100).toFixed(1)}%
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col p-2 bg-surface-200 border border-line rounded-xs">
-            <span className="text-[11px] text-ink-muted">Popularidade</span>
-            <span className="font-bold text-ink text-sm font-mono tabular-nums">
-              {pct(archetype.metaShare)}
-            </span>
-            <span className="text-[10px] text-ink-muted font-mono">no meta</span>
-          </div>
-
-          <div className="flex flex-col p-2 bg-surface-200 border border-line rounded-xs">
-            <span className="text-[11px] text-ink-muted">Partidas</span>
-            <span className="font-bold text-ink text-sm font-mono tabular-nums">
-              {num(archetype.games)}
-            </span>
-            <span className="text-[10px] text-ink-muted font-mono">jogadas</span>
-          </div>
-
-          <div className="flex flex-col p-2 bg-surface-200 border border-line rounded-xs">
-            <span className="text-[11px] text-ink-muted">Jogadores</span>
-            <span className="font-bold text-ink text-sm font-mono tabular-nums">
-              {num(archetype.players)}
-            </span>
-            <span className="text-[10px] text-ink-muted font-mono">únicos</span>
-          </div>
+        <div className="grid grid-cols-2 gap-2 min-[720px]:grid-cols-4">
+          <Tile label={t('winRate')} value={pct(archetype.winRate)} hint={archetype.ci ? `± ${(archetype.ci.margin * 100).toFixed(1)} pts` : undefined} />
+          <Tile label={t('share')} value={pct(archetype.metaShare)} />
+          <Tile label={t('games')} value={num(archetype.games)} />
+          <Tile label={t('players')} value={num(archetype.players)} />
         </div>
 
-        {/* Tab selection */}
-        <div className="border-b border-line">
-          <TabBar
-            tabs={TABS}
-            active={tab}
-            onSelect={setTab}
-            label="Detalhamento do arquétipo"
-            idPrefix="arch-detail"
-            fit
-            className="border-b-0"
-          />
-        </div>
+        <TabBar
+          tabs={(['performance', 'matchups', 'cards'] as const).map((id) => ({ id, label: t(`tabs.${id}`) }))}
+          active={tab}
+          onSelect={setTab}
+          label={t('tabsLabel')}
+          idPrefix="arch-detail"
+          fit
+        />
 
-        {/* Tab content */}
         {tab === 'performance' ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-ink-dim">Win rate por fase</span>
-              {onOpenDeepDive && (
-                <button
-                  type="button"
-                  onClick={() => onOpenDeepDive(key)}
-                  className="text-xs text-cyan hover:underline cursor-pointer flex items-center gap-1 font-semibold"
-                >
-                  Ver detalhes <Icon icon="mdi:arrow-right" className="text-xs" />
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1 p-2 bg-surface-200 rounded-xs border border-line">
-                <div className="flex justify-between items-center text-[11px] text-ink-muted font-mono">
-                  <span>G1</span>
-                  <span className="text-ink font-semibold">{pct(g1Wr)}</span>
+          <div className="grid grid-cols-1 gap-2 min-[720px]:grid-cols-4">
+            {phases.map(([label, side]) => (
+              <div key={label} className="flex flex-col gap-1.5 border border-line bg-surface-200 p-3">
+                <div className="flex items-center justify-between font-mono text-[11px] text-ink-muted">
+                  <span>{label}</span>
+                  <span className="font-semibold text-ink">{pct(side.winRate)}</span>
                 </div>
-                <div className="h-1.5 bg-surface-300 rounded-round overflow-hidden">
-                  <div
-                    className="h-1.5 rounded-round bg-win"
-                    style={{ width: `${Math.min(100, ((g1Wr ?? 0.5) / 1) * 100)}%` }}
-                  />
+                <div className="relative h-1.5 bg-surface-300">
+                  <div className="h-1.5 bg-win" style={{ width: `${(side.winRate ?? 0) * 100}%` }} />
+                  <span aria-hidden className="absolute -top-0.5 left-1/2 h-2.5 w-px bg-ink-muted" />
                 </div>
+                <span className="font-mono text-[10px] text-ink-muted">{t('gamesCount', { count: num(side.games) })}</span>
               </div>
-
-              <div className="flex flex-col gap-1 p-2 bg-surface-200 rounded-xs border border-line">
-                <div className="flex justify-between items-center text-[11px] text-ink-muted font-mono">
-                  <span>G2</span>
-                  <span className="text-ink font-semibold">{pct(g2Wr ?? g1Wr)}</span>
-                </div>
-                <div className="h-1.5 bg-surface-300 rounded-round overflow-hidden">
-                  <div
-                    className="h-1.5 rounded-round bg-win"
-                    style={{ width: `${Math.min(100, (((g2Wr ?? g1Wr) ?? 0.5) / 1) * 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1 p-2 bg-surface-200 rounded-xs border border-line">
-                <div className="flex justify-between items-center text-[11px] text-ink-muted font-mono">
-                  <span>G3</span>
-                  <span className="text-ink font-semibold">{pct(g3Wr)}</span>
-                </div>
-                <div className="h-1.5 bg-surface-300 rounded-round overflow-hidden">
-                  <div
-                    className="h-1.5 rounded-round bg-win"
-                    style={{ width: `${Math.min(100, ((g3Wr ?? 0.5) / 1) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Turn order mini-split */}
-            <div className="flex items-center justify-between p-2.5 bg-surface-200 rounded-xs border border-line text-xs font-mono">
-              <span className="text-ink-muted">Indo 1º: <strong className="text-ink">{pct(archetype.turnOrder?.first?.winRate)}</strong></span>
-              <span className="text-line-mid">|</span>
-              <span className="text-ink-muted">Indo 2º: <strong className="text-ink">{pct(archetype.turnOrder?.second?.winRate)}</strong></span>
+            ))}
+            <div className="flex flex-col justify-center gap-1 border border-line bg-surface-200 p-3 font-mono text-xs text-ink-muted">
+              <span>{t('first')} <strong className="text-ink">{pct(archetype.turnOrder.first.winRate)}</strong></span>
+              <span>{t('second')} <strong className="text-ink">{pct(archetype.turnOrder.second.winRate)}</strong></span>
             </div>
           </div>
         ) : tab === 'matchups' ? (
-          <div className="flex flex-col gap-2 text-xs">
-            {archetype.matchupOthers && (
-              <div className="flex items-center justify-between p-2 bg-surface-200 rounded-xs border border-line">
-                <span className="text-ink-dim font-medium">Contra Outros decks</span>
-                <span className={twMerge('font-bold font-mono', archetype.matchupOthers.status === 'favorable' ? 'text-win' : archetype.matchupOthers.status === 'unfavorable' ? 'text-loss' : 'text-ink')}>
-                  {pct(archetype.matchupOthers.winRate)} ({num(archetype.matchupOthers.games)} j)
+          <div className="flex flex-col gap-3 text-xs">
+            {own.length ? (
+              <div className="grid grid-cols-1 gap-4 min-[720px]:grid-cols-2">
+                {([['worst', worst], ['best', best]] as const).map(([which, list]) => (
+                  <div key={which} className="flex flex-col gap-1">
+                    <span className="text-ink-muted signal-sm">{t(which)}</span>
+                    {list.map((m) => {
+                      const opp = byKey.get(archKey(m.opponent))
+                      return (
+                        <div key={archKey(m.opponent)} className="flex items-center gap-2 border border-line bg-surface-200 p-1.5">
+                          {opp ? <Art card={faceOf(opp)} size={22} className="size-5.5" /> : null}
+                          <span className="truncate text-ink-dim">{opp ? nameOf(opp) : archKey(m.opponent)}</span>
+                          <span className={twMerge('ml-auto font-mono font-bold', rateTone(m.winRate))}>{pct(m.winRate)}</span>
+                          <span className="w-20 text-right font-mono text-[10px] text-ink-muted">{t('gamesCount', { count: num(m.games) })}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={NOTE}>{t('noMatchups')}</p>
+            )}
+            {archetype.matchupOthers ? (
+              <div className="flex items-center justify-between border border-line bg-surface-200 p-2">
+                <span className="font-medium text-ink-dim">{t('others', { count: archetypes.length })}</span>
+                <span className={twMerge('font-mono font-bold', rateTone(archetype.matchupOthers.winRate))}>
+                  {pct(archetype.matchupOthers.winRate)} · {t('gamesCount', { count: num(archetype.matchupOthers.games) })}
                 </span>
               </div>
-            )}
-            <p className={NOTE}>Consulte a Matchup Matrix acima para ver todos os confrontos contra os principais decks.</p>
+            ) : null}
+            <p className={NOTE}>{t('matchupsNote', { margin: LOOSE_MARGIN * 100 })}</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs text-ink-dim font-medium">Cartas mais frequentes na lista:</span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(archetype.cards ?? []).slice(0, 4).map((c) => (
-                <div key={c.id} className="flex items-center gap-2 p-1.5 bg-surface-200 rounded-xs border border-line text-xs">
-                  <Art card={c} size={22} className="size-5.5 flex-none" />
-                  <span className="truncate text-ink-dim">{c.name ?? `#${c.id}`}</span>
-                  <span className="ml-auto font-mono text-[10px] text-cyan">{pct(c.inclusion)}</span>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-1 gap-1.5 min-[720px]:grid-cols-2 min-[1200px]:grid-cols-4">
+            {archetype.cards.slice(0, 8).map((c) => (
+              <div key={c.id} className="flex items-center gap-2 border border-line bg-surface-200 p-1.5 text-xs">
+                <Art card={c} size={22} className="size-5.5" />
+                <span className="truncate text-ink-dim">{cardName(c)}</span>
+                <span className="ml-auto font-mono text-[10px] text-cyan">{pct(c.inclusion)}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

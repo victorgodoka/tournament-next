@@ -10,6 +10,7 @@ import { Segmented } from '@ui/choice'
 import { Dialog } from '@ui/dialog'
 import { Field, TextArea, TextInput } from '@ui/field'
 import { CARD_ART_URL } from '@utils/const'
+import { cardLoader } from '@utils/image-loader'
 import { DECK_TAGS, VISIBILITIES, type DeckMeta } from '@utils/decks'
 import type { SaveDetails } from './use-save'
 
@@ -129,7 +130,7 @@ const SaveForm = (p: SaveDialogProps) => {
           </CoverChoice>
           {covers.map((id) => (
             <CoverChoice key={id} checked={meta.coverCardId === id} onPick={() => set({ coverCardId: id })} label={p.nameOf(id)}>
-              <Image src={CARD_ART_URL(id)} alt="" fill sizes="96px" className="object-cover" />
+              <Image loader={cardLoader} src={CARD_ART_URL(id)} alt="" fill sizes="96px" className="object-cover" />
             </CoverChoice>
           ))}
         </div>

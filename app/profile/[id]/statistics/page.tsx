@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { PlayerStatistics, seasonChoices, type StatisticsView } from '@app/profile/statistics/PlayerStatistics'
+import { getTranslations } from 'next-intl/server'
+import { PlayerStatistics, seasonChoices, type StatisticsSelection } from '@app/profile/statistics/PlayerStatistics'
 import { getProfile } from '@utils/profile'
 import { pageMetadata } from '@utils/metadata'
 
@@ -19,14 +20,16 @@ export async function generateMetadata({ params }: StatisticsRouteProps) {
   const { id } = await params
   const profile = await loadProfile(id)
   const path = `/profile/${id}/statistics`
-  if (!profile) return pageMetadata({ title: 'Profile not found', path, noIndex: true })
+  const t = await getTranslations('PlayerStatistics.meta')
+  if (!profile) return pageMetadata({ title: t('notFound'), path, noIndex: true })
 
-  const name = profile.displayName ?? profile.handle ?? 'Unknown duelist'
+  const name = profile.displayName ?? profile.handle ?? t('unknown')
   return pageMetadata({
-    title: `${name} · Statistics`,
+    title: t('title', { name }),
     path,
-    description: `Ranked and tournament statistics for ${name}: decks, win rates, turn order and card choices.`,
-    noIndex: profile.isPrivate,
+    description: t('description', { name }),
+    // Owner-only page: never indexed.
+    noIndex: true,
   })
 }
 
@@ -37,14 +40,19 @@ const StatisticsRoute = async ({ params, searchParams }: StatisticsRouteProps) =
   if (!profile) notFound()
 
   const choices = profile.isPrivate ? [] : seasonChoices(profile)
-  const view = one(q.view)
-  const ladder = one(q.ladder)
-  const selection: StatisticsView =
-    view === 'tournaments' ? { view, format: one(q.format) }
-    : view === 'global' ? { view }
-    : one(q.season) ? { view: 'ranked', season: one(q.season) }
-    : ladder === 'tcg' || ladder === 'genesys' ? { view: 'ranked', ladder }
-    : { view: 'ranked', season: choices.find((choice) => choice.open)?.code ?? choices[0]?.code }
+  const ladderParam = one(q.ladder)
+  // A season names its ladder; else `?ladder=`; else the first played ladder's open season. `?view=tournaments`
+  // is the third tab, with its own `?format=`; any other `view` (an old link) opens ranked.
+  const picked = choices.find((choice) => choice.code === one(q.season))
+  const first = choices.find((choice) => choice.open) ?? choices[0]
+  const ladderOf = (format?: 'TCG' | 'Genesys'): 'tcg' | 'genesys' => (format === 'Genesys' ? 'genesys' : 'tcg')
+  const view = one(q.view) === 'tournaments' ? 'tournaments' : 'ranked'
+  const selection: StatisticsSelection = picked
+    ? { view, season: picked.code, ladder: ladderOf(picked.format) }
+    : ladderParam === 'tcg' || ladderParam === 'genesys'
+      ? { view, ladder: ladderParam }
+      : { view, season: first?.code, ladder: ladderOf(first?.format) }
+  selection.tournamentFormat = one(q.format)
 
   return <PlayerStatistics profile={profile} choices={choices} selection={selection} cookie={(await headers()).get('cookie')} />
 }

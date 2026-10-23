@@ -10,6 +10,7 @@ import { Button } from '@ui/button/button.component'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { signIn } from '@utils/auth'
+import { track } from '@utils/gtm'
 import { TournamentApiError, setRegistration } from '@utils/tournaments'
 import type { ScheduledTournament } from '@utils/types'
 
@@ -31,6 +32,7 @@ export const Registration = ({ initial }: { initial: ScheduledTournament }) => {
     setError(null)
     try {
       setPage(await setRegistration(page.tournament.id!, !registered))
+      track(registered ? 'tournament_withdraw' : 'tournament_register', { tournament_id: page.tournament.id })
     } catch (failure) {
       if (failure instanceof TournamentApiError && failure.status === 401) return signIn()
       if (failure instanceof TournamentApiError && failure.code === 'REGISTRATION_CLOSED') {

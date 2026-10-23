@@ -3,6 +3,7 @@
 import Script from 'next/script'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@hooks/index'
+import { track } from '@utils/gtm'
 import { removeNitroHost } from '@utils/nitro-ads'
 import {
   ANCHOR_AD_OPTIONS,
@@ -61,6 +62,8 @@ export const Ads = () => {
         data-log-level="warn"
         data-spa="auto"
         data-demo={process.env.NODE_ENV === 'production' ? undefined : 'true'}
+        // Blocked script: the ad-blocker rate, per section, for the revenue reports.
+        onError={() => track('ad_blocked', { ads_mode: mode })}
       />
       <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={RAIL_LEFT} />
       {mode === 'all' ? (
