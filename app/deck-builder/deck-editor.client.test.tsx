@@ -285,19 +285,20 @@ it('an artwork added from the sheet keeps the original card behind its passcode,
   put(draftKey(null), draft({ deck: { main: [100], extra: [], side: [] }, revision: null }))
   const { container } = await open(null)
   const tiles = () => [...container.querySelectorAll<HTMLElement>('section[data-zone="main"] li[data-card]')].map((li) => li.dataset.card)
-  const info = (id: number) => container.querySelector<HTMLElement>(`section[data-zone="main"] li[data-card="${id}"] [data-info]`)!
+  // On lg the tile's corner button pins the card panel; the sheet opens from the context menu.
+  const openSheet = (id: number) => fireEvent.contextMenu(container.querySelector<HTMLElement>(`section[data-zone="main"] li[data-card="${id}"] [data-tile]`)!)
   const pickAndAdd = (art: number) => {
     fireEvent.click(screen.getAllByRole('button', { name: 'detail.art', hidden: true })[art]!)
     fireEvent.click(screen.getAllByRole('button', { name: 'detail.addTo', hidden: true })[0]!)
   }
 
-  fireEvent.click(info(100))
+  openSheet(100)
   pickAndAdd(1) // the alternate artwork
   await act(async () => {})
   expect(tiles()).toEqual(['100', '101'])
 
   // Opened from its own tile, the artwork lists the original and itself: never 50, which has no art of its own.
-  fireEvent.click(info(101))
+  openSheet(101)
   expect(screen.getAllByRole('button', { name: 'detail.art', hidden: true })).toHaveLength(2)
   pickAndAdd(0)
   await act(async () => {})

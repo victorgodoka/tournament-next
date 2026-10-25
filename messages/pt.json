@@ -205,7 +205,15 @@
       "semiLimited": "Semilimitada",
       "points": "{points} pontos",
       "inDeck": "{count} no deck",
-      "info": "Detalhes da carta: {name}"
+      "info": "Detalhes da carta: {name}",
+      "lock": "Fixar detalhes: {name}",
+      "unlock": "Soltar detalhes: {name}"
+    },
+    "panel": {
+      "title": "Carta",
+      "empty": "Aponte para uma carta para lê-la aqui.",
+      "locked": "Fixada",
+      "unlock": "Soltar"
     },
     "problem": {
       "main-size": "O Main Deck tem {count} cartas; precisa ter de 40 a 60.",
@@ -243,9 +251,8 @@
     "pool": {
       "title": "Cartas",
       "search": "Buscar cartas",
-      "searchBy": "Buscar por",
-      "byName": "Nome",
-      "byText": "Texto da carta",
+      "searchName": "Nome da carta",
+      "searchText": "Texto da carta",
       "monster": "Monstro",
       "spell": "Magia",
       "trap": "Armadilha",

@@ -31,7 +31,7 @@ import { download, fileName, konamiPdf, readDeck, share } from './deck-io'
 import { DeckZone, type DragPayload } from './deck-zone'
 import { tileStatus } from './pool-query'
 import { canStore, clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } from './drafts'
-import { HoverPreview } from './hover-preview'
+import { CardPanel } from './card-panel'
 import { useEditorKeys } from './keyboard'
 import { MyDecks } from './my-decks'
 import { Toolbar, type ExportKind } from './toolbar'
@@ -172,6 +172,9 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   )
   const [view, setView] = useState(readView)
   const [detail, setDetail] = useState<{ card: CardData; art: number } | null>(null)
+  /** The card panel's pin (lg only); a tile's pin button toggles it. */
+  const [locked, setLocked] = useState<number | null>(null)
+  const toggleLock = (id: number) => setLocked((current) => (current === id ? null : id))
   const wide = useWide()
   const [trayTab, setTrayTab] = useState<Zone>('main')
   const allIds = useMemo(() => [...deck.main, ...deck.extra, ...deck.side], [deck])
@@ -663,7 +666,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   // One layout at a time, not both hidden by CSS: the toolbar and the zones carry ids that must stay unique.
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,62fr)_minmax(0,38fr)]">
+    <div className="lg:grid lg:grid-cols-[minmax(0,52fr)_minmax(0,33fr)_minmax(16rem,15fr)]">
       {wide ? (
         <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
           <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">{toolbar}</div>
@@ -680,6 +683,8 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
               onRemove={(id) => dispatch({ type: 'remove', zone, id })}
               onDropCard={dropCard(zone)}
               onOpen={open}
+              locked={locked}
+              onLock={toggleLock}
             />
           ))}
         </div>
@@ -691,8 +696,23 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         className="flex flex-col gap-4 px-4 pt-3 pb-8 max-lg:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line"
       >
         {wide ? null : alerts}
-        <CardPool deck={deck} cards={cards} banlist={banlist} onAdd={add} onOpen={(card) => setDetail({ card, art: card.id })} remember={remember} />
+        <CardPool
+          deck={deck}
+          cards={cards}
+          banlist={banlist}
+          onAdd={add}
+          onOpen={(card) => setDetail({ card, art: card.id })}
+          remember={remember}
+          locked={wide ? locked : undefined}
+          onLock={wide ? toggleLock : undefined}
+        />
       </aside>
+
+      {wide ? (
+        <aside className="flex flex-col px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line">
+          <CardPanel cards={cards} locked={locked} onLock={setLocked} />
+        </aside>
+      ) : null}
 
       {wide ? null : (
         <DeckTray
@@ -786,7 +806,6 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
         deleteReplacesNew={(id) => id === state.deckId && otherNewDraft()}
       />
       <BusyDialog label={busy && t(`io.${busy}`)} />
-      <HoverPreview cards={cards} />
       <CardDetail
         card={detail?.card ?? null}
         art={detail?.art}

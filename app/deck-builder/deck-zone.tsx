@@ -39,11 +39,11 @@ const GRID = {
   extra: 'grid-cols-5 sm:grid-cols-8 lg:grid-cols-15',
   side: 'grid-cols-5 sm:grid-cols-8 lg:grid-cols-15',
 }
-// The deck column is ~62% of the viewport on lg.
+// The deck column is ~52% of the viewport on lg.
 const SIZES = {
-  main: '(min-width: 1024px) 6vw, (min-width: 640px) 12vw, 20vw',
-  extra: '(min-width: 1024px) 4vw, (min-width: 640px) 12vw, 20vw',
-  side: '(min-width: 1024px) 4vw, (min-width: 640px) 12vw, 20vw',
+  main: '(min-width: 1024px) 5vw, (min-width: 640px) 12vw, 20vw',
+  extra: '(min-width: 1024px) 3.5vw, (min-width: 640px) 12vw, 20vw',
+  side: '(min-width: 1024px) 3.5vw, (min-width: 640px) 12vw, 20vw',
 }
 
 /** 32px on a desktop row, 44px tap targets below lg or on a coarse pointer. */
@@ -61,9 +61,12 @@ type DeckZoneProps = {
   onRemove(id: number): void
   onDropCard(payload: DragPayload, index?: number): void
   onOpen(id: number): void
+  /** With a card panel beside the deck: the tiles' corner button pins it instead of opening the sheet. */
+  locked?: number | null
+  onLock?(id: number): void
 }
 
-export const DeckZone = ({ zone, ids, cards, banlist, view, problems, onRemove, onDropCard, onOpen }: DeckZoneProps) => {
+export const DeckZone = ({ zone, ids, cards, banlist, view, problems, onRemove, onDropCard, onOpen, locked, onLock }: DeckZoneProps) => {
   const t = useTranslations('DeckEditor.zones')
   const tile = useTranslations('DeckEditor.tile')
   const [over, setOver] = useState(false)
@@ -191,8 +194,14 @@ export const DeckZone = ({ zone, ids, cards, banlist, view, problems, onRemove, 
                   <span className="shrink-0 text-ink-muted signal-sm max-sm:hidden">{card?.humanReadableCardType}</span>
                   <span className="w-14 shrink-0 text-ink-muted signal-sm">{level != null ? t(levelKey, { level }) : null}</span>
                   {/* iOS Safari fires no contextmenu: the sheet needs a button of its own. */}
-                  <button type="button" aria-label={tile('info', { name: nameOf(id) })} onClick={() => onOpen(id)} className={twMerge(ROW_BUTTON, 'grid place-items-center')}>
-                    <Icon name="info" size={14} />
+                  <button
+                    type="button"
+                    aria-label={tile(onLock ? (locked === id ? 'unlock' : 'lock') : 'info', { name: nameOf(id) })}
+                    aria-pressed={onLock ? locked === id : undefined}
+                    onClick={() => (onLock ? onLock(id) : onOpen(id))}
+                    className={twMerge(ROW_BUTTON, 'grid place-items-center', onLock && locked === id && 'text-cyan')}
+                  >
+                    <Icon name={onLock ? (locked === id ? 'lock' : 'unlock') : 'info'} size={14} />
                   </button>
                   <button type="button" aria-label={t('removeOne', { name: nameOf(id) })} onClick={() => onRemove(id)} className={ROW_BUTTON}>
                     −
@@ -222,7 +231,8 @@ export const DeckZone = ({ zone, ids, cards, banlist, view, problems, onRemove, 
                   label={t('removeOne', { name: nameOf(id) })}
                   onClick={() => onRemove(id)}
                   onContextMenu={open(id)}
-                  onInfo={() => onOpen(id)}
+                  onInfo={onLock ? () => onLock(id) : () => onOpen(id)}
+                  locked={onLock ? locked === id : undefined}
                   draggable
                   onDragStart={dragStart(id, index)}
                 />

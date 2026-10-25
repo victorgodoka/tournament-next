@@ -47,8 +47,9 @@ export const searchCardArts = async (text: string, limit: number, signal?: Abort
 
 /** The deck editor's card-pool filters. Keys mirror the API's `GET /cards` parameters. */
 export type PoolQuery = {
+  /** Part of the name (`fname`) and part of the card text (`q`); both narrow the pool together. */
+  name: string
   text: string
-  textMode: 'name' | 'text'
   kind: CardKind[]
   extraDeck?: boolean
   attribute: string[]
@@ -78,8 +79,8 @@ export type PoolQuery = {
 }
 
 export const EMPTY_POOL_QUERY: PoolQuery = {
+  name: '',
   text: '',
-  textMode: 'name',
   kind: [],
   attribute: [],
   types: [],
@@ -101,7 +102,8 @@ export const poolParams = (q: PoolQuery, page: number): URLSearchParams => {
     params.set(key, String(value))
   }
   const listed = q.banlist !== undefined
-  set(q.textMode === 'name' ? 'fname' : 'q', q.text.trim())
+  set('fname', q.name.trim())
+  set('q', q.text.trim())
   set('kind', q.kind)
   set('extraDeck', q.extraDeck)
   set('attribute', q.attribute)

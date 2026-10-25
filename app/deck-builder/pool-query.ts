@@ -45,8 +45,8 @@ export const activeFilterCount = (q: PoolQuery): number =>
 /** Clears the drawer, keeping the search and the sort, which sit beside the pool. */
 export const resetFilters = (q: PoolQuery): PoolQuery => ({
   ...EMPTY_POOL_QUERY,
+  name: q.name,
   text: q.text,
-  textMode: q.textMode,
   sort: q.sort,
   order: q.order,
 })

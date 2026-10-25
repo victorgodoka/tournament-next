@@ -17,7 +17,7 @@ const NONE: Result = { gen: -1, req: '', cards: [], total: 0, error: false }
  * change aborts the request in flight and starts again from page 1. `onPage` sees every page that lands.
  */
 export const useCardPool = (query: PoolQuery, onPage?: (cards: CardData[]) => void) => {
-  const [text, setText] = useState(query.text)
+  const [typed, setTyped] = useState({ name: query.name, text: query.text })
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<Result>(NONE)
   const onPageRef = useRef(onPage)
@@ -27,12 +27,12 @@ export const useCardPool = (query: PoolQuery, onPage?: (cards: CardData[]) => vo
   })
 
   useEffect(() => {
-    const timer = setTimeout(() => setText(query.text), DEBOUNCE_MS)
+    const timer = setTimeout(() => setTyped({ name: query.name, text: query.text }), DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [query.text])
+  }, [query.name, query.text])
 
   // A string, so the request effect reruns only when what is asked for changes.
-  const key = JSON.stringify({ ...query, text })
+  const key = JSON.stringify({ ...query, ...typed })
   const [page, setPage] = useState({ key, gen: 0, n: 1 })
   if (page.key !== key) setPage({ key, gen: page.gen + 1, n: 1 }) // a new query: a new generation, page 1
   const { gen, n } = page

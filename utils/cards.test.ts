@@ -12,9 +12,10 @@ describe('card scans', () => {
 
 describe('card pool', () => {
   it('maps the query onto the API parameters, omitting empty ones', () => {
-    expect(poolParams({ ...EMPTY_POOL_QUERY, text: 'ash', kind: ['monster'], banlist: 2 }, 1).toString())
+    expect(poolParams({ ...EMPTY_POOL_QUERY, name: 'ash', kind: ['monster'], banlist: 2 }, 1).toString())
       .toBe('fname=ash&kind=monster&banlist=2&legal=true&sort=name&order=asc&page=1&limit=60')
-    expect(poolParams({ ...EMPTY_POOL_QUERY, text: 'draw 2', textMode: 'text' }, 3).get('q')).toBe('draw 2')
+    const both = poolParams({ ...EMPTY_POOL_QUERY, name: 'ash', text: 'draw 2' }, 3)
+    expect([both.get('fname'), both.get('q')]).toEqual(['ash', 'draw 2'])
     // legal and status mean nothing without a banlist: the API would 400.
     expect(poolParams({ ...EMPTY_POOL_QUERY, status: ['limited'] }, 1).has('legal')).toBe(false)
     expect(poolParams({ ...EMPTY_POOL_QUERY, status: ['limited'] }, 1).has('status')).toBe(false)

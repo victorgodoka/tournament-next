@@ -36,8 +36,10 @@ type CardTileProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'id' | 
   problem?: boolean
   /** The button's accessible name when it says more than the card's name ("Remove a copy of …"). */
   label?: string
-  /** Adds an info button over the top-right corner that opens the card's detail sheet. */
+  /** Adds a button over the top-right corner: the card's detail sheet, or with `locked` set, the card panel's pin. */
   onInfo?(): void
+  /** The button is the panel's pin, pressed while this card is pinned. */
+  locked?: boolean
 }
 
 /** Light frames take dark text, as in `TypeCounts`. */
@@ -46,7 +48,7 @@ const LIGHT_FRAMES: CardType[] = ['normal', 'spell', 'synchro']
 const BADGE ='absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
 
 /** A card scan at 59:86. Without data, or when the scan fails, a frame-coloured plate with the name or passcode. */
-export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, onInfo, className, ...button }: CardTileProps) => {
+export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, onInfo, locked, className, ...button }: CardTileProps) => {
   const t = useTranslations('DeckEditor.tile')
   const [failed, setFailed] = useState(false)
   const name = card?.name ?? String(id)
@@ -125,11 +127,15 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
         type="button"
         tabIndex={-1}
         data-info
-        aria-label={t('info', { name })}
+        aria-label={locked === undefined ? t('info', { name }) : t(locked ? 'unlock' : 'lock', { name })}
+        aria-pressed={locked}
         onClick={onInfo}
-        className="absolute top-0 right-0 grid size-7 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:opacity-100 pointer-coarse:after:absolute pointer-coarse:after:top-0 pointer-coarse:after:right-0 pointer-coarse:after:size-11 [@media(hover:none)]:opacity-100"
+        className={twMerge(
+          'absolute top-0 right-0 grid size-7 cursor-pointer place-items-center bg-space-000 text-ink opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-cyan pointer-coarse:opacity-100 pointer-coarse:after:absolute pointer-coarse:after:top-0 pointer-coarse:after:right-0 pointer-coarse:after:size-11 [@media(hover:none)]:opacity-100',
+          locked && 'text-cyan opacity-100',
+        )}
       >
-        <Icon name="info" size={14} />
+        <Icon name={locked === undefined ? 'info' : locked ? 'lock' : 'unlock'} size={14} />
       </button>
     </div>
   )

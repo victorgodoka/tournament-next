@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
-import { Segmented } from '@ui/choice'
 import { SearchField, Select } from '@ui/field'
 import { EMPTY_POOL_QUERY, type PoolQuery } from '@utils/cards'
 import { canonicalId, copyCounts } from '@utils/deck/model'
@@ -18,8 +17,8 @@ import { activeFilterCount, effectiveQuery, tileStatus } from './pool-query'
 import { useCardPool } from './use-card-pool'
 
 const SORTS = ['name-asc', 'name-desc', 'atk-desc', 'atk-asc', 'def-desc', 'level-desc', 'level-asc', 'released_tcg-desc', 'released_ocg-desc'] as const
-// Four columns in a ~38vw column on lg; four across the viewport from 600px, three below.
-const SIZES = '(min-width: 1024px) 10vw, (min-width: 600px) 25vw, 33vw'
+// Four columns in a ~33vw column on lg; four across the viewport from 600px, three below.
+const SIZES = '(min-width: 1024px) 8vw, (min-width: 600px) 25vw, 33vw'
 
 /** The nearest ancestor that scrolls vertically, or null (the viewport). */
 const scrollParent = (el: HTMLElement): HTMLElement | null => {
@@ -38,9 +37,12 @@ type CardPoolProps = {
   onOpen(card: CardData): void
   /** Every page of results, so deck validation already knows a card when it is added. */
   remember(cards: CardData[]): void
+  /** With a card panel beside the pool: the tiles' corner button pins it instead of opening the sheet. */
+  locked?: number | null
+  onLock?(id: number): void
 }
 
-export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: CardPoolProps) => {
+export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember, locked, onLock }: CardPoolProps) => {
   const t = useTranslations('DeckEditor')
   const [query, setQuery] = useState<PoolQuery>(EMPTY_POOL_QUERY)
   const [drawer, setDrawer] = useState(false)
@@ -71,25 +73,9 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
     <div className="flex flex-col gap-3">
       {/* Below lg the page scrolls the pool, so the search stays pinned. */}
       <div className="flex flex-col gap-3 max-lg:sticky max-lg:top-0 max-lg:z-(--z-sticky) max-lg:-mx-4 max-lg:border-b max-lg:border-line max-lg:bg-space-000 max-lg:px-4 max-lg:py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <SearchField
-            id="pool-search"
-            value={query.text}
-            onChange={(e) => patch({ text: e.target.value })}
-            placeholder={t('pool.search')}
-            className="min-w-0 flex-1 basis-48 max-lg:h-11"
-          />
-          <Segmented
-            size="sm"
-            label={t('pool.searchBy')}
-            value={query.textMode}
-            onChange={(textMode) => patch({ textMode })}
-            options={[
-              { value: 'name', label: t('pool.byName') },
-              { value: 'text', label: t('pool.byText') },
-            ]}
-            className="max-lg:*:h-11"
-          />
+        <div role="search" aria-label={t('pool.search')} className="flex flex-wrap items-center gap-2">
+          <SearchField id="pool-search" value={query.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t('pool.searchName')} className="min-w-0 flex-1 basis-40 max-lg:h-11" />
+          <SearchField value={query.text} onChange={(e) => patch({ text: e.target.value })} placeholder={t('pool.searchText')} className="min-w-0 flex-1 basis-40 max-lg:h-11" />
         </div>
       </div>
 
@@ -142,7 +128,8 @@ export const CardPool = ({ deck, cards, banlist, onAdd, onOpen, remember }: Card
                 e.preventDefault()
                 if (press.kind(e) === 'click') onAdd(card, 'side')
               }}
-              onInfo={() => onOpen(card)}
+              onInfo={onLock ? () => onLock(card.id) : () => onOpen(card)}
+              locked={onLock ? locked === card.id : undefined}
               draggable
               onDragStart={(e) => {
                 // Touch and pen never drag from the pool: a drag would cancel the long press (which adds instead).

@@ -205,7 +205,15 @@
       "semiLimited": "Semi-Limited",
       "points": "{points} points",
       "inDeck": "{count} in deck",
-      "info": "Card details: {name}"
+      "info": "Card details: {name}",
+      "lock": "Pin details: {name}",
+      "unlock": "Unpin details: {name}"
+    },
+    "panel": {
+      "title": "Card",
+      "empty": "Point at a card to read it here.",
+      "locked": "Pinned",
+      "unlock": "Unpin"
     },
     "problem": {
       "main-size": "Main Deck has {count} cards; it needs 40 to 60.",
@@ -243,9 +251,8 @@
     "pool": {
       "title": "Card pool",
       "search": "Search cards",
-      "searchBy": "Search by",
-      "byName": "Name",
-      "byText": "Card text",
+      "searchName": "Card name",
+      "searchText": "Card text",
       "monster": "Monster",
       "spell": "Spell",
       "trap": "Trap",
