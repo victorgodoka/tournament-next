@@ -1,11 +1,12 @@
 /**
- * GET /statistics/infographic/:section?ladder=&season=&key=&size=wide|tall&locale= — one dashboard section
+ * GET /statistics/infographic/:section?ladder=&season=&key=&mode=&size=wide|tall&locale= — one dashboard section
  * as a shareable PNG. `key` (an archetype "207-451") picks the deck for archetype-analysis and deep-dive;
- * for the comparator it is up to three keys joined by commas. Without it, the most played.
+ * for the comparator it is up to three keys joined by commas. Without it, the most played. `mode`
+ * (general | pure | combined) reads a deep dive outside the page's data from the API, like the page's search.
  */
 
 import { notFound } from 'next/navigation'
-import { archKey, getStatistics, type AgainstCard, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
+import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMode, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
 import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
@@ -13,12 +14,27 @@ const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'arche
 type Section = (typeof SECTIONS)[number]
 
 type T = (key: string, values?: Record<string, string | number>) => string
-type Ctx = { data: Statistics; size: Size; t: T; locale: string; key: string | null }
+const MODES: readonly DeepDiveMode[] = ['general', 'pure', 'combined']
+type Ctx = { data: Statistics; size: Size; t: T; locale: string; key: string | null; mode: DeepDiveMode | null }
 
 const nameOf = (a: { name: string | null }, t: T) => a.name ?? t('unknownDeck')
 const byShare = (data: Statistics) => [...data.archetypes].sort((a, b) => b.metaShare - a.metaShare)
 const find = (data: Statistics, key: string | null | undefined) => (key ? data.archetypes.find((a) => archKey(a.archetype) === key) : undefined)
-const pick = ({ data, key }: Ctx) => find(data, key) || byShare(data)[0] || null
+/**
+ * The deck of `key` with its rank by meta share: the page's own row, or, in a mode other than pure, the
+ * calculated deep dive from the API. No key: the most played. A key nobody has: null.
+ */
+const pick = async ({ data, key, mode }: Ctx): Promise<{ a: StatArchetype; rank: number } | null> => {
+  const ranked = byShare(data)
+  if (!key) return ranked[0] ? { a: ranked[0], rank: 1 } : null
+  const local = find(data, key)
+  if (local && (!mode || mode === 'pure')) return { a: local, rank: ranked.indexOf(local) + 1 }
+  if (mode) {
+    const state = await getDeepDive(data.season.code, mode, key.split('-').map(Number)).catch(() => null)
+    if (state?.status === 'ready') return { a: state.archetype, rank: state.archetype.rank }
+  }
+  return local ? { a: local, rank: ranked.indexOf(local) + 1 } : null
+}
 const wrColor = (wr: number | null | undefined) => (wr == null ? C.muted : wr >= 0.5 ? C.win : C.loss)
 const art = (arts: Map<number, string>, a: StatArchetype) => arts.get(a.face?.id ?? -1)
 
@@ -342,8 +358,9 @@ const archetype = async (ctx: Ctx, withCards: boolean) => {
   const { data, size, t, locale } = ctx
   const wide = size === 'wide'
   const cards = withCards || !wide
-  const a = pick(ctx)
-  if (!a) return <Empty>{t('empty')}</Empty>
+  const picked = await pick(ctx)
+  if (!picked) return <Empty>{t('empty')}</Empty>
+  const { a, rank } = picked
   const key = archKey(a.archetype)
   const vs = data.matchups.filter((m) => archKey(m.archetype) === key && archKey(m.opponent) !== key && m.games >= data.minSamples && m.winRate != null)
   const sorted = [...vs].sort((x, y) => y.winRate! - x.winRate!)
@@ -375,7 +392,7 @@ const archetype = async (ctx: Ctx, withCards: boolean) => {
       <div style={{ ...col, gap: 14, flex: 1, minWidth: 0 }}>
         <DeckName a={a} t={t} size={nameOf(a, t).length > (wide && cards ? 12 : 18) ? (wide ? 60 : 52) : wide ? 88 : 72} />
         <div style={{ ...row, gap: 10, flexWrap: 'wrap' }}>
-          <Chip>{t('rankLine', { rank: byShare(data).indexOf(a) + 1 })}</Chip>
+          <Chip>{t('rankLine', { rank })}</Chip>
           <Chip>{t('playersCount', { count: num(a.players, locale) })}</Chip>
           <Chip>{t('gamesCount', { count: num(a.games, locale) })}</Chip>
         </div>
@@ -500,41 +517,49 @@ const comparator = async (ctx: Ctx, tm: T) => {
   )
 }
 
-/** Top 10 main-deck cards as a butterfly: popularity growing left, win rate with and without the card growing right. */
+/**
+ * Top 10 main-deck cards as a butterfly around the card's art: popularity growing left, and on the right
+ * "#n name" over the deck's win rate activating (ACT) and not activating (NACT) the card.
+ */
 const cards = async ({ data, size, t }: Ctx) => {
   const wide = size === 'wide'
   const top = (data.mostUsed?.main ?? []).slice(0, 10)
   if (!top.length) return <Empty>{t('empty')}</Empty>
   const arts = await loadImages(top.map((c) => c.id))
   const maxPop = Math.max(...top.map((c) => c.popularity), 0.01)
-  const tile = wide ? 54 : 84
-  const rowGap = wide ? 6 : 12
+  // Wide: name 16 + two 16px bar rows + gaps = 56, inside the 60px tile; rows never shrink below it.
+  const tile = wide ? 60 : 108
+  const rowGap = wide ? 4 : 28
+  const barH = wide ? 10 : 18
+  const fs = wide ? 16 : 26
   return (
     <div style={{ ...col, gap: rowGap, flex: 1 }}>
       <div style={{ ...row, gap: 24 }}>
         <div style={{ ...row, flex: 1 }}><Head n="01" title={t('popularity')} aside={t('inDecksShort')} /></div>
-        <div style={{ display: 'flex', width: tile + 48 }} />
-        <div style={{ ...row, flex: 1 }}><Head n="02" title={t('withWithout')} /></div>
+        <div style={{ display: 'flex', width: tile }} />
+        <div style={{ ...row, flex: 1 }}><Head n="02" title={t('actNact')} /></div>
       </div>
       {top.map((c, i) => {
-        const withWr = c.winRateWith ?? c.winRateWhenUsed
+        const act = c.winRateWith ?? c.winRateWhenUsed
         return (
-          <div key={c.id} style={{ ...row, gap: 24, flex: 1 }}>
+          <div key={c.id} style={{ ...row, gap: 24, height: tile, flexShrink: 0 }}>
             <div style={{ ...row, flex: 1, gap: 14, justifyContent: 'flex-end' }}>
               <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 28 : 32, color: C.cyan }}>{pct(c.popularity, 0)}</div>
               <Bar value={c.popularity / maxPop} height={tile - 16} reverse color={C.cyan} track={C.surface} />
             </div>
-            <div style={{ ...row, gap: 8, width: tile + 48, justifyContent: 'center' }}>
-              <Rank n={i + 1} gold={i < 3} size={28} />
-              <Art src={arts.get(c.id)} size={tile} edge={c.handTrap ? C.gold : C.line} />
-            </div>
+            <Art src={arts.get(c.id)} size={tile} edge={c.handTrap ? C.gold : C.line} />
             <div style={{ ...col, flex: 1, gap: 4, justifyContent: 'center' }}>
-              {([[withWr, C.win], [c.winRateWithout, C.lineMid]] as const).map(([v, color], k) => (
-                <div key={k} style={{ ...row, gap: 12 }}>
-                  <div style={{ display: 'flex', flex: 1, height: (tile - 20) / 2, background: C.surface }}>
+              <div style={{ ...row, gap: 8, fontSize: wide ? 16 : 24, fontWeight: 700, lineHeight: 1 }}>
+                <div style={{ display: 'flex', color: i < 3 ? C.gold : C.muted }}>{`#${i + 1}`}</div>
+                <div style={{ display: 'flex', overflow: 'hidden', whiteSpace: 'nowrap' }}>{c.name ?? '—'}</div>
+              </div>
+              {([[act, C.win, t('act')], [c.winRateWithout, C.lineMid, t('nact')]] as const).map(([v, color, label]) => (
+                <div key={label} style={{ ...row, gap: 10 }}>
+                  <div style={{ display: 'flex', width: 50, ...mono, fontSize: 11, color: C.muted }}>{label}</div>
+                  <div style={{ display: 'flex', flex: 1, height: barH, background: C.surface }}>
                     <div style={{ display: 'flex', width: `${v == null ? 0 : v * 100}%`, height: '100%', background: color }} />
                   </div>
-                  <div style={{ display: 'flex', width: 80, justifyContent: 'flex-end', fontFamily: F.display, fontSize: wide ? 22 : 26, color: wrColor(v) }}>{pct(v, 0)}</div>
+                  <div style={{ display: 'flex', width: 76, justifyContent: 'flex-end', fontFamily: F.display, fontSize: fs, lineHeight: 1, color: wrColor(v) }}>{pct(v, 0)}</div>
                 </div>
               ))}
             </div>
@@ -542,8 +567,6 @@ const cards = async ({ data, size, t }: Ctx) => {
         )
       })}
       <div style={{ ...row, gap: 28, justifyContent: 'flex-end', ...mono, fontSize: 13, color: C.muted }}>
-        <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, background: C.win }} />{t('with')}</div>
-        <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, background: C.lineMid }} />{t('without')}</div>
         <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, border: `2px solid ${C.gold}` }} />{t('handTrap')}</div>
       </div>
     </div>
@@ -572,7 +595,9 @@ export const GET = async (request: Request, { params }: { params: Promise<{ sect
   const size = sizeOf(q)
   const [{ t, locale }, { t: tm }] = await Promise.all([translator(q, 'Infographic'), translator(q, 'Statistics.comparator')])
   const day = data.syncedDays.last ? new Date(`${data.syncedDays.last.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null
-  const body = await BODY[section as Section]({ data, size, t, locale, key: q.get('key') }, tm)
+  const asked = q.get('mode')
+  const mode = MODES.find((m) => m === asked) ?? null
+  const body = await BODY[section as Section]({ data, size, t, locale, key: q.get('key'), mode }, tm)
   return render({
     size,
     eyebrow: t('source'),

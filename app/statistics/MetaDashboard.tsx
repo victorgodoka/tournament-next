@@ -15,7 +15,7 @@ import { Segmented } from '@ui/choice'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
 import { DeepDive, nameOf } from './DeepDive'
-import { DeepDiveSearch, PICKS } from './DeepDiveSearch'
+import { DeepDiveSearch, PICKS, type RemotePick } from './DeepDiveSearch'
 import { OmegaActivity } from './OmegaActivity'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import { archKey, type StatisticsResult, type OmegaActivity as OmegaActivityData, type DeepDiveMode } from '@utils/statistics'
@@ -62,6 +62,8 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
   const [ddSeason, setDdSeason] = useState(data?.season.code ?? '')
 
   const [selectedArchKey, setSelectedArchKey] = useState<string | null>(null)
+  // The deep dive the search shows from outside the page's data; null while the page's own pick is up.
+  const [remotePick, setRemotePick] = useState<RemotePick | null>(null)
 
   // Scroll-spy: the nav follows the section crossing the upper third of the viewport.
   useEffect(() => {
@@ -119,13 +121,13 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
   const picks = !focus || pure.slice(0, PICKS).some((a) => archKey(a.archetype) === fKey) ? pure.slice(0, PICKS) : [...pure.slice(0, PICKS), focus]
   const rank = focus ? archetypes.indexOf(focus) + 1 : 0
   const selectedArch = (selectedArchKey && byKey.get(selectedArchKey)) || archetypes[0] || null
-  // The section as a PNG (/statistics/infographic/*), same season and deck as on screen.
-  const infographic = (section: NavSection | 'comparator', key?: string, className = 'mb-3 justify-end') => (
+  // The section as a PNG (/statistics/infographic/*), same season and deck as on screen. `extra`: `key` (and `mode`) of the deck shown.
+  const infographic = (section: NavSection | 'comparator', extra: Record<string, string> = {}, className = 'mb-3 justify-end') => (
     <InfographicLinks
       label={t('infographic.label')}
       hint={t('infographic.hint')}
       sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
-      items={[{ file: `${section}-${seasonData.code}`, href: (size) => `/statistics/infographic/${section}?${new URLSearchParams({ ladder, ...(season ? { season } : {}), ...(key ? { key } : {}), size, locale })}` }]}
+      items={[{ file: `${section}-${seasonData.code}`, href: (size) => `/statistics/infographic/${section}?${new URLSearchParams({ ladder, ...(season ? { season } : {}), ...extra, size, locale })}` }]}
       className={className}
     />
   )
@@ -197,7 +199,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
           <AdBanner id="ad-mid" placement="content" />
 
           <section id={sectionId('archetype-analysis')} aria-label={t('nav.archetype-analysis')} className="flex scroll-mt-24 flex-col gap-6">
-            {infographic('archetype-analysis', selectedArch ? archKey(selectedArch.archetype) : undefined)}
+            {infographic('archetype-analysis', selectedArch ? { key: archKey(selectedArch.archetype) } : {})}
             <ArchetypeDetailCard
               archetype={selectedArch}
               archetypes={archetypes}
@@ -209,7 +211,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
                 scrollToSection('deep-dive')
               }}
             />
-            <DeckComparator archetypes={archetypes} preselected={archetypes.slice(0, 2)} infographic={(keys) => (keys.length > 1 ? infographic('comparator', keys.join(','), 'mb-0') : null)} />
+            <DeckComparator archetypes={archetypes} preselected={archetypes.slice(0, 2)} infographic={(keys) => (keys.length > 1 ? infographic('comparator', { key: keys.join(',') }, 'mb-0') : null)} />
           </section>
 
           <section id={sectionId('cards')} aria-label={t('nav.cards')} className="scroll-mt-24">
@@ -222,7 +224,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
           <section id={sectionId('deep-dive')} aria-label={t('nav.deep-dive')} className="flex scroll-mt-24 flex-col gap-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="display-3">{t('nav.deep-dive')}</h2>
-              {infographic('deep-dive', fKey || undefined)}
+              {infographic('deep-dive', remotePick ? { key: archKey(remotePick.archetype), mode: remotePick.mode } : fKey ? { key: fKey, mode: 'pure' } : {})}
             </div>
             <DeepDiveSearch
               key={`${seasonData.code}:${searchRound}`}
@@ -231,7 +233,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
               onMode={setDdMode}
               request={null}
               onLocal={(key) => byKey.has(key) && (setFocusKey(key), true)}
-              onRemote={() => {}}
+              onRemote={setRemotePick}
               onBusy={setSearchBusy}
             >
               {ddMode === 'pure' && focus ? (

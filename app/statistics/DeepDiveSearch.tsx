@@ -32,6 +32,8 @@ const match = (text: string, entries: IndexEntry[]) => {
 type Picked = { mode: DeepDiveMode; archetype: number[]; name: string; quiet?: boolean }
 /** An archetype to open from outside. A new `nonce` sets the mode and loads it like a search pick. */
 export type DeepDiveRequest = { mode: DeepDiveMode; archetype: number[]; name: string; nonce: number }
+/** The pick outside the page's data that the search is showing. */
+export type RemotePick = { mode: DeepDiveMode; archetype: number[] }
 
 /** Covers the page while a pick loads or calculates. `Cancel` only stops waiting: a running job still finishes server-side. */
 export const Overlay = ({ title, detail, onCancel }: { title: string; detail?: string; onCancel: () => void }) => {
@@ -131,7 +133,7 @@ const Result = ({ name, state, failed, signedIn, onLoad, onCalculate, onCancel }
 }
 
 /**
- * `onRemote(true)` while a pick outside the page's data is shown (the page hides its own deep dive then);
+ * `onRemote(pick)` while a pick outside the page's data is shown (the page hides its own deep dive then), `onRemote(null)` after;
  * `onBusy(true)` while that pick loads or calculates (the page hides its archetype chips then).
  * `mode` lives in the page, so a remount of this search keeps it. `onLocal` is only asked in `pure`.
  * The chips come before the result: the deck is picked first, then read.
@@ -142,7 +144,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
   onMode: (mode: DeepDiveMode) => void
   request: DeepDiveRequest | null
   onLocal: (key: string) => boolean
-  onRemote: (active: boolean) => void
+  onRemote: (pick: RemotePick | null) => void
   onBusy: (busy: boolean) => void
   /** The page's own pick (Pure chips and its deep dive), shown where the result goes. */
   children?: React.ReactNode
@@ -184,7 +186,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     () => () => {
       controller.current?.abort()
       clearTimeout(timer.current)
-      remote.current(false)
+      remote.current(null)
       busyRef.current(false)
     },
     [],
@@ -295,7 +297,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     setPicked(null)
     setState(null)
     setFailed(null)
-    onRemote(false)
+    onRemote(null)
   }
 
   /** Search picks, chips and requests all land here. A pure deck the page ships shows the page's own row. */
@@ -304,7 +306,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     if (m === 'pure' && onLocal(archKey(archetype))) return cancel()
     const next = { mode: m, archetype, name }
     setPicked(next)
-    onRemote(true)
+    onRemote(next)
     load(next)
   }
 
@@ -323,7 +325,7 @@ export const DeepDiveSearch = ({ season, mode, onMode, request, onLocal, onRemot
     if (!entries.length || !auto.current || picked) return
     const next = { mode: m, archetype: entries[0]!.archetype, name: nameOf(entries[0]!), quiet: true }
     setPicked(next)
-    onRemote(true)
+    onRemote(next)
     load(next)
   })
 
