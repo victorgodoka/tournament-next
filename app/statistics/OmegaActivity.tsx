@@ -10,11 +10,19 @@ import { useLocale, useTranslations } from 'next-intl'
 import { BarList, LineChart } from '@ui/chart'
 import { Segmented } from '@ui/choice'
 import { DataTable } from '@ui/data-table'
+import { RailHead } from '@ui/rail-head'
 import { StatGrid, type Stat } from '@ui/stat-grid'
 import type { OmegaActivity as Activity, OmegaCard, OmegaRange } from '@utils/statistics'
 import type { RankedLadderId, Tier } from '@utils/types'
 import { num, NOTE, SPLIT } from './DeepDive'
-import { Section } from './MetaStatistics'
+
+const Section = ({ num: n, label, stamp, children }: { num: string; label: string; stamp?: React.ReactNode; children: React.ReactNode }) => (
+  <section aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
+    {/* The stamp is provenance, not content: it gives way on a phone. */}
+    <RailHead num={n} label={label} stamp={stamp ? <span className="max-[720px]:hidden">{stamp}</span> : undefined} as="h2" className="px-0 [&_h2]:text-xl [&_h2]:leading-7" />
+    {children}
+  </section>
+)
 
 const RANGES: OmegaRange[] = [7, 14, 30]
 const FORMAT: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }

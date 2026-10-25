@@ -12,7 +12,7 @@ export type TurnSplit = { first: Side; second: Side }
 
 export type WilsonInterval = { lower: number; upper: number; margin: number }
 export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
-/** A matchup at or past `FAVORABLE` is favorable, under `UNFAVORABLE` unfavorable. The API's own `status` uses 55/45, so it's not read. */
+/** A matchup at or past `FAVORABLE` is favorable, under `UNFAVORABLE` unfavorable. The API sends only the rate; this is the page's reading. */
 export const FAVORABLE = 0.52
 export const UNFAVORABLE = 0.49
 export const matchupStatus = (rate: number): MatchupStatus => (rate >= FAVORABLE ? 'favorable' : rate < UNFAVORABLE ? 'unfavorable' : 'neutral')
@@ -27,7 +27,6 @@ export type MatchupOthers = {
   winRate: number | null
   wilsonLower: number
   ci: WilsonInterval
-  status: MatchupStatus
   turnOrder: TurnSplit
   sideboarding: { game1: Side; postSide: Side }
 }
@@ -46,15 +45,6 @@ export type RankingsSummary = {
   rising: ArchetypeKey[]
   sleeper: ArchetypeKey[]
   consistent: ArchetypeKey[]
-}
-
-export type CardCombination = {
-  card1: { id: number; name: string | null }
-  card2: { id: number; name: string | null }
-  archetypesCount: number
-  topArchetypes: string[]
-  averageInclusion: number
-  averageWinRate: number | null
 }
 
 /** Share or win-rate shift between a block of days and the one before it; `from`/`to` are 0–1. The API sends no text. */
@@ -132,7 +122,6 @@ export type Matchup = {
   winRate: number | null
   wilsonLower: number | null
   ci?: WilsonInterval
-  status?: MatchupStatus
   turnOrder?: TurnSplit
   sideboarding?: { game1: Side; postSide: Side }
 }
@@ -181,7 +170,6 @@ export type Statistics = {
   matchups: Matchup[]
   /** Generic cards in 2+ archetypes, 30 a part, most popular first. */
   mostUsed: { main: MostUsedCard[]; extra: MostUsedCard[] }
-  cardCombinations?: CardCombination[]
   /** Open season only, in the listed archetypes' order. Absent from an older server. */
   sampleDecks?: SampleDeck[]
   metaEvents?: MetaEvent[]
@@ -267,12 +255,6 @@ export const getPlayerStatistics = async (
 }
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
-
-/** What opens under General A in section 03: pure A, and the mixes A leads (unsorted; the table sorts them). */
-export const subRows = (lead: number, views: NonNullable<Statistics['views']>) => ({
-  pure: views.pure.find((a) => a.archetype.length === 1 && a.archetype[0] === lead) ?? null,
-  mixes: views.combined.filter((a) => a.archetype[0] === lead),
-})
 
 /** `general`: all decks; `pure`: single-archetype decks; `combined`: mixed decks, key `[lead, second]` in that order. */
 export type DeepDiveMode = 'general' | 'pure' | 'combined'

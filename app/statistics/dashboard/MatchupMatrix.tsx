@@ -18,7 +18,7 @@ type MatchupMatrixProps = {
 }
 
 /** A matchup cell, or the row's record against every deck outside the page's list. */
-export type Cell = Pick<Matchup, 'games' | 'winRate' | 'wilsonLower' | 'ci' | 'status' | 'turnOrder'> | MatchupOthers
+export type Cell = Pick<Matchup, 'games' | 'winRate' | 'wilsonLower' | 'ci' | 'turnOrder'> | MatchupOthers
 
 /** Past this 95% margin the rate is too loose to call: the cell is drawn neutral and flagged. */
 export const LOOSE_MARGIN = 0.06
