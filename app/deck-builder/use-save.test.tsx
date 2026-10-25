@@ -19,7 +19,9 @@ const NEW_ID = '0123456789abcdef'
 const saved = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   id: NEW_ID,
   ownerId: 'u1',
-  owner: { id: 'u1', name: 'kaiba' },
+  owner: { id: 'u1', name: 'kaiba', avatarUrl: null },
+  generated: false,
+  likes: 0,
   name: 'Blue-Eyes',
   notes: '',
   format: 44,

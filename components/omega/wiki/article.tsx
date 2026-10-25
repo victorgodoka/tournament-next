@@ -14,8 +14,11 @@ export const ARTICLE_DATE_TIME: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 }
 
+/** What a byline needs of a duelist: a `WikiUser`, or a deck comment's author (no cosmetics). */
+export type BylineUser = Pick<WikiUser, 'id' | 'username' | 'avatarUrl'>
+
 /** `username` is `null` for a duelist the wiki has no Discord data for. */
-export const userName = (user: WikiUser | null | undefined) => user?.username ?? 'Unknown duelist'
+export const userName = (user: BylineUser | null | undefined) => user?.username ?? 'Unknown duelist'
 
 /** Draft or live. A draft is invisible to anyone without `wiki.write`, so the chip explains why it renders. */
 export const StatusChip = ({ publishedAt }: { publishedAt: string | null }) =>
@@ -27,7 +30,7 @@ export const StatusChip = ({ publishedAt }: { publishedAt: string | null }) =>
     </Chip>
   )
 
-export const Byline = ({ user, size = 20, className }: { user: WikiUser | null; size?: number; className?: string }) => (
+export const Byline = ({ user, size = 20, className }: { user: BylineUser | null; size?: number; className?: string }) => (
   <span className={twMerge('inline-flex min-w-0 items-center gap-2', className)}>
     {user?.avatarUrl ? (
       <Image

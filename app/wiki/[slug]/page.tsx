@@ -9,7 +9,7 @@ import { AsideBlock, WIKI_ASIDE, WIKI_PAD, WikiBar } from '@omega/wiki'
 import { ARTICLE_DATE_TIME, ArticleBody, Byline, StatusChip, userName } from '@omega/wiki/article'
 import { ArticleView } from '@omega/wiki/article-view'
 import { ArticleBar } from '@omega/wiki/article-bar'
-import { Comments } from '@omega/wiki/comments'
+import { Comments, forArticle } from '@omega/wiki/comments'
 import { AdArticle } from '@omega/ads/ad-article'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
@@ -48,7 +48,7 @@ const Bar = ({ article, social }: SocialProps) => (
 const Conversation = ({ article, social }: SocialProps) => (
   <>
     <AdBanner id="ad-comments" placement="content" className="mt-12" />
-    <Comments slug={article.slug} initial={social?.comments ?? null} />
+    <Comments {...forArticle(article.slug)} initial={social?.comments ?? null} />
   </>
 )
 

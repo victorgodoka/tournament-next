@@ -8,18 +8,37 @@ import { buttonClasses } from '@ui/button'
 import { can, deleteComment, postComment, socialError } from '@utils/articles'
 import type { AuthUser } from '@utils/auth'
 import { setReturnTo } from '@utils/return-to'
-import type { WikiComment, WikiThread } from '@utils/types'
-import { ARTICLE_DATE_TIME, Byline, userName } from './article'
+import type { WikiComment } from '@utils/types'
+import { ARTICLE_DATE_TIME, Byline, userName, type BylineUser } from './article'
 
 const MAX = 2000
 const LINK_BUTTON = 'cursor-pointer text-ink-muted signal-sm hover:text-cyan disabled:cursor-wait'
 const DANGER_LINK = 'cursor-pointer text-loss signal-sm hover:underline disabled:cursor-wait'
 
+/** A wiki comment, or a deck's: the same shape, the author without cosmetics. */
+export type Comment = Omit<WikiComment, 'author'> & { author: BylineUser | null }
+export type Thread = Comment & { replies: Comment[] }
+
+/** Where the comments live: the wiki's social routes, or a deck's. */
+export type CommentsApi = {
+  post: (body: string, parentId?: string) => Promise<Comment>
+  remove: (id: string) => Promise<void>
+  /** Who may delete anyone's comment besides its author (courtesy only: the API decides). */
+  canModerate: (user: AuthUser) => boolean
+}
+
+/** An article's comments: editors moderate. */
+export const forArticle = (slug: string): CommentsApi => ({
+  post: (body, parentId) => (parentId ? postComment(slug, body, parentId) : postComment(slug, body)),
+  remove: (id) => deleteComment(slug, id),
+  canModerate: (user) => can(user, 'wiki.write'),
+})
+
 type ComposerProps = {
   label: string
   submit: string
-  send: (body: string) => Promise<WikiComment>
-  onSent: (comment: WikiComment) => void
+  send: (body: string) => Promise<Comment>
+  onSent: (comment: Comment) => void
   onCancel?: () => void
 }
 
@@ -86,20 +105,21 @@ const Composer = ({ label, submit, send, onSent, onCancel }: ComposerProps) => {
 }
 
 type ItemProps = {
-  comment: WikiComment
+  comment: Comment
   user: AuthUser | null | undefined
+  canModerate: CommentsApi['canModerate']
   onDelete: () => Promise<void>
 }
 
-const Item = ({ comment, user, onDelete }: ItemProps) => {
+const Item = ({ comment, user, canModerate, onDelete }: ItemProps) => {
   const [confirming, setConfirming] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (comment.deleted) return <p className="py-1 text-ink-muted italic body-sm">Comment deleted</p>
 
-  // Courtesy only: the API checks author or `wiki.write` on every delete.
-  const deletable = !!user && (comment.author?.id === user.id || can(user, 'wiki.write'))
+  // Courtesy only: the API checks the author or the moderator on every delete.
+  const deletable = !!user && (comment.author?.id === user.id || canModerate(user))
 
   const remove = async () => {
     setPending(true)
@@ -152,7 +172,7 @@ const Item = ({ comment, user, onDelete }: ItemProps) => {
 }
 
 /** A deleted thread stays only while a reply is left under it, as the API serves it. */
-const withoutComment = (threads: WikiThread[], target: WikiComment): WikiThread[] =>
+const withoutComment = (threads: Thread[], target: Comment): Thread[] =>
   threads.flatMap((thread) => {
     if (thread.id === target.id) {
       return thread.replies.length ? [{ ...thread, deleted: true, author: null, body: '' }] : []
@@ -162,20 +182,19 @@ const withoutComment = (threads: WikiThread[], target: WikiComment): WikiThread[
     return thread.deleted && !replies.length ? [] : [{ ...thread, replies }]
   })
 
-type CommentsProps = {
-  slug: string
+type CommentsProps = CommentsApi & {
   /** `null`: the social API didn't answer. */
-  initial: WikiThread[] | null
+  initial: Thread[] | null
 }
 
-/** Threads newest first, one level of replies. Signed-in duelists post; authors and editors delete. */
-export const Comments = ({ slug, initial }: CommentsProps) => {
+/** Threads newest first, one level of replies. Signed-in duelists post; authors and moderators delete. */
+export const Comments = ({ initial, post, remove: removeComment, canModerate }: CommentsProps) => {
   const { user } = useAuth()
   const [threads, setThreads] = useState(initial ?? [])
   const [replyTo, setReplyTo] = useState<string | null>(null)
 
-  const remove = (target: WikiComment) => async () => {
-    await deleteComment(slug, target.id)
+  const remove = (target: Comment) => async () => {
+    await removeComment(target.id)
     setThreads((current) => withoutComment(current, target))
   }
 
@@ -205,7 +224,7 @@ export const Comments = ({ slug, initial }: CommentsProps) => {
               <Composer
                 label="Write a comment"
                 submit="Post"
-                send={(body) => postComment(slug, body)}
+                send={(body) => post(body)}
                 onSent={(comment) => setThreads((current) => [{ ...comment, replies: [] }, ...current])}
               />
             ) : null}
@@ -215,13 +234,13 @@ export const Comments = ({ slug, initial }: CommentsProps) => {
             <ol className="mt-8 flex flex-col gap-6">
               {threads.map((thread) => (
                 <li key={thread.id} className="flex flex-col gap-3 border-b border-line pb-6 last:border-b-0">
-                  <Item comment={thread} user={user} onDelete={remove(thread)} />
+                  <Item comment={thread} user={user} canModerate={canModerate} onDelete={remove(thread)} />
 
                   {thread.replies.length ? (
                     <ol className="ml-4 flex flex-col gap-4 border-l border-line pl-4 sm:ml-6">
                       {thread.replies.map((reply) => (
                         <li key={reply.id}>
-                          <Item comment={reply} user={user} onDelete={remove(reply)} />
+                          <Item comment={reply} user={user} canModerate={canModerate} onDelete={remove(reply)} />
                         </li>
                       ))}
                     </ol>
@@ -233,7 +252,7 @@ export const Comments = ({ slug, initial }: CommentsProps) => {
                         <Composer
                           label={`Reply to ${userName(thread.author)}`}
                           submit="Post reply"
-                          send={(body) => postComment(slug, body, thread.id)}
+                          send={(body) => post(body, thread.id)}
                           onSent={(reply) => {
                             setThreads((current) =>
                               current.map((t) => (t.id === thread.id ? { ...t, replies: [...t.replies, reply] } : t)),

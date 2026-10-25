@@ -38,7 +38,9 @@ const NEW_ID = '0123456789abcdef'
 const server = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   id: ID,
   ownerId: 'u1',
-  owner: { id: 'u1', name: 'kaiba' },
+  owner: { id: 'u1', name: 'kaiba', avatarUrl: null },
+  generated: false,
+  likes: 0,
   name: 'Saved',
   notes: '',
   format: null,
@@ -220,7 +222,7 @@ it('deleting the open deck over another unsaved new deck warns first, then carri
   vi.mocked(getDeck).mockResolvedValue(server())
   vi.mocked(listMyDecks).mockResolvedValue({
     decks: [{
-      id: ID, owner: { id: 'u1', name: 'kaiba' }, name: 'Saved', format: null, visibility: 'private', revision: 5, updatedAt: '2026-10-16T12:00:00.000Z',
+      id: ID, owner: { id: 'u1', name: 'kaiba', avatarUrl: null }, generated: false, likes: 0, name: 'Saved', format: null, visibility: 'private', revision: 5, updatedAt: '2026-10-16T12:00:00.000Z',
       counts: { main: 1, extra: 0, side: 0 }, coverCardId: null, description: '', links: [], deckTags: [], label: null,
     }],
     nextCursor: null,

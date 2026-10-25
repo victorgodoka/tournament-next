@@ -12,11 +12,15 @@ export const DECK_TAGS: DeckTag[] = ['competitive', 'rogue', 'casual']
 
 export type DeckLabel = { name: string; artCardId: number | null }
 export type DeckCounts = { main: number; extra: number; side: number }
+export type DeckOwner = { id: string; name: string | null; avatarUrl: string | null }
 
 export type SavedDeck = {
   id: string
   ownerId: string
-  owner: { id: string; name: string | null }
+  owner: DeckOwner
+  /** A sample deck the statistics build (owned by the Duelists Unite account), not a duelist's. */
+  generated: boolean
+  likes: number
   name: string
   notes: string
   format: number | null
@@ -42,7 +46,9 @@ export type SavedDeck = {
 /** What the listings return: no cards, no notes. */
 export type DeckSummary = {
   id: string
-  owner: { id: string; name: string | null }
+  owner: DeckOwner
+  generated: boolean
+  likes: number
   name: string
   format: number | null
   visibility: Visibility
@@ -59,10 +65,36 @@ export type DeckSummary = {
 /** The deck's showcase: written by the save dialog, not part of a revision. */
 export type DeckMeta = Pick<SavedDeck, 'visibility' | 'coverCardId' | 'description' | 'links' | 'deckTags'>
 
+/** `hide` leaves the sample decks out, `only` lists nothing else. */
+export type GeneratedFilter = 'hide' | 'only'
+
 /** Listing filters, ANDed. Empty values are left out. */
-export type DeckFilters = { q?: string; archetype?: string; format?: number | null; tag?: DeckTag | null; cards?: number[] }
+export type DeckFilters = { q?: string; archetype?: string; format?: number | null; tag?: DeckTag | null; cards?: number[]; generated?: GeneratedFilter | null }
 
 export type DeckPage = { decks: DeckSummary[]; nextCursor: string | null }
+
+/** A deck comment: the wiki's shape (WikiComment) without the author's cosmetics. */
+export type DeckComment = {
+  /** Bigint as a string. */
+  id: string
+  /** `null` on a thread; the thread's id on a reply. */
+  parentId: string | null
+  /** `null` once deleted. */
+  author: { id: string; username: string | null; avatarUrl: string | null } | null
+  /** `''` once deleted. */
+  body: string
+  createdAt: string
+  deleted: boolean
+}
+
+export type DeckThread = DeckComment & { replies: DeckComment[] }
+
+export type DeckSocial = {
+  likes: number
+  /** Whether the signed-in viewer likes it; `false` signed out. */
+  liked: boolean
+  comments: DeckThread[]
+}
 
 export type DeckInput = {
   name: string
@@ -137,6 +169,7 @@ export const filterParams = (filters: DeckFilters, cursor?: string): string => {
   if (filters.format != null) params.set('format', String(filters.format))
   if (filters.tag) params.set('tag', filters.tag)
   if (filters.cards?.length) params.set('cards', filters.cards.join(','))
+  if (filters.generated) params.set('generated', filters.generated)
   if (cursor) params.set('cursor', cursor)
   const query = params.toString()
   return query ? `?${query}` : ''
@@ -180,3 +213,26 @@ export const getRevision = (id: string, rev: number) => request<DeckRevision>(`$
 
 /** `POST /decks/:id/revisions/:rev/restore`: writes that content as a new revision; never conflicts. */
 export const restoreRevision = (id: string, rev: number) => request<SavedDeck>(`${path(id)}/revisions/${rev}/restore`, { method: 'POST' })
+
+/**
+ * `GET /decks/:id/social`: likes and comments (DECKS_API.md §5.11), read beside the deck. `null` on any
+ * failure: a broken social API must never take the deck page down with it.
+ */
+export const getDeckSocial = async (id: string, cookie?: string | null): Promise<DeckSocial | null> => {
+  try {
+    return await request<DeckSocial>(`${path(id)}/social`, cookie ? { headers: { cookie } } : undefined)
+  } catch (error) {
+    if (!(error instanceof DeckApiError && error.status === 404)) console.error(error)
+    return null
+  }
+}
+
+export const likeDeck = (id: string) => request<{ likes: number; liked: boolean }>(`${path(id)}/like`, { method: 'PUT' })
+export const unlikeDeck = (id: string) => request<{ likes: number; liked: boolean }>(`${path(id)}/like`, { method: 'DELETE' })
+
+/** `parentId` must be a live thread: replies go one level deep. */
+export const postDeckComment = (id: string, body: string, parentId?: string) =>
+  request<DeckComment>(`${path(id)}/comments`, json('POST', parentId ? { body, parentId } : { body }))
+
+/** The author or the deck's owner. */
+export const deleteDeckComment = (id: string, commentId: string) => request<void>(`${path(id)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE' })

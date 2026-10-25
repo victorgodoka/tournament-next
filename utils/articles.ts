@@ -243,12 +243,16 @@ export const postComment = (slug: string, body: string, parentId?: string) =>
 export const deleteComment = (slug: string, id: string) =>
   request<void>(socialPath(slug, `/comments/${encodeURIComponent(id)}`), json('DELETE'))
 
-/** Copy for a failed like or comment write. A `400` here is a rule the reader can act on, so its message shows. */
+/**
+ * Copy for a failed like or comment write. A `400` here is a rule the reader can act on, so its message
+ * shows. Any API error with a `status` (the wiki's, the decks') qualifies: the comments live on both.
+ */
 export const socialError = (cause: unknown): string => {
-  if (!(cause instanceof WikiApiError)) return "Couldn't save that."
-  if (cause.status === 401) return 'Your session expired. Sign in again.'
-  if (cause.status === 429) return 'Slow down a moment.'
-  if (cause.status === 400) return cause.message
-  if (cause.status === 404) return 'This article or comment is gone. Reload the page.'
+  if (!(cause instanceof Error) || typeof (cause as { status?: unknown }).status !== 'number') return "Couldn't save that."
+  const { status } = cause as Error & { status: number }
+  if (status === 401) return 'Your session expired. Sign in again.'
+  if (status === 429) return 'Slow down a moment.'
+  if (status === 400) return cause.message
+  if (status === 404) return 'This page or comment is gone. Reload the page.'
   return "Couldn't save that."
 }

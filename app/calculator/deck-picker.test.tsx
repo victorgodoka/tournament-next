@@ -19,7 +19,9 @@ vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import(
 const ID = 'abcdefabcdefabcd'
 const summary = (id: string, name: string): DeckSummary => ({
   id,
-  owner: { id: 'u1', name: 'kaiba' },
+  owner: { id: 'u1', name: 'kaiba', avatarUrl: null },
+  generated: false,
+  likes: 0,
   name,
   format: null,
   visibility: 'private',
@@ -35,7 +37,9 @@ const summary = (id: string, name: string): DeckSummary => ({
 const server = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   id: ID,
   ownerId: 'u1',
-  owner: { id: 'u1', name: 'kaiba' },
+  owner: { id: 'u1', name: 'kaiba', avatarUrl: null },
+  generated: false,
+  likes: 0,
   name: 'Saved',
   notes: '',
   format: null,

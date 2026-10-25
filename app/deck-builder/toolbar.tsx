@@ -17,10 +17,10 @@ const EXPORT_ID = 'deck-export'
 
 /** `wide` / `tall`: the 16:9 and 9:16 images, downloaded. `share`: the 9:16 one through the share sheet. `calculator`: the deck in the combo calculator, in a new tab. */
 export type ExportKind = 'omega' | 'ydke' | 'ydk' | 'pdf' | 'list' | 'wide' | 'tall' | 'share' | 'calculator'
-const EXPORTS: ExportKind[] = ['omega', 'ydke', 'ydk', 'pdf', 'list', 'wide', 'tall', 'share', 'calculator']
+export const EXPORTS: ExportKind[] = ['omega', 'ydke', 'ydk', 'pdf', 'list', 'wide', 'tall', 'share', 'calculator']
 
 // `fixed` beats `.cut`'s position: relative; the UA popover border and Canvas fill give way to the chamfer.
-const MENU =
+export const MENU =
   'cut notch fixed inset-x-4 top-32 bottom-auto mx-auto w-auto max-w-105 border-0 bg-transparent p-2 text-ink [--cut:var(--cut-md)] [--edge:var(--color-line-strong)] [--fill:var(--color-surface-200)]'
 
 /** `checking`: cards or banlists still loading. `unavailable`: the banlists failed, so no format checks ran. */

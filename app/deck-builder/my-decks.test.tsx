@@ -19,7 +19,9 @@ vi.mock('@utils/decks', () => ({ listMyDecks: vi.fn(), deleteDeck: vi.fn() }))
 
 const summary = (id: string, name: string): DeckSummary => ({
   id,
-  owner: { id: 'u1', name: 'kaiba' },
+  owner: { id: 'u1', name: 'kaiba', avatarUrl: null },
+  generated: false,
+  likes: 0,
   name,
   format: null,
   visibility: 'private',

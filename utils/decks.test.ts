@@ -100,6 +100,8 @@ describe('decks client', () => {
     expect(filterParams({})).toBe('')
     expect(filterParams({ q: ' ', archetype: '', format: null, tag: null, cards: [] })).toBe('')
     expect(filterParams({ q: ' Snake ', format: 0, tag: 'rogue', cards: [1, 2] }, '1_a')).toBe('?q=Snake&format=0&tag=rogue&cards=1%2C2&cursor=1_a')
+    expect(filterParams({ generated: 'hide' })).toBe('?generated=hide')
+    expect(filterParams({ generated: null })).toBe('')
     const fetchMock = stub(reply(200, { decks: [], nextCursor: null }))
     await listUserDecks('42', { archetype: 'Blue-Eyes' })
     expect(call(fetchMock).url).toMatch(/\/decks\/user\/42\?archetype=Blue-Eyes$/)
