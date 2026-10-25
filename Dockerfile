@@ -35,6 +35,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=5173
 ENV HOSTNAME=0.0.0.0
+# Explicit heap ceiling instead of V8's guess; keep it ~75% of the container's memory limit.
+ENV NODE_OPTIONS=--max-old-space-size=768
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
