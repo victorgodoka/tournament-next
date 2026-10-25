@@ -6,7 +6,6 @@ import { Button } from '@ui/button'
 import { ModeTabs } from '@ui/mode-tabs'
 import { Panel } from '@ui/panel'
 import { DAY_YEAR, banlistLabel } from '@omega/tournament/labels'
-import { CARD_ART_URL } from '@utils/const'
 import { anton, figtree, michroma, spaceMono } from '@utils/fonts'
 import type { ArchetypeStat, Standing, TournamentSummary } from '@utils/types'
 
@@ -60,14 +59,8 @@ export const cutSlices = (standings: Standing[], archetypes: ArchetypeStat[], to
   return [...named.slice(0, keep), ...(folded ? [{ name: othersLabel, count: folded, art: null, others: true }] : [])]
 }
 
-/** Same-origin through the Next optimiser: the art host sends no CORS headers, which would taint the canvas. */
-const loadArt = (id: number) =>
-  new Promise<HTMLImageElement | null>((resolve) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => resolve(null)
-    img.src = `/_next/image?url=${encodeURIComponent(CARD_ART_URL(id))}&w=1080&q=75`
-  })
+/** Same-origin, edge-cached (see `app/card-image`): the art host sends no CORS headers, which would taint the canvas. */
+const loadArt = (id: number) => loadImage(`/card-image/arts/${id}.jpg`)
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement | null>((resolve) => {

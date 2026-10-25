@@ -1,5 +1,4 @@
 import { TYPE_LABEL } from '@ui/type-counts'
-import { CARD_IMAGE_URL } from '@utils/const'
 import { frameOf, type CardFrame } from '@utils/deck/model'
 import type { CardMap, Deck, Zone } from '@utils/deck/types'
 
@@ -85,8 +84,25 @@ const loadImage = (src: string) =>
     img.src = src
   })
 
-/** Same-origin through the Next optimiser: the scan host sends no CORS headers, which would taint the canvas. */
-const scanUrl = (id: number) => `/_next/image?url=${encodeURIComponent(CARD_IMAGE_URL(id))}&w=256&q=75`
+/** Same-origin, edge-cached (see `app/card-image`): the scan host sends no CORS headers, which would taint the canvas. */
+const scanUrl = (id: number) => `/card-image/common/${id}.jpg`
+
+const SCAN_ID = /card-images%2Fcommon%2F(\d+)\.jpg/
+
+/**
+ * The scans the page has already decoded, by passcode: the largest same-origin `<img>` of each card that is at
+ * least `min` wide (a 64px tile would blur on a 120px export tile). The tiles show every card in the deck, so on
+ * a retina or phone screen (256px tiles) this covers the whole export without a request.
+ */
+export const shownScans = (images: Iterable<HTMLImageElement>, min = 128) => {
+  const best = new Map<number, HTMLImageElement>()
+  for (const img of images) {
+    const id = SCAN_ID.exec(img.currentSrc)?.[1]
+    if (!id || !img.complete || img.naturalWidth < min || !img.currentSrc.startsWith(location.origin)) continue
+    if ((best.get(Number(id))?.naturalWidth ?? 0) < img.naturalWidth) best.set(Number(id), img)
+  }
+  return best
+}
 
 /** The DS chamfer: top-left and bottom-right corners cut by `c`. */
 const chamfer = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, c: number) => {
@@ -389,9 +405,10 @@ export const deckImage = async (deck: Deck, cards: CardMap, info: ImageInfo, lay
   const { w: W, h: H, big, small } = L[layout]
   const keys = keyCards(deck)
   const ids = [...new Set([...deck.main, ...deck.extra, ...deck.side])]
+  const shown = shownScans(document.images)
   const [, scanList, logo] = await Promise.all([
     Promise.all([`20px ${ANTON}`, `20px ${MICH}`, `20px ${MONO}`, `700 20px ${MONO}`, `700 20px ${FIG}`].map((f) => document.fonts.load(f).catch(() => []))),
-    Promise.all(ids.map(async (id) => [id, await loadImage(scanUrl(id))] as const)),
+    Promise.all(ids.map(async (id) => [id, shown.get(id) ?? (await loadImage(scanUrl(id)))] as const)),
     loadImage('/omega-mark.png'),
   ])
   const scans = new Map(scanList)
