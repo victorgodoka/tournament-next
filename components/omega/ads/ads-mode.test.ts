@@ -21,9 +21,9 @@ describe('adsMode', () => {
   it.each([
     [undefined, '/decks', 'none'], [vip, '/decks', 'none'], [legacy, '/decks', 'none'], [vip, '/', 'none'], [anon, '/', 'all'], [free, '/', 'all'],
     [anon, '/decks', 'all'], [free, '/wiki/some-article', 'all'], [anon, '/wiki/newbie-guide', 'all'], [anon, '/simulator/c/abc', 'all'],
-    [anon, '/simulator/c/abc/render', 'none'], [anon, '/admin', 'none'], [anon, '/admin/', 'none'], [anon, '/admin/shop/prices', 'none'],
-    [anon, '/login', 'none'], [free, '/messenger', 'none'], [free, '/profile/edit', 'none'], [free, '/shop', 'none'],
-    [free, '/battlepass', 'none'], [free, '/inventory', 'none'], [free, '/wiki/new', 'none'], [free, '/wiki/panel', 'none'],
+    [anon, '/simulator/c/abc/render', 'none'], [anon, '/admin', 'none'], [anon, '/admin/', 'none'], [anon, '/admin/tournaments', 'none'],
+    [anon, '/login', 'none'], [free, '/messenger', 'none'], [free, '/profile/edit', 'none'],
+    [free, '/wiki/new', 'none'], [free, '/wiki/panel', 'none'],
     [free, '/wiki/example', 'none'], [free, '/wiki/foo/edit', 'none'], [free, '/wiki/foo/history', 'none'],
     [anon, '/deck-builder', 'rail'], [anon, '/deck-builder/abc', 'rail'], [anon, '/calculator', 'rail'], [anon, '/simulator', 'rail'],
   ] as const)('%o on %s is %s', (user, pathname, mode) => {

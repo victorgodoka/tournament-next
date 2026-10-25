@@ -13,7 +13,7 @@ type ChatBubbleProps = {
   children: ReactNode
 }
 
-/** A message in someone's equipped bubble. The messenger, the shop card and the panel preview all draw it. */
+/** A message in someone's equipped bubble, as the messenger draws it. */
 export const ChatBubble = ({ style, sticker, mine, className, children }: ChatBubbleProps) => (
   <div className={twMerge('bubble', mine && 'is-mine', className)} style={bubbleVars(style, mine)}>
     {children}

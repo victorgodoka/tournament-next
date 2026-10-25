@@ -1,15 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Button, Chip, Coin, Field, PageHeader, Panel, SectionHead, TextInput } from '@ui/index'
+import { Alert, Button, Chip, Field, PageHeader, Panel, SectionHead, TextInput } from '@ui/index'
 import { useResource } from '@hooks/index'
 import { count, dayTime, timeLabel } from '@utils/format'
-import { creditWallet, listSeasons, panelErrorText, renameSeason, rolloverSeason, syncRanked, type PanelSeason } from '@utils/panel'
+import { listSeasons, panelErrorText, renameSeason, rolloverSeason, syncRanked, type PanelSeason } from '@utils/panel'
 import { refreshLeaderboard } from '@utils/ranked'
 
 type Notice = { tone: 'positive' | 'negative'; title: string; body?: string }
-
-const SNOWFLAKE = /^\d{15,20}$/
 
 /** One ladder's open season: rename it, or close it and open the next behind a typed confirmation. */
 const SeasonCard = ({ entry, onChanged }: { entry: PanelSeason; onChanged: () => void }) => {
@@ -108,11 +106,7 @@ const SeasonCard = ({ entry, onChanged }: { entry: PanelSeason; onChanged: () =>
 const ToolsPage = () => {
   const seasons = useResource('ranked-seasons', listSeasons)
   const [job, setJob] = useState<Notice | null>(null)
-  const [busy, setBusy] = useState<'sync' | 'refresh' | 'credit' | null>(null)
-  const [userId, setUserId] = useState('')
-  const [amount, setAmount] = useState('')
-  const [note, setNote] = useState('')
-  const [credit, setCredit] = useState<Notice | null>(null)
+  const [busy, setBusy] = useState<'sync' | 'refresh' | null>(null)
 
   const runJob = (which: 'sync' | 'refresh') => {
     setBusy(which)
@@ -131,27 +125,13 @@ const ToolsPage = () => {
       .finally(() => setBusy(null))
   }
 
-  const n = Number(amount)
-  const sendCredit = () => {
-    setBusy('credit')
-    setCredit(null)
-    // A fresh key per click: a retry of this same click (timeout, double submit) never credits twice.
-    creditWallet(userId.trim(), n, crypto.randomUUID(), note.trim() || undefined)
-      .then((r) => {
-        setCredit({ tone: 'positive', title: `${n > 0 ? 'Credited' : 'Debited'} ${count(Math.abs(n))}`, body: `New balance: ${count(r.balance)}` })
-        setAmount('')
-      })
-      .catch((e) => setCredit({ tone: 'negative', title: 'Nothing changed', body: panelErrorText(e) }))
-      .finally(() => setBusy(null))
-  }
-
   return (
     <>
       <PageHeader
         flush
         eyebrow="Other tools"
-        title="Ranked and wallets"
-        lead="Run the ranked jobs by hand, manage the open season of each ladder, and credit or debit a duelist’s Duel Points."
+        title="Ranked"
+        lead="Run the ranked jobs by hand and manage the open season of each ladder."
       />
 
       <section className="flex flex-col gap-5">
@@ -188,27 +168,6 @@ const ToolsPage = () => {
           ))}
         </div>
       </section>
-
-      <Panel label="Wallet credit" className="flex scroll-mt-6 flex-col gap-4.5 [--edge:var(--color-line-mid)]">
-        <span id="wallet" />
-        <SectionHead compact num="03" end="Needs user.manage">Wallet credit</SectionHead>
-        <div className="grid grid-cols-1 items-end gap-4 min-[720px]:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_180px_minmax(0,1.4fr)_auto]">
-          <Field label="Duelist ID" htmlFor="wallet-user">
-            <TextInput id="wallet-user" mono value={userId} onChange={(e) => setUserId(e.target.value)} />
-          </Field>
-          <Field label="Duel Points" htmlFor="wallet-amount">
-            <TextInput id="wallet-amount" inputMode="numeric" prefix={<Coin className="h-4 w-3.5" />} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </Field>
-          <Field label="Note" htmlFor="wallet-note">
-            <TextInput id="wallet-note" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-          </Field>
-          <Button size="mono-md" disabled={busy !== null || !SNOWFLAKE.test(userId.trim()) || !Number.isInteger(n) || n === 0} onClick={sendCredit}>
-            {n < 0 ? 'Debit' : 'Credit'} {n ? count(Math.abs(n)) : ''}
-          </Button>
-        </div>
-        <span className="text-ink-muted caption">A negative amount debits, never below zero. The duelist must have signed in to the site once.</span>
-        {credit ? <Alert tone={credit.tone} title={credit.title}>{credit.body}</Alert> : null}
-      </Panel>
     </>
   )
 }

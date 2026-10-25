@@ -55,7 +55,7 @@ type AvatarProps = {
   /** sm 28 · md 40 · lg 64 · xl 128 */
   size?: keyof typeof SIZE
   status?: Status
-  /** Equipped shop items from the API; the `WEBDECO` frame is drawn over the portrait. */
+  /** Equipped cosmetics from the API; the `WEBDECO` frame is drawn over the portrait. */
   cosmetics?: Cosmetics | null
   className?: string
 }

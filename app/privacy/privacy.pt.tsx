@@ -77,7 +77,6 @@ export const pt: LegalDoc = {
           <li>Decks e combos que você salva no deck builder e no simulador, com o histórico de revisões.</li>
           <li>Artigos da wiki e suas revisões, imagens que você envia, comentários e curtidas.</li>
           <li>Inscrições em torneios.</li>
-          <li>Pontos, itens e progresso do battlepass, quando esses recursos estiverem ativos.</li>
         </ul>
         <p>
           Quando a equipe usa as ferramentas de administração, registramos cada ação, o alvo e o resultado, e o endereço IP e o user agent de
@@ -196,7 +195,7 @@ export const pt: LegalDoc = {
         </ul>
         <p>
           Esses links só aparecem onde a lei cobre você. Contas VIP não veem anúncios, e algumas páginas nunca têm: login, messenger,
-          inventário, edição de perfil, editor da wiki e as páginas de administração.
+          edição de perfil, editor da wiki e as páginas de administração.
         </p>
       </Section>
 

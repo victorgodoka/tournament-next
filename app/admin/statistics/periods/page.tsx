@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Alert, Button, Chip, DataTable, Dialog, Field, PageHeader, Panel, Segmented, TextInput } from '@ui/index'
 import { useResource } from '@hooks/index'
-import { dayLabel, toBrt } from '@utils/format'
+import { dayLabel, fromBrt, toBrt } from '@utils/format'
 import {
   createPeriod,
   deletePeriod,
@@ -16,7 +16,9 @@ import {
   type PeriodBackfill,
 } from '@utils/panel'
 import type { RankedLadderId } from '@utils/types'
-import { brtLocal } from '../../battlepass/season'
+
+/** `<input type="datetime-local">` value read as BRT. */
+const brtLocal = (value: string) => fromBrt(value.slice(0, 10), value.slice(11, 16))
 
 type Draft = { id: number | null; code: string; label: string; ladder: RankedLadderId; startsAt: string; endsAt: string }
 

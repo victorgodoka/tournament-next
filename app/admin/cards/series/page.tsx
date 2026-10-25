@@ -159,6 +159,7 @@ const SeriesPage = () => {
                 label="Add mention"
                 placeholder="Search a card by name"
                 search={findCards}
+                exclude={d.mentions.map((c) => c.id)}
                 onPick={(o) => !d.mentions.some((c) => c.id === Number(o.key)) && set({ mentions: [...d.mentions, pickedCard(o)] })}
               />
             </Field>
@@ -195,6 +196,7 @@ const SeriesPage = () => {
                 label="Add child archetype"
                 placeholder="Add an archetype"
                 search={findSetcodes}
+                exclude={[...d.archetypes.map((x) => x.code), ...(d.archetype ? [d.archetype.code] : [])]}
                 onPick={(o) =>
                   Number(o.key) !== d.archetype?.code &&
                   !d.archetypes.some((x) => x.code === Number(o.key)) &&
@@ -208,6 +210,7 @@ const SeriesPage = () => {
                 label="Add card"
                 placeholder="Passcode or card name"
                 search={findCards}
+                exclude={d.cards.map((c) => c.id)}
                 onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })}
               />
               <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id) })} />

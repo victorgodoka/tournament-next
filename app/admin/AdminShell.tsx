@@ -7,20 +7,12 @@ import { useAuth, useResource } from '@hooks/index'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'
 import { listTournaments } from '@utils/panel'
-import { ANALYTICS_ENABLED, BATTLEPASS_ENABLED, SHOP_ENABLED } from '@utils/const'
+import { ANALYTICS_ENABLED } from '@utils/const'
 
 type NavItem = { href: string; label: string }
 
 const NAV: { label: string; items: NavItem[] }[] = [
   { label: 'Schedule', items: [{ href: '/admin/tournaments', label: 'Tournaments' }, { href: '/admin/formats', label: 'Formats' }] },
-  {
-    label: 'Economy',
-    items: [
-      ...(SHOP_ENABLED ? [{ href: '/admin/shop', label: 'Shop catalog' }] : []),
-      { href: '/admin/rewards', label: 'Rewards' },
-      ...(BATTLEPASS_ENABLED ? [{ href: '/admin/battlepass', label: 'Battlepass' }] : []),
-    ],
-  },
   ...(ANALYTICS_ENABLED
     ? [{
         label: 'Statistics',
@@ -52,7 +44,6 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/tools', label: 'Ranked ops' },
       { href: '/admin/staff#editors', label: 'Wiki editors' },
-      { href: '/admin/tools#wallet', label: 'Wallet credit' },
     ],
   },
 ]

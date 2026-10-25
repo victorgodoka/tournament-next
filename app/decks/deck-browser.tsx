@@ -149,6 +149,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
               label={t('cards')}
               placeholder={t('cardsPlaceholder')}
               search={findCards}
+              exclude={filters.cards.map((c) => c.id)}
               onPick={(o) => {
                 const id = Number(o.key)
                 if (filters.cards.length < 10 && !filters.cards.some((c) => c.id === id)) set({ cards: [...filters.cards, { id, name: String(o.label) }] })

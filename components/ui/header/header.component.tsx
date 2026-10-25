@@ -19,7 +19,7 @@ type HeaderProps = {
   elementRef?: RefObject<HTMLElement | null>
   className?: string
   items?: NavbarItem[]
-  /** A page's own cell before the account, at every width (the shop's balance). */
+  /** A page's own cell before the account, at every width. */
   extra?: React.ReactNode
 }
 
@@ -90,7 +90,6 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
           <Link href="/messenger" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Messenger</Link>
           <p className={PANEL_RULE}>Account</p>
           <Link href="/profile/edit" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Edit profile</Link>
-          <Link href="/inventory" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Inventory</Link>
           {/* The panel refuses anyone without it anyway; this only keeps the door out of sight. */}
           {can(user, 'system.manage') || can(user, 'user.manage') ? (
             <Link href="/admin" role="menuitem" onClick={() => setIsOpen(false)} className={twMerge(PANEL_ITEM, "text-gold")}>Admin panel</Link>

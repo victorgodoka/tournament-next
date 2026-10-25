@@ -90,10 +90,6 @@ export const HOME_DOUBLE_SCRIPT_DISPLAY = [
  */
 export const ANALYTICS_ENABLED = true
 
-/** Same kind of switch for the shop and the battlepass: routes redirected, links hidden. Inventory and cosmetics stay. */
-export const SHOP_ENABLED = false
-export const BATTLEPASS_ENABLED = false
-
 export type NavbarItem = {
   item: string
   /** A plain link. Mutually exclusive with `children`. */
@@ -115,8 +111,6 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
   { item: "Leaderboard", to: "/leaderboard" },
   { item: "Wiki", to: "/wiki" },
   ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
-  ...(SHOP_ENABLED ? [{ item: "Shop", to: "/shop", loggedIn: true }] : []),
-  ...(BATTLEPASS_ENABLED ? [{ item: "Battlepass", to: "/battlepass", loggedIn: true }] : []),
   {
     item: "Tools",
     children: [
@@ -188,7 +182,7 @@ export const LEGAL_UPDATED = { privacy: "2026-10-22", terms: "2026-10-22" }
 
 export const FOOTER_DISCLAIMER = "Duelists Unite. A fan project, unaffiliated with Konami."
 export const FOOTER_MEDIA_NOTE =
-  "Album covers, artwork and songs belong to their artists and labels. We show them under fair use and claim no rights to them. Shop items cost points earned by playing, never real money."
+  "Album covers, artwork and songs belong to their artists and labels. We show them under fair use and claim no rights to them."
 
 /** Launcher download page, the target of every download call to action. */
 export const DOWNLOAD_URL = "/download"

@@ -1,1 +1,1 @@
-export { DeckTile, ItemTile } from './tile.component'
+export { DeckTile } from './tile.component'

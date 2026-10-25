@@ -380,6 +380,11 @@ a.oh-song:hover { color: var(--ink); text-decoration: underline; }
 .oh-dock-panel.is-open { height: min(620px, calc(100vh - 72px)); }
 .oh-dock-bar { appearance: none; border: 0; background: none; cursor: pointer; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 var(--space-4) 0 12px; color: var(--ink); flex: none; text-align: left; }
 .oh-dock-bar:hover { background: rgba(142, 166, 199, 0.08); }
+/* Closed: just the avatar, badges pinned to its corners. */
+.oh-dock-panel:not(.is-open) { width: auto; }
+.oh-dock-panel:not(.is-open) .oh-dock-bar { position: relative; padding: 0 6px; gap: 0; }
+.oh-dock-panel:not(.is-open) .oh-unread { position: absolute; top: 2px; right: 2px; }
+.oh-dock-panel:not(.is-open) .oh-unread.is-gold { right: auto; left: 2px; }
 .oh-dock-bar:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
 .oh-dock-panel.is-open .oh-dock-bar { border-bottom: var(--hairline) solid var(--line); }
 .oh-dock-title { flex: 1; font: 700 12px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink); }

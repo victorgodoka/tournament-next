@@ -74,7 +74,6 @@ export const en: LegalDoc = {
           <li>Decks and combos you save in the deck builder and simulator, with their revision history.</li>
           <li>Wiki articles and their revisions, images you upload, comments and likes.</li>
           <li>Tournament registrations.</li>
-          <li>Points, items and battlepass progress, when those features are on.</li>
         </ul>
         <p>
           When staff use the admin tools, we log each action, its target and result, and the staff member&apos;s IP address and user agent.
@@ -188,7 +187,7 @@ export const en: LegalDoc = {
         </ul>
         <p>
           These links appear only where the law covers you. VIP accounts see no ads, and some pages never carry any: sign-in, the messenger,
-          the inventory, profile editing, the wiki editor and the admin pages.
+          profile editing, the wiki editor and the admin pages.
         </p>
       </Section>
 

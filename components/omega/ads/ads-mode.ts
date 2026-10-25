@@ -11,9 +11,8 @@ export type AdsMode = 'none' | 'rail' | 'all'
  */
 const NO_ADS = [
   /^\/admin(\/|$)/,
-  /^\/(login|messenger|inventory)(\/|$)/,
+  /^\/(login|messenger)(\/|$)/,
   /^\/profile\/edit(\/|$)/,
-  /^\/(shop|battlepass)(\/|$)/,
   /^\/simulator\/c\/[^/]+\/render(\/|$)/,
   /^\/wiki\/(new|panel|example)(\/|$)/,
   /^\/wiki\/[^/]+\/(edit|history)(\/|$)/,

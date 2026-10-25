@@ -5,7 +5,7 @@ const CONTACT = 'admin@duelistsunite.org'
 
 export const en: LegalDoc = {
   title: 'Terms of Service',
-  description: 'The rules for using the YGO Omega hub: accounts, conduct, what you post, moderation, VIP and points, and liability.',
+  description: 'The rules for using the YGO Omega hub: accounts, conduct, what you post, moderation, VIP, and liability.',
   eyebrow: 'Legal',
   updatedLabel: 'Last updated:',
   Body: () => (
@@ -85,16 +85,12 @@ export const en: LegalDoc = {
         </p>
       </Section>
 
-      <Section id="vip" title="Ads, VIP and points">
+      <Section id="vip" title="Ads and VIP">
         <ul>
           <li>The Hub is free. Ads pay for the servers.</li>
           <li>
             VIP comes with a donation through PayPal and removes ads, among other perks. Perks can change. Refunds follow PayPal&apos;s rules
             and the law that applies to you. Questions about a donation: email us.
-          </li>
-          <li>
-            Points are earned by playing and are never sold. Points and the items they unlock have no money value, can&apos;t be exchanged for
-            money, and may be adjusted or reset, for example to fix a bug or undo abuse.
           </li>
         </ul>
       </Section>

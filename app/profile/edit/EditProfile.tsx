@@ -14,12 +14,8 @@ import { useAuth, useSearch } from "@hooks/index";
 import { signIn } from "@utils/auth";
 import { archetypeCover, searchArchetypes, searchCards } from "@utils/cards";
 import { getProfile, ProfileApiError, updateProfile } from "@utils/profile";
-import type { ProfileIdentity, ProfileSettingsPatch, Region, ShopEnum, Visibility } from "@utils/types";
-import { BATTLEPASS_ENABLED, SHOP_ENABLED } from "@utils/const";
-import { TYPE_ICON, typesOf, useLoadout } from "@omega/inventory";
-import { Avatar, AvatarFrame } from "@ui/avatar";
-import { Icon } from "@ui/icon";
-import { Thumb } from "@ui/thumb";
+import type { ProfileIdentity, ProfileSettingsPatch, Region, Visibility } from "@utils/types";
+import { AvatarFrame } from "@ui/avatar";
 import { bioProblem, BIO_MAX, DECK_NAME_MAX, diff, SOCIAL_FIELDS, toForm, type Form } from "./form";
 
 /** Longest keys first, so `favoriteDeckCardId` is not read as another field. The API message names the field. */
@@ -325,7 +321,7 @@ const PrivacySection = ({ visibility, set }: { visibility: Visibility; set: SetF
 /* ── 05 Region ── */
 
 const RegionSection = ({ region, set }: { region: Region | null; set: SetForm }) => (
-  <Row index="05" title="Region" blurb="The server region you usually play from. Pick it again to clear it.">
+  <Row index="05" title="Region" blurb="The server region you usually play from. Pick it again to clear it." className="border-line-strong">
     <div role="radiogroup" aria-label="Region" className="flex flex-wrap gap-2">
       {(Object.keys(REGION_LABEL) as Region[]).map((id) => {
         const selected = id === region
@@ -352,89 +348,11 @@ const RegionSection = ({ region, set }: { region: Region | null; set: SetForm })
   </Row>
 )
 
-/* ── 06 Loadout ── */
-
-const LoadoutSection = ({ types }: { types: ShopEnum[] }) => {
-  const loadout = useLoadout()
-  const { user, wallet } = loadout
-  const t = typesOf(types)
-  const owned = wallet?.items ?? []
-  // Only the slots something owned can go in; the rest is a shop link away.
-  const slots = t.slots.filter((slot) => owned.some((i) => i.type === slot.value))
-
-  return (
-    <Row index="06" title="Loadout" blurb="Frames, backgrounds and the rest of what you own. Picking one equips it right away; it doesn’t wait for Save." className="border-line-strong">
-      <div className="flex flex-col gap-7">
-        {user ? (
-          <div className="flex items-center gap-5">
-            <Avatar name={user.profile.username ?? 'Duelist'} src={user.profile.avatarUrl} cosmetics={user.cosmetics} size="lg" />
-            <p className="text-ink-muted mono-note">Your avatar as others see it, frame included.</p>
-          </div>
-        ) : null}
-
-        {!wallet ? (
-          <p role="status" className="text-ink-muted mono-note">Loading your items…</p>
-        ) : slots.length ? (
-          slots.map((slot) => {
-            const current = loadout.equipped[slot.value]?.id ?? null
-            const choices = owned.filter((i) => i.type === slot.value)
-            return (
-              <div key={slot.value}>
-                <p className={LABEL}>{slot.name} · {t.surfaces(slot.value)}</p>
-                <div role="radiogroup" aria-label={slot.name} className="mt-2.5 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={!current}
-                    onClick={() => current && loadout.setSlot(slot.value, null)}
-                    className={twMerge("grid size-16 cursor-pointer place-items-center border-2 text-ink-muted signal-sm", !current ? "border-cyan" : "border-line hover:border-line-strong")}
-                  >
-                    None
-                  </button>
-                  {choices.map((item) => {
-                    const selected = item.id === current
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        title={item.name}
-                        aria-label={item.name}
-                        onClick={() => !selected && loadout.setSlot(slot.value, item)}
-                        className={twMerge("cursor-pointer border-2 p-0", selected ? "border-cyan" : "border-line hover:border-line-strong")}
-                      >
-                        <Thumb wide src={item.assetUrl ?? `/items/${item.id}.png`} className="size-15">
-                          <Icon name={TYPE_ICON[item.type] ?? 'cards'} size={24} />
-                        </Thumb>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p className="mt-2 text-ink-muted mono-note">{loadout.equipped[slot.value]?.name ?? 'Nothing equipped'}</p>
-              </div>
-            )
-          })
-        ) : (
-          <p className="text-ink-muted mono-note">
-            Nothing to equip yet.
-            {SHOP_ENABLED ? <> Get items in the <Link href="/shop" className="text-cyan hover:underline">shop</Link>.</> : null}
-            {BATTLEPASS_ENABLED ? <> Earn them on the <Link href="/battlepass" className="text-cyan hover:underline">battlepass</Link>.</> : null}
-          </p>
-        )}
-
-        {loadout.error ? <p role="alert" className="text-loss caption">{loadout.error}</p> : null}
-        <Link href="/inventory" className="text-cyan signal-strong hover:underline">Open your inventory →</Link>
-      </div>
-    </Row>
-  )
-}
-
 /* ── Editor ── */
 
 type SaveStatus = { state: 'idle' | 'saving' | 'saved' } | { state: 'error'; message: string }
 
-const Editor = ({ identity, initial, types }: { identity: ProfileIdentity; initial: Form; types: ShopEnum[] }) => {
+const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: Form }) => {
   const { user } = useAuth()
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
@@ -505,7 +423,6 @@ const Editor = ({ identity, initial, types }: { identity: ProfileIdentity; initi
       <SocialsSection socials={form.socials} set={set} />
       <PrivacySection visibility={form.visibility} set={set} />
       <RegionSection region={form.region} set={set} />
-      <LoadoutSection types={types} />
 
       <div className="fixed inset-x-0 bottom-0 z-(--z-dock) flex flex-wrap items-center justify-between gap-4 border-t border-line-strong bg-space-000 px-5.5 py-3 lg:px-11 lg:py-3.5">
         <p role="status" className={twMerge("signal-nav", note.className)}>{note.text}</p>
@@ -539,7 +456,7 @@ const Editor = ({ identity, initial, types }: { identity: ProfileIdentity; initi
 
 type Loaded = { identity: ProfileIdentity; initial: Form }
 
-export const EditProfile = ({ types }: { types: ShopEnum[] }) => {
+export const EditProfile = () => {
   const { user } = useAuth()
   const router = useRouter()
   const [loaded, setLoaded] = useState<Loaded | 'error' | null>(null)
@@ -571,5 +488,5 @@ export const EditProfile = ({ types }: { types: ShopEnum[] }) => {
   if (loaded === 'error') return <ErrorPage />
   if (!loaded) return <p role="status" className="px-5 py-16 text-ink-muted signal-nav sm:px-6 lg:px-11">Loading your profile…</p>
 
-  return <Editor identity={loaded.identity} initial={loaded.initial} types={types} />
+  return <Editor identity={loaded.identity} initial={loaded.initial} />
 }

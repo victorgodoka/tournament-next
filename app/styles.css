@@ -672,11 +672,6 @@
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
   }
 
-  /* Shop: the only gradient behind content, because it stands for physical foil. */
-  .foil {
-    background: linear-gradient(135deg, #16244a 0%, #2d1a5a 40%, #0d3442 65%, #3a1850 100%);
-  }
-
   /* Metallic rarity glyph. */
   .metal-text {
     background: linear-gradient(180deg, #ffffff 0%, #c9cfdb 55%, #8e97aa 100%);

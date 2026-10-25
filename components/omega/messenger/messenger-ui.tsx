@@ -1009,12 +1009,12 @@ const Dock = ({ m, vw, me }: { m: MessengerView; vw: number; me: Me }) => {
         }))}
       </div>
       <section className={cx("oh-cut oh-notch oh-dock-panel", open && "is-open")}>
-        <button type="button" className="oh-dock-bar" aria-expanded={open} onClick={() => setOpen(!open)}>
-          <Avatar name={nameOf(me)} src={me.avatar} cosmetics={me.cosmetics} size="sm" status={me.presence === "invisible" ? "offline" : me.presence} />
-          <span className="oh-dock-title">Messenger</span>
+        <button type="button" className="oh-dock-bar" aria-expanded={open} aria-label="Messenger" title={open ? undefined : "Messenger"} onClick={() => setOpen(!open)}>
+          <Avatar name={nameOf(me)} src={me.avatar} cosmetics={me.cosmetics} size={open ? "sm" : "md"} status={me.presence === "invisible" ? "offline" : me.presence} />
+          {open ? <span className="oh-dock-title">Messenger</span> : null}
           {m.unreadChats ? <span className="oh-unread" title={m.unreadChats + " unread chats"}><Icon name="chat" size={12} />{m.unreadChats}</span> : null}
           {m.incoming ? <span className="oh-unread is-gold" title={m.incoming + " requests"}><Icon name="host" size={12} />{m.incoming}</span> : null}
-          <Icon name={open ? "down" : "up"} size={18} className="oh-dock-chev" />
+          {open ? <Icon name="down" size={18} className="oh-dock-chev" /> : null}
         </button>
         {open ? <div className="oh-dock-body">{meCard}{lists}</div> : null}
       </section>

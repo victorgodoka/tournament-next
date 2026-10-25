@@ -192,6 +192,7 @@ const CardGroupsPage = () => {
                     label="Add archetype exception"
                     placeholder="Add an archetype or Series"
                     search={findExceptions}
+                    exclude={d.exceptions.map((e) => e.code)}
                     className="w-65"
                     onPick={(o) =>
                       !d.exceptions.some((x) => x.code === Number(o.key)) &&
@@ -206,7 +207,7 @@ const CardGroupsPage = () => {
               meta={`${d.cards.length} of 1000`}
               hint="Alternate art is saved as the original passcode, and duplicates collapse into one."
             >
-              <Lookup label="Add card" placeholder="Passcode or card name" search={findCards} onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })} />
+              <Lookup label="Add card" placeholder="Passcode or card name" search={findCards} exclude={d.cards.map((c) => c.id)} onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })} />
               <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id), cover: d.cover === id ? null : d.cover })} />
             </Field>
             <Field label="Cover" hint="The card that stands for the group where it shows as one line (cards used against a deck). Optional: without one, the first card of the list is the cover.">
@@ -219,7 +220,7 @@ const CardGroupsPage = () => {
                     <span className="text-ink-muted signal-sm">{d.cards[0] ? `Default: ${d.cards[0].name ?? d.cards[0].id}` : 'No cards yet'}</span>
                   )
                 })()}
-                <Lookup compact label="Pick the cover" placeholder="One of the group’s cards" search={findCover} className="w-65" onPick={(o) => set({ cover: Number(o.key) })} />
+                <Lookup compact label="Pick the cover" placeholder="One of the group’s cards" search={findCover} exclude={d.cover === null ? [] : [d.cover]} className="w-65" onPick={(o) => set({ cover: Number(o.key) })} />
               </div>
             </Field>
             {error ? <Alert tone="negative" title="Not saved">{error}</Alert> : null}

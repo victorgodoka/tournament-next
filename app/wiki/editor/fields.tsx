@@ -253,6 +253,7 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
           label="Add card"
           placeholder="Add a card by name or passcode"
           search={findCards}
+          exclude={cards.map((card) => card.id)}
           onPick={(option) =>
             !cards.some((card) => card.id === option.key) && onChange([...cards, { id: Number(option.key), name: String(option.label) }])
           }

@@ -1,4 +1,4 @@
-import { ANALYTICS_ENABLED, SHOP_ENABLED, BATTLEPASS_ENABLED } from "@utils/const";
+import { ANALYTICS_ENABLED } from "@utils/const";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -8,8 +8,9 @@ const DISABLED_ROUTES = [
     '/admin/statistics/:path*',
     '/profile/:id/statistics/:path*',
   ]),
-  ...(SHOP_ENABLED ? [] : ['/shop/:path*', '/admin/shop/:path*']),
-  ...(BATTLEPASS_ENABLED ? [] : ['/battlepass/:path*', '/admin/battlepass/:path*']),
+  // The shop, the inventory and the battlepass are gone; links already shared land on the home page.
+  '/shop/:path*', '/inventory/:path*', '/battlepass/:path*',
+  '/admin/shop/:path*', '/admin/rewards/:path*', '/admin/battlepass/:path*',
 ];
 const nextConfig: NextConfig = {
   redirects: async () => [

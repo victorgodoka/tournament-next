@@ -37,7 +37,7 @@ const IgnoredArchetypesPage = () => {
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <Lookup label="Archetype to ignore" placeholder="Archetype name or setcode — pick one to ignore it" search={findSetcodes} onPick={(o) => act(ignoreArchetype(Number(o.key)))} />
+          <Lookup label="Archetype to ignore" placeholder="Archetype name or setcode — pick one to ignore it" search={findSetcodes} exclude={(data?.ignored ?? []).map((r) => r.code)} onPick={(o) => act(ignoreArchetype(Number(o.key)))} />
           <div className="overflow-x-auto">
             <DataTable
               rows={data?.ignored ?? []}

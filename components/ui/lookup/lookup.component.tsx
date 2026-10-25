@@ -15,6 +15,8 @@ type LookupProps = {
   /** Called 250 ms after typing stops, from two characters. Must be stable (module-level or memoized). */
   search: (text: string, signal: AbortSignal) => Promise<LookupOption[]>
   onPick: (option: LookupOption) => void
+  /** Keys already picked: left out of the results, so a list never offers what it holds. */
+  exclude?: readonly (string | number)[]
   /** 32px plate for an inline "add" next to tags. */
   compact?: boolean
   className?: string
@@ -24,9 +26,11 @@ type LookupProps = {
  * A search field whose results drop below it as buttons. Picking one clears the text, so the same
  * field adds the next one.
  */
-export const Lookup = ({ label, placeholder, search, onPick, compact, className }: LookupProps) => {
+export const Lookup = ({ label, placeholder, search, onPick, exclude, compact, className }: LookupProps) => {
   const [text, setText] = useState('')
-  const results = useSearch(text, search)
+  const found = useSearch(text, search)
+  const hidden = new Set(exclude?.map(String))
+  const results = hidden.size ? found.filter((option) => !hidden.has(String(option.key))) : found
 
   return (
     <div className={twMerge('relative min-w-0', className)}>
