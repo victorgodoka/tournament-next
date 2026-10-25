@@ -1,15 +1,15 @@
 /**
  * GET /statistics/infographic/:section?ladder=&season=&key=&size=wide|tall&locale= — one dashboard section
- * as a shareable PNG. `key` (an archetype "207-451") picks the deck for archetype-analysis, deep-dive and
- * sample-decks; without it, the most played.
+ * as a shareable PNG. `key` (an archetype "207-451") picks the deck for archetype-analysis and deep-dive;
+ * for the comparator it is up to three keys joined by commas. Without it, the most played.
  */
 
 import { notFound } from 'next/navigation'
-import { archKey, getStatistics, type Matchup, type StatArchetype, type Statistics } from '@utils/statistics'
+import { archKey, getStatistics, type AgainstCard, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
-import { Art, Bar, C, col, Empty, Kpi, Label, loadImages, num, Panel, pct, render, row, sizeOf, translator, type Size } from '@omega/infographic/infographic'
+import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
-const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'archetype-analysis', 'cards', 'deep-dive', 'sample-decks'] as const
+const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'archetype-analysis', 'comparator', 'cards', 'deep-dive'] as const
 type Section = (typeof SECTIONS)[number]
 
 type T = (key: string, values?: Record<string, string | number>) => string
@@ -17,120 +17,171 @@ type Ctx = { data: Statistics; size: Size; t: T; locale: string; key: string | n
 
 const nameOf = (a: { name: string | null }, t: T) => a.name ?? t('unknownDeck')
 const byShare = (data: Statistics) => [...data.archetypes].sort((a, b) => b.metaShare - a.metaShare)
-const pick = ({ data, key }: Ctx) => (key && data.archetypes.find((a) => archKey(a.archetype) === key)) || byShare(data)[0] || null
-const wrColor = (wr: number | null) => (wr == null ? C.muted : wr >= 0.5 ? C.win : C.loss)
+const find = (data: Statistics, key: string | null | undefined) => (key ? data.archetypes.find((a) => archKey(a.archetype) === key) : undefined)
+const pick = ({ data, key }: Ctx) => find(data, key) || byShare(data)[0] || null
+const wrColor = (wr: number | null | undefined) => (wr == null ? C.muted : wr >= 0.5 ? C.win : C.loss)
+const art = (arts: Map<number, string>, a: StatArchetype) => arts.get(a.face?.id ?? -1)
 
-const DeckLine = ({ a, art, rank, t, size = 64 }: { a: StatArchetype; art?: string; rank: number; t: T; size?: number }) => (
-  <div style={{ ...row, gap: 20 }}>
-    <div style={{ display: 'flex', width: 44, fontSize: 30, color: C.muted }}>{rank}</div>
-    <Art src={art} size={size} />
-    <div style={{ ...col, flex: 1, gap: 8 }}>
-      <div style={{ ...row, gap: 12, fontSize: 32, fontWeight: 700 }}>
-        <div style={{ display: 'flex' }}>{nameOf(a, t)}</div>
-        {a.tier ? <div style={{ display: 'flex', fontSize: 22, color: C.tier[a.tier] }}>T{a.tier}</div> : null}
-      </div>
-      <div style={{ ...row, gap: 14 }}>
-        <Bar value={a.metaShare / 0.3} />
-        <div style={{ display: 'flex', width: 110, fontSize: 26, color: C.cyan, justifyContent: 'flex-end' }}>{pct(a.metaShare)}</div>
-      </div>
-    </div>
-    <div style={{ ...col, width: 150, alignItems: 'flex-end' }}>
-      <div style={{ display: 'flex', fontSize: 34, fontWeight: 700, color: wrColor(a.winRate) }}>{pct(a.winRate)}</div>
-      <div style={{ display: 'flex', fontSize: 20, color: C.muted }}>{t('winRate')}</div>
-    </div>
+/** The deck's name in Anton, with its tier beside. */
+const DeckName = ({ a, t, size }: { a: StatArchetype; t: T; size: number }) => (
+  <div style={{ ...row, gap: 18 }}>
+    <div style={{ display: 'flex', fontFamily: F.display, fontSize: size, lineHeight: 1, textTransform: 'uppercase' }}>{nameOf(a, t)}</div>
+    {a.tier ? <Chip color={C.tier[a.tier]} edge={C.tier[a.tier]}>{`Tier ${a.tier}`}</Chip> : null}
   </div>
 )
 
-const overview = async (ctx: Ctx) => {
-  const { data, size, t, locale } = ctx
-  const top = byShare(data).slice(0, 5)
-  const arts = await loadImages(top.map((a) => a.face?.id))
+const Rank = ({ n, gold = false, size = 36 }: { n: number; gold?: boolean; size?: number }) => (
+  <div style={{ display: 'flex', width: size, height: size, alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: gold ? C.gold : C.surface2, color: gold ? C.goldInk : C.ink, fontFamily: F.display, fontSize: size / 2 }}>
+    {String(n).padStart(2, '0')}
+  </div>
+)
+
+const overview = async ({ data, size, t, locale }: Ctx) => {
+  const wide = size === 'wide'
   const tiers = data.tierDistribution
   const tierRows = tiers
-    ? ([['1', tiers.tier1], ['2', tiers.tier2], ['3', tiers.tier3], ['4', tiers.tier4], ['others', tiers.others]] as const)
+    ? ([[1, tiers.tier1], [2, tiers.tier2], [3, tiers.tier3], [4, tiers.tier4], [0, tiers.others]] as const).filter(([, v]) => v.share > 0)
     : []
-  const turn = data.turnOrder.all
-  const left = (
-    <div style={{ ...col, gap: 28, ...(size === 'wide' ? { flex: 1 } : { flexShrink: 0 }) }}>
-      <div style={{ ...row, gap: 20, flexWrap: 'wrap', flexShrink: 0 }}>
-        {([['games', data.totals.games], ['players', data.totals.players], ['matches', data.totals.matches], ['archetypes', data.totals.archetypes]] as const).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', width: size === 'wide' ? '23%' : '48%' }}>
-            <Kpi label={t(`kpi.${k}`)} value={num(v, locale)} size={size === 'wide' ? 46 : 72} />
-          </div>
-        ))}
-      </div>
+  const slices: Slice[] = tierRows.map(([k, v]) => ({ value: v.share, color: k ? C.tier[k]! : C.lineMid, label: k ? `T${k}` : undefined, sub: pct(v.share, 0) }))
+  const kpis = (
+    <div style={{ ...row, gap: 16, flexShrink: 0 }}>
+      {([['games', data.totals.games], ['matches', data.totals.matches], ['players', data.totals.players]] as const).map(([k, v]) => (
+        <Kpi key={k} label={t(`kpi.${k}`)} value={num(v, locale)} size={wide ? 64 : 60} />
+      ))}
+    </div>
+  )
+  const tierPanel = (
+    <Panel n="01" title={t('tiers')} aside={t('tiersMeta')} style={{ flex: 1, gap: 24 }}>
       {tierRows.length ? (
-        <Panel title={t('tiers')}>
-          <div style={{ display: 'flex', height: 36 }}>
-            {tierRows.map(([k, v], i) => (
-              <div key={k} style={{ display: 'flex', width: `${v.share * 100}%`, background: k === 'others' ? C.lineMid : C.tier[i + 1] }} />
-            ))}
-          </div>
-          <div style={{ ...row, gap: 28, flexWrap: 'wrap' }}>
-            {tierRows.map(([k, v], i) => (
-              <div key={k} style={{ ...row, gap: 10, fontSize: 24 }}>
-                <div style={{ display: 'flex', width: 16, height: 16, background: k === 'others' ? C.lineMid : C.tier[i + 1] }} />
-                <div style={{ display: 'flex', color: C.dim }}>{k === 'others' ? t('others') : `T${k}`}</div>
-                <div style={{ display: 'flex' }}>{pct(v.share, 0)}</div>
+        <div style={{ ...row, gap: 36, flex: 1 }}>
+          <Donut
+            slices={slices}
+            size={wide ? 400 : 440}
+            hole={wide ? 150 : 170}
+            center={
+              <div style={{ ...col, alignItems: 'center', gap: 4 }}>
+                <Label size={14}>{t('kpi.archetypes')}</Label>
+                <div style={{ display: 'flex', fontFamily: F.display, fontSize: 64, lineHeight: 1 }}>{num(data.archetypes.length, locale)}</div>
+              </div>
+            }
+          />
+          <div style={{ ...col, gap: 14, flex: 1 }}>
+            {tierRows.map(([k, v]) => (
+              <div key={k} style={{ ...row, gap: 14 }}>
+                <div style={{ display: 'flex', width: 14, height: 14, background: k ? C.tier[k] : C.lineMid, flexShrink: 0 }} />
+                <div style={{ display: 'flex', width: 90, fontSize: 24, fontWeight: 700 }}>{k ? `Tier ${k}` : t('others')}</div>
+                <Bar value={v.share / Math.max(...tierRows.map(([, x]) => x.share), 0.01)} color={k ? C.tier[k] : C.lineMid} />
+                <div style={{ display: 'flex', width: 84, justifyContent: 'flex-end', fontFamily: F.display, fontSize: 28 }}>{pct(v.share, 0)}</div>
+                <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end', ...mono, fontSize: 13, color: C.muted }}>{t('decksCount', { count: v.archetypes })}</div>
               </div>
             ))}
           </div>
-        </Panel>
-      ) : null}
-      <div style={{ ...row, gap: 20, flexShrink: 0 }}>
-        <Kpi label={t('first')} value={pct(turn.first.winRate)} color={wrColor(turn.first.winRate)} size={60} />
-        <Kpi label={t('second')} value={pct(turn.second.winRate)} color={wrColor(turn.second.winRate)} size={60} />
-      </div>
-    </div>
-  )
-  const right = (
-    <Panel title={t('topDecks')} style={{ flex: 1, gap: 26 }}>
-      {top.map((a, i) => <DeckLine key={archKey(a.archetype)} a={a} art={arts.get(a.face?.id ?? -1)} rank={i + 1} t={t} />)}
+        </div>
+      ) : (
+        <Empty>{t('empty')}</Empty>
+      )}
     </Panel>
   )
-  return <div style={{ ...(size === 'wide' ? row : col), alignItems: 'stretch', gap: 32, flex: 1 }}>{left}{right}</div>
+  const Split = ({ label, split, big }: { label: string; split: Statistics['turnOrder']['all']; big: boolean }) => {
+    const f = split.first.winRate
+    const s = split.second.winRate
+    const share = f != null && s != null && f + s > 0 ? f / (f + s) : 0.5
+    return (
+      <div style={{ ...col, gap: 10 }}>
+        <div style={{ ...row, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', fontSize: big ? 26 : 22, fontWeight: 700 }}>{label}</div>
+          <Label size={14}>{t('turnGames', { count: num(split.first.games + split.second.games, locale) })}</Label>
+        </div>
+        <div style={{ ...row, gap: 20 }}>
+          <div style={{ display: 'flex', width: big ? 150 : 110, fontFamily: F.display, fontSize: big ? 56 : 36, lineHeight: 1, color: wrColor(f) }}>{pct(f)}</div>
+          <div style={{ ...row, flex: 1, height: big ? 22 : 12, gap: 3 }}>
+            <div style={{ display: 'flex', width: `${share * 100}%`, height: '100%', background: C.series[0] }} />
+            <div style={{ display: 'flex', flex: 1, height: '100%', background: C.series[2] }} />
+          </div>
+          <div style={{ display: 'flex', width: big ? 150 : 110, justifyContent: 'flex-end', fontFamily: F.display, fontSize: big ? 56 : 36, lineHeight: 1, color: wrColor(s) }}>{pct(s)}</div>
+        </div>
+        <div style={{ ...row, justifyContent: 'space-between' }}>
+          <div style={{ ...row, gap: 8, ...mono, fontSize: 14, color: C.dim }}><div style={{ display: 'flex', width: 10, height: 10, background: C.series[0] }} />{t('first')}</div>
+          <div style={{ ...row, gap: 8, ...mono, fontSize: 14, color: C.dim }}><div style={{ display: 'flex', width: 10, height: 10, background: C.series[2] }} />{t('second')}</div>
+        </div>
+      </div>
+    )
+  }
+  const turnPanel = (
+    <Panel n="02" title={t('turn')} aside={t('turnMeta')} style={{ flex: 1, gap: 28, justifyContent: 'center' }}>
+      <Split label={t('allGames')} split={data.turnOrder.all} big />
+      <div style={{ display: 'flex', height: 1, background: C.line }} />
+      <Split label={t('game1')} split={data.turnOrder.game1} big={false} />
+      <Split label={t('postSide')} split={data.turnOrder.postSide} big={false} />
+    </Panel>
+  )
+  return (
+    <div style={{ ...col, gap: 24, flex: 1 }}>
+      {kpis}
+      <div style={{ ...(wide ? row : col), alignItems: 'stretch', gap: 24, flex: 1 }}>{tierPanel}{turnPanel}</div>
+    </div>
+  )
 }
 
 const trends = async ({ data, size, t }: Ctx) => {
+  const wide = size === 'wide'
   const lines = data.trends
     .map((tr) => ({ ...tr, last: tr.points.at(-1)?.[1] ?? 0 }))
     .sort((a, b) => b.last - a.last)
     .slice(0, 6)
   if (!lines.length) return <Empty>{t('empty')}</Empty>
-  const w = size === 'wide' ? 1180 : 950
-  const h = size === 'wide' ? 540 : 760
+  const byKey = new Map(data.archetypes.map((a) => [archKey(a.archetype), a]))
+  const arts = await loadImages(lines.map((l) => byKey.get(archKey(l.archetype))?.face?.id))
+  const faceOf = (l: (typeof lines)[number]) => arts.get(byKey.get(archKey(l.archetype))?.face?.id ?? -1)
+  const w = wide ? 1150 : 952
+  const h = wide ? 560 : 860
+  const dot = 56
   const maxDay = Math.max(...lines.flatMap((l) => l.points.map((p) => p[0])), 2)
-  const maxShare = Math.max(...lines.flatMap((l) => l.points.map((p) => p[1])), 0.05) * 1.1
-  const x = (d: number) => ((d - 1) / (maxDay - 1)) * w
+  const maxShare = Math.max(...lines.flatMap((l) => l.points.map((p) => p[1])), 0.05) * 1.15
+  const x = (d: number) => ((d - 1) / (maxDay - 1)) * (w - dot / 2)
   const y = (s: number) => h - (s / maxShare) * h
-  const growth = new Map(data.archetypes.map((a) => [archKey(a.archetype), a.growth]))
   const chart = (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1={0} x2={w} y1={h - f * h} y2={h - f * h} stroke={C.line} strokeWidth={2} />)}
-      {lines.map((l, i) => (
-        <polyline key={archKey(l.archetype)} points={l.points.map((p) => `${x(p[0])},${y(p[1])}`).join(' ')} fill="none" stroke={C.series[i]} strokeWidth={6} strokeLinejoin="round" />
-      ))}
-    </svg>
+    <div style={{ display: 'flex', position: 'relative', width: w, height: h, flexShrink: 0 }}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: 'absolute', left: 0, top: 0 }}>
+        {[0.25, 0.5, 0.75, 1].map((f) => <line key={f} x1={0} x2={w} y1={h - f * h} y2={h - f * h} stroke={C.line} strokeWidth={1} />)}
+        {lines.map((l, i) => (
+          <polyline key={archKey(l.archetype)} points={l.points.map((p) => `${x(p[0])},${y(p[1])}`).join(' ')} fill="none" stroke={C.series[i]} strokeWidth={5} strokeLinejoin="round" strokeLinecap="round" />
+        ))}
+      </svg>
+      {/* The deck's art on the end of its line: the legend on the chart. */}
+      {lines.map((l, i) => {
+        const last = l.points.at(-1)
+        if (!last) return null
+        return (
+          <div key={archKey(l.archetype)} style={{ display: 'flex', position: 'absolute', left: x(last[0]) - dot / 2, top: Math.min(h - dot, Math.max(0, y(last[1]) - dot / 2)) }}>
+            <Art src={faceOf(l)} size={dot} radius={dot / 2} edge={C.series[i]!} />
+          </div>
+        )
+      })}
+    </div>
   )
   const legend = (
-    <div style={{ ...col, gap: 22, flex: 1 }}>
+    <div style={{ ...col, gap: 14, flex: 1 }}>
       {lines.map((l, i) => {
-        const g = growth.get(archKey(l.archetype))
+        const g = byKey.get(archKey(l.archetype))?.growth
         return (
-          <div key={archKey(l.archetype)} style={{ ...row, gap: 16 }}>
-            <div style={{ display: 'flex', width: 28, height: 28, background: C.series[i] }} />
-            <div style={{ display: 'flex', flex: 1, fontSize: 30, fontWeight: 700 }}>{nameOf(l, t)}</div>
-            <div style={{ display: 'flex', fontSize: 30, color: C.cyan }}>{pct(l.last)}</div>
-            {g != null ? <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end', fontSize: 24, color: g >= 0 ? C.win : C.loss }}>{`${g >= 0 ? '▲ +' : '▼ '}${(g * 100).toFixed(1)}`}</div> : null}
+          <div key={archKey(l.archetype)} style={{ ...row, gap: 16, padding: '10px 14px', background: C.surface, borderLeft: `4px solid ${C.series[i]}` }}>
+            <Art src={faceOf(l)} size={wide ? 56 : 64} />
+            <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
+              <div style={{ display: 'flex', fontSize: 26, fontWeight: 700 }}>{nameOf(l, t)}</div>
+              <Label size={13}>{t('share')}</Label>
+            </div>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 34, color: C.cyan }}>{pct(l.last)}</div>
+            {g != null ? <div style={{ display: 'flex', width: 110, justifyContent: 'flex-end', ...mono, fontSize: 18, fontWeight: 700, color: g >= 0 ? C.win : C.loss }}>{`${g >= 0 ? '▲ +' : '▼ '}${(g * 100).toFixed(1)}`}</div> : null}
           </div>
         )
       })}
     </div>
   )
   return (
-    <div style={{ ...(size === 'wide' ? row : col), gap: 48, flex: 1 }}>
-      <div style={{ ...col, gap: 12 }}>
-        <Label>{t('shareOverTime', { days: maxDay })}</Label>
+    <div style={{ ...(wide ? row : col), gap: 40, flex: 1, alignItems: 'stretch' }}>
+      <div style={{ ...col, gap: 16 }}>
+        <Head n="01" title={t('shareOverTime', { days: maxDay })} aside={pct(maxShare, 0)} />
         {chart}
       </div>
       {legend}
@@ -139,112 +190,158 @@ const trends = async ({ data, size, t }: Ctx) => {
 }
 
 const deckRanking = async ({ data, size, t, locale }: Ctx) => {
+  const wide = size === 'wide'
   const top = byShare(data).slice(0, 10)
-  const arts = await loadImages(top.map((a) => a.face?.id))
+  if (!top.length) return <Empty>{t('empty')}</Empty>
+  const sleeper = find(data, data.rankings?.sleeper[0] ? archKey(data.rankings.sleeper[0]) : null) ?? null
+  const arts = await loadImages([...top, ...(sleeper ? [sleeper] : [])].map((a) => a.face?.id))
+  const covered = top.reduce((s, a) => s + a.metaShare, 0)
+  const slices: Slice[] = [
+    ...top.map((a, i) => ({ value: a.metaShare, color: C.series[i % C.series.length]!, art: art(arts, a), label: pct(a.metaShare, 0), sub: `#${i + 1}`, edge: a === sleeper ? C.gold : undefined })),
+    ...(covered < 1 ? [{ value: 1 - covered, color: C.surface2, label: pct(1 - covered, 0), sub: t('others') }] : []),
+  ]
+  const rowH = wide ? 48 : 66
   const Row = ({ a, i }: { a: StatArchetype; i: number }) => (
-    <div style={{ ...row, gap: 22, padding: '14px 0', borderBottom: `2px solid ${C.line}` }}>
-      <div style={{ display: 'flex', width: 48, fontSize: 32, color: i < 3 ? C.gold : C.muted }}>{i + 1}</div>
-      <Art src={arts.get(a.face?.id ?? -1)} size={size === 'wide' ? 56 : 84} />
-      <div style={{ ...row, flex: 1, gap: 12 }}>
-        <div style={{ display: 'flex', fontSize: 32, fontWeight: 700 }}>{nameOf(a, t)}</div>
-        {a.tier ? <div style={{ display: 'flex', fontSize: 22, color: C.tier[a.tier] }}>T{a.tier}</div> : null}
+    <div style={{ ...row, gap: 14, height: rowH, padding: '0 12px 0 8px', background: C.surface, flexShrink: 0 }}>
+      <Rank n={i + 1} gold={i === 0} size={rowH - 16} />
+      <Art src={art(arts, a)} size={rowH - 12} />
+      <div style={{ ...col, flex: 1, gap: 5, minWidth: 0 }}>
+        <div style={{ ...row, gap: 10 }}>
+          <div style={{ display: 'flex', fontSize: wide ? 22 : 26, fontWeight: 700, color: a === sleeper ? C.gold : C.ink }}>{nameOf(a, t)}</div>
+          {a.tier ? <div style={{ display: 'flex', ...mono, fontSize: 13, color: C.tier[a.tier] }}>T{a.tier}</div> : null}
+        </div>
+        <Bar value={a.metaShare / (top[0]?.metaShare || 1)} height={3} color={a === sleeper ? C.gold : C.cyan} />
       </div>
-      <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end', fontSize: 30, color: C.cyan }}>{pct(a.metaShare)}</div>
-      <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end', fontSize: 30, fontWeight: 700, color: wrColor(a.winRate) }}>{pct(a.winRate)}</div>
-      {size === 'wide' ? <div style={{ display: 'flex', width: 150, justifyContent: 'flex-end', fontSize: 26, color: C.dim }}>{num(a.games, locale)}</div> : null}
+      <div style={{ display: 'flex', width: 90, justifyContent: 'flex-end', ...mono, fontSize: 16, color: C.muted }}>{pct(a.metaShare)}</div>
+      <div style={{ display: 'flex', width: 110, justifyContent: 'flex-end', fontFamily: F.display, fontSize: wide ? 30 : 34, color: wrColor(a.winRate) }}>{pct(a.winRate)}</div>
     </div>
   )
-  const head = (
-    <div style={{ ...row, gap: 22, fontSize: 22, color: C.muted, textTransform: 'uppercase', letterSpacing: 2 }}>
-      <div style={{ display: 'flex', flex: 1, paddingLeft: size === 'wide' ? 126 : 154 }}>{t('deck')}</div>
-      <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end' }}>{t('share')}</div>
-      <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end' }}>{t('winRate')}</div>
-      {size === 'wide' ? <div style={{ display: 'flex', width: 150, justifyContent: 'flex-end' }}>{t('games')}</div> : null}
+  const table = (
+    <div style={{ ...col, gap: 6, flex: 1 }}>
+      <Head n="01" title={t('topDecks')} aside={`${t('share')} · ${t('winRate')}`} />
+      {top.map((a, i) => <Row key={archKey(a.archetype)} a={a} i={i} />)}
     </div>
   )
-  if (size === 'tall') {
+  const watch = sleeper ? (
+    <div style={{ ...row, gap: 18, padding: '16px 20px', background: C.surface, border: `2px solid ${C.gold}`, flexShrink: 0 }}>
+      <Art src={art(arts, sleeper)} size={wide ? 84 : 96} edge={C.gold} />
+      <div style={{ ...col, gap: 6, flex: 1, minWidth: 0 }}>
+        <Label color={C.gold} weight={700}>{`⚠ ${t('watchOut')}`}</Label>
+        <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 34 : 40, lineHeight: 1, textTransform: 'uppercase' }}>{nameOf(sleeper, t)}</div>
+        <div style={{ display: 'flex', fontSize: 18, color: C.dim }}>{t('sleeperLine', { rate: pct(sleeper.winRate), share: pct(sleeper.metaShare), games: num(sleeper.games, locale) })}</div>
+      </div>
+    </div>
+  ) : null
+  const donut = (
+    <Donut
+      slices={slices}
+      size={wide ? 430 : 560}
+      hole={wide ? 160 : 200}
+      center={
+        <div style={{ ...col, alignItems: 'center', gap: 4 }}>
+          <Label size={14}>{t('top10Share')}</Label>
+          <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 60 : 68, lineHeight: 1 }}>{pct(Math.min(1, covered), 0)}</div>
+          <Label size={13} color={C.cyan}>{data.season.ladder === 'genesys' ? 'GENESYS' : 'TCG'}</Label>
+        </div>
+      }
+    />
+  )
+  if (!wide) {
     return (
-      <div style={{ ...col, gap: 4, flex: 1 }}>
-        {head}
-        {top.map((a, i) => <Row key={archKey(a.archetype)} a={a} i={i} />)}
+      <div style={{ ...col, gap: 24, flex: 1 }}>
+        <div style={{ ...row, justifyContent: 'center' }}>{donut}</div>
+        {watch}
+        {table}
       </div>
     )
   }
   return (
-    <div style={{ ...row, alignItems: 'flex-start', gap: 56, flex: 1 }}>
-      {[top.slice(0, 5), top.slice(5)].map((half, h) => (
-        <div key={h} style={{ ...col, flex: 1, gap: 4 }}>
-          {head}
-          {half.map((a, i) => <Row key={archKey(a.archetype)} a={a} i={i + h * 5} />)}
-        </div>
-      ))}
+    <div style={{ ...row, gap: 40, flex: 1, alignItems: 'stretch' }}>
+      {table}
+      <div style={{ ...col, gap: 20, width: 600, justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ ...row, justifyContent: 'center' }}>{donut}</div>
+        {watch}
+      </div>
     </div>
   )
 }
 
 const matchupMatrix = async ({ data, size, t }: Ctx) => {
-  const decks = [...data.archetypes].sort((a, b) => b.games - a.games).slice(0, 8)
+  const wide = size === 'wide'
+  const decks = [...data.archetypes].sort((a, b) => b.games - a.games).slice(0, 10)
   if (decks.length < 2) return <Empty>{t('empty')}</Empty>
   const arts = await loadImages(decks.map((a) => a.face?.id))
   const cell = new Map(data.matchups.map((m) => [`${archKey(m.archetype)}|${archKey(m.opponent)}`, m]))
-  const side = size === 'wide' ? 60 : 96
-  const nameW = size === 'wide' ? 360 : 150
+  const side = wide ? 56 : 82
+  const gap = 4
   const tint = (m?: Matchup) => {
     if (!m || m.winRate == null || m.games < data.minSamples) return C.surface
     const d = Math.min(1, Math.abs(m.winRate - 0.5) / 0.2)
     const [r, g, b] = m.winRate >= 0.5 ? [79, 220, 140] : [255, 133, 148]
     return `rgba(${r},${g},${b},${0.15 + d * 0.6})`
   }
-  return (
-    <div style={{ ...(size === 'wide' ? row : col), gap: 40, flex: 1, alignItems: 'flex-start' }}>
-      <div style={{ ...col, gap: 4 }}>
-        <div style={{ ...row, gap: 4 }}>
-          <div style={{ display: 'flex', width: nameW }} />
-          {decks.map((o) => <Art key={archKey(o.archetype)} src={arts.get(o.face?.id ?? -1)} size={side} />)}
+  const grid = (
+    <div style={{ ...col, gap, flexShrink: 0 }}>
+      <div style={{ ...row, gap }}>
+        <div style={{ display: 'flex', width: side, height: side, alignItems: 'center', justifyContent: 'center', ...mono, fontSize: 12, color: C.muted }}>{t('vs')}</div>
+        {decks.map((o) => <Art key={archKey(o.archetype)} src={art(arts, o)} size={side} />)}
+      </div>
+      {decks.map((a) => (
+        <div key={archKey(a.archetype)} style={{ ...row, gap }}>
+          <Art src={art(arts, a)} size={side} edge={C.lineMid} />
+          {decks.map((o) => {
+            const m = cell.get(`${archKey(a.archetype)}|${archKey(o.archetype)}`)
+            const mirror = archKey(a.archetype) === archKey(o.archetype)
+            return (
+              <div key={archKey(o.archetype)} style={{ display: 'flex', width: side, height: side, alignItems: 'center', justifyContent: 'center', background: mirror ? C.surface2 : tint(m), fontFamily: F.display, fontSize: wide ? 22 : 28, color: mirror ? C.muted : C.ink }}>
+                {mirror || !m || m.games < data.minSamples ? '—' : pct(m.winRate, 0)}
+              </div>
+            )
+          })}
         </div>
-        {decks.map((a) => (
-          <div key={archKey(a.archetype)} style={{ ...row, gap: 4 }}>
-            <div style={{ ...row, width: nameW, gap: 12, overflow: 'hidden' }}>
-              {size === 'wide' ? (
-                <div style={{ display: 'flex', fontSize: 26, fontWeight: 700 }}>{nameOf(a, t)}</div>
-              ) : (
-                <Art src={arts.get(a.face?.id ?? -1)} size={side} />
-              )}
-            </div>
-            {decks.map((o) => {
-              const m = cell.get(`${archKey(a.archetype)}|${archKey(o.archetype)}`)
-              const mirror = archKey(a.archetype) === archKey(o.archetype)
-              return (
-                <div key={archKey(o.archetype)} style={{ display: 'flex', width: side, height: side, alignItems: 'center', justifyContent: 'center', background: mirror ? C.surface2 : tint(m), fontSize: size === 'wide' ? 20 : 26, fontWeight: 700 }}>
-                  {mirror || !m || m.games < data.minSamples ? '—' : pct(m.winRate, 0)}
-                </div>
-              )
-            })}
+      ))}
+    </div>
+  )
+  // The key to the art, and how to read the grid.
+  const key = (
+    <div style={{ ...col, gap: 16, flex: 1 }}>
+      <Head n="01" title={t('key')} aside={t('minGames', { min: data.minSamples })} />
+      <div style={{ ...row, flexWrap: 'wrap', gap: wide ? 8 : 10 }}>
+        {decks.map((a, i) => (
+          <div key={archKey(a.archetype)} style={{ ...row, gap: 12, width: wide ? '100%' : 466, padding: '6px 10px', background: C.surface }}>
+            <Rank n={i + 1} size={28} />
+            <Art src={art(arts, a)} size={wide ? 40 : 44} />
+            <div style={{ display: 'flex', flex: 1, fontSize: wide ? 22 : 24, fontWeight: 700 }}>{nameOf(a, t)}</div>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 24, color: wrColor(a.winRate) }}>{pct(a.winRate)}</div>
           </div>
         ))}
       </div>
-      <div style={{ ...col, gap: 18, flex: 1 }}>
-        <div style={{ display: 'flex', fontSize: 24, color: C.muted, lineHeight: 1.4 }}>{t('matrixHow', { min: data.minSamples })}</div>
-        {/* Tall rows carry art only: the key to it. */}
-        {size === 'tall' ? (
-          <div style={{ ...row, flexWrap: 'wrap', gap: 14 }}>
-            {decks.map((a) => (
-              <div key={archKey(a.archetype)} style={{ ...row, gap: 14, width: 460, fontSize: 26 }}>
-                <Art src={arts.get(a.face?.id ?? -1)} size={44} />
-                <div style={{ display: 'flex' }}>{nameOf(a, t)}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <div style={{ display: 'flex', fontSize: 18, color: C.muted, lineHeight: 1.4 }}>{t('matrixHow', { min: data.minSamples })}</div>
+    </div>
+  )
+  return (
+    <div style={{ ...(wide ? row : col), gap: 40, flex: 1, alignItems: wide ? 'flex-start' : 'center' }}>
+      {grid}
+      {key}
     </div>
   )
 }
 
-/** `withCards`: the deck's most included cards too; the tall format always has room for them. */
+/** A card with its art, name and two figures under it. */
+const CardTile = ({ src, name, a, b, width, dim = false }: { src?: string; name: string; a: string; b?: string; width: number; dim?: boolean }) => (
+  <div style={{ ...col, gap: 6, width }}>
+    <Art src={src} size={width} />
+    <div style={{ display: 'flex', fontSize: 15, fontWeight: 700, color: C.dim, height: 38, overflow: 'hidden', lineHeight: 1.25 }}>{name}</div>
+    <div style={{ display: 'flex', fontFamily: F.display, fontSize: 24, lineHeight: 1, color: dim ? C.loss : C.cyan }}>{a}</div>
+    {b ? <div style={{ display: 'flex', ...mono, letterSpacing: 1, fontSize: 11, color: C.muted, whiteSpace: 'nowrap' }}>{b}</div> : null}
+  </div>
+)
+
+/** `withCards`: the deck's most included cards and the cards that beat it; the tall format always has room. */
 const archetype = async (ctx: Ctx, withCards: boolean) => {
-  const cards = withCards || ctx.size === 'tall'
   const { data, size, t, locale } = ctx
+  const wide = size === 'wide'
+  const cards = withCards || !wide
   const a = pick(ctx)
   if (!a) return <Empty>{t('empty')}</Empty>
   const key = archKey(a.archetype)
@@ -252,162 +349,216 @@ const archetype = async (ctx: Ctx, withCards: boolean) => {
   const sorted = [...vs].sort((x, y) => y.winRate! - x.winRate!)
   const best = sorted.slice(0, 3)
   const worst = sorted.slice(-3).reverse()
-  const names = new Map(data.archetypes.map((x) => [archKey(x.archetype), nameOf(x, t)]))
-  const topCards = a.cards.slice(0, 6)
-  const arts = await loadImages([a.face?.id, ...(cards ? topCards.map((c) => c.id) : [])])
-  const MatchList = ({ title, list, color }: { title: string; list: Matchup[]; color: string }) => (
-    <Panel title={title} style={{ flex: 1 }}>
-      {list.length ? list.map((m) => (
-        <div key={archKey(m.opponent)} style={{ ...row, gap: 12, fontSize: 28 }}>
-          <div style={{ display: 'flex', flex: 1 }}>{names.get(archKey(m.opponent)) ?? t('unknownDeck')}</div>
-          <div style={{ display: 'flex', color, fontWeight: 700 }}>{pct(m.winRate)}</div>
-        </div>
-      )) : <div style={{ display: 'flex', fontSize: 24, color: C.muted }}>{t('empty')}</div>}
+  const byKey = new Map(data.archetypes.map((x) => [archKey(x.archetype), x]))
+  const topCards = cards ? a.cards.slice(0, 6) : []
+  // The generic cards that hurt the deck most: by its win rate when it faced them, lowest first.
+  const against = cards ? [...(a.against ?? [])].filter((c) => c.games >= data.minSamples && c.winRate != null).sort((x, y) => x.winRate! - y.winRate!).slice(0, 6) : []
+  const arts = await loadImages([a.face?.id, ...topCards.map((c) => c.id), ...against.map((c) => c.id), ...[...best, ...worst].map((m) => byKey.get(archKey(m.opponent))?.face?.id)])
+  const MatchList = ({ n, title, list, color }: { n: string; title: string; list: Matchup[]; color: string }) => (
+    <Panel n={n} title={title} style={{ flex: 1, gap: 12 }}>
+      {list.length ? list.map((m) => {
+        const o = byKey.get(archKey(m.opponent))
+        return (
+          <div key={archKey(m.opponent)} style={{ ...row, gap: 12 }}>
+            <Art src={o ? art(arts, o) : undefined} size={40} />
+            <div style={{ display: 'flex', flex: 1, fontSize: 24, fontWeight: 700 }}>{o ? nameOf(o, t) : t('unknownDeck')}</div>
+            <div style={{ display: 'flex', ...mono, fontSize: 13, color: C.muted }}>{num(m.games, locale)}</div>
+            <div style={{ display: 'flex', width: 100, justifyContent: 'flex-end', fontFamily: F.display, fontSize: 30, color }}>{pct(m.winRate)}</div>
+          </div>
+        )
+      }) : <div style={{ display: 'flex', fontSize: 22, color: C.muted }}>{t('empty')}</div>}
     </Panel>
   )
   const hero = (
-    <div style={{ ...row, gap: 32 }}>
-      <Art src={arts.get(a.face?.id ?? -1)} size={size === 'wide' ? 160 : 240} />
-      <div style={{ ...col, gap: 10, flex: 1 }}>
-        <div style={{ ...row, gap: 16 }}>
-          <div style={{ display: 'flex', fontSize: 64, fontWeight: 700 }}>{nameOf(a, t)}</div>
-          {a.tier ? <div style={{ display: 'flex', fontSize: 36, color: C.tier[a.tier] }}>T{a.tier}</div> : null}
-        </div>
-        <div style={{ display: 'flex', fontSize: 28, color: C.dim }}>
-          {t('rankLine', { rank: byShare(data).indexOf(a) + 1, players: num(a.players, locale) })}
+    <div style={{ ...row, gap: 28, flexShrink: 0 }}>
+      <Art src={art(arts, a)} size={wide ? 176 : 220} edge={C.cyan} />
+      <div style={{ ...col, gap: 14, flex: 1, minWidth: 0 }}>
+        <DeckName a={a} t={t} size={nameOf(a, t).length > (wide && cards ? 12 : 18) ? (wide ? 60 : 52) : wide ? 88 : 72} />
+        <div style={{ ...row, gap: 10, flexWrap: 'wrap' }}>
+          <Chip>{t('rankLine', { rank: byShare(data).indexOf(a) + 1 })}</Chip>
+          <Chip>{t('playersCount', { count: num(a.players, locale) })}</Chip>
+          <Chip>{t('gamesCount', { count: num(a.games, locale) })}</Chip>
         </div>
       </div>
     </div>
   )
   const kpis = (
-    <div style={{ ...row, gap: 20 }}>
-      <Kpi label={t('share')} value={pct(a.metaShare)} color={C.cyan} size={56} />
-      <Kpi label={t('winRate')} value={pct(a.winRate)} color={wrColor(a.winRate)} size={56} />
-      <Kpi label={t('first')} value={pct(a.turnOrder.first.winRate)} size={56} />
-      <Kpi label={t('second')} value={pct(a.turnOrder.second.winRate)} size={56} />
+    <div style={{ ...row, gap: 16, flexShrink: 0, alignItems: 'stretch' }}>
+      <Kpi label={t('share')} value={pct(a.metaShare)} color={C.cyan} size={52} />
+      <Kpi label={t('winRate')} value={pct(a.winRate)} color={wrColor(a.winRate)} size={52} hint={a.ci ? `± ${pct(a.ci.margin)}` : undefined} />
+      <Kpi label={t('first')} value={pct(a.turnOrder.first.winRate)} color={wrColor(a.turnOrder.first.winRate)} size={52} />
+      <Kpi label={t('second')} value={pct(a.turnOrder.second.winRate)} color={wrColor(a.turnOrder.second.winRate)} size={52} />
     </div>
   )
   const matchups = (
-    <div style={{ ...row, gap: 20, alignItems: 'stretch' }}>
-      <MatchList title={t('best')} list={best} color={C.win} />
-      <MatchList title={t('worst')} list={worst} color={C.loss} />
+    <div style={{ ...row, gap: 16, alignItems: 'stretch', flexShrink: 0 }}>
+      <MatchList n="01" title={t('best')} list={best} color={C.win} />
+      <MatchList n="02" title={t('worst')} list={worst} color={C.loss} />
     </div>
   )
-  const cardList = cards ? (
-    <Panel title={t('topCards')} style={{ flex: 1 }}>
-      <div style={{ ...row, gap: 18, flexWrap: 'wrap' }}>
-        {topCards.map((c) => (
-          <div key={c.id} style={{ ...col, gap: 8, width: size === 'wide' ? 150 : 128 }}>
-            <Art src={arts.get(c.id)} size={size === 'wide' ? 150 : 128} />
-            <div style={{ display: 'flex', fontSize: 20, color: C.dim, height: 50, overflow: 'hidden' }}>{c.name ?? '—'}</div>
-            <div style={{ display: 'flex', fontSize: 22, color: C.cyan }}>{pct(c.inclusion, 0)}</div>
-          </div>
-        ))}
-      </div>
+  // Three tiles a row, two rows; the panel is sized to them (tiles, gaps, padding) plus a little slack.
+  const tile = wide ? 96 : 124
+  const panelW = 3 * tile + 2 * 12 + 56 + 8
+  const CardGrid = ({ n, title, aside, items }: { n: string; title: string; aside?: string; items: { src?: string; name: string; a: string; b?: string; dim?: boolean }[] }) => (
+    <Panel n={n} title={title} aside={aside} style={{ flex: 1, gap: 16 }}>
+      {items.length ? (
+        <div style={{ ...row, gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {items.map((c, i) => <CardTile key={i} width={tile} {...c} />)}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', fontSize: 20, color: C.muted }}>{t('empty')}</div>
+      )}
     </Panel>
+  )
+  const cardPanels = cards ? (
+    <div style={{ ...row, gap: 16, alignItems: 'stretch', flex: 1 }}>
+      <CardGrid n="03" title={t('topCards')} items={topCards.map((c: StatCard) => ({ src: arts.get(c.id), name: c.name ?? '—', a: pct(c.inclusion, 0), b: t('copies', { count: c.averageCopies.toFixed(1) }) }))} />
+      <CardGrid n="04" title={t('bestAgainst')} items={against.map((c: AgainstCard) => ({ src: arts.get(c.id), name: c.name ?? '—', a: pct(c.winRate, 0), b: t('facedIn', { rate: pct(c.rate, 0) }), dim: true }))} />
+    </div>
   ) : null
-  if (size === 'wide') {
+  if (wide) {
     return (
-      <div style={{ ...row, gap: 32, flex: 1, alignItems: 'stretch' }}>
-        <div style={{ ...col, gap: 28, flex: 1 }}>{hero}{kpis}{matchups}</div>
-        {cardList ? <div style={{ ...col, width: 560 }}>{cardList}</div> : null}
+      <div style={{ ...row, gap: 24, flex: 1, alignItems: 'stretch' }}>
+        <div style={{ ...col, gap: 20, flex: 1 }}>{hero}{kpis}{matchups}</div>
+        {cardPanels ? <div style={{ ...col, width: 2 * panelW + 16, flexShrink: 0 }}>{cardPanels}</div> : null}
       </div>
     )
   }
-  return <div style={{ ...col, gap: 32, flex: 1 }}>{hero}{kpis}{matchups}{cardList}</div>
+  return <div style={{ ...col, gap: 20, flex: 1 }}>{hero}{kpis}{matchups}{cardPanels}</div>
 }
 
-const cards = async ({ data, size, t }: Ctx) => {
-  const top = (data.mostUsed?.main ?? []).slice(0, 10)
-  if (!top.length) return <Empty>{t('empty')}</Empty>
-  const arts = await loadImages(top.map((c) => c.id))
-  // Two a row, five rows: fits both bodies.
-  const w = size === 'wide' ? 860 : 462
-  return (
-    <div style={{ ...row, flexWrap: 'wrap', gap: 24, flex: 1, alignContent: 'flex-start' }}>
-      {top.map((c, i) => (
-        <div key={c.id} style={{ ...row, gap: 18, width: w, padding: 14, background: C.surface, border: `2px solid ${C.line}` }}>
-          <Art src={arts.get(c.id)} size={size === 'wide' ? 76 : 180} />
-          <div style={{ ...col, gap: 8, flex: 1 }}>
-            <div style={{ ...row, gap: 10 }}>
-              <div style={{ display: 'flex', fontSize: 24, color: i < 3 ? C.gold : C.muted }}>#{i + 1}</div>
-              {c.handTrap ? <div style={{ display: 'flex', fontSize: 18, color: C.gold, border: `2px solid ${C.gold}`, padding: '2px 8px' }}>{t('handTrap')}</div> : null}
-            </div>
-            <div style={{ display: 'flex', fontSize: 26, fontWeight: 700, maxHeight: 64, overflow: 'hidden' }}>{c.name ?? '—'}</div>
-            <div style={{ ...row, justifyContent: 'space-between', fontSize: 22 }}>
-              <div style={{ display: 'flex', color: C.cyan }}>{t('inDecks', { rate: pct(c.popularity, 0) })}</div>
-              <div style={{ display: 'flex', color: wrColor(c.winRateWhenUsed) }}>{pct(c.winRateWhenUsed, 0)}</div>
+const COMPARE = [
+  { id: 'winRate', value: (a: StatArchetype) => a.winRate },
+  { id: 'metaShare', value: (a: StatArchetype) => a.metaShare },
+  { id: 'first', value: (a: StatArchetype) => a.turnOrder.first.winRate },
+  { id: 'second', value: (a: StatArchetype) => a.turnOrder.second.winRate },
+  { id: 'game1', value: (a: StatArchetype) => a.sideboarding.game1.winRate },
+  { id: 'postSide', value: (a: StatArchetype) => a.sideboarding.postSide.winRate },
+] as const
+
+/** Up to three decks side by side: a grouped bar per metric, the best of each row in green. */
+const comparator = async (ctx: Ctx, tm: T) => {
+  const { data, size, t, locale, key } = ctx
+  const wide = size === 'wide'
+  const picked = [...new Set((key ?? '').split(','))].flatMap((k) => find(data, k) ?? [])
+  const decks = (picked.length ? picked : byShare(data).slice(0, 2)).slice(0, 3)
+  if (decks.length < 2) return <Empty>{t('empty')}</Empty>
+  const arts = await loadImages(decks.map((a) => a.face?.id))
+  const head = (
+    <div style={{ ...row, gap: 16, flexShrink: 0 }}>
+      {decks.map((a, i) => (
+        <div key={archKey(a.archetype)} style={{ ...row, gap: 16, flex: 1, padding: 16, background: C.surface, borderTop: `4px solid ${C.series[i]}` }}>
+          <Art src={art(arts, a)} size={wide ? 96 : 110} edge={C.series[i]!} />
+          <div style={{ ...col, gap: 8, flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 40 : 34, lineHeight: 1, textTransform: 'uppercase' }}>{nameOf(a, t)}</div>
+            <div style={{ ...row, gap: 12, flexWrap: 'wrap', ...mono, fontSize: 14, color: C.muted }}>
+              {a.tier ? <div style={{ display: 'flex', color: C.tier[a.tier], whiteSpace: 'nowrap' }}>Tier {a.tier}</div> : null}
+              <div style={{ display: 'flex', whiteSpace: 'nowrap' }}>{t('gamesCount', { count: num(a.games, locale) })}</div>
+              <div style={{ display: 'flex', whiteSpace: 'nowrap' }}>{t('playersCount', { count: num(a.players, locale) })}</div>
             </div>
           </div>
         </div>
       ))}
     </div>
   )
-}
-
-const sampleDecks = async (ctx: Ctx) => {
-  const { data, size, t, key } = ctx
-  const decks = data.sampleDecks ?? []
-  const deck = (key && decks.find((d) => archKey(d.archetype) === key)) || decks[0]
-  if (!deck) return <Empty>{t('empty')}</Empty>
-  const images = await loadImages([...deck.main, ...deck.extra].map((c) => c.id), 'card')
-  const total = (list: { count: number }[]) => list.reduce((s, c) => s + c.count, 0)
-  const cw = size === 'wide' ? 96 : 112
-  const Grid = ({ title, list, width }: { title: string; list: typeof deck.main; width: number }) => (
-    <div style={{ ...col, gap: 14, width }}>
-      <Label color={C.cyan}>{title}</Label>
-      <div style={{ ...row, flexWrap: 'wrap', gap: 10, alignItems: 'flex-start' }}>
-        {list.map((c) => (
-          <div key={c.id} style={{ display: 'flex', position: 'relative', width: cw, height: Math.round(cw * 1.46) }}>
-            {images.get(c.id) ? (
-              // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-              <img src={images.get(c.id)} width={cw} height={Math.round(cw * 1.46)} style={{ width: cw, height: Math.round(cw * 1.46) }} />
-            ) : (
-              <div style={{ display: 'flex', width: cw, height: Math.round(cw * 1.46), background: C.surface2, fontSize: 16, padding: 8, color: C.dim }}>{c.name ?? c.id}</div>
-            )}
-            {c.count > 1 ? (
-              <div style={{ display: 'flex', position: 'absolute', right: 6, bottom: 6, padding: '2px 10px', background: C.bg, border: `2px solid ${C.cyan}`, color: C.cyan, fontSize: 22, fontWeight: 700 }}>{`×${c.count}`}</div>
-            ) : null}
+  const barH = wide ? (decks.length > 2 ? 16 : 22) : decks.length > 2 ? 26 : 36
+  const chart = (
+    <div style={{ ...col, gap: wide ? 12 : 36, flex: 1 }}>
+      {COMPARE.map((m) => {
+        const values = decks.map((a) => m.value(a))
+        const max = Math.max(...values.map((v) => v ?? 0), 1e-9)
+        const bestV = values.reduce<number | null>((b, v) => (v != null && (b == null || v > b) ? v : b), null)
+        return (
+          <div key={m.id} style={{ ...row, gap: 24, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', width: wide ? 220 : 200, paddingTop: 2, fontSize: wide ? 22 : 26, fontWeight: 700 }}>{tm(`metrics.${m.id}`)}</div>
+            <div style={{ ...col, gap: 4, flex: 1 }}>
+              {decks.map((a, i) => {
+                const v = values[i]
+                const best = v != null && v === bestV && m.id !== 'metaShare'
+                return (
+                  <div key={archKey(a.archetype)} style={{ ...row, gap: 12 }}>
+                    <div style={{ display: 'flex', flex: 1, height: barH, background: C.surface }}>
+                      <div style={{ display: 'flex', width: `${v == null ? 0 : (v / max) * 100}%`, height: barH, background: C.series[i] }} />
+                    </div>
+                    {/* `lineHeight: 1`: the text, not the bar, sets the row's height. */}
+                    <div style={{ display: 'flex', width: 96, justifyContent: 'flex-end', fontFamily: F.display, fontSize: wide && decks.length > 2 ? 18 : 24, lineHeight: 1, color: best ? C.win : C.ink }}>{pct(v)}</div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        ))}
-      </div>
+        )
+      })}
     </div>
   )
-  const head = (
-    <div style={{ ...row, gap: 20, fontSize: 30 }}>
-      <div style={{ display: 'flex', fontSize: 48, fontWeight: 700 }}>{nameOf(deck, t)}</div>
-      <div style={{ display: 'flex', color: C.dim }}>{t('lists', { count: deck.lists })}</div>
-    </div>
-  )
-  if (size === 'wide') {
-    return (
-      <div style={{ ...col, gap: 24, flex: 1 }}>
-        {head}
-        <div style={{ ...row, gap: 40, alignItems: 'flex-start' }}>
-          <Grid title={t('main', { count: total(deck.main) })} list={deck.main} width={10 * (cw + 10)} />
-          <Grid title={t('extra', { count: total(deck.extra) })} list={deck.extra} width={6 * (cw + 10)} />
-        </div>
-      </div>
-    )
-  }
   return (
     <div style={{ ...col, gap: 28, flex: 1 }}>
       {head}
-      <Grid title={t('main', { count: total(deck.main) })} list={deck.main} width={952} />
-      <Grid title={t('extra', { count: total(deck.extra) })} list={deck.extra} width={952} />
+      <Head n="01" title={t('headToHead')} aside={t('bestInGreen')} />
+      {chart}
     </div>
   )
 }
 
-const BODY: Record<Section, (ctx: Ctx) => Promise<React.ReactNode>> = {
+/** Top 10 main-deck cards as a butterfly: popularity growing left, win rate with and without the card growing right. */
+const cards = async ({ data, size, t }: Ctx) => {
+  const wide = size === 'wide'
+  const top = (data.mostUsed?.main ?? []).slice(0, 10)
+  if (!top.length) return <Empty>{t('empty')}</Empty>
+  const arts = await loadImages(top.map((c) => c.id))
+  const maxPop = Math.max(...top.map((c) => c.popularity), 0.01)
+  const tile = wide ? 54 : 84
+  const rowGap = wide ? 6 : 12
+  return (
+    <div style={{ ...col, gap: rowGap, flex: 1 }}>
+      <div style={{ ...row, gap: 24 }}>
+        <div style={{ ...row, flex: 1 }}><Head n="01" title={t('popularity')} aside={t('inDecksShort')} /></div>
+        <div style={{ display: 'flex', width: tile + 48 }} />
+        <div style={{ ...row, flex: 1 }}><Head n="02" title={t('withWithout')} /></div>
+      </div>
+      {top.map((c, i) => {
+        const withWr = c.winRateWith ?? c.winRateWhenUsed
+        return (
+          <div key={c.id} style={{ ...row, gap: 24, flex: 1 }}>
+            <div style={{ ...row, flex: 1, gap: 14, justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 28 : 32, color: C.cyan }}>{pct(c.popularity, 0)}</div>
+              <Bar value={c.popularity / maxPop} height={tile - 16} reverse color={C.cyan} track={C.surface} />
+            </div>
+            <div style={{ ...row, gap: 8, width: tile + 48, justifyContent: 'center' }}>
+              <Rank n={i + 1} gold={i < 3} size={28} />
+              <Art src={arts.get(c.id)} size={tile} edge={c.handTrap ? C.gold : C.line} />
+            </div>
+            <div style={{ ...col, flex: 1, gap: 4, justifyContent: 'center' }}>
+              {([[withWr, C.win], [c.winRateWithout, C.lineMid]] as const).map(([v, color], k) => (
+                <div key={k} style={{ ...row, gap: 12 }}>
+                  <div style={{ display: 'flex', flex: 1, height: (tile - 20) / 2, background: C.surface }}>
+                    <div style={{ display: 'flex', width: `${v == null ? 0 : v * 100}%`, height: '100%', background: color }} />
+                  </div>
+                  <div style={{ display: 'flex', width: 80, justifyContent: 'flex-end', fontFamily: F.display, fontSize: wide ? 22 : 26, color: wrColor(v) }}>{pct(v, 0)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      <div style={{ ...row, gap: 28, justifyContent: 'flex-end', ...mono, fontSize: 13, color: C.muted }}>
+        <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, background: C.win }} />{t('with')}</div>
+        <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, background: C.lineMid }} />{t('without')}</div>
+        <div style={{ ...row, gap: 8 }}><div style={{ display: 'flex', width: 12, height: 12, border: `2px solid ${C.gold}` }} />{t('handTrap')}</div>
+      </div>
+    </div>
+  )
+}
+
+const BODY: Record<Section, (ctx: Ctx, tm: T) => Promise<React.ReactNode>> = {
   overview,
   trends,
   'deck-ranking': deckRanking,
   'matchup-matrix': matchupMatrix,
   'archetype-analysis': (ctx) => archetype(ctx, false),
+  comparator,
   cards,
   'deep-dive': (ctx) => archetype(ctx, true),
-  'sample-decks': sampleDecks,
 }
 
 export const GET = async (request: Request, { params }: { params: Promise<{ section: string }> }) => {
@@ -419,14 +570,17 @@ export const GET = async (request: Request, { params }: { params: Promise<{ sect
   if (!result.ok) return new Response(null, { status: result.status === 404 ? 404 : 502 })
   const { data } = result
   const size = sizeOf(q)
-  const { t, locale } = await translator(q, 'Infographic')
+  const [{ t, locale }, { t: tm }] = await Promise.all([translator(q, 'Infographic'), translator(q, 'Statistics.comparator')])
   const day = data.syncedDays.last ? new Date(`${data.syncedDays.last.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null
-  const body = await BODY[section as Section]({ data, size, t, locale, key: q.get('key') })
+  const body = await BODY[section as Section]({ data, size, t, locale, key: q.get('key') }, tm)
   return render({
     size,
+    eyebrow: t('source'),
+    aside: day ? t('asOf', { date: day }) : undefined,
     title: t(`sections.${section}`),
-    subtitle: t('season', { label: data.season.label, ladder: data.season.ladder === 'genesys' ? 'Genesys' : 'TCG' }),
-    footer: day ? t('updated', { date: day, games: num(data.totals.games, locale) }) : t('source'),
+    subtitle: data.season.ladder === 'genesys' ? 'Genesys' : 'TCG',
+    chips: [data.season.label, t('gamesCount', { count: num(data.totals.games, locale) }), t('playersCount', { count: num(data.totals.players, locale) })],
+    footer: t('footer', { days: data.syncedDays.count }),
     body,
     // The statistics endpoint's own 5 minutes.
     cache: 'public, max-age=300, s-maxage=300',

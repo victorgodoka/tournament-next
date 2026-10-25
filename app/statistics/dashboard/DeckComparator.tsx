@@ -2,7 +2,7 @@
 
 /** Side-by-side figures of up to 3 archetypes; the best of each row gets a star. */
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
@@ -31,7 +31,8 @@ const METRICS: Metric[] = [
   { id: 'mirrors', value: (a) => a.mirrorShare, format: pct },
 ]
 
-export const DeckComparator = ({ archetypes, preselected = [] }: { archetypes: StatArchetype[]; preselected?: StatArchetype[] }) => {
+/** `infographic`: the PNG links for the decks picked, in the panel's actions. */
+export const DeckComparator = ({ archetypes, preselected = [], infographic }: { archetypes: StatArchetype[]; preselected?: StatArchetype[]; infographic?: (keys: string[]) => ReactNode }) => {
   const t = useTranslations('Statistics.comparator')
   const [keys, setKeys] = useState(() => preselected.slice(0, MAX_COMPARE).map((a) => archKey(a.archetype)))
   const byKey = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
@@ -48,7 +49,7 @@ export const DeckComparator = ({ archetypes, preselected = [] }: { archetypes: S
   }
 
   return (
-    <Panel title={t('title')} meta={t('meta', { count: MAX_COMPARE })}>
+    <Panel title={t('title')} meta={t('meta', { count: MAX_COMPARE })} actions={infographic?.(selected.map((a) => archKey(a.archetype)))}>
       <div className="mb-4">
         <DeckPicker pool={archetypes} selected={keys} onChange={setKeys} max={MAX_COMPARE} label={t('add')} removeLabel={(name) => t('remove', { name })} />
       </div>

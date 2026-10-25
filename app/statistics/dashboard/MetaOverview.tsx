@@ -22,7 +22,6 @@ const KpiStrip = ({ data }: { data: Statistics }) => {
     [t('kpi.deckGames'), num(data.totals.games)],
     [t('kpi.matches'), num(data.totals.matches)],
     [t('kpi.players'), num(data.totals.players)],
-    [t('kpi.archetypes'), num(data.archetypes.length), t('kpi.archetypesHint', { count: num(data.totals.archetypes), min: data.minSamples })],
     [
       t('kpi.updated'),
       last ? new Date(`${last}T00:00:00Z`).toLocaleDateString(locale, { day: '2-digit', month: 'short', timeZone: 'UTC' }) : '—',
@@ -30,7 +29,7 @@ const KpiStrip = ({ data }: { data: Statistics }) => {
     ],
   ]
   return (
-    <dl className="grid grid-cols-2 gap-px border border-line bg-line min-[720px]:grid-cols-3 min-[1200px]:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-px border border-line bg-line min-[720px]:grid-cols-4">
       {items.map(([label, value, hint]) => (
         <div key={label} className="flex min-w-0 flex-col gap-1 bg-surface-100 px-5 py-4">
           <dt className="truncate text-ink-muted signal-sm">{label}</dt>

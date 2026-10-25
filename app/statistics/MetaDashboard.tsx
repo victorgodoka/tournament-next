@@ -9,7 +9,6 @@ import { useEffect, useState, useTransition } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
-import { Notice } from '@ui/notice'
 import { Panel } from '@ui/panel'
 import { Button } from '@ui/button'
 import { Segmented } from '@ui/choice'
@@ -110,7 +109,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
     )
   }
 
-  const { season: seasonData, archetypes, matchups, mostUsed, trends, minSamples, syncedDays } = data
+  const { season: seasonData, archetypes, matchups, mostUsed, trends, syncedDays } = data
   const day = (iso: string) => new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', timeZone: 'UTC' })
 
   const byKey = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
@@ -121,13 +120,13 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
   const rank = focus ? archetypes.indexOf(focus) + 1 : 0
   const selectedArch = (selectedArchKey && byKey.get(selectedArchKey)) || archetypes[0] || null
   // The section as a PNG (/statistics/infographic/*), same season and deck as on screen.
-  const infographic = (section: NavSection, key?: string) => (
+  const infographic = (section: NavSection | 'comparator', key?: string, className = 'mb-3 justify-end') => (
     <InfographicLinks
       label={t('infographic.label')}
       hint={t('infographic.hint')}
       sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
       items={[{ file: `${section}-${seasonData.code}`, href: (size) => `/statistics/infographic/${section}?${new URLSearchParams({ ladder, ...(season ? { season } : {}), ...(key ? { key } : {}), size, locale })}` }]}
-      className="mb-3 justify-end"
+      className={className}
     />
   )
 
@@ -210,7 +209,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
                 scrollToSection('deep-dive')
               }}
             />
-            <DeckComparator archetypes={archetypes} preselected={archetypes.slice(0, 2)} />
+            <DeckComparator archetypes={archetypes} preselected={archetypes.slice(0, 2)} infographic={(keys) => (keys.length > 1 ? infographic('comparator', keys.join(','), 'mb-0') : null)} />
           </section>
 
           <section id={sectionId('cards')} aria-label={t('nav.cards')} className="scroll-mt-24">
@@ -255,17 +254,10 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
           </section>
 
           <section id={sectionId('sample-decks')} aria-label={t('nav.sample-decks')} className="scroll-mt-24">
-            {infographic('sample-decks')}
             <SampleDecks decks={data.sampleDecks ?? []} />
           </section>
 
           <AdBanner id="ad-bottom" placement="content" />
-
-          <section aria-label={t('method.title')}>
-            <Notice title={t('method.title')} date={syncedDays.last ? day(syncedDays.last) : undefined} mark>
-              {t('method.body', { minSamples })}
-            </Notice>
-          </section>
         </div>
       </div>
     </div>
