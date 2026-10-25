@@ -12,7 +12,7 @@ export const Footer = ({ className }: { className?: string }) => (
     <VipPromo className="mb-8" />
     <div className="flex flex-wrap items-center justify-between gap-5">
       <div className="flex items-center gap-3">
-        <Image src="/omega-mark.png" alt="" width={30} height={28} />
+        <Image src="/omega-mark.png" alt="" width={30} height={30} />
         <span className="text-ink-muted mono-note">{FOOTER_DISCLAIMER}</span>
       </div>
       <nav aria-label="Footer" className="flex flex-wrap gap-6 signal-strong">

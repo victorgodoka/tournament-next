@@ -1112,7 +1112,7 @@ const Page = ({ m, me, defaultSelected, defaultTab, height }: MessengerPageProps
         />
       ) : (
         <div className="oh-msgr-none">
-          <Image src="/omega-mark.png" alt="" width={60} height={56} />
+          <Image src="/omega-mark.png" alt="" width={60} height={60} />
           <h2>Pick a conversation</h2>
           <p>Chats, friends and rivals are on the left. Messages arrive when you open or refresh a chat; there&apos;s no live feed.</p>
         </div>

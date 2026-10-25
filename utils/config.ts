@@ -10,8 +10,8 @@ export const SITE_DESCRIPTION =
 
 export const OG_IMAGE = {
   url: '/logo.png',
-  width: 153,
-  height: 142,
+  width: 512,
+  height: 512,
   alt: 'YGO Omega logo',
 } as const
 

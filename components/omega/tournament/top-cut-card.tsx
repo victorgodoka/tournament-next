@@ -296,11 +296,11 @@ const draw = (
   })
 
   // Footer.
-  if (logo) ctx.drawImage(logo, L, H - 40 - 48, 52, 48)
-  text(ctx, 'OMEGA HUB', L + 68, H - 40 - 16, `400 22px ${MICH}`, C.ink, { spacing: 0.9 })
+  if (logo) ctx.drawImage(logo, L, H - 40 - 48, 48, 48)
+  text(ctx, 'OMEGA HUB', L + 64, H - 40 - 16, `400 22px ${MICH}`, C.ink, { spacing: 0.9 })
   ctx.font = `400 22px ${MICH}`
   ctx.letterSpacing = '0.9px'
-  const brandEnd = L + 68 + ctx.measureText('OMEGA HUB').width + 16
+  const brandEnd = L + 64 + ctx.measureText('OMEGA HUB').width + 16
   ctx.letterSpacing = '0px'
   ctx.fillStyle = C.lineMid
   ctx.fillRect(brandEnd, H - 40 - 38, 1, 28)

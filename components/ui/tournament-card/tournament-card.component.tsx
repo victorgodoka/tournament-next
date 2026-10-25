@@ -62,7 +62,7 @@ export const TournamentCard = ({
         {art ? (
           <Image src={art} alt="" fill sizes="360px" unoptimized className="object-cover" />
         ) : (
-          <Image src="/omega-mark.png" alt="" width={64} height={60} className="absolute right-4 bottom-3 opacity-90" />
+          <Image src="/omega-mark.png" alt="" width={64} height={64} className="absolute right-4 bottom-3 opacity-90" />
         )}
         <div className="absolute top-4 left-4 flex gap-1.5">
           {status === 'live' ? <Chip tone="live">Live</Chip> : null}

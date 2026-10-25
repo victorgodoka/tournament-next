@@ -36,7 +36,7 @@ const isActive = (pathname: string, { to, children }: NavbarItem) =>
 const Brand = () => (
   <Link href="/" aria-label="Omega Hub" className="flex shrink-0 items-center gap-2.5 text-ink wordmark text-[14px]">
     {/* Raster with its own glow: only on space-000 / surface-100 / surface-200, never recolored. */}
-    <Image src="/omega-mark.png" alt="" width={30} height={28} priority />
+    <Image src="/omega-mark.png" alt="" width={30} height={30} priority />
     <span className="hidden sm:inline">Omega Hub</span>
   </Link>
 )

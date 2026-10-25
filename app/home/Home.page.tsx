@@ -125,7 +125,7 @@ const LiveCardFan = async ({ ranked }: { ranked: Ranked }) => {
 const Hero = ({ ranked }: { ranked: Ranked }) => (
   <section id="top" className="dots relative overflow-hidden border-b border-line pt-[calc(4rem+clamp(56px,8vw,120px))] pb-[clamp(64px,9vw,140px)]">
     <div aria-hidden className="absolute top-[-18%] right-[-12%] aspect-square w-[min(900px,90%)] rounded-round bg-[radial-gradient(circle,rgba(0,253,255,0.22)_0%,rgba(74,111,216,0.16)_35%,rgba(8,10,20,0)_68%)]" />
-    <Image src="/omega-mark.png" alt="" width={720} height={672} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
+    <Image src="/omega-mark.png" alt="" width={720} height={720} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
       <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android">Free · every card unlocked</Eyebrow>
       <h1 className="font-display text-[clamp(52px,10.4vw,115px)] leading-[0.88] tracking-[-0.005em] uppercase text-balance">
@@ -550,9 +550,9 @@ const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
 
 const ClosingCta = () => (
   <section className="relative mt-[clamp(80px,11vw,160px)] overflow-hidden border-t border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_50%_70%_at_50%_100%,rgba(0,253,255,0.18),rgba(0,0,0,0)_70%)] py-[clamp(72px,10vw,144px)]">
-    <Image src="/omega-mark.png" alt="" width={820} height={765} sizes="min(820px, 120vw)" aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
+    <Image src="/omega-mark.png" alt="" width={820} height={820} sizes="min(820px, 120vw)" aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
     <div className={twMerge(WRAP, "relative flex flex-col items-center gap-8 text-center")}>
-      <Image src="/omega-mark.png" alt="" width={88} height={82} />
+      <Image src="/omega-mark.png" alt="" width={88} height={88} />
       <h2 className="max-w-[16ch] font-display text-[clamp(44px,8vw,120px)] leading-[0.9] uppercase text-balance">
         Free automatic Yu-Gi-Oh! simulator. <span className="text-cyan">Ranked, scripted, judged by the engine.</span>
       </h2>

@@ -20,7 +20,7 @@ export const Notice = ({ title = 'Notice', date, version, mark, tone = 'gold', c
     <p className="text-ink body">{children}</p>
     {version || mark ? (
       <div className="flex items-center justify-between gap-3 border-t border-line pt-3 text-ink-muted signal-sm">
-        {mark ? <Image src="/omega-mark.png" alt="" width={26} height={24} /> : <span />}
+        {mark ? <Image src="/omega-mark.png" alt="" width={26} height={26} /> : <span />}
         <span>{version}</span>
       </div>
     ) : null}

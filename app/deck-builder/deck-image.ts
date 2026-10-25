@@ -343,7 +343,7 @@ const titleLines = (ctx: CanvasRenderingContext2D, title: string, maxW: number, 
 }
 
 const footer = (ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, x: number, bottom: number, right: number, tall: boolean, cta: string) => {
-  const [lw, lh, brand, site] = tall ? [64, 59, 28, 22] : [52, 48, 22, 16]
+  const [lw, lh, brand, site] = tall ? [59, 59, 28, 22] : [48, 48, 22, 16]
   const top = bottom - lh
   const mid = top + lh / 2
   if (logo) ctx.drawImage(logo, x, top, lw, lh)

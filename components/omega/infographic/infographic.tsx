@@ -274,7 +274,7 @@ export const render = async ({ size, eyebrow, aside, title, subtitle, chips = []
           <div style={{ ...row, justifyContent: 'space-between', gap: 24, flexShrink: 0 }}>
             <div style={{ ...row, gap: 16 }}>
               {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
-              {logo ? <img src={logo} width={52} height={48} style={{ width: 52, height: 48 }} /> : null}
+              {logo ? <img src={logo} width={48} height={48} style={{ width: 48, height: 48 }} /> : null}
               <div style={{ display: 'flex', fontFamily: F.brand, fontSize: 22, letterSpacing: 0.9, color: C.ink }}>{BRAND}</div>
               <div style={{ display: 'flex', width: 1, height: 28, background: C.lineMid }} />
               <div style={{ display: 'flex', fontFamily: F.mono, fontSize: 19, letterSpacing: 1.4, color: C.cyan }}>{SITE}</div>
