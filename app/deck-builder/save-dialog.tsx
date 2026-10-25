@@ -2,16 +2,16 @@
 
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { FilterChip } from '@ui/chip'
 import { Segmented } from '@ui/choice'
 import { Dialog } from '@ui/dialog'
-import { Field, TextArea, TextInput } from '@ui/field'
+import { Field, Select, TextArea, TextInput } from '@ui/field'
 import { CARD_ART_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
-import { DECK_TAGS, VISIBILITIES, type DeckMeta } from '@utils/decks'
+import { DECK_TAGS, listSeasons, seasonName, VISIBILITIES, type DeckMeta, type Season } from '@utils/decks'
 import type { SaveDetails } from './use-save'
 
 const FORM_ID = 'deck-save'
@@ -68,8 +68,13 @@ const SaveForm = (p: SaveDialogProps) => {
   const [name, setName] = useState(p.name)
   const [meta, setMeta] = useState(p.meta)
   const [links, setLinks] = useState(p.meta.links.join('\n'))
+  const [seasons, setSeasons] = useState<Season[]>([])
   const set = (patch: Partial<DeckMeta>) => setMeta((m) => ({ ...m, ...patch }))
   const covers = [...new Set(p.cards)]
+
+  useEffect(() => {
+    listSeasons().then(setSeasons)
+  }, [])
 
   const linkList = links.split('\n').map((l) => l.trim()).filter(Boolean)
   const linkError = linkList.length > MAX_LINKS ? t('saveDialog.tooManyLinks', { max: MAX_LINKS })
@@ -96,6 +101,16 @@ const SaveForm = (p: SaveDialogProps) => {
           value={meta.visibility}
           onChange={(visibility) => set({ visibility })}
           options={VISIBILITIES.map((v) => ({ value: v, label: t(`myDecks.visibility.${v}`) }))}
+        />
+      </Field>
+
+      <Field label={t('saveDialog.season')} htmlFor="deck-save-season" hint={t('saveDialog.seasonHint')}>
+        <Select
+          id="deck-save-season"
+          block
+          options={[{ value: '', label: t('saveDialog.noSeason') }, ...seasons.map((s) => ({ value: String(s.id), label: seasonName(s) }))]}
+          value={meta.seasonId === null ? '' : String(meta.seasonId)}
+          onChange={(e) => set({ seasonId: e.target.value ? Number(e.target.value) : null })}
         />
       </Field>
 

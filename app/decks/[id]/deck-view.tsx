@@ -22,7 +22,7 @@ import { cardsByIds } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import type { CardMap, Zone } from '@utils/deck/types'
-import { deleteDeckComment, likeDeck, postDeckComment, unlikeDeck, type DeckSocial, type SavedDeck } from '@utils/decks'
+import { deleteDeckComment, likeDeck, postDeckComment, seasonName, unlikeDeck, type DeckSocial, type SavedDeck } from '@utils/decks'
 import { cardLoader } from '@utils/image-loader'
 import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
@@ -97,7 +97,8 @@ export const DeckView = ({ deck, social }: Props) => {
 
   const art = deck.coverCardId ?? deck.label?.artCardId
   const formatName = banlists.find((b) => b.id === deck.format)?.name
-  const meta = [deck.label?.name, formatName, t('tray.counts', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length }), t('page.revision', { revision: deck.revision })]
+  // The season is the banlist of its time; without one, the list the editor validated against.
+  const meta = [deck.label?.name, deck.season ? seasonName(deck.season) : formatName, t('tray.counts', { main: deck.main.length, extra: deck.extra.length, side: deck.side.length }), t('page.revision', { revision: deck.revision })]
   /** A copy for anyone but the owner: the editor reads `?d=` and says so. */
   const copyHref = `/deck-builder?${new URLSearchParams({ d: toYdke(zones), name: deck.name, copy: '' })}`
 

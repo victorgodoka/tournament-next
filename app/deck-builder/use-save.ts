@@ -13,7 +13,7 @@ import { clearDraft, draftKey, readDraft, sameDraft, writeDraft, type Draft } fr
 /** The editor's content as a local draft, stamped now. Call it from effects, handlers and callbacks, never in render. */
 export const draftOf = (s: EditorState): Draft => ({ deck: s.deck, name: s.name, format: s.format, revision: s.revision, at: Date.now() })
 
-export const NEW_META: DeckMeta = { visibility: 'private', coverCardId: null, description: '', links: [], deckTags: [] }
+export const NEW_META: DeckMeta = { visibility: 'private', coverCardId: null, description: '', links: [], deckTags: [], seasonId: null }
 
 export const metaOf = (deck: SavedDeck): DeckMeta => ({
   visibility: deck.visibility,
@@ -21,6 +21,7 @@ export const metaOf = (deck: SavedDeck): DeckMeta => ({
   description: deck.description,
   links: deck.links,
   deckTags: deck.deckTags,
+  seasonId: deck.season?.id ?? null,
 })
 
 /** What the save dialog confirms: the showcase plus the name. */

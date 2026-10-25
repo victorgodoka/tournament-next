@@ -14,6 +14,13 @@ export type DeckLabel = { name: string; artCardId: number | null }
 export type DeckCounts = { main: number; extra: number; side: number }
 export type DeckOwner = { id: string; name: string | null; avatarUrl: string | null }
 
+/** The ranked season a deck belongs to: the banlist of that time. Not `format`, the list the editor validates against. */
+export type DeckSeason = { id: number; code: string; format: 'TCG' | 'Genesys'; label: string }
+export type Season = DeckSeason & { startsAt: string; endsAt: string | null }
+
+/** "TCG · Season 3": the format, since labels repeat across queues. */
+export const seasonName = (season: DeckSeason) => `${season.format} · ${season.label}`
+
 export type SavedDeck = {
   id: string
   ownerId: string
@@ -41,6 +48,7 @@ export type SavedDeck = {
   updatedAt: string
   /** The archetype name the rest of the site shows for this list, `null` without one. */
   label: DeckLabel | null
+  season: DeckSeason | null
 }
 
 /** What the listings return: no cards, no notes. */
@@ -60,16 +68,26 @@ export type DeckSummary = {
   links: string[]
   deckTags: DeckTag[]
   label: DeckLabel | null
+  season: DeckSeason | null
 }
 
 /** The deck's showcase: written by the save dialog, not part of a revision. */
-export type DeckMeta = Pick<SavedDeck, 'visibility' | 'coverCardId' | 'description' | 'links' | 'deckTags'>
+export type DeckMeta = Pick<SavedDeck, 'visibility' | 'coverCardId' | 'description' | 'links' | 'deckTags'> & { seasonId: number | null }
 
 /** `hide` leaves the sample decks out, `only` lists nothing else. */
 export type GeneratedFilter = 'hide' | 'only'
 
 /** Listing filters, ANDed. Empty values are left out. */
-export type DeckFilters = { q?: string; archetype?: string; format?: number | null; tag?: DeckTag | null; cards?: number[]; generated?: GeneratedFilter | null }
+export type DeckFilters = {
+  q?: string
+  archetype?: string
+  format?: number | null
+  tag?: DeckTag | null
+  cards?: number[]
+  generated?: GeneratedFilter | null
+  /** A season id, exact. */
+  season?: number | null
+}
 
 export type DeckPage = { decks: DeckSummary[]; nextCursor: string | null }
 
@@ -109,6 +127,7 @@ export type DeckInput = {
   description?: string
   links?: string[]
   deckTags?: DeckTag[]
+  seasonId?: number | null
 }
 
 export type RevisionSummary = { revision: number; createdAt: string; counts: DeckCounts }
@@ -170,9 +189,20 @@ export const filterParams = (filters: DeckFilters, cursor?: string): string => {
   if (filters.tag) params.set('tag', filters.tag)
   if (filters.cards?.length) params.set('cards', filters.cards.join(','))
   if (filters.generated) params.set('generated', filters.generated)
+  if (filters.season != null) params.set('season', String(filters.season))
   if (cursor) params.set('cursor', cursor)
   const query = params.toString()
   return query ? `?${query}` : ''
+}
+
+/** `GET /decks/seasons`: every ranked season, newest first, closed ones included. Empty on failure: the pickers just offer none. */
+export const listSeasons = async (): Promise<Season[]> => {
+  try {
+    return (await request<{ seasons: Season[] }>('/decks/seasons', { cache: 'default' })).seasons
+  } catch (error) {
+    console.error(error)
+    return []
+  }
 }
 
 /** `GET /decks/public`: every public deck, newest first. */

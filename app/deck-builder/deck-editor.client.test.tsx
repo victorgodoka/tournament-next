@@ -57,6 +57,7 @@ const server = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
   label: null,
+  season: null,
   ...over,
 })
 const draft = (over: Partial<Draft> = {}): Draft => ({ deck: { main: [2], extra: [], side: [] }, name: 'Local', format: null, revision: 5, at: 1, ...over })
@@ -223,7 +224,7 @@ it('deleting the open deck over another unsaved new deck warns first, then carri
   vi.mocked(listMyDecks).mockResolvedValue({
     decks: [{
       id: ID, owner: { id: 'u1', name: 'kaiba', avatarUrl: null }, generated: false, likes: 0, name: 'Saved', format: null, visibility: 'private', revision: 5, updatedAt: '2026-10-16T12:00:00.000Z',
-      counts: { main: 1, extra: 0, side: 0 }, coverCardId: null, description: '', links: [], deckTags: [], label: null,
+      counts: { main: 1, extra: 0, side: 0 }, coverCardId: null, description: '', links: [], deckTags: [], label: null, season: null,
     }],
     nextCursor: null,
   })

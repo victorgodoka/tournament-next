@@ -14,14 +14,17 @@ import { Lookup, type LookupOption } from '@ui/lookup'
 import { searchCards } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
-import { DECK_TAGS, listPublicDecks, listUserDecks, type DeckFilters, type DeckSummary, type DeckTag, type GeneratedFilter } from '@utils/decks'
+import {
+  DECK_TAGS, listPublicDecks, listSeasons, listUserDecks, seasonName,
+  type DeckFilters, type DeckSummary, type DeckTag, type GeneratedFilter, type Season,
+} from '@utils/decks'
 import { getBanlists, type Banlist } from '@utils/wiki'
 
 type Card = { id: number; name: string }
-type Filters = { q: string; archetype: string; format: number | null; tag: DeckTag | null; cards: Card[]; generated: GeneratedFilter | null }
+type Filters = { q: string; archetype: string; format: number | null; tag: DeckTag | null; cards: Card[]; generated: GeneratedFilter | null; season: number | null }
 type Page = { key: string; decks: DeckSummary[]; cursor: string | null; failed: boolean; loadingMore: boolean }
 
-const EMPTY: Filters = { q: '', archetype: '', format: null, tag: null, cards: [], generated: null }
+const EMPTY: Filters = { q: '', archetype: '', format: null, tag: null, cards: [], generated: null, season: null }
 const TOUCH = 'max-lg:min-h-11'
 const GENERATED: Array<GeneratedFilter | ''> = ['', 'hide', 'only']
 
@@ -29,7 +32,9 @@ const GENERATED: Array<GeneratedFilter | ''> = ['', 'hide', 'only']
 const findCards = async (text: string, signal: AbortSignal): Promise<LookupOption[]> =>
   (await searchCards(text, 10, signal)).map(({ id, name }) => ({ key: id, label: name }))
 
-const query = (f: Filters): DeckFilters => ({ q: f.q, archetype: f.archetype, format: f.format, tag: f.tag, cards: f.cards.map((c) => c.id), generated: f.generated })
+const query = (f: Filters): DeckFilters => ({
+  q: f.q, archetype: f.archetype, format: f.format, tag: f.tag, cards: f.cards.map((c) => c.id), generated: f.generated, season: f.season,
+})
 
 /**
  * A filterable grid of decks. With `userId`, that duelist's decks as the viewer may see them (the
@@ -40,6 +45,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
   const tEditor = useTranslations('DeckEditor')
   const [filters, setFilters] = useState(EMPTY)
   const [banlists, setBanlists] = useState<Banlist[]>([])
+  const [seasons, setSeasons] = useState<Season[]>([])
   const [attempt, setAttempt] = useState(0)
   // The request a page answers: while it differs from the filters, the grid is loading.
   const key = JSON.stringify([userId ?? null, query(filters), attempt])
@@ -50,6 +56,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
 
   useEffect(() => {
     getBanlists().then(setBanlists)
+    listSeasons().then(setSeasons)
   }, [])
 
   useEffect(() => {
@@ -86,7 +93,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className={twMerge('grid gap-4 sm:grid-cols-2', userId ? 'lg:grid-cols-4' : 'lg:grid-cols-5')}>
+      <div className={twMerge('grid gap-4 sm:grid-cols-2', userId ? 'lg:grid-cols-5' : 'lg:grid-cols-6')}>
         <Field label={t('name')} htmlFor="decks-q">
           <TextInput id="decks-q" type="search" maxLength={80} {...name} plateClassName={TOUCH} />
         </Field>
@@ -100,6 +107,16 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
             options={[{ value: '', label: t('anyFormat') }, ...banlists.map((b) => ({ value: String(b.id), label: b.name }))]}
             value={filters.format === null ? '' : String(filters.format)}
             onChange={(e) => set({ format: e.target.value ? Number(e.target.value) : null })}
+            className={TOUCH}
+          />
+        </Field>
+        <Field label={t('season')} htmlFor="decks-season">
+          <Select
+            id="decks-season"
+            block
+            options={[{ value: '', label: t('anySeason') }, ...seasons.map((s) => ({ value: String(s.id), label: seasonName(s) }))]}
+            value={filters.season === null ? '' : String(filters.season)}
+            onChange={(e) => set({ season: e.target.value ? Number(e.target.value) : null })}
             className={TOUCH}
           />
         </Field>
@@ -126,7 +143,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
             />
           </Field>
         )}
-        <Field label={t('cards')} className={twMerge('sm:col-span-2', userId ? 'lg:col-span-4' : 'lg:col-span-5')}>
+        <Field label={t('cards')} className={twMerge('sm:col-span-2', userId ? 'lg:col-span-5' : 'lg:col-span-6')}>
           <div className="flex flex-wrap items-center gap-2">
             <Lookup
               label={t('cards')}
@@ -199,7 +216,7 @@ const DeckCard = ({ deck, format, showOwner }: { deck: DeckSummary; format?: str
         <p className="truncate text-ink-muted signal-sm">
           {[
             deck.label?.name,
-            format,
+            deck.season ? seasonName(deck.season) : format,
             t('tray.counts', deck.counts),
             deck.likes ? t('browse.likes', { count: deck.likes }) : null,
             formatter.relativeTime(new Date(deck.updatedAt), now),

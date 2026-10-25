@@ -36,6 +36,7 @@ const saved = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
   label: null,
+  season: null,
   ...over,
 })
 const editor = (over: Partial<EditorState> = {}): EditorState => ({ ...initialEditorState(), deck, dirty: true, ...over })

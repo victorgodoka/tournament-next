@@ -48,6 +48,7 @@ const server = (over: Partial<SavedDeck> = {}): SavedDeck => ({
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
   label: null,
+  season: null,
   ...over,
 })
 
@@ -67,6 +68,7 @@ const summary = (id: string, name: string): DeckSummary => ({
   links: [],
   deckTags: [],
   label: null,
+  season: null,
 })
 
 /** Opens the first tile's card menu (no brush picked: a click opens it). */

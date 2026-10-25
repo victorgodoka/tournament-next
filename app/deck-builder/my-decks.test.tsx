@@ -33,6 +33,7 @@ const summary = (id: string, name: string): DeckSummary => ({
   links: [],
   deckTags: [],
   label: null,
+  season: null,
 })
 
 const setup = async (replacesNew = false) => {
