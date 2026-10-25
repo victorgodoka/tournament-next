@@ -10,7 +10,7 @@ import { copiesOf, isExtraDeckCard, printOf } from '@utils/deck/model'
 import { cardStatus } from '@utils/deck/rules'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
-import { CARD_IMAGE_URL } from '@utils/const'
+import { CARD_IMAGE_URL, CARD_SCAN_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
 import { CardFacts } from './card-facts'
 
@@ -64,8 +64,9 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
       <div className="grid gap-6 min-[720px]:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
           <div className="relative aspect-[59/86] w-full max-w-80 bg-surface-300">
-            {/* 320 CSS px resolves to the 640 scan at 1x and 2x alike. */}
-            <Image loader={cardLoader} src={CARD_IMAGE_URL(selected)} alt={card.name} fill sizes="320px" className="object-cover" />
+            {/* The 421px original, the URL the hover preview already loaded: no 640px variant to mint on open. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- same-origin, already sized: nothing to optimise */}
+            <img src={CARD_SCAN_URL(selected)} alt={card.name} decoding="async" className="absolute inset-0 size-full object-cover" />
           </div>
 
           {arts.length > 1 ? (

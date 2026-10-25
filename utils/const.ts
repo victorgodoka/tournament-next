@@ -168,6 +168,12 @@ export const GO_NEXT = [
 export const CARD_ART_URL = (id: string | number) => `https://ygopro.online/assets/card-arts/${id}.jpg`
 /** The full card scan (frame, text and all), as opposed to the cropped art above. */
 export const CARD_IMAGE_URL = (id: string | number) => `https://ygopro.online/assets/card-images/common/${id}.jpg`
+/**
+ * The same scan, same-origin and edge-cached (`app/card-image`), at its original 421×614: for the places that
+ * show one card large. A `/_next/image` variant nobody has asked for yet costs the server a resize (2–20 s cold
+ * in production), and the CDN never caches that path.
+ */
+export const CARD_SCAN_URL = (id: string | number) => `/card-image/common/${id}.jpg`
 
 export const FOOTER_LINKS = [
   { item: "Home", to: "https://omega.duelistsunite.org/" },
