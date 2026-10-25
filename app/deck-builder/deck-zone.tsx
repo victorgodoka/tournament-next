@@ -39,11 +39,11 @@ const GRID = {
   extra: 'grid-cols-5 sm:grid-cols-8 lg:grid-cols-15',
   side: 'grid-cols-5 sm:grid-cols-8 lg:grid-cols-15',
 }
-// The deck column is ~52% of the viewport on lg.
+// The deck column is ~59% of the viewport on lg.
 const SIZES = {
-  main: '(min-width: 1024px) 5vw, (min-width: 640px) 12vw, 20vw',
-  extra: '(min-width: 1024px) 3.5vw, (min-width: 640px) 12vw, 20vw',
-  side: '(min-width: 1024px) 3.5vw, (min-width: 640px) 12vw, 20vw',
+  main: '(min-width: 1024px) 6vw, (min-width: 640px) 12vw, 20vw',
+  extra: '(min-width: 1024px) 4vw, (min-width: 640px) 12vw, 20vw',
+  side: '(min-width: 1024px) 4vw, (min-width: 640px) 12vw, 20vw',
 }
 
 /** 32px on a desktop row, 44px tap targets below lg or on a coarse pointer. */

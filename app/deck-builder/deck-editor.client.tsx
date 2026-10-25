@@ -666,7 +666,13 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
 
   // One layout at a time, not both hidden by CSS: the toolbar and the zones carry ids that must stay unique.
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,52fr)_minmax(0,33fr)_minmax(16rem,15fr)]">
+    <div className="lg:grid lg:grid-cols-[minmax(16rem,15fr)_minmax(0,59fr)_minmax(0,26fr)]">
+      {wide ? (
+        <aside className="flex flex-col px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-r lg:border-line">
+          <CardPanel cards={cards} locked={locked} onLock={setLocked} />
+        </aside>
+      ) : null}
+
       {wide ? (
         <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
           <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">{toolbar}</div>
@@ -707,12 +713,6 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
           onLock={wide ? toggleLock : undefined}
         />
       </aside>
-
-      {wide ? (
-        <aside className="flex flex-col px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line">
-          <CardPanel cards={cards} locked={locked} onLock={setLocked} />
-        </aside>
-      ) : null}
 
       {wide ? null : (
         <DeckTray

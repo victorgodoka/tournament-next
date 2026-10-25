@@ -17,8 +17,8 @@ import { activeFilterCount, effectiveQuery, tileStatus } from './pool-query'
 import { useCardPool } from './use-card-pool'
 
 const SORTS = ['name-asc', 'name-desc', 'atk-desc', 'atk-asc', 'def-desc', 'level-desc', 'level-asc', 'released_tcg-desc', 'released_ocg-desc'] as const
-// Four columns in a ~33vw column on lg; four across the viewport from 600px, three below.
-const SIZES = '(min-width: 1024px) 8vw, (min-width: 600px) 25vw, 33vw'
+// Four columns in a ~26vw column on lg; four across the viewport from 600px, three below.
+const SIZES = '(min-width: 1024px) 6.5vw, (min-width: 600px) 25vw, 33vw'
 
 /** The nearest ancestor that scrolls vertically, or null (the viewport). */
 const scrollParent = (el: HTMLElement): HTMLElement | null => {
