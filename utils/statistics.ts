@@ -71,7 +71,8 @@ export type StatCard = {
 }
 
 /** A generic card the opponent used against the deck. `games`: the deck's games where the other side used it; `rate`: of the deck's games; `winRate`: the deck's, in those games. */
-export type AgainstCard = { id: number; name: string | null; handTrap: boolean; games: number; rate: number | null; winRate: number | null }
+/** `group`: the opponent's engine the row sums up (its cards fold into one line); `id` and `name` are the engine's cover and name then. */
+export type AgainstCard = { id: number; name: string | null; group?: number | null; handTrap: boolean; games: number; rate: number | null; winRate: number | null }
 
 /** `cards`: every card of the group seen in the archetype. Absent from a server older than the field. */
 export type CardGroup = { id: number; name: string; inclusion: number; winRate: number | null; cards?: StatCard[] }

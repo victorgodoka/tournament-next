@@ -433,6 +433,8 @@ export type CardGroup = {
   exceptions: { code: number; name: string }[]
   /** Canonical ids. `name`/`kind` are `null` once the card left the card database. */
   cards: { id: number; name: string | null; kind: 'monster' | 'spell' | 'trap' | null }[]
+  /** The card that stands for the group (one of `cards`); `null` = the first card of the list. */
+  cover: number | null
   updatedAt: string
 }
 
@@ -445,6 +447,8 @@ export type CardGroupBody = {
   exceptions?: number[]
   /** Replaces the list. Alt-art passcodes are saved as the original; duplicates collapse. */
   cards?: number[]
+  /** One of `cards`; `null` clears it (the first card is the cover then). */
+  cover?: number | null
 }
 
 export const listCardGroups = (signal?: AbortSignal) =>

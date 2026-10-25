@@ -255,6 +255,7 @@ const AgainstTable = ({ cards }: { cards?: AgainstCard[] | null }) => {
               <span role="cell">
                 <Named card={c}>
                   <span title={cardName(c)} className="truncate font-bold text-ink">{cardName(c)}</span>
+                  {c.group ? <span className="shrink-0 font-mono text-[9px] text-cyan uppercase">{t('kind.engine')}</span> : null}
                   {c.handTrap ? <span className="shrink-0 font-mono text-[9px] text-gold uppercase">{t('handTrap')}</span> : null}
                 </Named>
               </span>

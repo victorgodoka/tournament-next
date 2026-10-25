@@ -1726,7 +1726,7 @@
       "noGroups": "No engine or tech in this deck’s games.",
       "againstMissing": "Not tracked for this season yet: it needs a re-sweep.",
       "againstEmpty": "No generic card was used against this deck.",
-      "againstNote": "Generic cards the opponent used, hand traps tagged. Faced in: share of this deck’s games; Deck WR: its win rate in those games.",
+      "againstNote": "Generic cards the opponent summoned or activated, hand traps tagged; an opponent’s engine is one row, under its cover card. Faced in: share of this deck’s games; Deck WR: its win rate in those games.",
       "handTrap": "Hand trap",
       "oldServer": "— is not enough data: part of this season was recorded by an older server."
     },

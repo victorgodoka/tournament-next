@@ -18,7 +18,7 @@ import { CardList, findCards, findSetcodes, pickedCard } from '../shared'
 
 type Draft = Omit<CardGroup, 'id' | 'updatedAt'> & { id: number | null; updatedAt: string | null }
 
-const blank = (): Draft => ({ id: null, kind: 'engine', name: '', description: '', handTrap: false, exceptions: [], cards: [], updatedAt: null })
+const blank = (): Draft => ({ id: null, kind: 'engine', name: '', description: '', handTrap: false, exceptions: [], cards: [], cover: null, updatedAt: null })
 
 const kindChip = (g: Pick<CardGroup, 'kind' | 'handTrap'>): { label: string; tone: ChipTone } =>
   g.handTrap ? { label: 'Hand trap', tone: 'negative' } : g.kind === 'engine' ? { label: 'Engine', tone: 'indigo' } : { label: 'Tech', tone: 'gold' }
@@ -37,6 +37,18 @@ const CardGroupsPage = () => {
   const set = (patch: Partial<Draft>) => d && setDraft({ ...d, ...patch })
 
   const series = data?.series
+  const cards = d?.cards
+  // The cover is one of the group's own cards: a local search, no request.
+  const findCover = useCallback(
+    (text: string): Promise<LookupOption[]> =>
+      Promise.resolve(
+        (cards ?? [])
+          .filter((c) => (c.name ?? String(c.id)).toLowerCase().includes(text.toLowerCase()))
+          .slice(0, 8)
+          .map((c) => ({ key: c.id, label: c.name ?? String(c.id), meta: c.id })),
+      ),
+    [cards],
+  )
   // Archetypes from the card database, plus Series by name: both are valid exception codes.
   const findExceptions = useCallback(
     (text: string, signal: AbortSignal): Promise<LookupOption[]> =>
@@ -56,6 +68,7 @@ const CardGroupsPage = () => {
       handTrap: d.kind === 'tech' && d.handTrap,
       exceptions: d.kind === 'engine' ? d.exceptions.map((e) => e.code) : [],
       cards: d.cards.map((c) => c.id),
+      cover: d.cover,
     }
     setBusy(true)
     setError(null)
@@ -194,7 +207,20 @@ const CardGroupsPage = () => {
               hint="Alternate art is saved as the original passcode, and duplicates collapse into one."
             >
               <Lookup label="Add card" placeholder="Passcode or card name" search={findCards} onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })} />
-              <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id) })} />
+              <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id), cover: d.cover === id ? null : d.cover })} />
+            </Field>
+            <Field label="Cover" hint="The card that stands for the group where it shows as one line (cards used against a deck). Optional: without one, the first card of the list is the cover.">
+              <div className="flex flex-wrap items-center gap-2">
+                {(() => {
+                  const cover = d.cards.find((c) => c.id === d.cover)
+                  return cover ? (
+                    <Tag note={cover.id} removeLabel="Clear the cover" onRemove={() => set({ cover: null })}>{cover.name ?? cover.id}</Tag>
+                  ) : (
+                    <span className="text-ink-muted signal-sm">{d.cards[0] ? `Default: ${d.cards[0].name ?? d.cards[0].id}` : 'No cards yet'}</span>
+                  )
+                })()}
+                <Lookup compact label="Pick the cover" placeholder="One of the group’s cards" search={findCover} className="w-65" onPick={(o) => set({ cover: Number(o.key) })} />
+              </div>
             </Field>
             {error ? <Alert tone="negative" title="Not saved">{error}</Alert> : null}
             <div className="flex gap-3 pt-1">

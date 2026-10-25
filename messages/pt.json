@@ -1726,7 +1726,7 @@
       "noGroups": "Nenhuma engine ou tech nos games deste deck.",
       "againstMissing": "Ainda não acompanhado nesta temporada: precisa varrer de novo.",
       "againstEmpty": "Nenhuma carta genérica foi usada contra este deck.",
-      "againstNote": "Cartas genéricas que o oponente usou, hand traps marcadas. Enfrentada em: fatia dos games deste deck; WR do deck: o win rate dele nesses games.",
+      "againstNote": "Cartas genéricas que o oponente invocou ou ativou, hand traps marcadas; uma engine do oponente vira uma linha só, sob a carta de capa. Enfrentada em: fatia dos games deste deck; WR do deck: o win rate dele nesses games.",
       "handTrap": "Hand trap",
       "oldServer": "— é falta de dados: parte da temporada foi gravada por um servidor antigo."
     },
