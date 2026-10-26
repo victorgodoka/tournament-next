@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Alert, Button, Chip, Field, Lookup, PageHeader, Panel, Segmented, Switch, Tag, TextArea, TextInput, type ChipTone, type LookupOption } from '@ui/index'
 import { useResource } from '@hooks/index'
 import { dayTime } from '@utils/format'
@@ -38,6 +38,8 @@ const CardGroupsPage = () => {
 
   const series = data?.series
   const cards = d?.cards
+  // A card of a Series (direct, or the quoted card of a mention) is that Series' own card, never engine or tech.
+  const seriesCards = useMemo(() => [...new Set((series ?? []).flatMap((s) => [...s.cards, ...s.mentions].map((c) => c.id)))], [series])
   // The cover is one of the group's own cards: a local search, no request.
   const findCover = useCallback(
     (text: string): Promise<LookupOption[]> =>
@@ -205,9 +207,9 @@ const CardGroupsPage = () => {
             <Field
               label="Cards"
               meta={`${d.cards.length} of 1000`}
-              hint="Alternate art is saved as the original passcode, and duplicates collapse into one."
+              hint="Alternate art is saved as the original passcode, and duplicates collapse into one. Cards of a Series stay out: they are that Series’ own cards."
             >
-              <Lookup label="Add card" placeholder="Passcode or card name" search={findCards} exclude={d.cards.map((c) => c.id)} onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })} />
+              <Lookup label="Add card" placeholder="Passcode or card name" search={findCards} exclude={[...d.cards.map((c) => c.id), ...seriesCards]} onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })} />
               <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id), cover: d.cover === id ? null : d.cover })} />
             </Field>
             <Field label="Cover" hint="The card that stands for the group where it shows as one line (cards used against a deck). Optional: without one, the first card of the list is the cover.">

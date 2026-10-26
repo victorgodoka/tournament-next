@@ -13,9 +13,8 @@ const DeckEditorPage = () => (
   <>
     <Header />
     <main className="min-h-dvh pt-16">
-      <DeckEditorLoader deckId={null} />
-      {/* No footer on this page: our VIP pitch goes at the end instead. */}
-      <VipPromo className="mx-auto my-12 w-[min(var(--container-page),calc(100%-32px))]" />
+      {/* No footer on this page: our VIP pitch ends the deck column instead. */}
+      <DeckEditorLoader deckId={null} promo={<VipPromo className="lg:mt-auto" />} />
     </main>
   </>
 )

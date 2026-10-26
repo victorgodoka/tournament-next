@@ -124,7 +124,8 @@ const watchWide = (onChange: () => void) => {
 }
 const useWide = () => useSyncExternalStore(watchWide, () => matchMedia(WIDE).matches)
 
-const DeckEditor = ({ deckId }: { deckId: string | null }) => {
+/** `promo`: the page's VIP pitch, rendered inside a scrolling column so the page itself never scrolls on lg. */
+const DeckEditor = ({ deckId, promo }: { deckId: string | null; promo?: React.ReactNode }) => {
   const t = useTranslations('DeckEditor')
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -555,16 +556,18 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
   )
 
   // One layout at a time, not both hidden by CSS: the toolbar and the zones carry ids that must stay unique.
+  // The columns are `relative`: an overflow container only clips the absolutely positioned descendants
+  // (the tiles' sr-only labels) whose containing block it is; otherwise they stretch the page below the fold.
   return (
     <div className="lg:grid lg:grid-cols-[minmax(16rem,15fr)_minmax(0,59fr)_minmax(0,26fr)]">
       {wide ? (
-        <aside className="flex flex-col px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-r lg:border-line">
+        <aside className="relative flex flex-col px-4 pt-3 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-r lg:border-line">
           <CardPanel cards={cards} locked={locked} onLock={setLocked} />
         </aside>
       ) : null}
 
       {wide ? (
-        <div className="flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
+        <div className="relative flex flex-col gap-4 px-4 pb-8 lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto">
           <div className="sticky top-0 z-(--z-sticky) border-b border-line bg-space-000 py-3">{toolbar}</div>
           {alerts}
           {ZONES.map((zone) => (
@@ -583,13 +586,14 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
               onLock={toggleLock}
             />
           ))}
+          {promo}
         </div>
       ) : null}
 
       {/* Below lg the pool is the page; its bottom clears the tray's peek row (+16px). */}
       <aside
         aria-label={t('pool.title')}
-        className="flex flex-col gap-4 px-4 pt-3 pb-8 max-lg:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line"
+        className="relative flex flex-col gap-4 px-4 pt-3 pb-8 max-lg:pb-[calc(5rem+env(safe-area-inset-bottom))] lg:h-[calc(100dvh-var(--header-h,64px))] lg:overflow-y-auto lg:border-l lg:border-line"
       >
         {wide ? null : alerts}
         <CardPool
@@ -602,6 +606,7 @@ const DeckEditor = ({ deckId }: { deckId: string | null }) => {
           locked={wide ? locked : undefined}
           onLock={wide ? toggleLock : undefined}
         />
+        {wide ? null : promo}
       </aside>
 
       {wide ? null : (
