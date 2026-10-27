@@ -104,6 +104,8 @@ export type StatArchetype = {
   /** Its own (archetype / Series) most included card: the deck's art. Absent from an older server. */
   face?: { id: number; name: string | null }
   cards: StatCard[]
+  /** `cards` without the deck's own archetype cards: generic ones only (a group's, or without a setcode). Absent from an older server. */
+  staples?: StatCard[]
   engines: CardGroup[]
   techs: CardGroup[]
   /** Generic cards the opponent used against the deck, most games first. `null`: swept before the block; absent from an older server. */
@@ -111,7 +113,7 @@ export type StatArchetype = {
 }
 
 /** A section 03 row: no engines or techs, `cards` cut to the face card. */
-export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs' | 'against'>
+export type LeanArchetype = Omit<StatArchetype, 'engines' | 'techs' | 'against' | 'staples'>
 
 export type Matchup = {
   archetype: ArchetypeKey

@@ -367,7 +367,8 @@ const archetype = async (ctx: Ctx, withCards: boolean) => {
   const best = sorted.slice(0, 3)
   const worst = sorted.slice(-3).reverse()
   const byKey = new Map(data.archetypes.map((x) => [archKey(x.archetype), x]))
-  const topCards = cards ? a.cards.slice(0, 6) : []
+  // Generic cards only: the deck's own archetype cards sit at 100% and say nothing.
+  const topCards = cards ? (a.staples ?? a.cards).slice(0, 6) : []
   // The generic cards that hurt the deck most: by its win rate when it faced them, lowest first.
   const against = cards ? [...(a.against ?? [])].filter((c) => c.games >= data.minSamples && c.winRate != null).sort((x, y) => x.winRate! - y.winRate!).slice(0, 6) : []
   const arts = await loadImages([a.face?.id, ...topCards.map((c) => c.id), ...against.map((c) => c.id), ...[...best, ...worst].map((m) => byKey.get(archKey(m.opponent))?.face?.id)])
