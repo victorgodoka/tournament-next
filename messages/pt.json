@@ -1441,7 +1441,9 @@
       "label": "Infográfico",
       "wide": "16:9",
       "tall": "9:16",
-      "hint": "Baixar esta seção como imagem"
+      "hint": "Baixar esta seção como imagem",
+      "busy": "Gerando a imagem…",
+      "failed": "Não deu para gerar a imagem. Tente de novo."
     },
     "meta": {
       "title": "Estatísticas do meta",
@@ -1832,7 +1834,9 @@
       "label": "Infográfico",
       "wide": "16:9",
       "tall": "9:16",
-      "hint": "Baixar esta seção como imagem"
+      "hint": "Baixar esta seção como imagem",
+      "busy": "Gerando a imagem…",
+      "failed": "Não deu para gerar a imagem. Tente de novo."
     },
     "meta": {
       "notFound": "Perfil não encontrado",

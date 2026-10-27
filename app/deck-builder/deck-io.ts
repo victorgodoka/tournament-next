@@ -4,6 +4,7 @@ import { assertDeck, fromYdk } from '@utils/deck/codecs/ydk'
 import { fromYdke } from '@utils/deck/codecs/ydke'
 import { splitExtra } from '@utils/deck/model'
 import { DeckCodeError, type CardMap, type Deck } from '@utils/deck/types'
+import { download } from '@utils/download'
 
 export type ImportFormat = 'omega' | 'ydke' | 'ydk'
 
@@ -25,14 +26,7 @@ export const readDeck = async (text: string, lookup: (ids: number[]) => Promise<
 /** `name` as a file name: characters Windows refuses dropped, `deck` when nothing is left. */
 export const fileName = (name: string, ext: string) => `${name.trim().replace(/[\\/:*?"<>|]+/g, '').slice(0, 80) || 'deck'}.${ext}`
 
-export const download = (blob: Blob, name: string) => {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+export { download }
 
 /** The system share sheet where the browser takes files, else a download. `cancelled`: the user closed the sheet. */
 export const share = async (blob: Blob, name: string, title: string): Promise<'shared' | 'downloaded' | 'cancelled'> => {

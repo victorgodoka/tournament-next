@@ -126,6 +126,8 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
     <InfographicLinks
       label={t('infographic.label')}
       hint={t('infographic.hint')}
+      busy={t('infographic.busy')}
+      failed={t('infographic.failed')}
       sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
       items={[{ file: `${section}-${seasonData.code}`, href: (size) => `/statistics/infographic/${section}?${new URLSearchParams({ ladder, ...(season ? { season } : {}), ...extra, size, locale })}` }]}
       className={className}

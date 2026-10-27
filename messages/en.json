@@ -1441,7 +1441,9 @@
       "label": "Infographic",
       "wide": "16:9",
       "tall": "9:16",
-      "hint": "Download this section as an image"
+      "hint": "Download this section as an image",
+      "busy": "Rendering the image…",
+      "failed": "Couldn't render the image. Try again."
     },
     "meta": {
       "title": "Meta statistics",
@@ -1832,7 +1834,9 @@
       "label": "Infographic",
       "wide": "16:9",
       "tall": "9:16",
-      "hint": "Download this section as an image"
+      "hint": "Download this section as an image",
+      "busy": "Rendering the image…",
+      "failed": "Couldn't render the image. Try again."
     },
     "meta": {
       "notFound": "Profile not found",

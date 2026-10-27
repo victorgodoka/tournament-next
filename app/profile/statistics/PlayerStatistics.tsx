@@ -163,6 +163,8 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
               <InfographicLinks
                 label={t('infographic.label')}
                 hint={t('infographic.hint')}
+                busy={t('infographic.busy')}
+                failed={t('infographic.failed')}
                 sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
                 items={(selection.view === 'tournaments' ? (['tournaments'] as const) : (['overview', 'decks', 'matchups'] as const)).map((section) => ({
                   label: tIg(`sections.${section}`),
