@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { copiesOf, copyCounts, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf, inFormat, deckIn } from './model'
+import { copiesOf, copyCounts, addCard, moveCard, removeCard, reorder, sortZone, splitExtra, canonicalId, isExtraDeckCard, frameOf, printOf, inFormat, deckIn, imageOf } from './model'
 import { EMPTY_DECK, type CardData } from './types'
 
 const card = (id: number, patch: Partial<CardData>): CardData =>
@@ -51,6 +51,19 @@ describe('deck model', () => {
     const r = addCard({ ...EMPTY_DECK, main: [78397691, 78397691] }, inFormat(ocg, true), known)
     expect(r.deck.main).toEqual([78397691, 78397691, 78397691])
     expect(addCard(r.deck, inFormat(ocg, true), known).rejected).toBe('copies')
+  })
+
+  it('shows a pre-errata or a TCG print with the imageId art; an alternate artwork with its own', () => {
+    const preErrata = card(29071352, { name: 'Armory Arm', imageId: 29071332, ruleId: 29071332 })
+    const ocg = card(78397661, { idOriginal: 78397661, idTcg: 78397691, imageId: 78397661 })
+    const tcg = card(78397691, { idOriginal: 78397661, idTcg: 78397691, imageId: 78397661 })
+    expect(imageOf(29071352, preErrata)).toBe(29071332)
+    expect(imageOf(78397691, ocg)).toBe(78397661)
+    expect(imageOf(78397691, tcg)).toBe(78397661)
+    expect(imageOf(78397661, tcg)).toBe(78397661)
+    expect(imageOf(46986431, card(46986414, { imageId: 46986414, alternateArts: [46986431] }))).toBe(46986431)
+    expect(imageOf(3, printOf(card(2, { imageId: 2 }), 3))).toBe(3)
+    expect(imageOf(29071352, undefined)).toBe(29071352)
   })
 
   it('reads the frame: first special frame, else normal/effect; spells and traps by kind', () => {

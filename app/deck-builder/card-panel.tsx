@@ -6,6 +6,7 @@ import { Button } from '@ui/button'
 import { Icon } from '@ui/icon'
 import type { CardMap } from '@utils/deck/types'
 import { CARD_SCAN_URL } from '@utils/const'
+import { imageOf } from '@utils/deck/model'
 import { CardFacts } from './card-facts'
 
 type CardPanelProps = {
@@ -62,7 +63,7 @@ export const CardPanel = ({ cards, locked, onLock }: CardPanelProps) => {
               original, one URL shared with the detail sheet and the browser cache. */}
           <div key={id} className="relative aspect-[59/86] w-full bg-surface-300">
             {/* eslint-disable-next-line @next/next/no-img-element -- same-origin, already sized: nothing to optimise */}
-            <img src={CARD_SCAN_URL(id!)} alt="" decoding="async" className="absolute inset-0 size-full object-cover" />
+            <img src={CARD_SCAN_URL(imageOf(id!, card))} alt="" decoding="async" className="absolute inset-0 size-full object-cover" />
           </div>
           <p className="text-ink body-strong">{card.name}</p>
           <CardFacts card={card} />

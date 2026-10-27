@@ -1,5 +1,5 @@
 import { TYPE_LABEL } from '@ui/type-counts'
-import { frameOf, type CardFrame } from '@utils/deck/model'
+import { frameOf, imageOf, type CardFrame } from '@utils/deck/model'
 import type { CardMap, Deck, Zone } from '@utils/deck/types'
 
 /**
@@ -408,7 +408,12 @@ export const deckImage = async (deck: Deck, cards: CardMap, info: ImageInfo, lay
   const shown = shownScans(document.images)
   const [, scanList, logo] = await Promise.all([
     Promise.all([`20px ${ANTON}`, `20px ${MICH}`, `20px ${MONO}`, `700 20px ${MONO}`, `700 20px ${FIG}`].map((f) => document.fonts.load(f).catch(() => []))),
-    Promise.all(ids.map(async (id) => [id, shown.get(id) ?? (await loadImage(scanUrl(id)))] as const)),
+    Promise.all(
+      ids.map(async (id) => {
+        const src = imageOf(id, cards.get(id))
+        return [id, shown.get(src) ?? (await loadImage(scanUrl(src)))] as const
+      }),
+    ),
     loadImage('/omega-mark.png'),
   ])
   const scans = new Map(scanList)

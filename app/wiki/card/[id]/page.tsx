@@ -111,7 +111,7 @@ export async function generateMetadata({ params }: CardRouteProps) {
     // An alternate artwork is the same card: its page points search at the original print.
     path: `/wiki/card/${card.alias || card.idOriginal}`,
     description: metaDescription(`${card.humanReadableCardType}. ${card.description}`),
-    images: [{ url: CARD_ART_URL(card.id), alt: `${card.name} artwork` }],
+    images: [{ url: CARD_ART_URL(card.imageId ?? card.id), alt: `${card.name} artwork` }],
   })
 }
 
@@ -334,7 +334,7 @@ const CardRoute = async ({ params }: CardRouteProps) => {
 
           <aside className={twMerge(WIKI_ASIDE, 'border-t border-line lg:border-t-0')}>
             <CardArt
-              art={{ id: card.id, name: card.name }}
+              art={{ id: card.imageId ?? card.id, name: card.name }}
               sizes="(min-width: 1024px) 23.25rem, 100vw"
               priority
               className="aspect-square border-b border-line"

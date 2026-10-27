@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import type { CardType } from '@ui/type-counts'
-import { frameOf } from '@utils/deck/model'
+import { frameOf, imageOf } from '@utils/deck/model'
 import type { CardData } from '@utils/deck/types'
 import { CARD_IMAGE_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
@@ -50,7 +50,10 @@ const BADGE ='absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nu
 /** A card scan at 59:86. Without data, or when the scan fails, a frame-coloured plate with the name or passcode. */
 export const CardTile = ({ id, card, sizes, count, dots, status, problem, label, onInfo, locked, className, ...button }: CardTileProps) => {
   const t = useTranslations('DeckEditor.tile')
-  const [failed, setFailed] = useState(false)
+  const src = imageOf(id, card)
+  // The passcode that failed: a pre-errata or TCG print 404s on its own id before its data names the right one.
+  const [failedSrc, setFailedSrc] = useState<number | null>(null)
+  const failed = failedSrc === src
   const name = card?.name ?? String(id)
 
   const statusText =
@@ -77,7 +80,7 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
       {/* The scan is asked by passcode alone, before the card's data arrives: the lookup and the image load side by side,
           and an id with no scan falls back to the plate through `onError`. */}
       {!failed ? (
-        <Image loader={cardLoader} src={CARD_IMAGE_URL(id)} alt="" fill sizes={sizes} draggable={false} onError={() => setFailed(true)} className="object-cover" />
+        <Image loader={cardLoader} src={CARD_IMAGE_URL(src)} alt="" fill sizes={sizes} draggable={false} onError={() => setFailedSrc(src)} className="object-cover" />
       ) : (
         <span
           aria-hidden

@@ -18,6 +18,7 @@ import { nextSeed, rng } from '@utils/combo/rng'
 import { addCounts, dealHand, estimate, monteCarlo, type Counts, type EffectLog, type Estimate } from '@utils/combo/simulate'
 import { DRAW_EFFECTS, LIMITS, type Analysis, type Banish, type Draw, type EffectKind, type Effects, type Roles } from '@utils/combo/types'
 import { CARD_ART_URL } from '@utils/const'
+import { imageOf } from '@utils/deck/model'
 import { cardLoader } from '@utils/image-loader'
 import { percent } from './results'
 
@@ -195,7 +196,7 @@ export const Simulator = (p: SimulatorProps) => {
                   return (
                     <li key={i} className="flex w-24 flex-col gap-1">
                       <span className="relative aspect-[4/3] w-full bg-surface-300">
-                        {row?.card ? <Image loader={cardLoader} src={CARD_ART_URL(row.passcode)} alt="" fill sizes="96px" className="object-cover" /> : null}
+                        {row?.card ? <Image loader={cardLoader} src={CARD_ART_URL(imageOf(row.passcode, row.card))} alt="" fill sizes="96px" className="object-cover" /> : null}
                       </span>
                       <span className="truncate text-ink signal-sm" title={nameOf(id)}>
                         {nameOf(id)}

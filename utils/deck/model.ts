@@ -51,7 +51,14 @@ export const inFormat = (card: CardData, tcg: boolean): CardData => {
  * counts as the original.
  */
 export const printOf = (card: CardData, passcode: number): CardData =>
-  passcode === card.id ? card : { ...card, id: passcode, alias: canonicalId(card) }
+  passcode === card.id ? card : { ...card, id: passcode, imageId: passcode, alias: canonicalId(card) }
+
+/**
+ * The passcode whose image shows `id`. `card` is what the cache holds for it: a pre-errata version and a
+ * double-script TCG print take the card's `imageId`, an alternate artwork keeps its own. No card yet: `id`.
+ */
+export const imageOf = (id: number, card: CardData | undefined): number =>
+  card && (id === card.id || id === card.idTcg) ? (card.imageId ?? id) : id
 
 /** Copies per canonical card across the deck; a passcode not in `cards` counts as itself. One pass for a whole pool page. */
 export const copyCounts = (deck: Deck, cards: CardMap): Map<number, number> => {

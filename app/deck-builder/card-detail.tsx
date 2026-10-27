@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
-import { copiesOf, isExtraDeckCard, printOf } from '@utils/deck/model'
+import { copiesOf, imageOf, isExtraDeckCard, printOf } from '@utils/deck/model'
 import { cardStatus } from '@utils/deck/rules'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
@@ -66,7 +66,7 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
           <div className="relative aspect-[59/86] w-full max-w-80 bg-surface-300">
             {/* The 421px original, the URL the hover preview already loaded: no 640px variant to mint on open. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- same-origin, already sized: nothing to optimise */}
-            <img src={CARD_SCAN_URL(selected)} alt={card.name} decoding="async" className="absolute inset-0 size-full object-cover" />
+            <img src={CARD_SCAN_URL(imageOf(selected, card))} alt={card.name} decoding="async" className="absolute inset-0 size-full object-cover" />
           </div>
 
           {arts.length > 1 ? (
@@ -80,7 +80,7 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
                   onClick={() => setSelected(id)}
                   className={twMerge('relative aspect-[59/86] w-12 cursor-pointer bg-surface-300', id === selected && 'outline outline-2 outline-cyan')}
                 >
-                  <Image loader={cardLoader} src={CARD_IMAGE_URL(id)} alt="" fill sizes="64px" className="object-cover" />
+                  <Image loader={cardLoader} src={CARD_IMAGE_URL(imageOf(id, card))} alt="" fill sizes="64px" className="object-cover" />
                 </button>
               ))}
             </div>

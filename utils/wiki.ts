@@ -26,6 +26,12 @@ export type WikiCard = {
   idOriginal: number
   /** A double-script card's TCG passcode, on both prints; `null` on every other card. */
   idTcg: number | null
+  /**
+   * The passcode the image host has art for: the current card's on a pre-errata version (Armory Arm 29071352 →
+   * 29071332), the OCG print's on a double-script TCG print, `id` otherwise. Name and text stay this card's.
+   * Build URLs through `imageOf` (utils/deck/model), which keeps an alternate artwork's own passcode.
+   */
+  imageId: number
   name: string
   description: string
   kind: CardKind
