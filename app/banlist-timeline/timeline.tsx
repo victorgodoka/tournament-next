@@ -173,6 +173,7 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
 
   const crumbs = [
     { label: t('home'), href: '/' },
+    { label: t('current.crumb'), href: '/banlist' },
     { label: t('crumb'), href: hub ? undefined : '/banlist-timeline' },
     ...(hub ? [] : [{ label }]),
   ]
@@ -184,8 +185,9 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: SITE_NAME, item: SITE_URL },
-          { '@type': 'ListItem', position: 2, name: t('crumb'), item: `${SITE_URL}/banlist-timeline` },
-          ...(hub ? [] : [{ '@type': 'ListItem', position: 3, name: label, item: pageUrl }]),
+          { '@type': 'ListItem', position: 2, name: t('current.crumb'), item: `${SITE_URL}/banlist` },
+          { '@type': 'ListItem', position: 3, name: t('crumb'), item: `${SITE_URL}/banlist-timeline` },
+          ...(hub ? [] : [{ '@type': 'ListItem', position: 4, name: label, item: pageUrl }]),
         ],
       },
       {

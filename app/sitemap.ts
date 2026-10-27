@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { BANLIST_CARDS, BANLISTS, banlistPath, cardChanges, cardPath } from '@utils/banlist'
+import { BANLIST_CARDS, BANLISTS, banlistPath, cardChanges, cardPath, currentBanlist } from '@utils/banlist'
 import { SITE_URL } from '@utils/config'
 import { LEGAL_UPDATED } from '@utils/const'
 
@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Where the old tournament.duelistsunite.org links now land.
     { url: `${SITE_URL}/leaderboard`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/tournaments`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/banlist`, lastModified: currentBanlist().date, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/banlist-timeline`, lastModified: BANLISTS.at(-1)!.date, changeFrequency: 'weekly', priority: 0.8 },
     ...BANLISTS.map((list) => ({
       url: `${SITE_URL}${banlistPath(list)}`,

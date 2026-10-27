@@ -12,6 +12,7 @@ const LLMS = `# YGO Omega
 - [Calendar](${SITE_URL}/calendar): upcoming tournaments
 - [Leaderboard](${SITE_URL}/leaderboard): Elo ranking
 - [Deck Builder](${SITE_URL}/deck-builder): build and check decks against the TCG, OCG and Genesys lists
+- [Banlist](${SITE_URL}/banlist): the current TCG Forbidden & Limited list and what changed on it
 - [Banlist timeline](${SITE_URL}/banlist-timeline): every Forbidden & Limited list and each card's history
 - [Wiki](${SITE_URL}/wiki): guides and articles
 

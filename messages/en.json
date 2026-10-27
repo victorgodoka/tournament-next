@@ -610,7 +610,48 @@
         "lastA": "{when, select, now {{card} is on the list right now: {status} on the current {label} list.} past {{card} was last on the {label} list, as {status}. It has been Unlimited since {date}.} other {{card} has not been on a TCG list yet. The announced {label} list adds it as {status} from {date}.}}"
       }
     },
-    "note": "TCG (Advanced Format) data from Yugipedia's Historic Forbidden/Limited Chart and each list's page. OCG lists are not included. Card names as printed in the TCG."
+    "note": "TCG (Advanced Format) data from Yugipedia's Historic Forbidden/Limited Chart and each list's page. OCG lists are not included. Card names as printed in the TCG.",
+    "current": {
+      "meta": {
+        "title": "Yu-Gi-Oh! Banlist {label}: Current TCG Forbidden & Limited List",
+        "description": "The current Yu-Gi-Oh! TCG banlist, in force since {date}: {f} Forbidden, {l} Limited and {s} Semi-Limited cards, plus every change from the last list."
+      },
+      "crumb": "Banlist",
+      "title": "Yu-Gi-Oh! Banlist · {label}",
+      "lead": "The Forbidden & Limited List in force for the Yu-Gi-Oh! TCG (Advanced Format) since {date}. Every card below links to its wiki page.",
+      "since": "In force since",
+      "jump": "Jump to",
+      "upcoming": {
+        "heading": "Next banlist · {label}",
+        "lead": "Announced: takes effect on {date} with {count, plural, one {# change} other {# changes}}. Until then the list below is the one in force."
+      },
+      "changes": {
+        "heading": "What changed · {label}",
+        "end": "Against the {label} list",
+        "first": "This is the first list: no changes to compare."
+      },
+      "full": {
+        "heading": "Full banlist · {count} cards",
+        "F": "Forbidden cards",
+        "L": "Limited cards",
+        "S": "Semi-Limited cards"
+      },
+      "history": {
+        "heading": "Banlist timeline",
+        "end": "{count} lists since 2002",
+        "lead": "Every Yu-Gi-Oh! TCG Forbidden & Limited List since May 2002, the size of each one and every card's path through them.",
+        "cta": "Open the banlist timeline",
+        "recent": "Recent lists"
+      },
+      "faq": {
+        "meaningQ": "What do Forbidden, Limited and Semi-Limited mean?",
+        "meaningA": "Forbidden cards can't be in your Main, Extra or Side Deck. You may run 1 copy of a Limited card and up to 2 of a Semi-Limited card. Every other card is Unlimited: up to 3 copies.",
+        "bannedQ": "What got banned on the {label} Yu-Gi-Oh! banlist?",
+        "freedQ": "What got unbanned on the {label} Yu-Gi-Oh! banlist?",
+        "historyQ": "Where can I see older Yu-Gi-Oh! banlists?",
+        "historyA": "The banlist timeline has all {lists} TCG Forbidden & Limited Lists since {first}, what changed on each one and the history of every card."
+      }
+    }
   },
   "Calendar": {
     "meta": {
