@@ -52,6 +52,8 @@ export type MetaEvent = {
   day: number
   kind: 'shareRise' | 'shareDrop' | 'winRateRise' | 'winRateDrop'
   archetype: ArchetypeKey
+  /** Absent from an older server or a season built before it. */
+  name?: string | null
   from: number
   to: number
   games: number

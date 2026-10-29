@@ -85,8 +85,7 @@ export const MetaTrendsCard = ({ archetypes, trends, events = [], seasonStartsAt
             <div className="grid grid-cols-1 gap-2 min-[720px]:grid-cols-2 min-[1200px]:grid-cols-3">
               {recent.map((ev) => {
                 const up = ev.kind === 'shareRise' || ev.kind === 'winRateRise'
-                const trend = byKey.get(archKey(ev.archetype))
-                const name = trend ? nameOf(trend) : `Setcode ${ev.archetype.join('/')}`
+                const name = nameOf({ name: ev.name ?? byKey.get(archKey(ev.archetype))?.name ?? null, archetype: ev.archetype })
                 return (
                   <div key={`${ev.kind}-${archKey(ev.archetype)}`} className="flex items-start gap-2.5 border border-line bg-surface-200 p-2.5 text-xs">
                     <span className={twMerge('mt-0.5 grid size-6 shrink-0 place-items-center', up ? 'bg-win/15 text-win' : 'bg-loss/15 text-loss')}>
