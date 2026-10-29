@@ -1,6 +1,3 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
@@ -126,14 +123,21 @@ const MatchRow = ({ match, round, roster }: { match: TournamentMatch; round: Tou
   )
 }
 
-type RoundsProps = { rounds: TournamentRound[]; standings: Standing[]; live: boolean }
+type RoundsProps = {
+  id: string | number
+  rounds: TournamentRound[]
+  standings: Standing[]
+  live: boolean
+  /** `?round=`; absent, a live tournament shows its latest round and a finished one its first. */
+  round?: number
+}
 
 /** One round at a time: its played matches as a table, its bye, then any match that has no result. */
-export const Rounds = ({ rounds, standings, live }: RoundsProps) => {
+export const Rounds = ({ id, rounds, standings, live, round: number }: RoundsProps) => {
   const t = useTranslations('Tournaments')
-  const [selected, setSelected] = useState(() => String(live ? (rounds.at(-1)?.number ?? 1) : (rounds[0]?.number ?? 1)))
+  const selected = number ?? (live ? rounds.at(-1)?.number : rounds[0]?.number)
 
-  const round = rounds.find((r) => String(r.number) === selected) ?? rounds[0]
+  const round = rounds.find((r) => r.number === selected) ?? rounds[0]
   if (!round) return <p className="text-sm text-ink-muted">{t('rounds.empty')}</p>
 
   // Only `standings` carries full players; rounds reference them by id.
@@ -148,9 +152,12 @@ export const Rounds = ({ rounds, standings, live }: RoundsProps) => {
       <div className="flex flex-wrap items-center gap-5">
         <ModeTabs
           label={t('rounds.tabsLabel')}
-          value={selected}
-          items={rounds.map((r) => ({ id: String(r.number), label: t('rounds.round', { number: r.number }) }))}
-          onChange={setSelected}
+          value={String(round.number)}
+          items={rounds.map((r) => ({
+            id: String(r.number),
+            label: t('rounds.round', { number: r.number }),
+            href: `/tournament/${id}?tab=rounds&round=${r.number}`,
+          }))}
           className="max-w-full overflow-x-auto"
         />
         <span className="text-sm text-ink-dim">

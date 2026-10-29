@@ -1,61 +1,56 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { TabBar, tabPanelProps } from '@ui/tab-bar/tab-bar.component'
-
-type Tab = 'standings' | 'rounds' | 'stats'
+import { twMerge } from 'tailwind-merge'
+import { LivePoll } from './live-poll'
 
 const TABS = ['standings', 'rounds', 'stats'] as const
 
-/** The API's own advice for a running tournament: re-read it every 30 s until it finishes. */
-const POLL_MS = 30_000
+export type Tab = (typeof TABS)[number]
+
+/** `?tab=` as the URL has it; anything else is the standings. */
+export const tabOf = (value: unknown): Tab => (TABS as readonly unknown[]).includes(value) ? (value as Tab) : 'standings'
 
 type TournamentTabsProps = {
+  id: string | number
+  tab: Tab
   /** Figures shown above the tab bar, on the standings tab only. */
   summary: React.ReactNode
-  /** Server-rendered panels: only the tab state and the live poll run on the client. */
+  /** Server-rendered panels; only the one for `tab` is sent. */
   standings: React.ReactNode
   rounds: React.ReactNode
   stats: React.ReactNode
   live: boolean
 }
 
-export const TournamentTabs = ({ summary, standings, rounds, stats, live }: TournamentTabsProps) => {
+/** Tabs as links (`?tab=`), so the page renders on the server and each section has a URL. */
+export const TournamentTabs = ({ id, tab, summary, standings, rounds, stats, live }: TournamentTabsProps) => {
   const t = useTranslations('Tournaments.detail.tabs')
-  const [tab, setTab] = useState<Tab>('standings')
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!live) return
-    // A hidden tab is nobody watching: polling it re-renders the route on the server for
-    // no reader, and `router.refresh()` is not cacheable. Catch up on the way back instead.
-    const refresh = () => document.visibilityState === 'visible' && router.refresh()
-    const id = setInterval(refresh, POLL_MS)
-    document.addEventListener('visibilitychange', refresh)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', refresh)
-    }
-  }, [live, router])
-
   const panels = { standings, rounds, stats }
 
   return (
     <>
+      {live ? <LivePoll /> : null}
       {tab === 'standings' ? summary : null}
-      <TabBar
-        tabs={TABS.map((id) => ({ id, label: t(id) }))}
-        active={tab}
-        onSelect={setTab}
-        label={t('label')}
-        idPrefix="tournament"
-        fit
-      />
-      <div {...tabPanelProps('tournament', tab)} className="flex flex-col gap-8">
-        {panels[tab]}
-      </div>
+      <nav aria-label={t('label')} className="flex w-full shrink-0 gap-6 overflow-x-auto border-b border-line">
+        {TABS.map((key) => {
+          const isActive = key === tab
+          return (
+            <Link
+              key={key}
+              href={key === 'standings' ? `/tournament/${id}` : `/tournament/${id}?tab=${key}`}
+              scroll={false}
+              aria-current={isActive ? 'page' : undefined}
+              className={twMerge(
+                'flex min-h-11 items-center whitespace-nowrap signal-strong',
+                isActive ? 'text-ink shadow-tab-active' : 'text-ink-muted hover:text-ink',
+              )}
+            >
+              {t(key)}
+            </Link>
+          )
+        })}
+      </nav>
+      <div className="flex flex-col gap-8">{panels[tab]}</div>
     </>
   )
 }

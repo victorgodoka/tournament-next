@@ -3,8 +3,12 @@ import { getTranslations } from 'next-intl/server'
 import TournamentPage from '@app/tournament'
 import { pageMetadata } from '@utils/metadata'
 import { getTournament } from '@utils/tournaments'
+import { tabOf } from '../TournamentTabs'
 
-type TournamentRouteProps = { params: Promise<{ id: string }> }
+type TournamentRouteProps = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string | string[]; round?: string | string[] }>
+}
 
 export async function generateMetadata({ params }: TournamentRouteProps) {
   const { id } = await params
@@ -32,12 +36,13 @@ export async function generateMetadata({ params }: TournamentRouteProps) {
   })
 }
 
-const TournamentRoute = async ({ params }: TournamentRouteProps) => {
-  const { id } = await params
+const TournamentRoute = async ({ params, searchParams }: TournamentRouteProps) => {
+  const [{ id }, q] = await Promise.all([params, searchParams])
   const detail = await getTournament(id)
   if (!detail) notFound()
 
-  return <TournamentPage detail={detail} />
+  const round = typeof q.round === 'string' ? Number(q.round) : NaN
+  return <TournamentPage detail={detail} tab={tabOf(q.tab)} round={Number.isInteger(round) ? round : undefined} />
 }
 
 export default TournamentRoute

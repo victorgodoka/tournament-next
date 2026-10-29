@@ -13,9 +13,11 @@ import type { TournamentDetail } from '@utils/types'
 import { Rounds } from './sections/Rounds'
 import { Standings } from './sections/Standings'
 import { Stats } from './sections/Stats'
-import { TournamentTabs } from './TournamentTabs'
+import { TournamentTabs, type Tab } from './TournamentTabs'
 
-const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
+type TournamentPageProps = { detail: TournamentDetail; tab: Tab; /** `?round=`, for the rounds tab. */ round?: number }
+
+const TournamentPage = ({ detail, tab, round }: TournamentPageProps) => {
   const t = useTranslations('Tournaments')
   const locale = useLocale()
   const { tournament, standings, rounds, stats } = detail
@@ -70,6 +72,8 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
           <AdBanner id="ad-top" placement="content" />
 
           <TournamentTabs
+            id={id}
+            tab={tab}
             live={live}
             summary={
               <StatGrid
@@ -99,7 +103,7 @@ const TournamentPage = ({ detail }: { detail: TournamentDetail }) => {
               />
             }
             standings={<Standings tournament={tournament} standings={standings} rounds={rounds} />}
-            rounds={<Rounds rounds={rounds} standings={standings} live={live} />}
+            rounds={<Rounds id={id} rounds={rounds} standings={standings} live={live} round={round} />}
             stats={<Stats tournament={tournament} stats={stats} live={live} standings={standings} />}
           />
 

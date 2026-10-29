@@ -1,7 +1,5 @@
-'use client'
-
-// Client, like the other tabs: BarList and DataTable take formatter functions, which can't cross
-// from a server component.
+// A server component, like the other tabs: DataTable and the charts have no client code, so the
+// formatter functions never cross a client boundary. TopCutCard is the one client leaf.
 import { useLocale, useTranslations } from 'next-intl'
 import { formatRate, formatRecord } from '@omega/tournament/labels'
 import { Conversion, RecordBar, ShareCell, ShareStack, TurnSplit, WinRateBars } from '@omega/tournament/stats-charts'

@@ -1,8 +1,6 @@
-'use client'
-
 /**
  * One duelist's tournaments (GET /tournaments/players/:id/stats), drawn with the tournament page's
- * charts and tables. Client for the same reason as that tab: the tables take formatter functions.
+ * charts and tables, all of them server-rendered.
  * Decklists only: tournament duels have no play log, so a card's record is "games with it in the list".
  */
 

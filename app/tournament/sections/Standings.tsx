@@ -1,6 +1,3 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
@@ -97,10 +94,10 @@ const Zone = ({ label, cards, columns }: { label: string; cards: DeckCard[]; col
   )
 }
 
-const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) => {
+const DeckPanel = ({ deck }: { deck: TournamentDeck | null }) => {
   const t = useTranslations('Tournaments.standings')
   return (
-    <div id={id} className="flex flex-col gap-6 border-t border-line-mid bg-surface-200 px-4 pt-6 pb-7 lg:pr-6 lg:pl-22">
+    <div className="flex flex-col gap-6 border-t border-line-mid bg-surface-200 px-4 pt-6 pb-7 lg:pr-6 lg:pl-22">
       {deck ? (
         <>
           <div className="flex flex-wrap items-center gap-4">
@@ -131,13 +128,14 @@ const DeckPanel = ({ id, deck }: { id: string; deck: TournamentDeck | null }) =>
 
 type StandingsProps = { tournament: TournamentSummary; standings: Standing[]; rounds: TournamentRound[] }
 
-/** Winner, how it ran, then the standings table. A row opens into the decklist it was registered with. */
+/**
+ * Winner, how it ran, then the standings table. A row is a `<details>` that opens into the decklist it
+ * was registered with: one at a time (`name`), with no client code. Links in the row navigate, they don't toggle.
+ */
 export const Standings = ({ tournament, standings, rounds }: StandingsProps) => {
   const t = useTranslations('Tournaments')
   const locale = useLocale()
   const live = tournament.status === 'live'
-  // A finished page opens on the winning deck; a live one on nothing, since rank 1 may still move.
-  const [open, setOpen] = useState<string | null>(live ? null : (standings[0]?.player.id ?? null))
 
   const [champion] = standings
   if (!champion) return <p className="text-sm text-ink-muted">{t('standings.empty')}</p>
@@ -174,14 +172,11 @@ export const Standings = ({ tournament, standings, rounds }: StandingsProps) => 
           {standings.map((standing) => {
             const { rank, player, points, deck, tiebreakers, byes, dropped } = standing
             const name = playerName(player, t('player.unknown'))
-            const isOpen = open === player.id
-            const panelId = `standing-${player.id}-deck`
             const missed = unplayed.get(player.id) ?? 0
             const lead = deck?.archetypes[0]
 
-            return (
-              <li key={player.id} className="flex flex-col">
-                <div className={twMerge(COLS, 'py-3', isOpen ? 'bg-steel' : 'bg-surface-100')}>
+            const cells = (
+              <>
                   <span
                     className={twMerge(
                       'text-center font-display text-2xl leading-none',
@@ -233,28 +228,35 @@ export const Standings = ({ tournament, standings, rounds }: StandingsProps) => 
                   <span className="hidden text-right font-mono text-xs leading-none text-ink-dim lg:block">
                     {formatRate(tiebreakers.opponentsOpponentsMatchWin, locale)}
                   </span>
+              </>
+            )
 
-                  {/* The API sends no decklist while live: nothing to open until it ends. */}
-                  {live ? (
-                    <span />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setOpen(isOpen ? null : player.id)}
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      aria-label={t(isOpen ? 'standings.hideDeck' : 'standings.showDeck', { name })}
-                      className={twMerge(
-                        'grid size-8 cursor-pointer place-items-center border',
-                        isOpen ? 'rotate-180 border-cyan text-cyan' : 'border-line-mid text-ink-dim hover:border-cyan hover:text-cyan',
-                      )}
+            // The API sends no decklist while live: nothing to open until it ends.
+            if (live) {
+              return (
+                <li key={player.id} className={twMerge(COLS, 'bg-surface-100 py-3')}>
+                  {cells}
+                  <span />
+                </li>
+              )
+            }
+
+            // A finished page opens on the winning deck.
+            // ponytail: every decklist ships in the HTML (~7 KB gzipped each); switch to `?deck=` if 64-player events hurt.
+            return (
+              <li key={player.id} className="flex flex-col">
+                <details name="standing-deck" open={standing === champion} className="group">
+                  <summary className={twMerge(COLS, 'cursor-pointer list-none bg-surface-100 py-3 group-open:bg-steel [&::-webkit-details-marker]:hidden')}>
+                    {cells}
+                    <span
+                      aria-hidden
+                      className="grid size-8 place-items-center border border-line-mid text-ink-dim group-open:rotate-180 group-open:border-cyan group-open:text-cyan"
                     >
                       <Icon name="down" />
-                    </button>
-                  )}
-                </div>
-
-                {isOpen ? <DeckPanel id={panelId} deck={deck} /> : null}
+                    </span>
+                  </summary>
+                  <DeckPanel deck={deck} />
+                </details>
               </li>
             )
           })}
