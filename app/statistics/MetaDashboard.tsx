@@ -30,7 +30,7 @@ import { DeckComparator } from './dashboard/DeckComparator'
 import { ArchetypeDetailCard } from './dashboard/ArchetypeDetailCard'
 import { MetaTrendsCard } from './dashboard/MetaTrendsCard'
 import { SampleDecks } from './dashboard/SampleDecks'
-import { InfographicLinks } from '@omega/infographic/infographic-links'
+import { InfographicLinks, infographicHrefs } from '@omega/infographic/infographic-links'
 
 const sectionId = (s: NavSection) => `stat-section-${s}`
 
@@ -129,7 +129,7 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
       busy={t('infographic.busy')}
       failed={t('infographic.failed')}
       sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
-      items={[{ file: `${section}-${seasonData.code}`, href: (size) => `/statistics/infographic/${section}?${new URLSearchParams({ ladder, ...(season ? { season } : {}), ...extra, size, locale })}` }]}
+      items={[{ file: `${section}-${seasonData.code}`, hrefs: infographicHrefs(`/statistics/infographic/${section}`, { ladder, ...(season ? { season } : {}), ...extra, locale }) }]}
       className={className}
     />
   )

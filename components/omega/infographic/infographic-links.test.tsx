@@ -14,7 +14,7 @@ const props = {
   busy: 'Rendering the image…',
   failed: "Couldn't render the image.",
   sizes: { wide: '16:9', tall: '9:16' },
-  items: [{ file: 'overview-s1', href: (size: 'wide' | 'tall') => `/statistics/infographic/overview?size=${size}` }],
+  items: [{ file: 'overview-s1', hrefs: { wide: '/statistics/infographic/overview?size=wide', tall: '/statistics/infographic/overview?size=tall' } }],
 }
 
 const status = () => screen.queryByRole('status')?.textContent ?? null

@@ -18,7 +18,7 @@ import { standingOf } from "./insights";
 import { StatisticsFilters } from "./StatisticsFilters";
 import { TournamentSummary } from "./TournamentSummary";
 import { TournamentReport } from "./TournamentReport";
-import { InfographicLinks } from "@omega/infographic/infographic-links";
+import { InfographicLinks, infographicHrefs } from "@omega/infographic/infographic-links";
 
 export type SeasonChoice = { code: string; label: string; format: 'TCG' | 'Genesys'; open: boolean }
 
@@ -169,13 +169,12 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
                 items={(selection.view === 'tournaments' ? (['tournaments'] as const) : (['overview', 'decks', 'matchups'] as const)).map((section) => ({
                   label: tIg(`sections.${section}`),
                   file: `${profile.handle ?? profile.id}-${section}`,
-                  href: (size) => `${base}/infographic/${section}?${new URLSearchParams({
+                  hrefs: infographicHrefs(`${base}/infographic/${section}`, {
                     ...(selection.view === 'tournaments'
                       ? selection.tournamentFormat ? { format: selection.tournamentFormat } : {}
                       : selection.season ? { season: selection.season } : { ladder: selection.ladder }),
-                    size,
                     locale,
-                  })}`,
+                  }),
                 }))}
               />
               {selection.view === 'tournaments' ? (
