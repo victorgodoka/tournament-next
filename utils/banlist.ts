@@ -4,7 +4,7 @@ import { CARDS, IDS, LISTS } from './banlist-data'
 export type BanStatus = 'F' | 'L' | 'S' | 'U' | 'N'
 export type Restricted = 'F' | 'L' | 'S'
 
-export type BanChange = { card: number; from: BanStatus; to: BanStatus }
+type BanChange = { card: number; from: BanStatus; to: BanStatus }
 
 export type Banlist = {
   index: number
@@ -36,7 +36,7 @@ export const BANLIST_CARDS = CARDS.split('|')
 export const cardName = (card: number) => BANLIST_CARDS[card] ?? ''
 
 /** Card status per list, `BANLIST_HISTORY[card][list]`: `U` when not on it. */
-export const BANLIST_HISTORY: BanStatus[][] = BANLIST_CARDS.map(() => [])
+const BANLIST_HISTORY: BanStatus[][] = BANLIST_CARDS.map(() => [])
 
 export const statusOn = (card: number, list: number): BanStatus => BANLIST_HISTORY[card]?.[list] ?? 'U'
 

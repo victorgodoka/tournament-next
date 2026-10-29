@@ -1,13 +1,7 @@
-import { ANALYTICS_ENABLED } from "@utils/const";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const DISABLED_ROUTES = [
-  ...(ANALYTICS_ENABLED ? [] : [
-    '/statistics/:path*',
-    '/admin/statistics/:path*',
-    '/profile/:id/statistics/:path*',
-  ]),
   // The shop, the inventory and the battlepass are gone; links already shared land on the home page.
   '/shop/:path*', '/inventory/:path*', '/battlepass/:path*',
   '/admin/shop/:path*', '/admin/rewards/:path*', '/admin/battlepass/:path*',
@@ -51,9 +45,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-arts/**" },
       { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-images/**" },
     ],
-    // res.cloudinary.com is deliberately absent: `coverUrl` asks Cloudinary itself for a
-    // sized f_auto image and the cover <Image>s render it `unoptimized`, so covers never
-    // reach this optimiser at all.
+    // res.cloudinary.com is deliberately absent: Cloudinary sizes its own images (card art via
+    // `image-loader.ts`, wiki assets), so they never reach this optimiser at all.
   },
 };
 

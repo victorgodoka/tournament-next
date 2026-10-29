@@ -12,22 +12,9 @@ const customSanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    // Permite que qualquer tag HTML válida mantenha suas classes
-    'h1': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'h2': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'h3': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'p': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'li': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'ul': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'hr': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'table': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'thead': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'th': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'tbody': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'td': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    'code': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
-    '*': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class']
-  }
+    // Every tag keeps the classes rehype-class-names put on it.
+    '*': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
+  },
 };
 
 type MdNode = { type: string; value?: string; children?: MdNode[] }

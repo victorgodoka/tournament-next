@@ -7,9 +7,9 @@ import type { Cosmetic } from './types'
  * validated here and anything off falls back, instead of trusting it into a style.
  */
 
-export const BUBBLE_SHAPES = ['square', 'round', 'pill'] as const
-export const BUBBLE_CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const
-export const BUBBLE_ANIMATIONS = ['none', 'bob', 'wiggle'] as const
+const BUBBLE_SHAPES = ['square', 'round', 'pill'] as const
+const BUBBLE_CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const
+const BUBBLE_ANIMATIONS = ['none', 'bob', 'wiggle'] as const
 
 export type BubbleStyle = {
   /** Fill, or the gradient's start when `bg2` is set. */
@@ -40,8 +40,6 @@ export const DEFAULT_BUBBLE: BubbleStyle = {
 }
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
-
-export const isHex = (v: string) => HEX.test(v)
 
 const color = (v: unknown, fallback: string | null) => (typeof v === 'string' && HEX.test(v) ? v : fallback)
 const oneOf = <T extends string>(list: readonly T[], v: unknown, fallback: T) => (list.includes(v as T) ? (v as T) : fallback)

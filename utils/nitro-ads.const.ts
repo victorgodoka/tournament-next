@@ -10,7 +10,7 @@ import type {
   NitroRailAdOptions,
 } from './nitro-ads.types'
 
-export const NITROPAY_SITE_ID = '2429'
+const NITROPAY_SITE_ID = '2429'
 
 export const NITROPAY_SCRIPT_URL = `https://s.nitropay.com/ads-${NITROPAY_SITE_ID}.js`
 

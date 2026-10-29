@@ -20,10 +20,10 @@ export const SOURCE_NAME: Record<Source, string> = { games: 'games', cards: 'car
 /** `number[]`: a global archetype, one setcode or two for a mixed deck (§7). */
 export type FilterValue = string | number | number[] | null
 
-export type Dimension = { id: string; label: string; values: string; description: string }
+type Dimension = { id: string; label: string; values: string; description: string }
 /** `last` = the value of the latest point in the cut, never summed or averaged. */
 export type Metric = { id: string; label: string; source: Source; format: 'count' | 'rate' | 'average' | 'last'; splitBy: string[]; from: string; description: string }
-export type Limits = { segments: number; rows: number; columns: number; values: number; filters: number; explorations: number; name: number; rowLimit: number }
+type Limits = { segments: number; rows: number; columns: number; values: number; filters: number; explorations: number; name: number; rowLimit: number }
 
 export type Variables = {
   version: number
@@ -95,27 +95,6 @@ export const pickColumns = <C extends { sk: number | string; n: number; label: s
   return sorted.slice(0, cfg.columnLimit ?? COLUMN_LIMIT)
 }
 
-/** `private`: the owner only. `link`: anyone with the share URL. `public`: listed on the profile and the public feed. */
-export type Visibility = 'private' | 'link' | 'public'
-
-export type Exploration = {
-  id: string
-  /** The profile it belongs to. */
-  ownerId: string
-  /** Who created it: the owner, or an analyst writing on their profile. */
-  author: Duelist
-  /** The owner, only when `author` is someone else (an analyst). */
-  coAuthor: Duelist | null
-  name: string
-  visibility: Visibility
-  /** Builds the share URL (`/analytics/e/:token`). `null` on a `link` row the viewer doesn't own (analysts always get it). */
-  shareToken: string | null
-  /** Tab order. */
-  position: number
-  config: ExplorationConfig
-  createdAt: string
-  updatedAt: string
-}
 
 /* ---------------------------------------------------------------- *
  * Facts: one row per game, per card used in a game, per hand-trap activation
@@ -152,13 +131,6 @@ export const periodDays = (p: Pick<AnalyticsPeriod, 'startsAt' | 'endsAt'>) =>
 
 /** The primary segment's note. */
 export const seasonState = (s: PlayerSeason['season']) => (s.analyticsOnly ? 'Period' : s.endsAt ? 'Ended' : 'Open')
-
-export const periodOption = (p: AnalyticsPeriod): SegmentOption => ({
-  id: p.code,
-  label: `${p.ladder === 'tcg' ? 'TCG' : 'Genesys'} · ${p.label}`,
-  sub: `Period · ${periodDays(p).join(' → ')}`,
-  code: p.code,
-})
 
 /** One compared season, ready to cut. */
 export type Segment = {
@@ -274,7 +246,7 @@ const dimValue = (d: string, f: Fact) => DIM_IMPL[d]?.value(f)
 /** Duelist values are never lists: those are global archetypes. */
 const dimKey = (d: string, f: Fact) => DIM_IMPL[d]?.key?.(f) ?? (dimValue(d, f) as string | number | null | undefined) ?? ''
 export const dimNatural = (d: string) => DIM_IMPL[d]?.natural
-export const dimLabel = (d: string, v: FilterValue, names: Names) => DIM_IMPL[d]?.label(v, names) ?? String(v)
+const dimLabel = (d: string, v: FilterValue, names: Names) => DIM_IMPL[d]?.label(v, names) ?? String(v)
 
 /* ---------------------------------------------------------------- *
  * Metrics
@@ -467,7 +439,7 @@ const measure = (cat: Catalog, id: string, seg: Segment, source: Source, cut: Cu
   return COMPUTE[id]!({ facts: rows ?? factsOf(seg, source).filter(keep), games, cut, seg })
 }
 
-export type Cell = { value: number | null; n: number }
+type Cell = { value: number | null; n: number }
 export type GroupSegment = { vals: (number | null)[]; n: number; cells: Cell[] }
 export type Group = { key: string; labels: string[]; values: FilterValue[]; matchId: string | null; sub: string; seg: GroupSegment[] }
 
@@ -659,20 +631,6 @@ export type Payload = { kind: 'seg' | 'dim' | 'metric'; id: string; from?: Zone;
 
 export const capOf = (cat: Catalog, zone: Zone) => cat.limits[zone]
 
-/** Every value a dimension takes in these seasons, in its natural order, labelled. */
-export const valuesOf = (cat: Catalog, segs: Segment[], dim: string, source: Source, names: Names) => {
-  const seen = new Map<string, { v: FilterValue; k: number | string }>()
-  for (const seg of segs) {
-    for (const f of [...factsOf(seg, source), ...(source === 'games' ? [] : source === 'cards' ? seg.aggregate.cards : seg.aggregate.handTraps)]) {
-      const v = dimValue(dim, f)
-      if (v !== undefined) seen.set(JSON.stringify(v), { v, k: dimKey(dim, f) })
-    }
-  }
-  const list = [...seen.values()].sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0))
-  if (dim === 'match') list.reverse()
-  return list.map(({ v }) => ({ v, label: dimLabel(dim, v, names) }))
-}
-
 export const accepts = (cat: Catalog, zone: Zone, p: Payload, cfg: ExplorationConfig) => {
   if (ZONE_KIND[zone] !== p.kind || p.from === zone) return false
   if (p.kind === 'seg') return cfg.segments.length < cat.limits.segments && !cfg.segments.includes(p.id)
@@ -739,42 +697,6 @@ export const inUse = (cfg: ExplorationConfig) => {
   return u
 }
 
-export const summary = (cat: Catalog, cfg: ExplorationConfig, segLabel: (id: string) => string, names: Names) =>
-  [
-    cfg.segments.map(segLabel).join(' vs '),
-    cfg.rows.length ? `rows: ${cfg.rows.map((d) => cat.dimensions.get(d)?.label ?? d).join(', ')}` : '',
-    cfg.columns ? `columns: ${cat.dimensions.get(cfg.columns)?.label ?? cfg.columns}` : '',
-    cfg.values.map((m) => cat.metrics.get(m)?.label ?? m).join(', '),
-    ...cfg.filters.map((f) => `${cat.dimensions.get(f.dimension)?.label ?? f.dimension} = ${dimLabel(f.dimension, f.value, names)}`),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
 const SEG_COLORS = ['var(--color-cyan)', 'var(--color-cyan)', 'var(--color-azure-lift)', 'var(--color-ink-dim)']
 /** One colour per compared season, in the order they were added. */
 export const segColor = (i: number) => SEG_COLORS[i] ?? 'var(--color-ink-dim)'
-
-/* ---------------------------------------------------------------- *
- * Header numbers
- * ---------------------------------------------------------------- */
-
-export const kpis = (seg: Segment) => {
-  const g = seg.games
-  const first = g.filter((f) => f.game!.wentFirst === true)
-  const second = g.filter((f) => f.game!.wentFirst === false)
-  const top = seg.season.archetypeDistribution[0]
-  const wr = winRate(g)
-  const r = seg.season.record
-  return [
-    { label: 'Games', value: fmt(g.length, 'count'), sub: `${fmt(seg.season.matchCount, 'count')} matches` },
-    { label: 'Win rate', value: fmt(wr, 'rate'), sub: `${r.wins}–${r.losses}–${r.draws}`, tone: wr === null ? undefined : wr >= 0.5 ? 'text-win' : 'text-loss' },
-    { label: 'Going first', value: fmt(winRate(first), 'rate'), sub: `${first.length} games` },
-    { label: 'Going second', value: fmt(winRate(second), 'rate'), sub: `${second.length} games` },
-    {
-      label: 'Main archetype',
-      value: top ? archetypeName(top.archetype) : '—',
-      sub: seg.season.archetypeDistribution.length > 1 ? `${seg.season.archetypeDistribution.length} archetypes` : top ? 'every game' : '',
-      tone: 'text-cyan',
-    },
-  ]
-}

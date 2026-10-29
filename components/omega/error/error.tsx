@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArtTile } from "@omega/art-tile";
-import { Button, Eyebrow } from "@ui/index";
+import { Button } from "@ui/button";
+import { Eyebrow } from "@ui/eyebrow";
 import { DOWNLOAD_URL, ERROR_MAP, GENERIC_ERROR, GO_NEXT } from "@utils/const";
 
 interface ErrorProps {

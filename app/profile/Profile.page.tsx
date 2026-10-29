@@ -3,14 +3,13 @@ import { AdBanner } from "@omega/ads/ad-banner";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { Icon } from "@ui/icon";
-import { ANALYTICS_ENABLED } from "@utils/const";
 import { Chip } from "@ui/chip";
 import { Panel } from "@ui/panel";
 import { ProfileHeader } from "@ui/profile-header";
 import type { Stat } from "@ui/stat-grid";
 import { CardArt } from "@omega/card-art";
 import { LocalTime } from "@omega/profile/local-time";
-import { SongPlayer } from "@omega/profile";
+import { SongPlayer } from "@omega/profile/song-player";
 import { formatNumber, REGION_LABEL, SOCIAL, VISIBILITY_LABEL } from "@omega/profile/labels";
 import type { CardArt as CardArtType, Ladder, Profile, ProfileSocial } from "@utils/types";
 import { Ladders } from "./sections/Ladders";
@@ -156,7 +155,7 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
       actions={
         <>
           {/* Statistics are owner-only, even on a public profile. */}
-          {ANALYTICS_ENABLED && isOwner ? (
+          {isOwner ? (
             <Button variant="secondary" href={`/profile/${profile.id}/statistics`}><Icon name="chart" />Statistics</Button>
           ) : null}
           {/* Each deck's own visibility decides who sees it there; the owner sees all of them. */}

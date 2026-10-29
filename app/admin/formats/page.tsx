@@ -1,7 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Button, Chip, DataTable, Field, PageHeader, Panel, Select, TextArea, TextInput } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Chip } from '@ui/chip'
+import { DataTable } from '@ui/data-table'
+import { Field, Select, TextArea, TextInput } from '@ui/field'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
 import { useResource } from '@hooks/index'
 import { createFormat, deleteFormat, getOptions, listFormats, panelErrorText, updateFormat, type PanelFormat } from '@utils/panel'
 

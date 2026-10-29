@@ -21,12 +21,12 @@ export const VISIBILITY_LABEL: Record<Visibility, string> = {
   nobody: 'Visible to you only',
 }
 
-export const SOCIAL: Record<SocialNetwork, { label: string; icon: string }> = {
-  instagram: { label: 'Instagram', icon: 'mdi:instagram' },
-  x: { label: 'X', icon: 'simple-icons:x' },
-  youtube: { label: 'YouTube', icon: 'mdi:youtube' },
-  twitch: { label: 'Twitch', icon: 'mdi:twitch' },
-  website: { label: 'Website', icon: 'mdi:web' },
+export const SOCIAL: Record<SocialNetwork, { label: string }> = {
+  instagram: { label: 'Instagram' },
+  x: { label: 'X' },
+  youtube: { label: 'YouTube' },
+  twitch: { label: 'Twitch' },
+  website: { label: 'Website' },
 }
 
 // ponytail: fixed locale so server and client render the same digits; per-reader locale needs a client-only formatter.

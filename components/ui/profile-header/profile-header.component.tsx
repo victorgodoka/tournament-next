@@ -5,7 +5,7 @@ import { StatGrid, type Stat } from '@ui/stat-grid'
 import { TierBadge } from '@ui/tier-badge'
 
 /** surface-100 with a faint cyan haze in the notched corner; profiles have no cover image. */
-export const PROFILE_FILL = {
+const PROFILE_FILL = {
   '--fill': 'radial-gradient(ellipse 45% 140% at 100% 0%, rgba(0, 253, 255, 0.07), rgba(0, 0, 0, 0) 70%), var(--color-surface-100)',
 } as React.CSSProperties
 

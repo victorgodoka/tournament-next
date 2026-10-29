@@ -1,1 +1,1 @@
-export { ResultPill, FormGuide, type Result } from './result.component'
+export { ResultPill,  type Result } from './result.component'

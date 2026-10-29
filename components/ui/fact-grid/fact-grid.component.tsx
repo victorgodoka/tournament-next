@@ -1,6 +1,6 @@
 import { twMerge } from 'tailwind-merge'
 
-export type Fact = { label: React.ReactNode; value: React.ReactNode }
+type Fact = { label: React.ReactNode; value: React.ReactNode }
 
 const TONE = {
   raised: { grid: 'bg-line', cell: 'bg-surface-200', label: 'text-ink-muted' },

@@ -10,7 +10,7 @@ export type ArchetypeKey = number[]
 export type Side = { games: number; winRate: number | null }
 export type TurnSplit = { first: Side; second: Side }
 
-export type WilsonInterval = { lower: number; upper: number; margin: number }
+type WilsonInterval = { lower: number; upper: number; margin: number }
 export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
 /** A matchup at or past `FAVORABLE` is favorable, under `UNFAVORABLE` unfavorable. The API sends only the rate; this is the page's reading. */
 export const FAVORABLE = 0.52
@@ -31,7 +31,7 @@ export type MatchupOthers = {
   sideboarding: { game1: Side; postSide: Side }
 }
 
-export type TierDistribution = {
+type TierDistribution = {
   tier1: { share: number; archetypes: number }
   tier2: { share: number; archetypes: number }
   tier3: { share: number; archetypes: number }
@@ -223,7 +223,7 @@ export type Tally3 = { wins: number; losses: number; draws: number }
  * The duelist's own record, mirrors in (STATISTICS_API.md §6). Counts only; a deck nobody could name is
  * in `matches`/`games` only. `decks` and `matchups` come by matches, most first.
  */
-export type PersonalRecord = {
+type PersonalRecord = {
   matches: Tally3
   games: Tally3
   decks: { archetype: ArchetypeKey; name: string | null; matches: Tally3; games: Tally3 }[]
@@ -266,7 +266,7 @@ export type DeepDiveMode = 'general' | 'pure' | 'combined'
 
 /** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */
 export type IndexEntry = { archetype: ArchetypeKey; name: string | null; games: number; ready: boolean }
-export type DeepDiveRow = StatArchetype & { rank: number }
+type DeepDiveRow = StatArchetype & { rank: number }
 export type DeepDiveState =
   | { status: 'ready'; archetype: DeepDiveRow }
   | { status: 'missing' }
@@ -332,9 +332,9 @@ export const requestCard = async (season: string, id: number): Promise<CardState
 
 /** GET /statistics/omega: logins and ranked activity of the whole game (STATISTICS_API.md §5). */
 export type OmegaCard = { current: number; previous: number | null }
-export type TierCell = { games: number; players: number }
+type TierCell = { games: number; players: number }
 export type OmegaRange = 7 | 14 | 30
-export type OmegaLadder = {
+type OmegaLadder = {
   population: { tier: Tier; players: number }[]
   daily: { day: string; tiers: Partial<Record<Tier, TierCell>> }[]
   totals: Record<OmegaRange, Partial<Record<Tier, TierCell>>>

@@ -2,27 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Avatar, Breadcrumbs, Button, Chip, SideNav, type SideNavGroup } from '@ui/index'
+import { Avatar } from '@ui/avatar'
+import { Breadcrumbs } from '@ui/breadcrumbs'
+import { Button } from '@ui/button'
+import { Chip } from '@ui/chip'
+import { SideNav, type SideNavGroup } from '@ui/side-nav'
 import { useAuth, useResource } from '@hooks/index'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'
 import { listTournaments } from '@utils/panel'
-import { ANALYTICS_ENABLED } from '@utils/const'
 
 type NavItem = { href: string; label: string }
 
 const NAV: { label: string; items: NavItem[] }[] = [
   { label: 'Schedule', items: [{ href: '/admin/tournaments', label: 'Tournaments' }, { href: '/admin/formats', label: 'Formats' }] },
-  ...(ANALYTICS_ENABLED
-    ? [{
-        label: 'Statistics',
-        items: [
-          { href: '/admin/statistics/sweep', label: 'Season sweep' },
-          { href: '/admin/statistics/explorations', label: 'Explorations' },
-          { href: '/admin/statistics/periods', label: 'Periods' },
-        ],
-      }]
-    : []),
+  {
+    label: 'Statistics',
+    items: [
+      { href: '/admin/statistics/sweep', label: 'Season sweep' },
+      { href: '/admin/statistics/explorations', label: 'Explorations' },
+      { href: '/admin/statistics/periods', label: 'Periods' },
+    ],
+  },
   {
     label: 'Cards',
     items: [

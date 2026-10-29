@@ -4,14 +4,7 @@
  * `system.manage`; seasons, sync and rollover belong to the admin panel, not to this page.
  */
 import { API_URL } from '@utils/auth'
-import type {
-  LeaderboardPage,
-  PastSeasons,
-  RankedFormat,
-  RankedLadderId,
-  SeasonStandingsPage,
-  Tier,
-} from '@utils/types'
+import type { LeaderboardPage, PastSeasons, RankedFormat, RankedLadderId } from '@utils/types'
 
 export class RankedApiError extends Error {
   status: number
@@ -29,21 +22,6 @@ export class RankedApiError extends Error {
 export const LADDERS: { id: RankedLadderId; format: RankedFormat }[] = [
   { id: 'tcg', format: 'TCG' },
   { id: 'genesys', format: 'Genesys' },
-]
-
-/**
- * Elo floor per tier, lowest first. Mirrors `TIERS` in omega-server-v3 `profile.service.ts`;
- * Iron is the floor. The API sends the tier it computed — this is only for "what the next one costs".
- */
-export const TIER_FLOORS: [Tier, number | null][] = [
-  ['Iron', null],
-  ['Bronze', 50],
-  ['Silver', 200],
-  ['Gold', 350],
-  ['Platinum', 600],
-  ['Diamond', 1000],
-  ['Master', 1450],
-  ['Omega', 2000],
 ]
 
 /** The API defaults to 25 and caps at 100. One screen of the ledger is worth more than 25. */
@@ -87,10 +65,6 @@ export const getLeaderboard = (
 /** Closed seasons of one ladder, newest first. Empty until the ladder closes its first season. */
 export const getPastSeasons = (ladder: RankedLadderId) =>
   get<PastSeasons>(`/ranked/seasons/past?ladder=${ladder}`, 300)
-
-/** Final results of a closed season. They never change, so paging is stable. `404` for the open season's code. */
-export const getSeasonStandings = (code: string, { cursor, limit = LEADERBOARD_PAGE_SIZE }: PageQuery = {}) =>
-  get<SeasonStandingsPage>(`/ranked/seasons/${encodeURIComponent(code)}/standings?${pageParams(cursor, limit)}`, 3600)
 
 /** `system.manage`. Re-reads both ladders now; re-fetch them with `reload` afterwards. */
 export const refreshLeaderboard = async () => {

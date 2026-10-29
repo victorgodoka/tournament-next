@@ -80,15 +80,9 @@ export const messenger = {
   clearChat: (id: string) => call('DELETE', `/chats/${user(id)}`),
 }
 
-export const STATUS_MAX = 70
-export const NICKNAME_MAX = 32
-export const NOTE_MAX = 200
-export const MESSAGE_MAX = 1000
-
 type Named = { nickname?: string | null; displayName: string | null; username: string | null }
 
 export const contactName = (entry: Named) => entry.nickname || entry.displayName || entry.username || 'Duelist'
-export const contactHandle = (entry: { username: string | null }) => (entry.username ? `@${entry.username}` : '')
 
 const PRESENCE_ORDER: Record<Presence, number> = { ready: 0, online: 1, busy: 2, away: 3, offline: 4 }
 
@@ -102,13 +96,4 @@ export const mergeMessages = (current: ChatMessage[], incoming: ChatMessage[]) =
   const byId = new Map(current.map((message) => [message.id, message]))
   for (const message of incoming) byId.set(message.id, message)
   return [...byId.values()].sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : BigInt(a.id) > BigInt(b.id) ? 1 : 0))
-}
-
-/** `20:41` today, `Wed 20:41` this week, a date otherwise. */
-export const messageTime = (iso: string, now = Date.now()) => {
-  const date = new Date(iso)
-  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  if (new Date(now).toDateString() === date.toDateString()) return time
-  if (now - date.getTime() < 6 * 86_400_000) return `${date.toLocaleDateString([], { weekday: 'short' })} ${time}`
-  return date.toLocaleDateString([], { day: 'numeric', month: 'short' })
 }

@@ -28,7 +28,7 @@ export const usesTcgPasscodes = (banlistFormat: string): boolean => TCG_FORMATS.
  * what the cache holds for `id`, either print. Every other passcode, alternate artworks included,
  * comes back unchanged.
  */
-export const passcodeIn = (id: number, card: CardData | undefined, tcg: boolean): number => {
+const passcodeIn = (id: number, card: CardData | undefined, tcg: boolean): number => {
   if (!card?.idTcg) return id
   if (tcg) return id === card.idOriginal ? card.idTcg : id
   return id === card.idTcg ? card.idOriginal : id

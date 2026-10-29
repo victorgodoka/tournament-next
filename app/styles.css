@@ -387,7 +387,6 @@
   /* ---- Display: Anton, uppercase, one weight. Hierarchy is size. ---- */
   .display-hero,
   .display-1,
-  .display-band,
   .display-2,
   .display-3,
   .display-4,
@@ -396,7 +395,6 @@
   .stat-lg,
   .stat,
   .dock-title,
-  .window-title,
   .action-lg {
     font-family: var(--font-display);
     font-weight: 400;
@@ -412,12 +410,6 @@
 
   /* Page title, profile name. */
   .display-1,
-  .display-band {
-    font-size: 48px;
-    line-height: 1;
-    text-wrap: balance;
-  }
-
   /* Section heading. */
   .display-2 {
     font-size: 32px;
@@ -452,12 +444,6 @@
   }
 
   .dock-title,
-  .window-title {
-    font-size: 16px;
-    line-height: 1;
-    letter-spacing: 0.04em;
-  }
-
   /* Button labels: lg is Anton, everything smaller is Figtree bold. */
   .action-lg {
     font-size: 20px;
@@ -466,13 +452,6 @@
   }
 
   .action-md,
-  .action-sm {
-    font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: 0.01em;
-  }
 
   .action-xs {
     font-family: var(--font-sans);
@@ -673,17 +652,6 @@
   }
 
   /* Metallic rarity glyph. */
-  .metal-text {
-    background: linear-gradient(180deg, #ffffff 0%, #c9cfdb 55%, #8e97aa 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .metal-text-gold {
-    background-image: linear-gradient(180deg, #fff3c4 0%, var(--color-gold) 50%, #b8913a 100%);
-  }
-
   /* A rating printed from --elo, so animate-count can tick it. */
   .elo-count {
     counter-reset: elo var(--elo);
@@ -728,12 +696,6 @@
     animation-delay: -0.68s;
   }
 
-  .equalizer-bars--idle .equalizer-bars__bar {
-    height: 4px;
-    opacity: var(--opacity-blink-low);
-    animation: none;
-  }
-
   @keyframes equalizer-pulse {
 
     0%,
@@ -767,16 +729,6 @@
     pointer-events: none;
   }
 
-  /* Custom Wallpaper */
-  .custom-wallpaper {
-    background-attachment: fixed;
-    background-color: var(--color-space-000);
-    background-image: linear-gradient(to bottom, rgba(8, 10, 20, 0) 0%, var(--color-space-000) 50%, var(--color-space-000) 100%),
-      var(--custom-wallpaper);
-    background-position: top center;
-    background-repeat: no-repeat;
-    background-size: 100% auto;
-  }
 }
 
 /* Typed so animate-count interpolates it; without @property it jumps straight to the rest value. */

@@ -15,7 +15,7 @@ export const playerName = (player: TournamentPlayer | undefined, fallback = 'Unk
 type AvatarProps = { player: TournamentPlayer | undefined; size?: number; className?: string }
 
 /** Square portrait, or the initial on a plate when Discord has no picture, under the equipped frame. Decorative: the name carries it. */
-export const PlayerAvatar = ({ player, size = 28, className }: AvatarProps) => {
+const PlayerAvatar = ({ player, size = 28, className }: AvatarProps) => {
   const box = { width: size, height: size }
 
   return (

@@ -30,7 +30,7 @@ export const NUM = 'text-right tabular-nums'
 export const NOTE = 'text-[13px] leading-5 text-ink-muted'
 /** `minmax(0, …)` everywhere, so a wide table scrolls in its box instead of stretching the column. */
 export const SPLIT = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
-export const THIRDS = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-3'
+const THIRDS = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-3'
 const CARD_COLS = 'minmax(180px, 2fr) minmax(130px, 1.3fr) repeat(5, minmax(64px, 0.7fr))'
 
 /** 8px bar on a surface-200 track with the figure after it. `mark`: a tick on the track at that value (0.5 = even). */
@@ -53,7 +53,7 @@ export const Art = ({ card, size, className }: { card?: { id: number; name: stri
   )
 
 /** A card or deck name with its artwork in front. */
-export const Named = ({ card, children }: { card?: { id: number; name: string | null }; children: React.ReactNode }) => (
+const Named = ({ card, children }: { card?: { id: number; name: string | null }; children: React.ReactNode }) => (
   <span className="flex min-w-0 items-center gap-3">
     <Art card={card} size={32} className="size-8" />
     {children}
@@ -85,11 +85,11 @@ export const sortBy = <R, K extends string>(rows: readonly R[], sort: SortState<
   })
 }
 
-export const ariaSort = <K extends string>(sort: SortState<K>, key: K): 'ascending' | 'descending' | 'none' =>
+const ariaSort = <K extends string>(sort: SortState<K>, key: K): 'ascending' | 'descending' | 'none' =>
   sort?.key === key ? (sort.desc ? 'descending' : 'ascending') : 'none'
 
 /** The button inside a sortable header cell; the cell itself carries `aria-sort`. */
-export const SortButton = ({ label, state, onSort }: { label: string; state: 'ascending' | 'descending' | 'none'; onSort: () => void }) => (
+const SortButton = ({ label, state, onSort }: { label: string; state: 'ascending' | 'descending' | 'none'; onSort: () => void }) => (
   <button
     type="button"
     onClick={onSort}

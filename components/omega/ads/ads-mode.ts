@@ -48,8 +48,6 @@ export const isVideoPage = (pathname: string): boolean => VIDEO_PAGES.some((re) 
 
 export const useAdsMode = (): AdsMode => adsMode(useAuth().user, usePathname())
 
-export const usePromoVisible = (): boolean => promoVisible(useAuth().user)
-
 export const useAdsLayout = (): AdsMode => adsLayout(useAuth().user, usePathname())
 
 export const usePromoLayout = (): boolean => promoLayout(useAuth().user)

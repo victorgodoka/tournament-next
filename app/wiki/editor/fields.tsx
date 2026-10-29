@@ -72,7 +72,7 @@ export const TextField = ({
 }
 
 /** Radio group drawn as a segmented control. Arrow keys move between options natively. */
-export const Segmented = <T extends string | number>({
+const Segmented = <T extends string | number>({
   label,
   value,
   options,
@@ -109,7 +109,7 @@ export const Segmented = <T extends string | number>({
 }
 
 /** Library thumbnail. `unoptimized`: the editor may hold an upload from a host the optimiser doesn't know yet. */
-export const Thumb = ({ asset, className }: { asset: WikiAsset; className?: string }) => (
+const Thumb = ({ asset, className }: { asset: WikiAsset; className?: string }) => (
   <Image
     src={imageSource(asset, 200).src}
     alt=""
@@ -300,7 +300,7 @@ const TOOLS: { label: string; aria?: string; className?: string; edit: Edit }[] 
 ]
 
 /** Markdown textarea with the formatting bar. Every button edits the text through `onChange`. */
-export const MarkdownField = ({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (md: string) => void; rows?: number }) => {
+const MarkdownField = ({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (md: string) => void; rows?: number }) => {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   const apply = (edit: Edit) => {

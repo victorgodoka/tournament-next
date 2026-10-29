@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 
-export type SideNavItem = {
+type SideNavItem = {
   href: string
   label: React.ReactNode
   /** Cyan mono figure on the right: what's waiting there. */

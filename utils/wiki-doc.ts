@@ -60,7 +60,7 @@ export type WikiBlock =
   /** Questions in plain text, answers in Markdown. The server merges every FAQ block into one FAQPage. */
   | { id: string; type: 'faq'; items: WikiFaqItem[] }
 
-export type WikiFaqItem = { q: string; md: string }
+type WikiFaqItem = { q: string; md: string }
 
 export type WikiBlockType = WikiBlock['type']
 
@@ -143,7 +143,7 @@ export const BLOCK_CATALOG: { type: WikiBlockType; label: string; hint: string }
   { type: 'faq', label: 'FAQ', hint: 'Questions → FAQPage' },
 ]
 
-export const SCHEMAS: readonly WikiSchema[] = ['Article', 'HowTo', 'DefinedTerm', 'CollectionPage']
+const SCHEMAS: readonly WikiSchema[] = ['Article', 'HowTo', 'DefinedTerm', 'CollectionPage']
 
 export const emptyBlock = (type: WikiBlockType, id: string): WikiBlock => {
   switch (type) {

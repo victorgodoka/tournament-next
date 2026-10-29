@@ -13,7 +13,7 @@ import {
 } from '@utils/config'
 import { FONTS_VARIABLES } from '@utils/fonts'
 import './styles.css'
-import { AuthProvider, ModalProvider } from '../contexts'
+import { AuthProvider } from '../contexts'
 import { MessengerDock, MessengerProvider } from '@omega/messenger'
 import { Ads } from '@omega/ads/ads'
 import { Tracking } from '@omega/tracking/tracking'
@@ -77,14 +77,12 @@ export default async function RootLayout({
       <body className="relative" suppressHydrationWarning>
         <ClientMessages>
           <AuthProvider hasSession={jar.has(SESSION_COOKIE)}>
-            <ModalProvider>
-              <MessengerProvider>
-                {children}
-                <MessengerDock />
-                <Ads />
-                <Tracking />
-              </MessengerProvider>
-            </ModalProvider>
+            <MessengerProvider>
+              {children}
+              <MessengerDock />
+              <Ads />
+              <Tracking />
+            </MessengerProvider>
           </AuthProvider>
         </ClientMessages>
       </body>

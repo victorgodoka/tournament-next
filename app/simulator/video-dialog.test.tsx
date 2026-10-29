@@ -7,7 +7,6 @@ import { popupFeatures, VideoDialog } from './video-dialog'
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
-vi.mock('@iconify/react', () => ({ Icon: () => null }))
 
 const move: Action = { t: 'move', card: 0, to: 'm0' }
 const draw: Action = { t: 'draw', n: 1 }

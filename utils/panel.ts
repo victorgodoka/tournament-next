@@ -15,7 +15,7 @@ import type {
   WikiEditor,
 } from './types'
 
-export class PanelApiError extends Error {
+class PanelApiError extends Error {
   status: number
   /** Stable code (`BAD_REQUEST`, `ALREADY_EXISTS`, `ALREADY_LINKED`, …). Branch on this, never on `message`. */
   code?: string
@@ -133,7 +133,7 @@ export type TournamentBody = Partial<
 export type OmegaBanlist = { banlist: string; tournaments: number; firstAt: string; lastAt: string }
 
 /** `name: null` is a valid value nobody knows the name of — show the number. `observed`: some tournament used it. */
-export type OptionValue = { value: number; name: string | null; observed: boolean }
+type OptionValue = { value: number; name: string | null; observed: boolean }
 
 export type PanelOptions = {
   /** omega.db lists, the only source with the retro ones. */

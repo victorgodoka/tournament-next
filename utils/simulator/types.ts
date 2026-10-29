@@ -1,6 +1,6 @@
 import type { Deck } from '@utils/deck/types'
 
-export const PILES = ['deck', 'hand', 'extra', 'gy', 'banished'] as const
+const PILES = ['deck', 'hand', 'extra', 'gy', 'banished'] as const
 export const MONSTER_SLOTS = ['m0', 'm1', 'm2', 'm3', 'm4', 'emz0', 'emz1'] as const
 export const SPELL_SLOTS = ['s0', 's1', 's2', 's3', 's4', 'field'] as const
 
@@ -8,7 +8,7 @@ export type Face = 'up' | 'down'
 export type Pos = 'atk' | 'def'
 export type Pile = (typeof PILES)[number]
 export type MonsterSlot = (typeof MONSTER_SLOTS)[number]
-export type SpellSlot = (typeof SPELL_SLOTS)[number]
+type SpellSlot = (typeof SPELL_SLOTS)[number]
 export type Slot = MonsterSlot | SpellSlot
 export type ZoneId = Pile | Slot
 

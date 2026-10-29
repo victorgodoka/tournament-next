@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
+import { Icon } from '@ui/icon'
 import { twMerge } from 'tailwind-merge'
 import { useAuth } from '@contexts/auth/auth.context'
 import { buttonClasses } from '@ui/button'
@@ -71,7 +71,7 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
 
   const likeLabel = (
     <>
-      <Icon icon={like.liked ? 'mdi:heart' : 'mdi:heart-outline'} aria-hidden className={twMerge('text-lg', like.liked && 'text-crimson-lift')} />
+      <Icon name={like.liked ? 'heart' : 'heartOutline'} className={twMerge(like.liked && 'text-crimson-lift')} />
       <span className="mono-data">{COMPACT.format(like.likes)}</span>
     </>
   )
@@ -83,7 +83,7 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
           {social ? (
             <>
               <span className={STAT}>
-                <Icon icon="mdi:eye-outline" aria-hidden className="text-lg" />
+                <Icon name="eye" />
                 {COMPACT.format(social.views)} {social.views === 1 ? 'view' : 'views'}
               </span>
 
@@ -110,7 +110,7 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
               )}
 
               <a href="#comments" className={twMerge(STAT, 'hover:text-cyan')}>
-                <Icon icon="mdi:comment-outline" aria-hidden className="text-lg" />
+                <Icon name="comment" />
                 {commentCount(social)} {commentCount(social) === 1 ? 'comment' : 'comments'}
               </a>
             </>
@@ -129,11 +129,11 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
               title={`Share on ${link.label}`}
               className={ICON_BUTTON}
             >
-              <Icon icon={link.icon} aria-hidden className="text-lg" />
+              <Icon name={link.icon} />
             </a>
           ))}
           <button type="button" onClick={copy} aria-label="Copy link" title="Copy link" className={ICON_BUTTON}>
-            <Icon icon={copied ? 'mdi:check' : 'mdi:link-variant'} aria-hidden className="text-lg" />
+            <Icon name={copied ? 'check' : 'link'} />
           </button>
           {canShare ? (
             <button
@@ -143,7 +143,7 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
               title="Share…"
               className={ICON_BUTTON}
             >
-              <Icon icon="mdi:share-variant" aria-hidden className="text-lg" />
+              <Icon name="share" />
             </button>
           ) : null}
         </div>

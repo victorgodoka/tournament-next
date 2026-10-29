@@ -13,8 +13,6 @@ const DOT: Record<Status, string> = {
   offline: 'bg-surface-300 shadow-[inset_0_0_0_2px_var(--color-ink-muted)]',
 }
 
-/** Rosters sort by this order, then by name. */
-export const STATUS_ORDER: Status[] = ['online', 'duel', 'away', 'offline']
 
 type PresenceProps = {
   status: Status
@@ -25,7 +23,7 @@ type PresenceProps = {
 }
 
 /** Status as a round dot: online cyan, duel gold, away violet, offline hollow. */
-export const Presence = ({ status, showLabel, label, className }: PresenceProps) =>
+const Presence = ({ status, showLabel, label, className }: PresenceProps) =>
   showLabel ? (
     <span className={twMerge('inline-flex items-center gap-2 text-ink-dim signal-sm', className)}>
       <span aria-hidden className={twMerge('size-2.5 rounded-round', DOT[status])} />

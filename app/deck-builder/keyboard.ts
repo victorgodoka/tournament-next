@@ -43,7 +43,7 @@ export const ownsKeys = (el: Element | null): boolean =>
     !!el.closest('dialog[open]'))
 
 /** The tile a shortcut acts on: its passcode and where it sits (`pool`, `main`, `extra` or `side`). */
-export type FocusedTile = { id: number; zone: string }
+type FocusedTile = { id: number; zone: string }
 
 /** The toolbar's deck-name input: Ctrl+S saves from it. */
 export const DECK_NAME_ID = 'deck-name'

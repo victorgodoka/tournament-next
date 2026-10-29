@@ -1,1 +1,1 @@
-export { SideNav, type SideNavGroup, type SideNavItem } from './side-nav.component'
+export { SideNav, type SideNavGroup,  } from './side-nav.component'

@@ -10,3 +10,9 @@ coverage
 !.env.example
 Dockerfile*
 docker-compose*.yml
+# Other sessions' worktrees (2 GB of .next and node_modules), agent output and plans: never part of the image.
+.worktrees
+.claude
+.agents
+graphify-out
+docs

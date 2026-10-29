@@ -38,7 +38,7 @@ export const F = { display: 'Anton', sans: 'Figtree', mono: 'Space Mono', brand:
 const SITE = SITE_URL.replace(/^https?:\/\//, '')
 const BRAND = 'OMEGA HUB'
 
-export const SIZES = { wide: { width: 1920, height: 1080 }, tall: { width: 1080, height: 1920 } } as const
+const SIZES = { wide: { width: 1920, height: 1080 }, tall: { width: 1080, height: 1920 } } as const
 export type Size = keyof typeof SIZES
 
 export const sizeOf = (params: URLSearchParams): Size => (params.get('size') === 'tall' ? 'tall' : 'wide')

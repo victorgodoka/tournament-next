@@ -45,4 +45,3 @@ export const LIMITS = {
 } as const
 
 export const subjectKey = (s: Subject): string => (s.kind === 'role' ? `role:${s.role}` : `card:${s.id}`)
-export const sameSubject = (a: Subject, b: Subject): boolean => subjectKey(a) === subjectKey(b)

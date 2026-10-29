@@ -92,7 +92,7 @@ export const EMPTY_POOL_QUERY: PoolQuery = {
   order: 'asc',
 }
 
-export const POOL_PAGE = 60
+const POOL_PAGE = 60
 
 /** Empty filters are left out; `legal` and `status` are too without a banlist, which the API rejects. */
 export const poolParams = (q: PoolQuery, page: number): URLSearchParams => {

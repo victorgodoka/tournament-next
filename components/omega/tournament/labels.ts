@@ -41,18 +41,8 @@ export const banlistLabel = ({ banlist, format }: { banlist: string; format: str
 export const DAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }
 export const DAY_YEAR: Intl.DateTimeFormatOptions = { ...DAY, year: 'numeric' }
 
-export const DATE_TIME: Intl.DateTimeFormatOptions = {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-}
 
 export const TIME_ONLY: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
-
-/** For the page title, where the day is the tournament's identity and the clock is noise. */
-export const DATE_ONLY: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
 
 /** Only Edison sets a card pool, and only ever an upper bound: the cutoff year, for the caller to word. */
 export const cardPoolYear = (cardPool: { releasedFrom: string | null; releasedUntil: string | null }) =>

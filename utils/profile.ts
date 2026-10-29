@@ -3,8 +3,8 @@
  * Reads work anonymously; with the session they return what this viewer may see.
  */
 import { cache } from 'react'
-import { API_URL, getMeServer } from '@utils/auth'
-import type { MatchPage, Profile, ProfileSettings, ProfileSettingsPatch, SelfProfile } from '@utils/types'
+import { API_URL } from '@utils/auth'
+import type { MatchPage, Profile, ProfileSettings, ProfileSettingsPatch } from '@utils/types'
 
 export class ProfileApiError extends Error {
   status: number
@@ -71,26 +71,3 @@ export const updateProfile = (patch: ProfileSettingsPatch) =>
     body: JSON.stringify(patch),
   })
 
-const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
-/**
- * Cloudinary does the resizing and format choice on its own CDN, so covers skip Next's
- * optimiser entirely (the `<Image>`s that render this pass `unoptimized`). 1600px is the
- * widest a full-bleed cover is ever painted at.
- */
-const COVER_TRANSFORM = 'f_auto,q_auto,w_1600,c_limit'
-
-/** `null` when there is no cover, or no cloud name configured to build the URL from. */
-export const coverUrl = (coverImageId: string | null) =>
-  coverImageId && CLOUDINARY_CLOUD
-    ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/upload/${COVER_TRANSFORM}/${coverImageId}`
-    : null
-
-/**
- * Server-side fetch to get the current logged-in user's profile using the session cookie.
- */
-export const getMyProfile = cache(async (cookie: string | null): Promise<SelfProfile | null> => {
-  const user = await getMeServer(cookie)
-  if (!user) return null
-  return getProfile(user.id, cookie) as Promise<SelfProfile | null>
-})

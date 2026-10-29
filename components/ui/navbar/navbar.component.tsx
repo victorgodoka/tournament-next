@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Icon } from '@iconify/react'
+import { Icon } from '@ui/icon'
 import { twMerge } from 'tailwind-merge'
 import Button from '@ui/button'
 import { NAVBAR_ITEMS, type NavbarItem } from '@utils/const'
@@ -110,7 +110,7 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
       className={twMerge(MOBILE_ITEM, current && "pl-3 text-ink shadow-selected [&>svg]:text-cyan")}
     >
       {label}
-      <Icon icon="mdi:chevron-right" aria-hidden className="text-base text-ink-muted" />
+      <Icon name="right" size={16} className="text-ink-muted" />
     </Link>
   )
 
@@ -136,7 +136,7 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
           onClick={() => drawer.current?.showModal()}
           className="lg:hidden"
         >
-          <Icon icon="mdi:menu" aria-hidden className="text-lg" />
+          <Icon name="menu" />
         </Button>
       </div>
 
@@ -151,7 +151,7 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
         <div className="flex min-h-16 items-center justify-between gap-3 border-b border-line px-5">
           <Brand />
           <Button variant="secondary" size="icon-sm" aria-label="Close menu" autoFocus onClick={close}>
-            <Icon icon="mdi:close" aria-hidden className="text-lg" />
+            <Icon name="close" />
           </Button>
         </div>
 

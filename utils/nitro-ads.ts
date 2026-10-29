@@ -1,7 +1,7 @@
 import type { NitroAdInstance, NitroAdOptions } from './nitro-ads.types'
 
 export const NITRO_LOADED_EVENT = 'nitroAds.loaded'
-export const NITRO_AD_TIMEOUT_MS = 15_000
+const NITRO_AD_TIMEOUT_MS = 15_000
 
 function withTimeout<T>(
   promise: Promise<T>,

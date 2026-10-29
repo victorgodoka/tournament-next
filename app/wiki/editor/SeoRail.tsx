@@ -7,7 +7,7 @@ import { SNIPPET_CHARS, TITLE_PX, clip, hasKeyword, plainText, searchDescription
 import { Badge, FieldHead, Frame, Help, INPUT, Pill } from './ui'
 
 /** Where the focus keyword shows up in the header and the first paragraph. */
-export const keywordSpots = (doc: WikiDoc, slug: string, keyword: string) => {
+const keywordSpots = (doc: WikiDoc, slug: string, keyword: string) => {
   const first = doc.blocks.find((block) => block.type === 'text')
   return [
     { label: 'Title', found: hasKeyword(doc.title, keyword) },

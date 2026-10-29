@@ -8,7 +8,7 @@ import { CARD_IMAGE_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
 
 /** A status as a pill: filled for where a card lands, outlined and struck through for where it was. */
-export const StatusPill = ({ code, was, short }: { code: BanStatus; was?: boolean; short?: boolean }) => {
+const StatusPill = ({ code, was, short }: { code: BanStatus; was?: boolean; short?: boolean }) => {
   const t = useTranslations('Banlist')
   const tone = STATUS_TONE[code]
   return (

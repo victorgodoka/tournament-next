@@ -10,7 +10,6 @@ import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { Icon } from "@ui/icon";
 import {
-  ANALYTICS_ENABLED,
   DECK_BUILDER_URL,
   DOWNLOAD_URL,
   FORMATS_SUPPORTED,
@@ -578,7 +577,7 @@ const ClosingCta = () => (
  */
 const HomePage = () => {
   // TCG ranking, started once and awaited by the hero fan and the meta band.
-  const ranked: Ranked = ANALYTICS_ENABLED ? getTopDecks("tcg").catch(() => null) : Promise.resolve(null)
+  const ranked: Ranked = getTopDecks("tcg").catch(() => null)
 
   return (
     <>

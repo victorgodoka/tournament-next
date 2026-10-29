@@ -1,6 +1,6 @@
-export type UspApi = (command: 'addLink', param: number) => void
+type UspApi = (command: 'addLink', param: number) => void
 
-export type CmpApi = (command: 'addConsentLink') => void
+type CmpApi = (command: 'addConsentLink') => void
 
 declare global {
   interface Window {
@@ -8,3 +8,5 @@ declare global {
     __cmp?: CmpApi
   }
 }
+
+export {};

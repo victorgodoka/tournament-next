@@ -1,6 +1,5 @@
 'use client'
 
-import { loadIcons } from '@iconify/react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -13,7 +12,7 @@ import { fitCardWidth } from '@utils/simulator/fit'
 import { sessionReducer } from '@utils/simulator/session'
 import { renderTimeline } from '@utils/simulator/timing'
 import type { Session } from '@utils/simulator/types'
-import { BoardView, FLIP_MS, ZONE_ICONS } from './board'
+import { BoardView, FLIP_MS } from './board'
 import type { Speed } from './replay-bar'
 import { useDrag } from './use-drag'
 
@@ -51,16 +50,6 @@ const failed = (error: unknown): RenderHandle => {
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve))
 /** Every image on the page decoded or broken: a 404 or a blocked origin leaves its frames without it, never fails the video. */
 const decoded = () => Promise.allSettled(Array.from(document.querySelectorAll('img'), (img) => img.decode()))
-/**
- * The board's zone marks loaded, or given up on: Iconify fetches them, so without this the first frames would show the
- * zones bare. Once loaded they are drawn from memory, at any step.
- */
-const iconsLoaded = () =>
-  new Promise<void>((resolve) => {
-    loadIcons(Object.values(ZONE_ICONS), (loaded, missing, pending) => {
-      if (!pending.length) resolve()
-    })
-  })
 const none = () => {}
 
 type RenderProps = { id: string; speed: Speed; onReady(handle: RenderHandle): void }
@@ -127,7 +116,7 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
   // Handed to the recorder once the board is fitted: the images `ready` waits on are the ones the frames show.
   useEffect(() => {
     if (cardW === null) return
-    const ready = Promise.all([decoded(), iconsLoaded()])
+    const ready = decoded()
       .then(() => document.fonts.ready)
       .then(() => ({ title: combo.title, durationMs: video.durationMs }))
     let cursor = opened.cursor

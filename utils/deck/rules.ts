@@ -2,7 +2,7 @@ import type { Banlist } from '@utils/wiki'
 import { canonicalId } from './model'
 import { MAIN_MIN, MAX_COPIES, ZONE_MAX, type CardData, type CardMap, type Deck } from './types'
 
-export type ProblemCode =
+type ProblemCode =
   | 'main-size'
   | 'extra-size'
   | 'side-size'

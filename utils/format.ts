@@ -2,7 +2,7 @@
  * Display helpers for staff screens, which read and write in Brasília time. Brazil has had no
  * daylight saving since 2019, so BRT is a fixed UTC−3 and a wall clock converts without a tz library.
  */
-export const BRT = 'America/Sao_Paulo'
+const BRT = 'America/Sao_Paulo'
 
 const DAY = new Intl.DateTimeFormat('en-GB', { timeZone: BRT, weekday: 'short', day: 'numeric', month: 'short' })
 const TIME = new Intl.DateTimeFormat('en-GB', { timeZone: BRT, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })

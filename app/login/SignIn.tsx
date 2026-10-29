@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Icon } from '@iconify/react'
+import { Icon } from '@ui/icon'
 import { Button } from '@ui/button'
 import { useAuth } from '@hooks/index'
 import { signIn } from '@utils/auth'
@@ -21,7 +21,7 @@ export const SignIn = ({ redirectIfSignedIn }: { redirectIfSignedIn: boolean }) 
   return (
     <div className="border-t border-line mt-8 pt-8">
       <Button variant="discord" size="lg" onClick={signIn}>
-        <Icon aria-hidden className="text-2xl" icon="bi:discord" />
+        <Icon name="discord" size={24} />
         Sign in with Discord
       </Button>
     </div>

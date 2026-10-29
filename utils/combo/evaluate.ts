@@ -7,7 +7,7 @@ import { subjectKey, type Analysis, type Draw, type Hand, type Roles } from './t
 export const drawCount = (draw: Draw): number => (draw.handSize ?? (draw.going === 'first' ? 5 : 6)) + draw.extraDraws + (draw.turn - 1)
 
 /** Measured on the main thread: ~650 ms at 650k compositions, 4.4 s at 4.5M. Half a million keeps every keystroke under a second. */
-export const MAX_COMPOSITIONS = 500_000
+const MAX_COMPOSITIONS = 500_000
 
 /** Upper bound on the compositions of `n` cards over `atomCount` atoms plus "other": C(n + m − 1, m − 1). */
 export const estimateCompositions = (atomCount: number, n: number): bigint => {
@@ -15,7 +15,7 @@ export const estimateCompositions = (atomCount: number, n: number): bigint => {
   return m === 1 ? 1n : choose(n + m - 1, m - 1)
 }
 
-export type HandResult = { name: string; odds: Odds }
+type HandResult = { name: string; odds: Odds }
 export type Evaluation = { hands: HandResult[]; any: Odds; draw: number; deckSize: number }
 export type EvaluateError = { error: 'tooFewCards' | 'tooComplex' }
 

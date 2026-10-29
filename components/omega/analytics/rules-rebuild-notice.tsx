@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Alert, Button } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
 import { useResource } from '@hooks/index'
 import { getAnalyticsSweep, panelErrorText, rebuildOpenSeasons } from '@utils/panel'
 

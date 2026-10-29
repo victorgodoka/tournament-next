@@ -25,7 +25,7 @@ type SaveDialogProps = {
 }
 
 /** The title of a combo, then Save or Save as new. Enter in the field is Save. */
-export const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDialogProps) => {
+const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDialogProps) => {
   const t = useTranslations('Simulator')
   const id = useId()
   const [title, setTitle] = useState(initialTitle)

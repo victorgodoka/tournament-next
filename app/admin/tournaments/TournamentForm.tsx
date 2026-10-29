@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Field, OptionCard, PageHeader, Panel, SectionHead, Segmented, Select, Switch, TextInput } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Field, Select, TextInput } from '@ui/field'
+import { OptionCard, Segmented, Switch } from '@ui/choice'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
+import { SectionHead } from '@ui/section-head'
 import { useResource } from '@hooks/index'
 import { fromBrt, toBrt } from '@utils/format'
 import {

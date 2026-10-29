@@ -1,7 +1,7 @@
 'use client'
 
 import { twMerge } from 'tailwind-merge'
-import type { LookupOption } from '@ui/index'
+import type { LookupOption } from '@ui/lookup'
 import { findArchetypes, searchCardArts } from '@utils/cards'
 import type { CardGroup } from '@utils/panel'
 

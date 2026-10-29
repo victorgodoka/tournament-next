@@ -5,6 +5,10 @@ const dir = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
 /** Mirrors the `paths` block in tsconfig.json so tests import the same specifiers the app does. */
 export default defineConfig({
+  test: {
+    // Other sessions' worktrees carry their own copies of these tests.
+    exclude: ['**/node_modules/**', '.next/**', '.claude/**', '.worktrees/**'],
+  },
   resolve: {
     alias: {
       '@app': dir('./app'),

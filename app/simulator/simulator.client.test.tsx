@@ -20,8 +20,6 @@ vi.mock('next-intl', () => ({
 }))
 vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
-// Iconify fetches its icons from the network: here each one is a span that names its icon.
-vi.mock('@iconify/react', () => ({ Icon: ({ icon, className }: { icon: string; className?: string }) => <span data-icon={icon} className={className} /> }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), listMyDecks: vi.fn() }))
 // The errors and `comboUrl` stay real: the client tells them apart and builds the link with them.
 vi.mock('@utils/combos', async (original) => ({
@@ -1252,12 +1250,12 @@ describe('Simulator board details', () => {
 
   it('empty zones show their mark: a gravestone, an X, a blue and a red gem; a card covers it', async () => {
     await open(DECK)
-    expect(icon('gy')).toBe('mdi:grave-stone')
-    expect(icon('banished')).toBe('foundation:x')
-    expect(icon('s0')).toBe('mage:gem-b-fill')
-    expect(icon('s4')).toBe('mage:gem-b-fill')
-    expect(zone('s0').querySelector('[data-icon]')!.className).toContain('text-azure')
-    expect(zone('s4').querySelector('[data-icon]')!.className).toContain('text-crimson')
+    expect(icon('gy')).toBe('grave')
+    expect(icon('banished')).toBe('xmark')
+    expect(icon('s0')).toBe('gem')
+    expect(icon('s4')).toBe('gem')
+    expect(zone('s0').querySelector('[data-icon]')!.getAttribute('class')).toContain('text-azure')
+    expect(zone('s4').querySelector('[data-icon]')!.getAttribute('class')).toContain('text-crimson')
     expect(icon('s1')).toBeNull()
     await click('toolbar.newHand')
     await play('zones.gy')

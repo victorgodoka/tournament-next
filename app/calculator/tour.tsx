@@ -18,7 +18,7 @@ const PAINTS = 2
 /** `step` is 1..5; `paints` counts the paints since step 2 began. `null`: no tour. */
 export type TourState = { step: number; paints: number } | null
 
-export const TOUR_STEPS: readonly { anchor: 'strip' | 'grid' | 'odds' | 'hands'; key: 's1' | 's2' | 's3' | 's4' | 's5'; waits: TourEvent | null }[] = [
+const TOUR_STEPS: readonly { anchor: 'strip' | 'grid' | 'odds' | 'hands'; key: 's1' | 's2' | 's3' | 's4' | 's5'; waits: TourEvent | null }[] = [
   { anchor: 'strip', key: 's1', waits: 'brush' },
   { anchor: 'grid', key: 's2', waits: 'paint' },
   { anchor: 'grid', key: 's3', waits: 'menu' },

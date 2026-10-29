@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { RefObject, useState } from "react";
-import { Icon } from "@iconify/react";
+import { Icon } from "@ui/icon";
 import { twMerge } from "tailwind-merge";
 import { CELL, Navbar, PANEL, PANEL_ITEM, PANEL_RULE } from "@ui/navbar";
 import { LanguageSwitcher } from "@ui/navbar/language-switcher.component";
@@ -10,7 +10,7 @@ import { Avatar } from "@ui/avatar";
 import { useAuth } from "@hooks/index";
 import { signIn, type AuthUser } from "@utils/auth";
 import { can } from "@utils/articles";
-import { ANALYTICS_ENABLED, DOWNLOAD_URL, NAVBAR_ITEMS, NavbarItem } from "@utils/const";
+import { DOWNLOAD_URL, NAVBAR_ITEMS, NavbarItem } from "@utils/const";
 import Button from "@ui/button";
 import { MessengerMailbox } from "@omega/messenger";
 
@@ -43,7 +43,7 @@ const SignIn = ({ isLoading }: { isLoading: boolean }) => (
     size="sm"
     className={twMerge(isLoading && "invisible")}
   >
-    <Icon icon="bi:discord" aria-hidden className="text-base" />
+    <Icon name="discord" size={16} />
     <span>Login</span>
   </Button>
 )
@@ -84,7 +84,7 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
         <div role="menu" className={twMerge(PANEL, "right-0")}>
           <p className={PANEL_RULE}>{name}</p>
           <Link href={`/profile/${user.id}`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My profile</Link>
-          {ANALYTICS_ENABLED ? <Link href={`/profile/${user.id}/statistics`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My statistics</Link> : null}
+          <Link href={`/profile/${user.id}/statistics`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My statistics</Link>
           <Link href={`/profile/${user.id}/my-decks`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My decks</Link>
           <Link href="/deck-builder" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Deck Builder</Link>
           <Link href="/messenger" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Messenger</Link>

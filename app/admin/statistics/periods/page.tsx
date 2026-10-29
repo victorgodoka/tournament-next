@@ -2,7 +2,15 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Alert, Button, Chip, DataTable, Dialog, Field, PageHeader, Panel, Segmented, TextInput } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Chip } from '@ui/chip'
+import { DataTable } from '@ui/data-table'
+import { Dialog } from '@ui/dialog'
+import { Field, TextInput } from '@ui/field'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
+import { Segmented } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { dayLabel, fromBrt, toBrt } from '@utils/format'
 import {

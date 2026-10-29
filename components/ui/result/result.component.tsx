@@ -15,14 +15,3 @@ export const ResultPill = ({ result, className }: { result: Result; className?: 
     {result}
   </span>
 )
-
-/** Last results, oldest left, newest right. Five in a leaderboard row, ten on a profile. */
-export const FormGuide = ({ results }: { results: Result[] }) => (
-  <span role="list" aria-label={`Last ${results.length} results`} className="inline-flex gap-0.75">
-    {results.map((r, i) => (
-      <span key={i} role="listitem">
-        <ResultPill result={r} />
-      </span>
-    ))}
-  </span>
-)

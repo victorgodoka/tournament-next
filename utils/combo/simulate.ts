@@ -39,7 +39,7 @@ export const handPasses = (hand: readonly number[], roles: Roles, h: Hand): bool
     return c >= r.min && (r.max === null || c <= r.max)
   })
 
-export type Skipped = 'lock' | 'once' | 'extraDeck' | 'deck'
+type Skipped = 'lock' | 'once' | 'extraDeck' | 'deck'
 export type EffectLog = { effect: EffectKind; drew: number[]; excavated: number[]; added: number | null; skipped: Skipped | null }
 export type Context = { roles: Roles; analysis: Analysis; effects: Effects; extraSize: number }
 

@@ -1,7 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Button, Dialog, FactGrid, Field, Mark, OptionCard, RadioDot, Segmented, Select, Switch, TextInput } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Dialog } from '@ui/dialog'
+import { FactGrid } from '@ui/fact-grid'
+import { Field, Select, TextInput } from '@ui/field'
+import { Mark } from '@ui/chip'
+import { OptionCard, RadioDot, Segmented, Switch } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { count, dayLabel, dayTime, isoDay, timeLabel } from '@utils/format'
 import {

@@ -83,13 +83,6 @@ export const HOME_DOUBLE_SCRIPT_DISPLAY = [
   },
 ]
 
-/**
- * Kill switch for every analytics surface, admins included. Off: next.config.ts redirects the
- * analytics routes to `/` before anything renders, links and match panels are hidden, and the
- * landing skips its top-decks fetch. Flip back to `true` to restore it all.
- */
-export const ANALYTICS_ENABLED = true
-
 export type NavbarItem = {
   item: string
   /** A plain link. Mutually exclusive with `children`. */
@@ -125,7 +118,7 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Banlist timeline", to: "/banlist-timeline" },
     ],
   },
-  ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
+  { item: "Statistics", to: "/statistics" },
   { item: "Wiki", to: "/wiki" },
 ]
 

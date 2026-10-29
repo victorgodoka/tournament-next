@@ -66,7 +66,7 @@ const Section = ({ n, title, meta, children }: { n: string; title: string; meta:
 const BOX = 'cut notch [--cut:var(--cut-lg)] [--edge:var(--color-line)]'
 
 /** The 1200×630 cut the server makes, drawn from the asset's own pixels. Click to move the focal point. */
-export const ShareCrop = ({ asset, onFocal, className }: { asset: WikiAsset; onFocal?: (focal: { x: number; y: number }) => void; className?: string }) => {
+const ShareCrop = ({ asset, onFocal, className }: { asset: WikiAsset; onFocal?: (focal: { x: number; y: number }) => void; className?: string }) => {
   const crop = shareCrop(asset)
   const Tag = onFocal ? 'button' : 'div'
   return (

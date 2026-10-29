@@ -3,7 +3,7 @@
  * names and parameters in docs/analytics/tracking-plan.md are the whole contract with GTM.
  */
 
-export const GTM_ID = 'GTM-55HLGPXN'
+const GTM_ID = 'GTM-55HLGPXN'
 
 export const GTM_SCRIPT_URL = `https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`
 

@@ -15,7 +15,6 @@ vi.mock('next-intl', () => ({
 }))
 vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
-vi.mock('@iconify/react', () => ({ Icon: () => null }))
 vi.mock('@utils/combos', async (original) => ({ ...(await original<typeof import('@utils/combos')>()), getCombo: vi.fn() }))
 
 /** Three steps, the replay starting at the third: draw 2, a monster to the field, end of turn. */

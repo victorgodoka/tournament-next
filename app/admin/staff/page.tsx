@@ -1,13 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Avatar, Button, Chip, PageHeader, Panel, SectionHead, TextInput, type ChipTone } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Avatar } from '@ui/avatar'
+import { Button } from '@ui/button'
+import { Chip, type ChipTone } from '@ui/chip'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
+import { SectionHead } from '@ui/section-head'
+import { TextInput } from '@ui/field'
 import { useResource } from '@hooks/index'
 import { demoteEditor, listEditors, promoteEditor } from '@utils/articles'
 import { timeLabel } from '@utils/format'
 import { demoteAnalyst, getSettings, listAnalysts, panelErrorText, promoteAnalyst, updateSettings } from '@utils/panel'
 import type { WikiEditor } from '@utils/types'
-import { ANALYTICS_ENABLED } from '@utils/const'
 
 const ROLE: Record<string, { label: string; tone: ChipTone }> = {
   ADMIN: { label: 'Admin', tone: 'gold' },
@@ -104,10 +110,9 @@ const People = ({
 }
 
 const StaffPage = () => {
-  // Both are analytics-only: skipped entirely while analytics is off.
-  const analysts = useResource('analysts', () => (ANALYTICS_ENABLED ? listAnalysts() : Promise.resolve([])))
+  const analysts = useResource('analysts', () => listAnalysts())
   const editors = useResource('editors', () => listEditors())
-  const settings = useResource('settings', () => (ANALYTICS_ENABLED ? getSettings() : Promise.resolve(null)))
+  const settings = useResource('settings', () => getSettings())
   const [minSamples, setMinSamples] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -139,7 +144,7 @@ const StaffPage = () => {
       ) : null}
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        {ANALYTICS_ENABLED ? <People
+        <People
           num="01"
           id="analysts"
           title="Analysts"
@@ -150,7 +155,7 @@ const StaffPage = () => {
           onAdd={(id) => promoteAnalyst(id).then(() => { analysts.reload(); editors.reload() })}
           onRemove={(id) => demoteAnalyst(id).then(analysts.reload)}
           footnote="Removing sets them back to a duelist. Their explorations stay."
-        /> : null}
+        />
         <People
           num="02"
           id="editors"
@@ -164,7 +169,7 @@ const StaffPage = () => {
         />
       </div>
 
-      {ANALYTICS_ENABLED ? <Panel label="Settings" className="flex scroll-mt-6 flex-col gap-4.5 [--edge:var(--color-line-mid)]">
+      <Panel label="Settings" className="flex scroll-mt-6 flex-col gap-4.5 [--edge:var(--color-line-mid)]">
         <span id="settings" />
         <SectionHead compact num="03" end={saved ?? '1 setting'}>Settings</SectionHead>
         <div className="grid grid-cols-1 items-center gap-6 min-[720px]:grid-cols-[minmax(0,1fr)_220px_auto]">
@@ -176,7 +181,7 @@ const StaffPage = () => {
           <Button size="mono-md" disabled={minSamples === null || value.trim() === ''} onClick={saveSettings}>Save settings</Button>
         </div>
         {error ? <Alert tone="negative" title="Not saved">{error}</Alert> : null}
-      </Panel> : null}
+      </Panel>
     </>
   )
 }

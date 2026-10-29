@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Alert, Button, Chip, Field, Lookup, PageHeader, Panel, Segmented, Switch, Tag, TextArea, TextInput } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Chip, Tag } from '@ui/chip'
+import { Field, TextArea, TextInput } from '@ui/field'
+import { Lookup } from '@ui/lookup'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
+import { Segmented, Switch } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { createSeries, deleteSeries, getSeries, listSeries, panelErrorText, updateSeries, type Series } from '@utils/panel'
-import { ANALYTICS_ENABLED } from '@utils/const'
 import { RulesRebuildNotice } from '@omega/analytics/rules-rebuild-notice'
 import { CardList, findCards, findSetcodes, pickedCard } from '../shared'
 
@@ -82,7 +88,7 @@ const SeriesPage = () => {
         lead="An archetype made of cards. It creates a new one, or overrides an existing setcode. Global analytics, duelist analytics and tournament decklists all read it."
         end={<Button size="mono-md" onClick={() => setDraft(blank())}>New Series</Button>}
       />
-      {ANALYTICS_ENABLED ? <RulesRebuildNotice /> : null}
+      <RulesRebuildNotice />
       {list.error ? <Alert tone="negative" title="Couldn't read the Series">{panelErrorText(list.error)}</Alert> : null}
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)_300px]">

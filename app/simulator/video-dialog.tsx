@@ -28,7 +28,7 @@ export const popupFeatures = (shape: Shape, availHeight: number) => {
 }
 
 /** Screen capture, and Element Capture to keep only the frame: desktop Chrome and Edge. */
-export const canRecord = () => !!navigator.mediaDevices?.getDisplayMedia && 'RestrictionTarget' in globalThis
+const canRecord = () => !!navigator.mediaDevices?.getDisplayMedia && 'RestrictionTarget' in globalThis
 
 /** `~45 s`, `~1 min 20 s`: the length is fractional at 3x, so it rounds. */
 const lengthOf = (ms: number) => {

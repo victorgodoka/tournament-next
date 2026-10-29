@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Chip, Field, PageHeader, Select, Switch, TextArea } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Chip } from '@ui/chip'
+import { Field, Select, TextArea } from '@ui/field'
+import { PageHeader } from '@ui/page-header'
+import { Switch } from '@ui/choice'
 import { ColumnControls, ExplorerEditor, ThresholdControls } from '@omega/analytics/explorer/builder'
 import { GlobalTiles, globalPivot, globalSummary, useGlobalSegments } from '@omega/analytics/explorer/global'
 import { ExplorationOutput, SeasonsGate } from '@omega/analytics/explorer/output'

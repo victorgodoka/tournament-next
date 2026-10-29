@@ -1,12 +1,10 @@
 // @vitest-environment happy-dom
-import { loadIcons } from '@iconify/react'
 import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
 import type { CardData } from '@utils/deck/types'
 import { renderTimeline } from '@utils/simulator/timing'
-import { ZONE_ICONS } from './board'
 import { ComboRender, type RenderHandle } from './combo-render'
 
 // A real <img>, so the page has images to decode.
@@ -16,14 +14,6 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
-// Every icon already loaded, unless a test holds them back.
-vi.mock('@iconify/react', () => ({
-  Icon: () => null,
-  loadIcons: vi.fn((icons: string[], done: (loaded: string[], missing: string[], pending: string[]) => void) => {
-    done(icons, [], [])
-    return () => {}
-  }),
-}))
 vi.mock('@utils/combos', async (original) => ({ ...(await original<typeof import('@utils/combos')>()), getCombo: vi.fn() }))
 
 /** Four steps, the replay starting at the third (as Task 5's timeline): two draws, a monster to the field, end of turn. */
@@ -163,19 +153,6 @@ describe('ComboRender', () => {
     expect(document.querySelectorAll('img').length).toBeGreaterThan(0)
     expect(await settled(page().ready)).toBe(false)
     decoding.resolve()
-    expect(await settled(page().ready)).toBe(true)
-  })
-
-  it('ready waits for the zone marks to load from Iconify', async () => {
-    let done!: () => void
-    vi.mocked(loadIcons).mockImplementationOnce((icons, callback) => {
-      done = () => callback!(icons as never, [], [], () => {})
-      return () => {}
-    })
-    await open()
-    expect(loadIcons).toHaveBeenCalledWith(expect.arrayContaining(Object.values(ZONE_ICONS)), expect.any(Function))
-    expect(await settled(page().ready)).toBe(false)
-    done()
     expect(await settled(page().ready)).toBe(true)
   })
 

@@ -1,1 +1,1 @@
-export { FactGrid, type Fact } from './fact-grid.component'
+export { FactGrid,  } from './fact-grid.component'

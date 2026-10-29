@@ -9,8 +9,8 @@ import { WikiApiError, createArticle, updateArticle } from '@utils/articles'
 import type { Article, ArticlePatch } from '@utils/types'
 
 /** The server's own limits (WIKI_API §4.6), checked here only to fail fast with a readable message. */
-export const TITLE_MAX = 120
-export const BODY_MAX = 100_000
+const TITLE_MAX = 120
+const BODY_MAX = 100_000
 
 /** The server rejects raw HTML instead of stripping it, so the writer learns it isn't allowed. */
 const RAW_HTML = /<[a-zA-Z/!]/

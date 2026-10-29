@@ -6,7 +6,6 @@ import { SignIn } from './SignIn'
 
 const router = { replace: vi.fn() }
 vi.mock('next/navigation', () => ({ useRouter: () => router }))
-vi.mock('@iconify/react', () => ({ Icon: () => null }))
 vi.mock('@hooks/index', () => ({ useAuth: () => ({ user: { id: 'u1' } }) }))
 
 afterEach(() => {

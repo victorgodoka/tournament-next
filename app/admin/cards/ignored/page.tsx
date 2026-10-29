@@ -2,7 +2,12 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Alert, Button, DataTable, Lookup, PageHeader, Panel } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { DataTable } from '@ui/data-table'
+import { Lookup } from '@ui/lookup'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
 import { useResource } from '@hooks/index'
 import { dayLabel } from '@utils/format'
 import { ignoreArchetype, listIgnored, listSeries, panelErrorText, unignoreArchetype } from '@utils/panel'

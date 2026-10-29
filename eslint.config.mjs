@@ -12,8 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Agent skill templates are not project source.
+    // Agent skill templates and other sessions' worktrees are not project source.
     ".claude/**",
+    ".worktrees/**",
   ]),
 ]);
 

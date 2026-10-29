@@ -59,7 +59,7 @@ export const gameTally = (rows: TimelineRow[]): Tally3 =>
 export type Split = { key: string; matches: Tally3; games: Tally3 }
 
 /** Tallies by a key of the row (their deck, the opponent's, or the pair); unknown decks left out. */
-export const splitBy = (rows: TimelineRow[], keyOf: (r: TimelineRow) => string | null): Split[] => {
+const splitBy = (rows: TimelineRow[], keyOf: (r: TimelineRow) => string | null): Split[] => {
   const out = new Map<string, Split>()
   for (const r of rows) {
     const key = keyOf(r)

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
-import { Icon } from '@iconify/react'
+import { Icon } from '@ui/icon'
 import { twMerge } from 'tailwind-merge'
 import { useAuth } from '@hooks/index'
 import { LocalTime } from '@omega/profile/local-time'
@@ -270,7 +270,7 @@ const LikeButton = ({ deckId, initial }: { deckId: string; initial: DeckSocial |
 
   const label = (
     <>
-      <Icon icon={like.liked ? 'mdi:heart' : 'mdi:heart-outline'} aria-hidden className={twMerge('text-lg', like.liked && 'text-crimson-lift')} />
+      <Icon name={like.liked ? 'heart' : 'heartOutline'} className={twMerge(like.liked && 'text-crimson-lift')} />
       <span className="mono-data">{COMPACT.format(like.likes)}</span>
     </>
   )

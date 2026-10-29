@@ -1,7 +1,14 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { Alert, Button, Chip, Field, Lookup, PageHeader, Panel, Segmented, Switch, Tag, TextArea, TextInput, type ChipTone, type LookupOption } from '@ui/index'
+import { Alert } from '@ui/alert'
+import { Button } from '@ui/button'
+import { Chip, Tag, type ChipTone } from '@ui/chip'
+import { Field, TextArea, TextInput } from '@ui/field'
+import { Lookup, type LookupOption } from '@ui/lookup'
+import { PageHeader } from '@ui/page-header'
+import { Panel } from '@ui/panel'
+import { Segmented, Switch } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { dayTime } from '@utils/format'
 import {

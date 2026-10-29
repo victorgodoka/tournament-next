@@ -36,7 +36,7 @@ export type Duelist = {
   avatar: string | null
 }
 
-export type AnalyticsMatch = {
+type AnalyticsMatch = {
   id: string
   ladder: 'tcg' | 'genesys' | null
   start: string | null
@@ -49,7 +49,7 @@ export type AnalyticsMatch = {
 
 export type EventKind = 'normal_summon' | 'flip_summon' | 'special_summon' | 'card_activated'
 export type Phase = 'draw' | 'standby' | 'main1' | 'battle_start' | 'battle_step' | 'damage' | 'damage_cal' | 'battle' | 'main2' | 'end'
-export type Ownership = 'deck' | 'ambiguous' | 'token' | 'unknown'
+type Ownership = 'deck' | 'ambiguous' | 'token' | 'unknown'
 
 export type TimelineEvent = {
   seq: number
@@ -87,9 +87,9 @@ export type MatchTimeline = {
   games: TimelineGame[]
 }
 
-export type CardUse = { cardId: number; name: string | null }
+type CardUse = { cardId: number; name: string | null }
 
-export type GamePlayerStats = {
+type GamePlayerStats = {
   archetype: string | null
   actions: number
   comboLength: { turns: number; average: number } | null
@@ -135,10 +135,10 @@ export type MatchStats = {
 }
 
 
-export type Record3 ={ games: number; wins: number; losses: number; draws: number; winRate: number | null }
-export type Share = { games: number; rate: number | null }
+type Record3 ={ games: number; wins: number; losses: number; draws: number; winRate: number | null }
+type Share = { games: number; rate: number | null }
 
-export type ResponseSplit = {
+type ResponseSplit = {
   activations: number
   responded: number
   respondedRate: number | null

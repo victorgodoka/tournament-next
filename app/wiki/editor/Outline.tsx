@@ -8,7 +8,7 @@ const ALIGN = { left: 'float left', right: 'float right', center: 'centre', wide
 const TONE = { gold: 'Note', cyan: 'Info', negative: 'Warning' } as const
 
 /** One outline line: `H2 · History`, `Image · float right`, `FAQ · 2 questions`. */
-export const outlineLabel = (block: WikiBlock, first: boolean) => {
+const outlineLabel = (block: WikiBlock, first: boolean) => {
   switch (block.type) {
     case 'text':
       return first ? 'Text · intro' : 'Text'

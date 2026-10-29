@@ -19,7 +19,6 @@ import { Panel } from '@ui/panel'
 import { ResultPill } from '@ui/result'
 import { TierBadge } from '@ui/tier-badge'
 import { Art, faceOf, NOTE, num, NUM, pct, ROW, SortHeads, sortBy, useSort, type Getters } from '@app/statistics/DeepDive'
-import { ANALYTICS_ENABLED } from '@utils/const'
 import { archKey, type PlayerStatisticsData, type Tally3, type TimelineRow, type TurnSplit } from '@utils/statistics'
 import type { EloPoint, Match, Tier } from '@utils/types'
 import {
@@ -399,7 +398,6 @@ const RecentMatches = ({ matches, last, names, profileId }: { matches: Match[]; 
                 <button
                   type="button"
                   aria-expanded={isOpen}
-                  disabled={!ANALYTICS_ENABLED}
                   onClick={() => setOpen(isOpen ? null : m.id)}
                   className="grid w-full cursor-pointer grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_64px_92px] items-center gap-3 bg-surface-100 px-3 py-2 text-left text-sm text-ink-dim hover:bg-surface-300 disabled:cursor-default"
                 >

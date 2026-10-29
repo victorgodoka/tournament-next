@@ -7,7 +7,6 @@ import { ComboRecorder, frameBox, videoName } from './combo-recorder'
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
-vi.mock('@iconify/react', () => ({ Icon: () => null }))
 
 /** Every frame the recorder mounted, in order: the preview first, then one per take. */
 const state = vi.hoisted(() => ({

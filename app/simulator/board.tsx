@@ -1,11 +1,10 @@
 'use client'
 
-import { Icon as Iconify } from '@iconify/react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useLayoutEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Icon } from '@ui/icon'
+import { Icon, type IconName } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
 import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
@@ -86,27 +85,25 @@ export const ActivationMarks = ({ active, targeted }: { active: boolean; targete
   </>
 )
 
-/** The Iconify icons of the empty-zone marks, fetched from Iconify's API the first time one is drawn. */
-export const ZONE_ICONS = { gy: 'mdi:grave-stone', banished: 'foundation:x', pendulum: 'mage:gem-b-fill' } as const
 
 /**
  * What an empty zone shows, faint: a gravestone in the GY, an X in Banished, a gem lying on its side in each Pendulum
  * Zone (blue on the left, red on the right, each pointing out), the Field Spell mark in the Field Zone.
  */
 const ZoneMark = ({ zone }: { zone: ZoneId }) => {
-  const icon = (name: string, className: string) => <Iconify icon={name} className={twMerge('size-1/2', className)} />
+  const icon = (name: IconName, className: string) => <Icon name={name} className={twMerge('size-1/2', className)} />
   const mark =
-    zone === 'gy' ? icon(ZONE_ICONS.gy, 'text-ink-muted')
-    : zone === 'banished' ? icon(ZONE_ICONS.banished, 'text-ink-muted')
-    : zone === 's0' ? icon(ZONE_ICONS.pendulum, 'rotate-90 text-azure')
-    : zone === 's4' ? icon(ZONE_ICONS.pendulum, '-rotate-90 text-crimson')
+    zone === 'gy' ? icon('grave', 'text-ink-muted')
+    : zone === 'banished' ? icon('xmark', 'text-ink-muted')
+    : zone === 's0' ? icon('gem', 'rotate-90 text-azure')
+    : zone === 's4' ? icon('gem', '-rotate-90 text-crimson')
     : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
 }
 
 /** Cracks and a crimson glow: the card was destroyed in the step on screen. Over the cell it left and the pile it went to. */
-export const DestroyMark = () => (
+const DestroyMark = () => (
   <span aria-hidden data-destroyed className="pointer-events-none absolute inset-0 z-2 motion-safe:animate-pulse">
     <span className="absolute inset-0 bg-crimson/30 shadow-[0_0_16px_4px_var(--color-crimson)] outline outline-2 outline-crimson-lift" />
     <svg viewBox="0 0 59 86" preserveAspectRatio="none" className="absolute inset-0 size-full fill-none stroke-crimson-lift stroke-[2.5] [stroke-linecap:round] [stroke-linejoin:round]">

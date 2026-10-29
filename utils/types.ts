@@ -11,12 +11,12 @@ export type CardArt = {
   name: string | null
 }
 
-export type Deck = {
+type Deck = {
   name: string | null
   art: CardArt | null
 }
 
-export type Accent = 'green' | 'magenta'
+type Accent = 'green' | 'magenta'
 
 export type Region = 'north_america' | 'latam' | 'brazil' | 'eu_west' | 'eu_east' | 'middle_east' | 'africa' | 'asia' | 'oceania'
 
@@ -33,7 +33,7 @@ export type Visibility = 'everyone' | 'friends_rivals' | 'friends' | 'nobody'
 
 export type Tier = 'Iron' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Master' | 'Omega'
 
-export type LadderRecord = { wins: number; loses: number; draws: number }
+type LadderRecord = { wins: number; loses: number; draws: number }
 
 /** Open: live rating and record. Closed: frozen at the rollover. */
 /** `day` is `YYYY-MM-DD` in the sync job's timezone; `seasonDay` 1 = the day the season opened. */
@@ -85,7 +85,7 @@ export type Ladder = { format: 'TCG' | 'Genesys'; accent: Accent } & (
   | { played: false }
 )
 
-export type MatchSide = {
+type MatchSide = {
   id: string
   name: string | null
   avatar: string | null
@@ -151,8 +151,6 @@ export type ProfileSettings = {
   favoriteDeck: Deck | null
   socials: ProfileSocial[]
 }
-
-export type SelfProfile = ProfileIdentity & ProfileSettings
 
 /** `isPrivate` is computed for this viewer: everything but the identity is withheld. */
 export type Profile = ProfileIdentity & (
@@ -319,7 +317,7 @@ export type CalendarEntry = {
 export type WelcomeUpcoming = CalendarEntry
 
 /** A duelist pre-registered for a scheduled tournament, oldest first. */
-export type ScheduledPlayer = {
+type ScheduledPlayer = {
   id: string
   name: string | null
   avatar: string | null
@@ -357,13 +355,13 @@ export type WelcomeTournament = {
   winner: (TournamentPlayer & { points: number; archetype: string | null }) | null
 }
 
-export interface WelcomePlayers {
+interface WelcomePlayers {
   last24h: number
   previous24h: number
   updatedAt: string
 }
 
-export interface WelcomeGames {
+interface WelcomeGames {
   last24h: Record<WelcomeLadder, number>
   previous24h: Record<WelcomeLadder, number>
   updatedAt: string
@@ -385,7 +383,7 @@ export type TournamentPlayer = {
   cosmetics: Cosmetics
 }
 
-export type TournamentSettings = {
+type TournamentSettings = {
   mode: 'single' | 'match' | 'tag'
   masterRule: number
   /** Raw value that doesn't match the old site's labels. Show `format` instead. */
@@ -467,7 +465,7 @@ export type Standing = {
   deck: TournamentDeck | null
 }
 
-export type MatchOutcome = 'player1' | 'player2' | 'draw' | 'unplayed'
+type MatchOutcome = 'player1' | 'player2' | 'draw' | 'unplayed'
 
 export type TournamentMatch = {
   /** Unique only within the round: key on round number + room. */
@@ -518,7 +516,7 @@ export type GameRecord = { wins: number; loses: number; draws: number }
 export type MatchupStat = { archetype: string; opponent: string; wins: number; loses: number; draws: number; games?: GameRecord }
 
 /** Per-zone counts, so "staple of main" and "staple of side" can be separate lists. */
-export type CardZoneStat = { decks: number; copies: number }
+type CardZoneStat = { decks: number; copies: number }
 
 export type CardStat = {
   id: number
@@ -535,7 +533,7 @@ export type CardStat = {
   draws: number
 }
 
-export type MatchTotals = {
+type MatchTotals = {
   total: number
   played: number
   unplayed: number
@@ -547,7 +545,7 @@ export type MatchTotals = {
 }
 
 /** Split by card type, not zone: a sided extra-deck monster is in `extra`. Each list is its own top N by `decks`. */
-export type CardStats = { main: CardStat[]; extra: CardStat[] }
+type CardStats = { main: CardStat[]; extra: CardStat[] }
 
 export type TournamentStats = {
   matches: MatchTotals
@@ -565,9 +563,9 @@ export type TournamentDetail = {
 
 export type TournamentPage = { tournaments: TournamentSummary[]; nextCursor: string | null }
 
-export type BanlistTotals = { banlist: string; format: string; tournaments: number; entries: number }
+type BanlistTotals = { banlist: string; format: string; tournaments: number; entries: number }
 
-export type TournamentLeader = TournamentPlayer & {
+type TournamentLeader = TournamentPlayer & {
   tournaments: number
   tournamentWins: number
   wins: number
@@ -639,7 +637,7 @@ export type WikiUser = {
   cosmetics: Cosmetics
 }
 
-export type WikiRole = 'USER' | 'EDITOR' | 'ANALYST' | 'ADMIN'
+type WikiRole = 'USER' | 'EDITOR' | 'ANALYST' | 'ADMIN'
 
 /** Index row. No `body`: an article can be 100 KB of Markdown. */
 export type ArticleSummary = {
@@ -834,15 +832,6 @@ export type PastSeason = {
 }
 
 export type PastSeasons = { ladder: RankedLadderId; format: RankedFormat; seasons: PastSeason[] }
-
-/** Final results of a closed season: `elo`, `tier` and `rank` frozen at the rollover. */
-export type SeasonStandingsPage = {
-  ladder: RankedLadderId
-  format: RankedFormat
-  season: Omit<PastSeason, 'standings'>
-  entries: LeaderboardEntry[]
-  nextCursor: string | null
-}
 
 /** An equipped cosmetic as the profile, messenger and auth APIs embed it. */
 export type Cosmetic = { itemId: string; name: string; assetUrl: string | null; ext: string | null; data: Record<string, unknown> }

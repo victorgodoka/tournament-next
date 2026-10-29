@@ -7,9 +7,9 @@ import type { Analysis, Draw, Roles } from './types'
 export type SweepPoint = { x: number; deckSize: number; hands: number[]; any: number }
 
 /** The stand-in for filler cards (cards no rule names): never carries a role, never matches a card rule. */
-export const FILLER_ID = -1
-export const DECK_SIZE_RANGE = [40, 60] as const
-export const TURNS = 6
+const FILLER_ID = -1
+const DECK_SIZE_RANGE = [40, 60] as const
+const TURNS = 6
 
 const range = (lo: number, hi: number) => Array.from({ length: Math.max(0, hi - lo + 1) }, (_, i) => lo + i)
 

@@ -1,6 +1,6 @@
 /** NitroAds options, as https://api-docs.nitropay.com/ documents them. Only the keys this site sets. */
 
-export type NitroAdReportPosition =
+type NitroAdReportPosition =
   | 'top-left'
   | 'top-right'
   | 'bottom-left'
@@ -94,7 +94,7 @@ export interface NitroAdInstance {
   onNavigate?: (href?: string) => void
 }
 
-export interface NitroAdsApi {
+interface NitroAdsApi {
   createAd: (
     id: string,
     options: NitroAdOptions,

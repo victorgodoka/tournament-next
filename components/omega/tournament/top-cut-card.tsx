@@ -41,7 +41,7 @@ const MICH = michroma.style.fontFamily
 type Slice = { name: string; count: number; art: number | null; others: boolean }
 
 /** The decks of ranks 1–`top`, by archetype, biggest first and the unnamed ones last as `othersLabel`. */
-export const cutSlices = (standings: Standing[], archetypes: ArchetypeStat[], top: number, othersLabel: string): Slice[] => {
+const cutSlices = (standings: Standing[], archetypes: ArchetypeStat[], top: number, othersLabel: string): Slice[] => {
   const art = new Map(archetypes.map((a) => [a.archetype, a.artCardId]))
   const groups = new Map<string, Slice>()
   for (const s of standings) {
@@ -137,7 +137,7 @@ type Labels = {
  * `wide` 16:9 for feeds and Discord: text left, donut right. `story` 9:16 for stories, reels and TikTok:
  * header, donut, then the list. The donut sits at a fixed spot so the header can wrap a chip row above it.
  */
-export const LAYOUTS = {
+const LAYOUTS = {
   wide: { w: 1920, h: 1080, cw: 840, ox: 1420, oy: 540, r: 420 },
   story: { w: 1080, h: 1920, cw: 920, ox: 540, oy: 760, r: 360 },
 } as const

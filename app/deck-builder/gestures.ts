@@ -4,9 +4,9 @@ export const LONG_PRESS_MS = 450
 /** Finger travel that still counts as holding still (or as a tap). */
 export const MOVE_SLOP = 10
 /** Leftward swipe on a deck row that removes a copy. */
-export const SWIPE_COMMIT = 64
+const SWIPE_COMMIT = 64
 /** Vertical drag on the tray handle that opens or closes it. */
-export const TRAY_DRAG = 48
+const TRAY_DRAG = 48
 
 /** How far a row follows a swipe: leftward only, and only while horizontal movement dominates. */
 export const swipeTravel = (dx: number, dy: number) => (dx < 0 && Math.abs(dx) > Math.abs(dy) ? dx : 0)

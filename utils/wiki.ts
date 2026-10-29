@@ -9,12 +9,12 @@ import { API_URL } from './auth'
 export type CardKind = 'monster' | 'spell' | 'trap'
 
 /** A previous wording of a card. `date` is when *that* version shipped in the TCG. */
-export type Errata = { id: number; description: string; date: string | null }
+type Errata = { id: number; description: string; date: string | null }
 
 /** Only the lists that restrict the card. Copies on a normal list, points on a Genesys one. */
-export type CardBanlistEntry = { name: string; limitation: number }
+type CardBanlistEntry = { name: string; limitation: number }
 
-export type Translation = { name: string; desc: string } | null
+type Translation = { name: string; desc: string } | null
 
 export type WikiCard = {
   id: number

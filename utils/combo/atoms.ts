@@ -18,7 +18,7 @@ export const subjectCopies = (cards: readonly DeckCard[], roles: Roles, subject:
   cards.reduce((sum, card) => (satisfies(card.id, roles, subject) ? sum + card.copies : sum), 0)
 
 /** Cards sharing one signature (the referenced subjects they satisfy), as subject keys. */
-export type Atom = { size: number; signature: ReadonlySet<string> }
+type Atom = { size: number; signature: ReadonlySet<string> }
 /** `atoms`: the non-empty signatures; `other`: copies satisfying no subject; `total`: the deck. */
 export type Atoms = { atoms: Atom[]; other: number; total: number }
 

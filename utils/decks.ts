@@ -10,9 +10,9 @@ export const VISIBILITIES: Visibility[] = ['public', 'friends', 'private']
 export type DeckTag = 'competitive' | 'rogue' | 'casual'
 export const DECK_TAGS: DeckTag[] = ['competitive', 'rogue', 'casual']
 
-export type DeckLabel = { name: string; artCardId: number | null }
-export type DeckCounts = { main: number; extra: number; side: number }
-export type DeckOwner = { id: string; name: string | null; avatarUrl: string | null }
+type DeckLabel = { name: string; artCardId: number | null }
+type DeckCounts = { main: number; extra: number; side: number }
+type DeckOwner = { id: string; name: string | null; avatarUrl: string | null }
 
 /** The ranked season a deck belongs to: the banlist of that time. Not `format`, the list the editor validates against. */
 export type DeckSeason = { id: number; code: string; format: 'TCG' | 'Genesys'; label: string }
@@ -105,7 +105,7 @@ export type DeckComment = {
   deleted: boolean
 }
 
-export type DeckThread = DeckComment & { replies: DeckComment[] }
+type DeckThread = DeckComment & { replies: DeckComment[] }
 
 export type DeckSocial = {
   likes: number

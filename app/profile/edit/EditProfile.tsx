@@ -8,7 +8,7 @@ import { twMerge } from "tailwind-merge";
 import { buttonClasses } from "@ui/button";
 import { CardArt } from "@omega/card-art";
 import ErrorPage from "@omega/error";
-import { ProfileBio } from "@omega/profile";
+import { ProfileBio } from "@omega/profile/profile-bio";
 import { REGION_LABEL, SOCIAL } from "@omega/profile/labels";
 import { useAuth, useSearch } from "@hooks/index";
 import { signIn } from "@utils/auth";
