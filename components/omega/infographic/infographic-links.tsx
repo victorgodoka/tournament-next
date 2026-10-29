@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useAuth } from '@hooks/index'
+import { can } from '@utils/articles'
 import { download } from '@utils/download'
 import type { Size } from './infographic'
 
@@ -26,10 +28,13 @@ const LINK = 'inline-flex min-h-8 items-center gap-1.5 border border-line px-2.5
 /**
  * "Infographic: 16:9 · 9:16", once per item: links to the PNG routes. A click fetches the PNG and saves it,
  * so the seconds Satori takes show as a spinner on the link instead of nothing; the `href` and `download`
- * stay for a middle click or a copied link.
+ * stay for a middle click or a copied link. Admins only (`system.manage`): each render costs the server
+ * a second of CPU and a burst of memory, so the public does not get a button for it.
  */
 export const InfographicLinks = ({ label, hint, busy, failed, sizes, items, className }: InfographicLinksProps) => {
   const [state, setState] = useState<{ href: string; status: 'busy' | 'failed' } | null>(null)
+  const { user } = useAuth()
+  if (!can(user, 'system.manage')) return null
 
   const save = async (e: React.MouseEvent, href: string, file: string) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
