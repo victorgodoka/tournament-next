@@ -102,25 +102,31 @@ export type NavbarItem = {
 const BASE_NAVBAR_ITEMS: NavbarItem[] = [
   { item: "Home", to: "/welcome" },
   {
-    item: "Tournaments",
+    item: "Compete",
     children: [
-      { item: "Live", to: "/tournaments" },
+      { item: "Tournaments", to: "/tournaments" },
       { item: "Calendar", to: "/calendar" },
+      { item: "Leaderboard", to: "/leaderboard" },
     ],
   },
-  { item: "Leaderboard", to: "/leaderboard" },
-  { item: "Wiki", to: "/wiki" },
-  ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
   {
-    item: "Tools",
+    item: "Decks",
     children: [
       { item: "Deck Builder", to: "/deck-builder" },
+      { item: "Public decks", to: "/decks" },
       { item: "Combo Calculator", to: "/calculator" },
       { item: "Combo Simulator", to: "/simulator" },
-      { item: "Public decks", to: "/decks" },
+    ],
+  },
+  {
+    item: "Format",
+    children: [
+      { item: "Banlist", to: "/banlist" },
       { item: "Banlist timeline", to: "/banlist-timeline" },
     ],
   },
+  ...(ANALYTICS_ENABLED ? [{ item: "Statistics", to: "/statistics" }] : []),
+  { item: "Wiki", to: "/wiki" },
 ]
 
 export const HOME_NAVBAR_ITEMS: NavbarItem[] = [

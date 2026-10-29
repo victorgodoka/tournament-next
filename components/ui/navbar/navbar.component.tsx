@@ -27,7 +27,8 @@ const Caret = ({ isOpen }: { isOpen: boolean }) => (
   <span aria-hidden className={twMerge("text-[9px] leading-none", isOpen && "rotate-180")}>▾</span>
 )
 
-const isCurrent = (pathname: string, to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
+// Segment match, so `/banlist` doesn't light up on `/banlist-timeline`.
+const isCurrent = (pathname: string, to: string) => pathname === to || (to !== '/' && pathname.startsWith(`${to}/`))
 
 /** Whether any link under this entry is the page we are on, so a collapsed menu still lights up. */
 const isActive = (pathname: string, { to, children }: NavbarItem) =>
