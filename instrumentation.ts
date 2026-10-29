@@ -5,9 +5,17 @@
  */
 const API_TIMEOUT = 8_000
 
-export function register() {
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+  /**
+   * The infographic PNGs go through sharp (`next/og` rasterises Satori's SVG with it when sharp
+   * resolves). libvips keeps each rendered SVG in its operation cache, ~40 MB apiece, outside V8's
+   * heap and well past the 50 MB the cache claims: 15 renders held 700 MB and the container was
+   * killed. Off, nothing outlives the render (measured 2026-10-29: 180 MB flat after 15).
+   */
+  ;(await import('sharp')).default.cache(false)
   const api = process.env.NEXT_PUBLIC_API_URL
-  if (process.env.NEXT_RUNTIME !== 'nodejs' || !api) return
+  if (!api) return
   /**
    * Runtime-only, e.g. `http://omega-api:3000`: with the API on the same Docker host, the server
    * reaches it over the shared network instead of going out through Cloudflare. The browser keeps
