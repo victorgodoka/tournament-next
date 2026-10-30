@@ -261,6 +261,43 @@
   stroke-dasharray: 1;
 }
 
+/* The shortcut of a menu item. */
+.sim-menu-item[data-key]::after {
+  content: attr(data-key);
+  color: var(--color-ink-muted);
+  font: 700 10px/1 var(--font-mono);
+}
+
+/* A zone on offer while the card coming into play waits for one: the rest of the board steps back. */
+.sim-board[data-picking] .sim-zone > :not(.sim-pick) {
+  opacity: 0.4;
+}
+
+.sim-pick {
+  position: absolute;
+  inset: calc(var(--card-w) * -0.055);
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  color: var(--color-cyan);
+  background: rgba(11, 44, 58, 0.72);
+  outline: var(--stroke) solid var(--color-cyan);
+  outline-offset: -2px;
+  cursor: pointer;
+}
+
+.sim-pick:hover {
+  background: rgba(0, 253, 255, 0.28);
+}
+
+.sim-empty {
+  grid-area: caption;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ---- The room ---- */
 
 .sim-room {
@@ -582,6 +619,14 @@
     width: 176px;
   }
 
+  .sim-empty {
+    position: absolute;
+    top: 66%;
+    left: 50%;
+    z-index: 5;
+    translate: -50% -50%;
+  }
+
   .sim-chain {
     position: absolute;
     top: 104px;
@@ -853,12 +898,22 @@
   .sim-link-card {
     animation: sim-stamp 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+
+  .sim-pick {
+    animation: sim-offer 1200ms ease-in-out infinite;
+  }
 }
 
 @property --lp {
   syntax: '<integer>';
   inherits: false;
   initial-value: 0;
+}
+
+@keyframes sim-offer {
+  50% {
+    outline-color: rgba(0, 253, 255, 0.35);
+  }
 }
 
 @keyframes sim-stamp {

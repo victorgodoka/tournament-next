@@ -136,7 +136,7 @@ export const ripple = ({ ground, k }: Stage, cell: HTMLElement, delay: number) =
         { transform: 'scale(1)', opacity: 0.9 },
         { transform: `scale(${grow})`, opacity: 0 },
       ],
-      { duration: 460 * k, delay: delay + wait * k, easing: EASE },
+      { duration: 460 * k, delay: delay + wait * k, easing: 'ease-out' },
     )
   }
   cell.querySelector('.sim-plate')?.animate([{ filter: 'brightness(2.4)' }, { filter: 'brightness(1)' }], { duration: 420 * k, delay })
@@ -159,11 +159,11 @@ export const pillar = ({ flat, k }: Stage, at: Pose, size: Size, delay: number) 
   shaft.style.height = `${h}px`
   shaft.animate(
     [
-      { offset: 0, transform: 'scaleY(0.1)', opacity: 0 },
-      { offset: 0.22, transform: 'scaleY(1)', opacity: 1 },
+      { offset: 0, transform: 'scaleY(0.1)', opacity: 0, easing: EASE },
+      { offset: 0.3, transform: 'scaleY(1)', opacity: 1, easing: 'ease-in' },
       { offset: 1, transform: 'scaleY(1.06) scaleX(0.5)', opacity: 0 },
     ],
-    { duration: 680 * k, delay, easing: EASE },
+    { duration: 680 * k, delay },
   )
 }
 
@@ -178,10 +178,11 @@ export const burst = ({ flat, k }: Stage, at: Pose, size: Size, tone: 'cyan' | '
     pane.style.top = `${at.y}px`
     pane.animate(
       [
-        { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)', opacity: 1 },
-        { transform: `translate(calc(-50% + ${Math.cos(angle) * far}px), calc(-50% + ${Math.sin(angle) * far}px)) rotate(${(i % 2 ? 1 : -1) * (120 + i * 20)}deg) scale(0.4)`, opacity: 0 },
+        { offset: 0, transform: 'translate(-50%, -50%) rotate(0deg) scale(1)', opacity: 1 },
+        { offset: 0.6, opacity: 1 },
+        { offset: 1, transform: `translate(calc(-50% + ${Math.cos(angle) * far}px), calc(-50% + ${Math.sin(angle) * far}px)) rotate(${(i % 2 ? 1 : -1) * (120 + i * 20)}deg) scale(0.4)`, opacity: 0 },
       ],
-      { duration: (560 + (i % 4) * 50) * k, delay, easing: EASE },
+      { duration: (620 + (i % 4) * 50) * k, delay, easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
     )
   }
 }
@@ -211,8 +212,8 @@ const mark = ({ marks }: Stage, host: HTMLElement, className: string) => {
 }
 
 /** An effect read off a card: a band of light down its face. */
-export const scan = (stage: Stage, host: HTMLElement) => {
-  spawn(mark(stage, host, 'sim-scan'), 'sim-scan-band').animate([{ transform: 'translateY(-120%)' }, { transform: 'translateY(120%)' }], { duration: 560 * stage.k, easing: 'ease-in-out', fill: 'both' })
+export const scan = (stage: Stage, host: HTMLElement, delay: number) => {
+  spawn(mark(stage, host, 'sim-scan'), 'sim-scan-band').animate([{ transform: 'translateY(-120%)' }, { transform: 'translateY(120%)' }], { duration: 560 * stage.k, delay, easing: 'ease-in-out', fill: 'both' })
 }
 
 /** A negation: a stroke drawn across the card, as the home page strikes a word. */
@@ -250,7 +251,7 @@ export const shatter = (stage: Stage, look: HTMLElement, at: Pose, size: Size, c
 }
 
 /** A shuffle: backs cut apart either side of the pile and fall together, twice. */
-export const riffle = ({ ground, k }: Stage, cell: HTMLElement) => {
+export const riffle = ({ ground, k }: Stage, cell: HTMLElement, delay: number) => {
   for (let i = 0; i < 4; i++) {
     const side = i % 2 ? 1 : -1
     onCell(ground, cell, 'sim-riffle').animate(
@@ -261,13 +262,13 @@ export const riffle = ({ ground, k }: Stage, cell: HTMLElement) => {
         { offset: 0.8, transform: `translateX(${side * 26}%)`, opacity: 1 },
         { offset: 1, transform: 'translateX(0)', opacity: 1 },
       ],
-      { duration: 560 * k, delay: i * 30 * k, easing: 'ease-in-out' },
+      { duration: 560 * k, delay: delay + i * 30 * k, easing: 'ease-in-out' },
     )
   }
 }
 
 /** Light running out along every vein from the core. */
-export const sweep = ({ k }: Stage, root: HTMLElement) => {
+export const sweep = ({ k }: Stage, root: HTMLElement, delay: number) => {
   for (const vein of root.querySelectorAll('.sim-vein-pulse')) {
     vein.animate(
       [
@@ -275,7 +276,7 @@ export const sweep = ({ k }: Stage, root: HTMLElement) => {
         { offset: 0.15, opacity: 1 },
         { offset: 1, strokeDashoffset: 0, opacity: 0 },
       ],
-      { duration: 680 * k, easing: 'ease-out' },
+      { duration: 680 * k, delay, easing: 'ease-out' },
     )
   }
 }

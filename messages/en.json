@@ -1253,6 +1253,18 @@
       "unsaved": "Unsaved changes",
       "more": "More"
     },
+    "empty": { "deck": "Choose Deck", "deal": "Deal a Hand", "choose": "Choose Your Hand" },
+    "place": { "prompt": "Pick the zone for “{card}”" },
+    "help": {
+      "title": "Shortcuts",
+      "step": "Step back and forward",
+      "play": "Play or pause the replay",
+      "undo": "Undo and redo",
+      "endTurn": "End the turn",
+      "menu": "Pick an item in the card menu",
+      "set": "Held on a drop: Set the card",
+      "open": "Open this list"
+    },
     "home": "Back to the site",
     "life": {
       "you": "You",
@@ -1386,7 +1398,11 @@
     "faceDown": "Face-down",
     "menu": {
       "label": "Card actions",
-      "activate": "Activate…",
+      "normal": "Normal Summon",
+      "special": "Special Summon",
+      "set": "Set",
+      "play": "Activate",
+      "activate": "Activate effect…",
       "activateNow": "Now",
       "activateTargets": "With targets…",
       "flipUp": "Flip face-up",
@@ -1437,10 +1453,17 @@
     },
     "handPicker": {
       "title": "Choose your opening hand",
-      "hint": "Tap the cards to start with. The rest of the deck is shuffled, and the replay starts with this hand.",
+      "hint": "Pick the cards to start with. The rest of the deck is shuffled, and the replay starts with this hand.",
+      "fill": "Fill the rest at random",
+      "clear": "Clear",
+      "remove": "Take {name} out of the hand",
+      "monster": "Monsters",
+      "spell": "Spells",
+      "trap": "Traps",
+      "other": "Cards",
       "count": "{count, plural, =0 {No cards picked} one {1 card picked} other {# cards picked}}",
       "cancel": "Cancel",
-      "confirm": "Start with this hand"
+      "confirm": "Deal This Hand"
     },
     "caption": {
       "label": "Caption for this step",
@@ -1449,6 +1472,7 @@
     "pile": {
       "close": "Close pile",
       "empty": "No cards here.",
+      "search": "Search this pile",
       "materials": "Materials ×{count}"
     },
     "targets": {

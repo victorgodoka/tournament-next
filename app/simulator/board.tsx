@@ -60,6 +60,9 @@ export type BoardViewProps = {
   onPhase?(): void
   /** The chain on screen, card ids, the first link first: each card carries its link number. */
   chain?: number[]
+  /** The zones a card being brought into play can go to: the rest of the board steps back and each of these takes a click. */
+  pick?: ZoneId[]
+  onPick?(zone: ZoneId): void
 }
 
 /** `[zone, column, row]` on the 7 × 5 grid. Banished takes the EMZ row's last column, above the GY. */
@@ -290,8 +293,8 @@ export const BoardView = (p: BoardViewProps) => {
   /** The overlays cards carry for the step on screen. */
   const marks = useRef<Element[]>([])
   const turnWord = t('turn', { n: board.turn })
-  const shown = actions[cursor - 1]
-  const summonWord = shown?.t === 'move' && shown.how ? t(`fx.${shown.how}`) : ''
+  const summoned = actions.slice(0, cursor).findLast((a, i) => i >= cursor - 2 && a.t === 'move')
+  const summonWord = summoned?.t === 'move' && summoned.how ? t(`fx.${summoned.how}`) : ''
 
   // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
   // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
@@ -328,26 +331,29 @@ export const BoardView = (p: BoardViewProps) => {
     const origin = el.getBoundingClientRect()
     const before = seen.current
     const motion = matchMedia('(prefers-reduced-motion: no-preference)').matches
-    const played = before && cursor === before.cursor + 1 ? actions[cursor - 1] : undefined
+    // One step on, or the steps a single act just logged (a card played and activated, a card shuffled into the Deck); a seek shows nothing.
+    const acted = !!before && cursor === actions.length && cursor > before.cursor && actions.length > before.actions.length
+    const run = before && (acted || cursor === before.cursor + 1) ? actions.slice(before.cursor, cursor) : []
     const undone = before && cursor === before.cursor - 1 ? before.actions[cursor] : undefined
     const landed = droppedRef.current
     droppedRef.current = null
     const dealt = !!dealtRef?.current
     if (dealtRef) dealtRef.current = false
-    const moving = dealt ? board.zones.hand : played ? stepCards(played, before!.board) : undone ? stepCards(undone, board) : []
+    const moving = dealt ? board.zones.hand : run.length ? [...new Set(run.flatMap((a) => stepCards(a, before!.board)))] : undone ? stepCards(undone, board) : []
     const tilt = parseFloat(getComputedStyle(el).getPropertyValue('--tilt')) || 0
     const camera = parseFloat(getComputedStyle(el.querySelector('.sim-tilt')!).perspective) || NO_CAMERA
     const pose = (box: HTMLElement) => poseOf(box, origin, box.closest('[data-mat]') ? tilt : 0)
     const cell = (zone: ZoneId) => el.querySelector<HTMLElement>(`[data-zone="${zone}"]`)!
     const k = flipMs / FLIP_MS
     const stage: Stage = { flat: layer, ground: under, k, marks: marks.current }
-    const destroying = played?.t === 'move' && played.destroy
+    const destroying = run.some((a) => a.t === 'move' && a.destroy)
     /** How a card of the step flies. Only a step played forward has more to it than the trip: undoing one is a plain way back. */
     const flightOf = (id: number): Flight => {
-      if (dealt || played?.t === 'draw') return { under: backFace(), delay: (moving.indexOf(id) * DRAW_GAP_MS + (dealt ? RIFFLE_MS : 0)) * k }
-      if (played?.t === 'flip' && before!.board.cards[id]?.face !== played.face) return { under: before!.looks.get(id) }
-      if (played?.t === 'move' && played.to === 'gy') return { dim: true }
-      if (played?.t === 'move' && played.to === 'banished') return { squash: true }
+      const a = run.find((one) => one.t === 'draw' || ('card' in one && one.card === id && one.t !== 'activate'))
+      if (dealt || a?.t === 'draw') return { under: backFace(), delay: (moving.indexOf(id) * DRAW_GAP_MS + (dealt ? RIFFLE_MS : 0)) * k }
+      if (a?.t === 'flip' && before!.board.cards[id]?.face !== a.face) return { under: before!.looks.get(id) }
+      if (a?.t === 'move' && a.to === 'gy') return { dim: true }
+      if (a?.t === 'move' && a.to === 'banished') return { squash: true }
       return {}
     }
 
@@ -386,39 +392,45 @@ export const BoardView = (p: BoardViewProps) => {
     }
     seen.current = { board, cursor, actions, at: now, looks }
 
-    if (!motion || !before || !(played || dealt)) return
+    if (!motion || !before || !(run.length || dealt)) return
     const host = (id: number) => el.querySelector<HTMLElement>(`[data-card="${id}"]`)?.parentElement ?? cell(locate(board, id)!.zone).querySelector<HTMLElement>('[data-pile]')
     const touchdown = (id: number) => (id === landed ? 0 : flipMs * TOUCHDOWN)
-    if (dealt) riffle(stage, cell('deck'))
-    else if (played?.t === 'move') {
-      if (isSlot(played.to)) ripple(stage, cell(played.to), touchdown(played.card))
-      else pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
-      const card = el.querySelector<HTMLElement>(`[data-card="${played.card}"]`)
-      if (played.how && card) {
-        label(stage, pose(card), sizeOf(card), summonWord, touchdown(played.card))
-        if (played.how === 'special') {
-          pillar(stage, pose(card), sizeOf(card), touchdown(played.card))
-          burst(stage, pose(card), sizeOf(card), 'cyan', touchdown(played.card))
+    if (dealt) riffle(stage, cell('deck'), 0)
+    else
+      run.forEach((played, i) => {
+        // The second of two acts waits for the first to land.
+        const after = i * flipMs
+        if (played.t === 'move') {
+          if (isSlot(played.to)) ripple(stage, cell(played.to), touchdown(played.card))
+          else pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
+          const card = el.querySelector<HTMLElement>(`[data-card="${played.card}"]`)
+          if (played.how && card) {
+            label(stage, pose(card), sizeOf(card), summonWord, touchdown(played.card))
+            if (played.how === 'special') {
+              pillar(stage, pose(card), sizeOf(card), touchdown(played.card))
+              burst(stage, pose(card), sizeOf(card), 'cyan', touchdown(played.card))
+            }
+          }
+        } else if (played.t === 'activate') {
+          const on = host(played.card)
+          if (on) scan(stage, on, after)
+          sweep(stage, el, after)
+        } else if (played.t === 'negate') {
+          const on = host(played.card)
+          if (played.on && on) strike(stage, on)
+        } else if (played.t === 'shuffle') riffle(stage, cell('deck'), after)
+        else if (played.t === 'endTurn') {
+          banner(stage, turnWord)
+          sweep(stage, el, 0)
         }
-      }
-    } else if (played?.t === 'activate') {
-      const on = host(played.card)
-      if (on) scan(stage, on)
-      sweep(stage, el)
-    } else if (played?.t === 'negate') {
-      const on = host(played.card)
-      if (played.on && on) strike(stage, on)
-    } else if (played?.t === 'shuffle') riffle(stage, cell('deck'))
-    else if (played?.t === 'endTurn') {
-      banner(stage, turnWord)
-      sweep(stage, el)
-    }
+      })
   }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord, summonWord])
 
   return (
     <div
       ref={root}
       data-fill={p.fill || undefined}
+      data-picking={p.pick ? '' : undefined}
       style={p.cardW === undefined ? undefined : ({ '--card-w': `${p.cardW}px` } as React.CSSProperties)}
       className="sim-board"
     >
@@ -448,6 +460,11 @@ export const BoardView = (p: BoardViewProps) => {
                 {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
                 {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
                 {p.destroyed?.from === zone ? <DestroyMark /> : null}
+                {p.pick?.includes(zone) ? (
+                  <button type="button" aria-label={t(`zones.${zone}`)} onClick={() => p.onPick?.(zone)} className="sim-pick">
+                    <Icon name="plus" />
+                  </button>
+                ) : null}
               </div>
             ))}
             <Core turn={board.turn} phase={board.phase} onPhase={p.onPhase} />

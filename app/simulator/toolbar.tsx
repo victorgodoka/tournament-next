@@ -70,6 +70,7 @@ type CommandsProps = {
   onShare(): void
   /** The replay as a video (MP4 or WebP): saves the line first when it is not. */
   onVideo(): void
+  onHelp(): void
 }
 
 /** The rail's top row: a hand to start from and the line to keep. Every decision is the client's: the buttons only ask. */
@@ -98,6 +99,7 @@ export const Commands = (p: CommandsProps) => {
           ['share', t('toolbar.share'), p.onShare, noDeck],
           ['video', t('video.open'), p.onVideo, noDeck || session.actions.length === 0],
           ['reset', t('toolbar.reset'), p.onReset, session.actions.length === 0],
+          ['help', t('help.title'), p.onHelp, false],
         ]}
       />
     </div>

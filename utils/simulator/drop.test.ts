@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
 import { apply, initial, isValid } from './board'
-import { dropAction, moveOptions } from './drop'
+import { dropAction, moveOptions, placeOptions, type PlaceKind, type Placing } from './drop'
 import type { Action, Board, ZoneId } from './types'
 import { ZONES } from './types'
 
@@ -133,5 +133,31 @@ describe('simulator drop', () => {
     expect(action('banished', 'faceDown')).toEqual(dropAction(base, 2, 'banished', true))
     expect(action('extra', 'faceUp')).toEqual(dropAction(base, 2, 'extra', true))
     expect(action('gy', 'plain')).toEqual(dropAction(base, 2, 'gy', false))
+  })
+
+  describe('placeOptions', () => {
+    const start = initial({ main: [1, 2, 3], extra: [4], side: [] })
+    const zones = (how: Placing, kind: PlaceKind, board = start) => placeOptions(board, 0, how, kind).map(({ zone }) => zone)
+
+    it('a monster takes a Main Monster Zone; only a Special Summon reaches the Extra Monster Zones', () => {
+      expect(zones('normal', 'monster')).toEqual(['m0', 'm1', 'm2', 'm3', 'm4'])
+      expect(zones('special', 'monster')).toEqual(['m0', 'm1', 'm2', 'm3', 'm4', 'emz0', 'emz1'])
+    })
+
+    it('a Spell or Trap takes the back row, a Field Spell its own zone', () => {
+      expect(zones('set', 'spell')).toEqual(['s0', 's1', 's2', 's3', 's4'])
+      expect(zones('activate', 'fieldSpell')).toEqual(['field'])
+    })
+
+    it('an occupied zone is not offered', () => {
+      expect(zones('normal', 'monster', apply(start, { t: 'move', card: 1, to: 'm2' }))).toEqual(['m0', 'm1', 'm3', 'm4'])
+    })
+
+    it('says how the card came in, sets it face-down, and activates what was played face-up', () => {
+      expect(placeOptions(start, 0, 'normal', 'monster')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 'm0', how: 'normal' }])
+      expect(placeOptions(start, 0, 'set', 'monster')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 'm0', face: 'down', pos: 'def', how: 'set' }])
+      expect(placeOptions(start, 0, 'set', 'spell')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 's0', face: 'down', how: 'set' }])
+      expect(placeOptions(start, 0, 'activate', 'spell')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 's0' }, { t: 'activate', card: 0, targets: [] }])
+    })
   })
 })

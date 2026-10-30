@@ -91,7 +91,7 @@ const counter = async (what: 'menu.counterUp' | 'menu.counterDown') => {
   await act(async () => fireEvent.click(within(menu()).getAllByRole('menuitem')[1]!))
   await choose(what)
 }
-const MAIN_HAND = ['menu.activate', 'menu.moveTo', 'menu.tag']
+const MAIN_HAND = ['menu.normal', 'menu.set', 'menu.special', 'menu.activate', 'menu.moveTo', 'menu.tag']
 const MAIN_FIELD = ['menu.activate', 'menu.flipDown', 'menu.position', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag']
 
 /** The callbacks of every ResizeObserver the board made, so a test can fire the one that is watching. */
@@ -586,7 +586,7 @@ describe('Simulator pile panel', () => {
     expect(materials).toHaveLength(1)
     await rightClick(materials[0]!)
     // a material is not a field card: no flip, position, negate or counters
-    expect(names()).toEqual(MAIN_HAND)
+    expect(names()).toEqual(['menu.activate', 'menu.moveTo', 'menu.tag'])
     await choose('menu.moveTo')
     await choose('menu.moveZone')
     await choose('zones.gy')
@@ -1197,6 +1197,80 @@ describe('Simulator history and replay', () => {
       expect(document.querySelector('.sim-fx')!.childElementCount).toBe(0)
       expect(document.querySelector('.sim-ground')!.childElementCount).toBe(0)
     })
+  })
+})
+
+describe('Simulator bringing a card into play', () => {
+  const picks = () => [...document.querySelectorAll('.sim-pick')].map((el) => el.getAttribute('aria-label'))
+
+  it('Special Summon asks for the zone, offers only the free ones, and logs how it came in', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m1')
+    await rightClick(hand()[0]!)
+    await choose('menu.special')
+    expect(picks()).toEqual(['zones.emz0', 'zones.emz1', 'zones.m0', 'zones.m2', 'zones.m3', 'zones.m4'])
+    await click('zones.m2')
+    expect(cardsIn('m2')).toHaveLength(1)
+    expect(picks()).toEqual([])
+    expect(steps().at(-1)).toBe('history.special')
+  })
+
+  it('a Normal Summon stays out of the Extra Monster Zones, and Set lands face-down in Defense', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.normal')
+    expect(picks()).toEqual(['zones.m0', 'zones.m1', 'zones.m2', 'zones.m3', 'zones.m4'])
+    await act(async () => void fireEvent.keyDown(document, { key: 'Escape' }))
+    expect(picks()).toEqual([])
+    await rightClick(hand()[0]!)
+    await choose('menu.set')
+    await click('zones.m0')
+    expect(cardsIn('m0')[0]!.getAttribute('data-pos')).toBe('def')
+    expect(steps().at(-1)).toBe('history.set')
+  })
+
+  it('a digit picks a menu item', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await act(async () => void fireEvent.keyDown(menu(), { key: '3' }))
+    expect(picks()).toHaveLength(7)
+  })
+
+  it('while a zone is asked for, the cards take no menu', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.special')
+    await rightClick(hand()[1]!)
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+})
+
+describe('Simulator help and first steps', () => {
+  it('a deck with nothing played offers a hand on the table, and the first step takes it away', async () => {
+    await open(DECK)
+    await click('empty.deal')
+    expect(hand()).toHaveLength(5)
+    expect(screen.queryByRole('button', { name: 'empty.deal' })).toBeNull()
+  })
+
+  it('? opens the list of shortcuts', async () => {
+    await open(DECK)
+    await act(async () => void fireEvent.keyDown(window, { key: '?', shiftKey: true }))
+    expect(screen.getByRole('heading', { name: 'help.title' })).toBeTruthy()
+  })
+
+  it('Choose hand can fill the rest at random', async () => {
+    await open(DECK)
+    await click('toolbar.chooseHand')
+    await act(async () => void fireEvent.click(button('2')))
+    await act(async () => void fireEvent.click(screen.getByRole('checkbox', { name: 'handPicker.fill' })))
+    await click('handPicker.confirm')
+    expect(hand()).toHaveLength(5)
+    expect(hand()[0]!.title).toBe('2')
   })
 })
 

@@ -14,10 +14,10 @@ import type { SharedCombo } from '@utils/combos'
 import { chainAt, destroyedBy, initial, isMonsterSlot, kindsIn, nextPhase, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
-import { dropAction } from '@utils/simulator/drop'
+import { dropAction, placeOptions, type PlaceKind, type Placing } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
 import { LIMITS } from '@utils/simulator/types'
-import type { Action, MonsterSlot, Pile, Session } from '@utils/simulator/types'
+import type { Action, MonsterSlot, Pile, Session, ZoneId } from '@utils/simulator/types'
 import { BoardView, DragGhost, FLIP_MS } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
@@ -38,6 +38,18 @@ import { VideoDialog } from './video-dialog'
 
 const DRAFT_DELAY_MS = 300
 const END_TURN: Action = { t: 'endTurn' }
+/** The opening hand. */
+const HAND_SIZE = 5
+/** Every shortcut, as the help lists them: `[keys, what it does]`. */
+const SHORTCUTS = [
+  ['← →', 'step'],
+  ['Space', 'play'],
+  ['Ctrl Z / Ctrl Y', 'undo'],
+  ['E', 'endTurn'],
+  ['1–9', 'menu'],
+  ['Shift', 'set'],
+  ['?', 'open'],
+] as const
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -144,6 +156,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
+  /** A card being brought into play, and where it can go: the board asks for the zone. Menus and drag are off until it answers. */
+  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions> } | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
   /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
   const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
   /** The card a new counter kind is being named for, and the card being tagged. */
@@ -175,10 +190,14 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     ensure([...session.deck.main, ...session.deck.extra]).catch(() => {})
   }, [session.deck, ensure, lookupAttempt])
 
-  const targetMode = targeting !== null
+  const targetMode = targeting !== null || placing !== null
   useEffect(() => {
     if (!targetMode) return
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && !dialogOpen() && setTargeting(null)
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || dialogOpen()) return
+      setTargeting(null)
+      setPlacing(null)
+    }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [targetMode])
@@ -225,6 +244,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setLocked(null)
     setPiles([])
     setTargeting(null)
+    setPlacing(null)
     setVideoFor(null)
   }
   // A reload clears the save alert itself before it opens the combo.
@@ -277,10 +297,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   }
   /** Shuffle, draw 5. */
   const newHand = () => deal([shuffleAction(initial(session.deck)), { t: 'draw', n: 5 }])
-  /** Shuffle, then the picked cards into the hand in the order they were picked. */
-  const chooseHand = (ids: number[]) => {
+  /** Shuffle, then the picked cards into the hand in the order they were picked, and the rest of the hand at random if asked. */
+  const chooseHand = (ids: number[], fill: boolean) => {
     setChoosing(false)
-    deal([shuffleAction(initial(session.deck)), ...ids.map((card): Action => ({ t: 'move', card, to: 'hand' }))])
+    const rest: Action[] = fill && ids.length < HAND_SIZE ? [{ t: 'draw', n: HAND_SIZE - ids.length }] : []
+    deal([shuffleAction(initial(session.deck)), ...ids.map((card): Action => ({ t: 'move', card, to: 'hand' })), ...rest])
   }
 
   const reset = () =>
@@ -305,7 +326,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const droppedRef = useRef<number | null>(null)
   // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
   // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
-  const dragOn = menu === null && !targeting && !playing
+  const dragOn = menu === null && !targetMode && !playing
   const drag = useDrag({
     enabled: dragOn,
     onDrop: (card, zone, shift) => {
@@ -323,11 +344,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   // key pauses it first, as the bar's buttons do.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     const target = e.target instanceof Element ? e.target : null
-    if (e.defaultPrevented || targeting || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
+    if (e.defaultPrevented || targetMode || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     const run =
-      mod && !e.altKey && key === 'z' ? (e.shiftKey ? 'redo' : 'undo')
+      e.key === '?' ? 'help'
+      : mod && !e.altKey && key === 'z' ? (e.shiftKey ? 'redo' : 'undo')
       : mod && !e.altKey && !e.shiftKey && key === 'y' ? 'redo'
       : mod || e.altKey || e.shiftKey ? null
       : e.key === 'ArrowLeft' ? 'undo'
@@ -338,6 +360,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     if (!run) return
     e.preventDefault()
     if (run === 'play') togglePlay()
+    else if (run === 'help') setHelpOpen(true)
     else if (run === 'endTurn') perform([END_TURN])
     else step(cursor + (run === 'redo' ? 1 : -1))
   })
@@ -348,7 +371,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   }, [])
 
   const openMenu = (id: number, at: { x: number; y: number }) => {
-    if (playing) return
+    if (playing || placing) return
     setSelected(id)
     setMenu({ card: id, at })
   }
@@ -358,15 +381,30 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       if (!now || id === now.source) return now
       return { ...now, targets: now.targets.includes(id) ? now.targets.filter((other) => other !== id) : [...now.targets, id] }
     })
+  /** What decides where a card can stand; an unknown one is taken for a monster. */
+  const placeKind = (id: number): PlaceKind => {
+    const data = cards.get(board.cards[id]?.code ?? -1)
+    return !data || data.kind === 'monster' ? 'monster' : data.humanReadableCardType === 'Field Spell' ? 'fieldSpell' : 'spell'
+  }
+  /** Asks for the zone of a card coming into play. With none free there is nothing to ask. */
+  const place = (card: number, how: Placing) => {
+    const options = placeOptions(board, card, how, placeKind(card))
+    if (options.length) setPlacing({ card, options })
+  }
+  const placeAt = (zone: ZoneId) => {
+    const option = placing?.options.find((one) => one.zone === zone)
+    if (option) perform(option.actions)
+    setPlacing(null)
+  }
   const confirmTargets = () => {
     if (targeting) perform([{ t: 'activate', card: targeting.source, targets: targeting.targets }])
     setTargeting(null)
   }
   /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. While picking targets, any click picks. */
-  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
+  const onCard = (id: number, e: React.MouseEvent) => (placing ? undefined : targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
-    if (!targeting) openMenu(id, anchor(e))
+    if (!targetMode) openMenu(id, anchor(e))
   }
   /** Opens a pile's window, or closes it when it is open. */
   const togglePile = (zone: Pile | MonsterSlot) => setPiles((open) => (open.includes(zone) ? open.filter((z) => z !== zone) : [...open, zone]))
@@ -467,6 +505,18 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             />
           ) : null}
           <SaveFlowView flow={saves} playing={playing} />
+          {placing ? (
+            <Alert
+              tone="info"
+              edged
+              title={t('place.prompt', { card: nameOf(placing.card) })}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setPlacing(null)} className={TOUCH}>
+                  {t('targets.cancel')}
+                </Button>
+              }
+            />
+          ) : null}
           {targeting ? (
             <Alert
               tone="info"
@@ -502,12 +552,14 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           droppedRef={droppedRef}
           dealtRef={dealtRef}
           chain={chain}
+          pick={placing?.options.map((one) => one.zone)}
+          onPick={placeAt}
           flipMs={FLIP_MS / Math.max(1, speed)}
           onPhase={playing || targetMode ? undefined : () => perform([{ t: 'phase', to: nextPhase(board.phase) }])}
           onCard={onCard}
           onMenu={onMenu}
-          onLongPress={(id, at) => !targeting && openMenu(id, at)}
-          onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
+          onLongPress={(id, at) => !targetMode && openMenu(id, at)}
+          onActivate={(id) => !targetMode && perform([{ t: 'activate', card: id, targets: [] }])}
           onHover={setHovered}
           locked={locked}
           onLock={toggleLock}
@@ -515,6 +567,25 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onPile={togglePile}
         />
         {playing && shown?.note ? <p className="sim-caption text-ink body">{shown.note}</p> : null}
+        {/* Nothing to play yet: the next step, in the middle of the table. */}
+        {end === 0 && !picker ? (
+          <div className="sim-empty">
+            {session.deck.main.length === 0 ? (
+              <Button size="lg" onClick={() => setPicker(true)}>
+                {t('empty.deck')}
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" onClick={newHand}>
+                  {t('empty.deal')}
+                </Button>
+                <Button variant="secondary" onClick={() => setChoosing(true)} className={TOUCH}>
+                  {t('empty.choose')}
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
         <Dock board={board} session={session} playing={playing || saves.busy} picking={targetMode} onAct={perform} onUndo={() => step(cursor - 1)} onRedo={() => step(cursor + 1)} />
       </section>
 
@@ -532,6 +603,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onMyCombos={() => saves.gate(() => setListing(true))}
           onShare={saves.share}
           onVideo={askVideo}
+          onHelp={() => setHelpOpen(true)}
         />
         <RailHead num="01" label={t('rail.card')} />
         {/* It follows the pointer over the board, or stays on the card it is locked on. */}
@@ -616,10 +688,23 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onPile={togglePile}
           onClose={() => setMenu(null)}
           xyz={isXyz(menu.card)}
+          data={cards.get(board.cards[menu.card]?.code ?? -1)}
+          onPlace={place}
         />
       ) : null}
 
-      {choosing ? <HandPicker board={initial(session.deck)} cards={cards} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
+      {choosing ? <HandPicker board={initial(session.deck)} cards={cards} size={HAND_SIZE} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
+
+      <Dialog size="sm" open={helpOpen} onClose={() => setHelpOpen(false)} title={t('help.title')}>
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-2">
+          {SHORTCUTS.map(([keys, what]) => (
+            <div key={what} className="contents">
+              <dt className="text-ink data">{keys}</dt>
+              <dd className="text-ink-dim body-sm">{t(`help.${what}`)}</dd>
+            </div>
+          ))}
+        </dl>
+      </Dialog>
 
       {/* Keyed by the card: each asks afresh, with that card's own tag filled in. */}
       {naming !== null ? (
