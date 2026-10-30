@@ -16,7 +16,7 @@ import { CardList, findCards, findSetcodes, pickedCard } from '../shared'
 
 type Draft = Omit<Series, 'id' | 'code' | 'updatedAt' | 'members'> & { id: number | null; code: number | null }
 
-const blank = (): Draft => ({ id: null, code: null, name: '', description: '', archetype: null, mode: 'extend', archetypes: [], cards: [], mentions: [] })
+const blank = (): Draft => ({ id: null, code: null, name: '', description: '', archetype: null, mode: 'extend', archetypes: [], cards: [], mentions: [], cover: null })
 const toDraft = (s: Series): Draft => ({
   id: s.id,
   code: s.code,
@@ -27,9 +27,19 @@ const toDraft = (s: Series): Draft => ({
   archetypes: s.archetypes,
   cards: s.cards,
   mentions: s.mentions,
+  cover: s.cover,
 })
 
 const MEMBERS = 12
+
+/** What the server falls back to with no pinned cover: the same order as its seriesCover. */
+const defaultCover = (d: Draft): string => {
+  const mention = d.mentions[0]
+  if (mention) return `Default: ${mention.name ?? mention.id}`
+  const setcode = d.archetypes[0] ?? d.archetype
+  if (setcode) return `Default: most included ${setcode.name ?? setcode.code} card`
+  return d.cards[0] ? `Default: ${d.cards[0].name ?? d.cards[0].id}` : 'No cards yet'
+}
 
 const SeriesPage = () => {
   const list = useResource('series', listSeries)
@@ -53,6 +63,7 @@ const SeriesPage = () => {
       archetypes: d.archetypes.map(({ code, keep }) => ({ code, keep })),
       cards: d.cards.map((c) => c.id),
       mentions: d.mentions.map((c) => c.id),
+      cover: d.cover?.id ?? null,
     }
     setBusy(true)
     setError(null)
@@ -220,6 +231,17 @@ const SeriesPage = () => {
                 onPick={(o) => !d.cards.some((c) => c.id === Number(o.key)) && set({ cards: [...d.cards, pickedCard(o)] })}
               />
               <CardList cards={d.cards} onRemove={(id) => set({ cards: d.cards.filter((c) => c.id !== id) })} />
+            </Field>
+
+            <Field label="Cover" hint="The card that stands for the Series in the statistics. Optional: without one, the first mention, then the most included card of the first child archetype, then of the overridden setcode, then the first card.">
+              <div className="flex flex-wrap items-center gap-2">
+                {d.cover ? (
+                  <Tag note={d.cover.id} removeLabel="Clear the cover" onRemove={() => set({ cover: null })}>{d.cover.name ?? d.cover.id}</Tag>
+                ) : (
+                  <span className="text-ink-muted signal-sm">{defaultCover(d)}</span>
+                )}
+                <Lookup compact label="Pick the cover" placeholder="Passcode or card name" search={findCards} exclude={d.cover ? [d.cover.id] : []} className="w-65" onPick={(o) => set({ cover: pickedCard(o) })} />
+              </div>
             </Field>
 
             {error ? <Alert tone="negative" title="Not saved">{error}</Alert> : null}
