@@ -12,7 +12,7 @@ import { Panel } from '@ui/panel'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { getCombo, type SharedCombo } from '@utils/combos'
-import { chainAt, destroyedBy, stepCards, timeline } from '@utils/simulator/board'
+import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { comboSession, operateFrom, payloadOf, sessionOf } from '@utils/simulator/combo'
 import { draftStorage, readDraft, writeDraft } from '@utils/simulator/draft'
 import { sessionReducer } from '@utils/simulator/session'
@@ -224,7 +224,6 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             tags={session.cursor === session.actions.length}
             step={{ cursor: session.cursor, actions: session.actions }}
             droppedRef={droppedRef}
-            chain={chainAt(session.actions, session.cursor)}
             flipMs={FLIP_MS / Math.max(1, replay.speed)}
             onCard={show}
             onMenu={() => {}}
@@ -248,9 +247,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             className="lg:hidden"
           />
           <div {...tabPanelProps('player-side', 'card')} className={tab === 'card' ? undefined : 'max-lg:hidden'}>
-            <Panel tone="framed" label={t('cardPanel.title')} className="p-4 min-[720px]:p-4">
-              <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
-            </Panel>
+            <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
           </div>
           <div {...tabPanelProps('player-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
             {/* "Replay starts here" moves this viewer's start only: the combo itself is never written from here. */}

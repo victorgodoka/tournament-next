@@ -31,7 +31,7 @@ type LifePlateProps = {
  * steel surface. A click opens what changes them: nothing here checks a rule, the player says how much.
  */
 export const LifePlate = ({ side, lp, disabled = false, onChange, className }: LifePlateProps) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
   const plate = useRef<HTMLDivElement>(null)
@@ -136,7 +136,7 @@ export const LifePlate = ({ side, lp, disabled = false, onChange, className }: L
 
 /** The chain on screen, the first link on top. Nothing while there is none. */
 export const ChainPlate = ({ names }: { names: string[] }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   if (!names.length) return null
   return (
     <div className="sim-chain cut notch flex flex-col gap-1.5 px-3 py-2 [--cut:var(--cut-md)] [--edge:var(--color-line-mid)] [--fill:var(--color-surface-100)]">
@@ -157,7 +157,7 @@ export const ChainPlate = ({ names }: { names: string[] }) => {
 
 /** Each pile's count, a button that opens it: the way in when a card's corner on the table is small to hit. */
 export const PileCounts = ({ board, onPile }: { board: Board; onPile(pile: Pile): void }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   return (
     <div className="sim-rail-section grid grid-cols-4 gap-1">
       {PILES.map((pile) => (

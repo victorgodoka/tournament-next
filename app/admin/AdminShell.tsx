@@ -68,7 +68,7 @@ const locate = (pathname: string) => {
   return best
 }
 
-const Locked = ({ title, blurb, action }: { title: string; blurb: string; action?: React.ReactNode }) => (
+export const Locked = ({ title, blurb, action }: { title: string; blurb: string; action?: React.ReactNode }) => (
   <main className="grid min-h-dvh place-items-center px-gutter">
     <div className="cut notch flex max-w-140 flex-col items-center gap-4 p-7 text-center [--cut:var(--cut-lg)] lg:p-11">
       <h1 className="text-ink display-2">{title}</h1>

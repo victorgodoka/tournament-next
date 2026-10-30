@@ -1,5 +1,7 @@
 # Simulador em palco 3D com a identidade da Omega
 
+> **Onde está:** por enquanto em `/simulator/new`, só para admin e fora dos buscadores, com namespace (`SimulatorNew`) e rascunho próprios. `/simulator` e `/simulator/c/[id]` seguem como eram. A mesa nova na página pública e no vídeo foi feita e ficou no histórico do branch (`combo-player`, `combo-render`), para voltar quando o novo substituir o antigo.
+
 ## Contexto
 
 O Victor quer um `/simulator` mais elegante e completo, com animações bem feitas e um campo mais bonito. O ygolab é **inspiração de layout e de ritmo**, não um modelo a copiar. Quem manda no visual é a identidade da Omega. O simulador continua manual: sem motor de regras e sem nada automático.

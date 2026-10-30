@@ -2,10 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { CardTile } from '@app/deck-builder/card-tile'
-import type { CardData } from '@utils/deck/types'
 import { apply, isMonsterSlot, isSlot, isValid, locate, shuffleAction } from '@utils/simulator/board'
-import { moveOptions, type Placing } from '@utils/simulator/drop'
+import { moveOptions } from '@utils/simulator/drop'
 import { LIMITS, PLAIN } from '@utils/simulator/types'
 import type { Action, Board, MonsterSlot, ZoneId } from '@utils/simulator/types'
 
@@ -28,10 +26,6 @@ export type CardMenuProps = {
   onClose(): void
   /** The card is an Xyz monster: over an occupied monster zone it is offered the top first. */
   xyz?: boolean
-  /** The card's data, when it loaded: the head of the menu, and what it can be played as. An unknown card is offered as a monster. */
-  data?: CardData
-  /** Brings the card into play: the board then asks for the zone. */
-  onPlace?(card: number, how: Placing): void
 }
 
 /** The list on screen: the main one, a submenu, or the counters of one kind. */
@@ -42,18 +36,15 @@ type Entry = { key: string; label: string } & ({ go: View } | { run(): void } | 
 /** Space kept between the menu and the viewport edge. */
 const MARGIN = 8
 const ITEM =
-  'sim-menu-item flex w-full cursor-pointer items-center justify-between gap-6 border-b border-line px-4 py-3 text-left whitespace-nowrap text-ink-dim signal-strong last:border-b-0 hover:bg-surface-300 hover:text-ink focus-visible:bg-surface-300 focus-visible:text-ink focus-visible:-outline-offset-2 max-lg:min-h-11'
-/** The items a digit key reaches. */
-const KEYED = 9
+  'block w-full cursor-pointer border-b border-line px-4 py-3 text-left whitespace-nowrap text-ink-dim signal-strong last:border-b-0 hover:bg-surface-300 hover:text-ink focus-visible:bg-surface-300 focus-visible:text-ink focus-visible:-outline-offset-2 max-lg:min-h-11'
 
 /**
  * The keyboard path for every move, and for the rest of what a card can do. Opens at `at` with the first item
  * focused; arrows move between items; Escape, a pointer down outside or choosing an item closes it and the focus
- * goes back to the card; a digit picks that item. Submenus swap the list: Activate, Manage counters (one list per kind),
- * Move card and its "Move to a different zone" with every zone the card can go to. The card's name heads the list, and
- * what brings it into play comes first: Normal Summon and Set from the hand, Special Summon from anywhere off the field.
+ * goes back to the card. Submenus swap the list: Activate, Manage counters (one list per kind), Move card and its
+ * "Move to a different zone" with every zone the card can go to.
  */
-export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNewKind, onTag, onPile, onClose, xyz = false, data, onPlace }: CardMenuProps) => {
+export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNewKind, onTag, onPile, onClose, xyz = false }: CardMenuProps) => {
   const t = useTranslations('Simulator')
   const [view, setView] = useState<View>('main')
   const root = useRef<HTMLDivElement>(null)
@@ -119,15 +110,8 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
   const monster = field && isMonsterSlot(where.zone)
   const slot = where.zone
   const back: Entry = { key: 'back', label: t('menu.back'), go: 'main' }
-  const monsterCard = !data || data.kind === 'monster'
-  const place = (key: Placing, label: string): Entry => ({ key, label, run: () => onPlace?.(card, key) })
-  const plays: Entry[] = !onPlace ? []
-    : where.zone === 'hand' && !monsterCard ? [place('activate', t('menu.play')), place('set', t('menu.set'))]
-    : monsterCard && !isSlot(where.zone) ? [...(where.zone === 'hand' ? [place('normal', t('menu.normal')), place('set', t('menu.set'))] : []), place('special', t('menu.special'))]
-    : []
 
   const main: Entry[] = [
-    ...plays,
     { key: 'activate', label: t('menu.activate'), go: 'activate' },
     ...(field
       ? [
@@ -210,11 +194,6 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
       e.preventDefault()
       return onClose()
     }
-    const digit = Number(e.key)
-    if (digit >= 1 && digit <= Math.min(KEYED, list.length)) {
-      e.preventDefault()
-      return choose(list[digit - 1]!)
-    }
     const items = Array.from(root.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
     const focused = items.indexOf(document.activeElement as HTMLElement)
     const next =
@@ -235,16 +214,10 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
       aria-label={t('menu.label')}
       onKeyDown={onKeyDown}
       style={{ left: at.x, top: at.y }}
-      className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-60 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift motion-safe:animate-fade-in"
+      className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-52 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift"
     >
-      <div aria-hidden className="flex items-center gap-2 border-b border-line bg-surface-200 px-3 py-2">
-        <span className="w-6 shrink-0">
-          <CardTile id={state.code} card={data} sizes="24px" disabled tabIndex={-1} className="cursor-default" />
-        </span>
-        <span className="min-w-0 truncate text-ink body-sm">{data?.name ?? state.code}</span>
-      </div>
-      {list.map((entry, i) => (
-        <button key={entry.key} type="button" role="menuitem" tabIndex={-1} data-key={i < KEYED ? i + 1 : undefined} onClick={() => choose(entry)} className={ITEM}>
+      {list.map((entry) => (
+        <button key={entry.key} type="button" role="menuitem" tabIndex={-1} onClick={() => choose(entry)} className={ITEM}>
           {entry.label}
         </button>
       ))}
