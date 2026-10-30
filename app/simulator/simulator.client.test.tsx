@@ -1158,7 +1158,44 @@ describe('Simulator history and replay', () => {
       for (const [type, x] of [['pointerDown', 0], ['pointerMove', 50], ['pointerUp', 50]] as const)
         await act(async () => void fireEvent[type](card, { clientX: x, clientY: x, pointerId: 1, pointerType: 'mouse' }))
       expect(cardsIn('m0')).toHaveLength(1)
+      expect(flights()).toHaveLength(0)
+      expect(document.querySelectorAll('.sim-ripple').length).toBeGreaterThan(0) // it still touches down
+    })
+
+    it('a new hand is dealt out of the deck, one card after the other, turning over', async () => {
+      await open(DECK)
+      animate.mockClear()
+      await click('toolbar.newHand')
+      expect(flights()).toHaveLength(5)
+      const delays = animate.mock.calls.filter((_, i) => (animate.mock.contexts[i] as HTMLElement).classList.contains('sim-flight')).map((call) => (call[1] as KeyframeAnimationOptions).delay as number)
+      expect(delays).toEqual([...delays].sort((a, b) => a - b))
+      expect(new Set(delays).size).toBe(5)
+      expect(document.querySelectorAll('.sim-face-under')).toHaveLength(5)
+      expect(flights().every(({ from }) => from === '605px, 5px')).toBe(true)
+    })
+
+    it('a destroyed card breaks where it stood instead of flying to the GY', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      animate.mockClear()
+      await rightClick(cardsIn('m0')[0]!)
+      await choose('menu.moveTo')
+      await choose('menu.destroy')
+      expect(flights()).toHaveLength(6) // the pieces of the card
+      expect(flights().every(({ from }) => from === '205px, 5px')).toBe(true)
+    })
+
+    it('reduced motion leaves no effect behind', async () => {
+      motion = false
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      await click('toolbar.shuffle')
+      await click('toolbar.endTurn')
       expect(animate).not.toHaveBeenCalled()
+      expect(document.querySelector('.sim-fx')!.childElementCount).toBe(0)
+      expect(document.querySelector('.sim-ground')!.childElementCount).toBe(0)
     })
   })
 })

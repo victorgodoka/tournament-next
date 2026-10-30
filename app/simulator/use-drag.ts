@@ -19,6 +19,15 @@ const follow = (el: HTMLElement | null, { x, y }: Point) => {
   if (el) el.style.translate = `${x}px ${y}px`
 }
 
+/** The zone under the point takes `data-over`, written to the DOM for the same reason: its edge lights up as a card comes over it. */
+const hover = (over: { current: Element | null }, at: Point | null) => {
+  const zone = at && (document.elementFromPoint(at.x, at.y)?.closest('[data-zone]') ?? null)
+  if (zone === over.current) return
+  over.current?.removeAttribute('data-over')
+  zone?.setAttribute('data-over', '')
+  over.current = zone ?? null
+}
+
 /**
  * Pointer-event dragging for mouse, finger and pen. A press that travels past `MOVE_SLOP` becomes a drag: the
  * pointer is captured, `ghostRef` (rendered by the caller while `dragging` is set) follows it, and on release the
@@ -31,6 +40,7 @@ export const useDrag = ({ enabled, onDrop }: DragOptions) => {
   /** The pointer that is down on a card, and whether it has gone past the slop yet. */
   const press = useRef<{ card: number; id: number; from: Point; at: Point; moved: boolean } | null>(null)
   const swallow = useRef(false)
+  const over = useRef<Element | null>(null)
 
   // The ghost mounts after the first move that crossed the slop: put it under the pointer before it paints.
   useLayoutEffect(() => {
@@ -40,6 +50,7 @@ export const useDrag = ({ enabled, onDrop }: DragOptions) => {
   const cancel = () => {
     press.current = null
     setDragging(null)
+    hover(over, null)
   }
 
   return {
@@ -62,6 +73,7 @@ export const useDrag = ({ enabled, onDrop }: DragOptions) => {
           setDragging(p.card)
         }
         follow(ghostRef.current, p.at)
+        hover(over, p.at)
       },
       onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
         const p = press.current

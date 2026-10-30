@@ -258,6 +258,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Deleting the combo the session is tied to leaves its line as an unsaved one. The reducer judges the tie: the delete may land long after the click. */
   const comboDeleted = (id: string) => dispatch({ type: 'unlink', id })
 
+  /** A hand was just dealt: the board deals it from the deck. */
+  const dealtRef = useRef(false)
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
    * Nothing played after the start so far: no question, so testing hands takes one click each.
@@ -269,6 +271,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       dispatch({ type: 'reset' })
       dispatch({ type: 'act', actions })
       dispatch({ type: 'setStart', start: actions.length })
+      dealtRef.current = true
       forget()
     })
   }
@@ -496,6 +499,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           tags={cursor === end}
           step={{ cursor, actions: session.actions }}
           droppedRef={droppedRef}
+          dealtRef={dealtRef}
           flipMs={FLIP_MS / Math.max(1, speed)}
           onCard={onCard}
           onMenu={onMenu}
