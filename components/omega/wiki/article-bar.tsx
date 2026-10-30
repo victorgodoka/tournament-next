@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Icon } from '@ui/icon'
 import { twMerge } from 'tailwind-merge'
@@ -9,7 +9,7 @@ import { buttonClasses } from '@ui/button'
 import { countView, likeArticle, socialError, unlikeArticle } from '@utils/articles'
 import { setReturnTo } from '@utils/return-to'
 import type { ArticleSocial } from '@utils/types'
-import { shareLinks } from './share'
+import { ShareButtons } from './share-buttons'
 
 type ArticleBarProps = {
   slug: string
@@ -22,11 +22,6 @@ type ArticleBarProps = {
 
 const COMPACT = new Intl.NumberFormat('en', { notation: 'compact' })
 const STAT = 'inline-flex items-center gap-1.5 text-ink-dim mono-data'
-const ICON_BUTTON = buttonClasses({ variant: 'secondary', size: 'icon' })
-
-const noSubscribe = () => () => {}
-/** The native share sheet exists on phones and some desktops; read after hydration, never during it. */
-const useCanShare = () => useSyncExternalStore(noSubscribe, () => typeof navigator.share === 'function', () => false)
 
 const commentCount = (social: ArticleSocial) =>
   social.comments.reduce((total, thread) => total + (thread.deleted ? 0 : 1) + thread.replies.length, 0)
@@ -34,10 +29,8 @@ const commentCount = (social: ArticleSocial) =>
 /** Under the article header: views, the like, the comment count, then share. */
 export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
   const { user } = useAuth()
-  const canShare = useCanShare()
   const [like, setLike] = useState({ likes: social?.likes ?? 0, liked: social?.liked ?? false })
   const [pending, setPending] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Counted once a day per reader by the API; a dev double-mount is deduplicated there too.
@@ -59,15 +52,6 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
       setPending(false)
     }
   }
-
-  const copy = () =>
-    navigator.clipboard.writeText(url).then(
-      () => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      },
-      () => setError("Couldn't copy the link."),
-    )
 
   const likeLabel = (
     <>
@@ -117,41 +101,12 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-ink-muted signal-sm">Share</span>
-          {shareLinks(url, title).map((link) => (
-            <a
-              key={link.id}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Share on ${link.label}`}
-              title={`Share on ${link.label}`}
-              className={ICON_BUTTON}
-            >
-              <Icon name={link.icon} />
-            </a>
-          ))}
-          <button type="button" onClick={copy} aria-label="Copy link" title="Copy link" className={ICON_BUTTON}>
-            <Icon name={copied ? 'check' : 'link'} />
-          </button>
-          {canShare ? (
-            <button
-              type="button"
-              onClick={() => navigator.share({ title, url }).catch(() => {})}
-              aria-label="Share…"
-              title="Share…"
-              className={ICON_BUTTON}
-            >
-              <Icon name="share" />
-            </button>
-          ) : null}
-        </div>
+        <ShareButtons url={url} title={title} />
       </div>
 
       {/* Never display:none: a live region that appears with its text isn't announced. */}
       <p aria-live="polite" className="text-cyan signal-sm not-empty:mt-2">
-        {error ?? (copied ? 'Link copied.' : '')}
+        {error}
       </p>
     </div>
   )

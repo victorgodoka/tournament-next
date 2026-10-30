@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { Chip } from '@ui/chip'
+import { SITE_URL } from '@utils/config'
 import type { ArticleLink, ArticleLinks } from '@utils/types'
 import { imageSource, outline, type DocHtml, type WikiDoc } from '@utils/wiki-doc'
 import { WikiBlocks } from './blocks'
@@ -113,7 +114,7 @@ export const ArticleView = ({ doc, slug, html, links, children, lead, bodyId, fo
         <div className={twMerge('order-2 min-w-0 py-[clamp(24px,3vw,40px)] lg:order-1', WIKI_PAD)}>
           <article id={bodyId}>
             {lead}
-            <WikiBlocks doc={doc} html={html} />
+            <WikiBlocks doc={doc} html={html} shareUrl={slug ? new URL(doc.seo?.canonical || `/wiki/${slug}`, SITE_URL).toString() : undefined} />
             {links?.children.length ? <LinkList label="In this hub" articles={links.children} /> : null}
             {links?.related.length ? <LinkList label="Read next" articles={links.related} /> : null}
           </article>

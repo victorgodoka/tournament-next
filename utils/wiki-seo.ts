@@ -36,6 +36,7 @@ export const plainText = (md: string) =>
   md
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]*)\]\{#[0-9a-fA-F]{3,6}\}/g, '$1')
     .replace(/[`*_#>|~]/g, ' ')
 
 const WORD = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu
@@ -110,7 +111,10 @@ export const usedAssets = (doc: WikiDoc) => {
   if (doc.infobox?.asset) ids.add(doc.infobox.asset)
   if (doc.seo?.image) ids.add(doc.seo.image)
   for (const block of doc.blocks) {
-    if (block.type === 'figure') ids.add(block.asset)
+    if (block.type === 'figure') {
+      ids.add(block.asset)
+      if (block.mobileAsset) ids.add(block.mobileAsset)
+    }
     if (block.type === 'gallery') block.assets.forEach((id) => ids.add(id))
   }
   return ids

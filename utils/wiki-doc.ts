@@ -46,7 +46,8 @@ export type WikiCardRef = { id: number; name: string; note?: string }
 export type WikiBlock =
   | { id: string; type: 'text'; md: string }
   | { id: string; type: 'heading'; level: 2 | 3; text: string; anchor: string }
-  | { id: string; type: 'figure'; asset: string; align: FigureAlign; caption?: string }
+  /** `mobileAsset` replaces `asset` under 640px. `share` puts share buttons over the image, pointing at this figure. */
+  | { id: string; type: 'figure'; asset: string; align: FigureAlign; caption?: string; mobileAsset?: string; share?: boolean }
   | { id: string; type: 'gallery'; layout: GalleryLayout; assets: string[]; caption?: string }
   /** `perRow` 2–6 from 640px (absent = 4; phones show 2). `align` absent = `left`. */
   | { id: string; type: 'cards'; cards: WikiCardRef[]; perRow?: number; align?: CardsAlign; caption?: string }
@@ -400,6 +401,7 @@ export const validateDoc = (doc: WikiDoc): string[] => {
         return
       case 'figure':
         if (!has(block.asset)) problems.push(`${where} has no image.`)
+        if (block.mobileAsset && !has(block.mobileAsset)) problems.push(`${where} has a mobile image that isn't in the library.`)
         return
       case 'gallery':
         if (block.assets.length < DOC_LIMITS.galleryMin || block.assets.length > DOC_LIMITS.galleryMax)

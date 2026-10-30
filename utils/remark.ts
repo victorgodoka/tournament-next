@@ -14,10 +14,12 @@ const customSanitizeSchema = {
     ...defaultSchema.attributes,
     // Every tag keeps the classes rehype-class-names put on it.
     '*': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
+    // Nothing but a hex reaches `style`: see `toReact`.
+    span: [...(defaultSchema.attributes?.span || []), ['dataColor', /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i] as [string, RegExp]],
   },
 };
 
-type MdNode = { type: string; value?: string; children?: MdNode[] }
+type MdNode = { type: string; value?: string; children?: MdNode[]; data?: Record<string, unknown> }
 
 /** A single newline is a line break, not a soft wrap — people type in textareas, not Markdown. Code nodes aren't `text`, so they keep theirs. */
 const remarkBreaks = () => (tree: MdNode) => {
@@ -27,6 +29,43 @@ const remarkBreaks = () => (tree: MdNode) => {
       if (child.type !== 'text' || !child.value?.includes('\n')) return (walk(child), [child])
       return child.value.split(/\r?\n/).flatMap((value, i) => [...(i ? [{ type: 'break' }] : []), { type: 'text', value }])
     })
+  }
+  walk(tree)
+}
+
+const COLOR_END = /\]\{(#[0-9a-f]{3}(?:[0-9a-f]{3})?)\}/i
+
+/**
+ * `[text]{#4fdc8c}`: coloured text in wiki Markdown. The closing `]{#hex}` and its `[` may sit in different
+ * text nodes, which is how bold or a link inside the brackets arrive: everything between them moves into the span.
+ * An unmatched one stays as typed.
+ */
+const remarkColor = () => (tree: MdNode) => {
+  const text = (value: string): MdNode[] => (value ? [{ type: 'text', value }] : [])
+  const walk = (node: MdNode) => {
+    const kids = node.children
+    if (!kids) return
+    kids.forEach(walk)
+    for (let i = 0; i < kids.length; i++) {
+      const kid = kids[i]
+      const match = kid?.type === 'text' ? COLOR_END.exec(kid.value ?? '') : null
+      if (!kid || !match) continue
+      const head = (kid.value ?? '').slice(0, match.index)
+      let from = i
+      let at = head.lastIndexOf('[')
+      while (at < 0 && from > 0) {
+        from--
+        if (kids[from]?.type === 'text') at = kids[from]?.value?.lastIndexOf('[') ?? -1
+      }
+      if (at < 0) continue
+      const opener = from === i ? head : (kids[from]?.value ?? '')
+      const inner = from === i ? text(head.slice(at + 1)) : [...text(opener.slice(at + 1)), ...kids.slice(from + 1, i), ...text(head)]
+      const before = text(opener.slice(0, at))
+      const span: MdNode = { type: 'wikiColor', children: inner, data: { hName: 'span', hProperties: { dataColor: match[1]?.toLowerCase() } } }
+      kids.splice(from, i - from + 1, ...before, span, ...text((kid.value ?? '').slice(match.index + match[0].length)))
+      // Whatever followed `]{#hex}` is checked next: it may hold another one.
+      i = from + before.length
+    }
   }
   walk(tree)
 }
@@ -134,8 +173,11 @@ const toReact = (node: HastNode, key?: number): ReactNode => {
   if (node.type === 'root') return createElement(Fragment, { key }, ...children)
   if (node.type !== 'element' || !node.tagName) return null
 
+  const { dataColor, ...properties } = node.properties ?? {}
   const props: Record<string, unknown> = { key }
-  for (const [name, value] of Object.entries(node.properties ?? {})) {
+  // The sanitizer let only a hex through (`customSanitizeSchema`), so this can't carry other CSS.
+  if (typeof dataColor === 'string') props.style = { color: dataColor }
+  for (const [name, value] of Object.entries(properties)) {
     if (value === null || value === undefined || value === false) continue
     props[propName(name)] = Array.isArray(value) ? value.join(' ') : value
   }
@@ -150,6 +192,7 @@ const toNodes = async (markdownText: string, classes: Record<string, string>): P
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkBreaks)
+    .use(remarkColor)
     .use(remarkRehype)
     .use(rehypeClassNames, classes)
     .use(rehypeSanitize, customSanitizeSchema)

@@ -10,7 +10,7 @@ import { CARD_ART_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
 import { DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
-import { FieldHead, Frame, Help, INPUT, type Tone } from './ui'
+import { Check, FieldHead, Frame, Help, INPUT, type Tone } from './ui'
 
 export const MINI = 'inline-flex min-h-8 min-w-8 items-center justify-center border border-line bg-surface-100 px-2 text-ink-dim signal-sm hover:border-cyan hover:text-cyan disabled:pointer-events-none disabled:opacity-40'
 
@@ -264,7 +264,7 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
   )
 }
 
-const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path · [card:passcode] shows the card name linked to its page.'
+const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path · [card:passcode] shows the card name linked to its page · [text]{#4fdc8c} colours text.'
 
 /** Wrap the selection (or a placeholder) in Markdown, then put the caret back inside it. */
 type Edit = (text: string, start: number, end: number) => { text: string; start: number; end: number }
@@ -299,9 +299,12 @@ const TOOLS: { label: string; aria?: string; className?: string; edit: Edit }[] 
   { label: 'Table', edit: insert('| Column | Column |\n| --- | --- |\n| Cell | Cell |\n') },
 ]
 
+const TOOL = 'h-7.5 cursor-pointer border border-line bg-surface-200 px-2.5 text-ink-dim signal-sm hover:border-cyan hover:text-cyan'
+
 /** Markdown textarea with the formatting bar. Every button edits the text through `onChange`. */
 const MarkdownField = ({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (md: string) => void; rows?: number }) => {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const [color, setColor] = useState('#4fdc8c')
 
   const apply = (edit: Edit) => {
     const area = ref.current
@@ -323,14 +326,21 @@ const MarkdownField = ({ label, value, onChange, rows = 6 }: { label: string; va
             type="button"
             aria-label={tool.aria}
             onClick={() => apply(tool.edit)}
-            className={twMerge(
-              'h-7.5 cursor-pointer border border-line bg-surface-200 px-2.5 text-ink-dim signal-sm hover:border-cyan hover:text-cyan',
-              tool.className,
-            )}
+            className={twMerge(TOOL, tool.className)}
           >
             {tool.label}
           </button>
         ))}
+        <input
+          type="color"
+          aria-label="Text colour to apply"
+          value={color}
+          onChange={(event) => setColor(event.target.value)}
+          className="h-7.5 w-8 cursor-pointer border border-line bg-surface-200 p-0.5"
+        />
+        <button type="button" onClick={() => apply(wrap('[', `]{${color}}`, 'text'))} className={TOOL}>
+          Colour
+        </button>
       </div>
       <Frame>
         <textarea
@@ -396,29 +406,7 @@ export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFields
     }
 
     case 'figure':
-      return (
-        <div className="flex flex-col gap-4">
-          <AssetPicker label="Image" assets={assets} selected={block.asset ? [block.asset] : []} onChange={([asset]) => onChange({ ...block, asset: asset ?? '' })} />
-          <Segmented
-            label="Placement"
-            value={block.align}
-            options={[
-              { value: 'left', label: 'Float left' },
-              { value: 'right', label: 'Float right' },
-              { value: 'center', label: 'Centre' },
-              { value: 'wide', label: 'Wide' },
-            ]}
-            onChange={(align) => onChange({ ...block, align })}
-          />
-          <TextField
-            label="Caption"
-            value={block.caption ?? ''}
-            maxLength={DOC_LIMITS.short}
-            onChange={(caption) => onChange({ ...block, caption: caption || undefined })}
-            help="A float sits beside the blocks that follow it, until a heading or a wide block."
-          />
-        </div>
-      )
+      return <FigureFields block={block} assets={assets} onChange={onChange} />
 
     case 'gallery':
       return (
@@ -502,6 +490,46 @@ export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFields
       // A new block type fails to compile here until it is handled.
       return block satisfies never
   }
+}
+
+type FigureBlock = Extract<WikiBlock, { type: 'figure' }>
+
+/** The image, its phone version and where it sits. `undefined` keeps the optional keys out of the doc. */
+const FigureFields = ({ block, assets, onChange }: { block: FigureBlock; assets: WikiAsset[]; onChange: (block: WikiBlock) => void }) => {
+  const shareId = useId()
+  return (
+    <div className="flex flex-col gap-4">
+      <AssetPicker label="Image" assets={assets} selected={block.asset ? [block.asset] : []} onChange={([asset]) => onChange({ ...block, asset: asset ?? '' })} />
+      <AssetPicker
+        optional
+        label="Mobile image · shown instead on screens under 640px"
+        assets={assets}
+        selected={block.mobileAsset ? [block.mobileAsset] : []}
+        onChange={([mobileAsset]) => onChange({ ...block, mobileAsset })}
+      />
+      <Segmented
+        label="Placement"
+        value={block.align}
+        options={[
+          { value: 'left', label: 'Float left' },
+          { value: 'right', label: 'Float right' },
+          { value: 'center', label: 'Centre' },
+          { value: 'wide', label: 'Wide' },
+        ]}
+        onChange={(align) => onChange({ ...block, align })}
+      />
+      <Check id={shareId} checked={!!block.share} onChange={(share) => onChange({ ...block, share: share || undefined })}>
+        With share: buttons above the image that link straight to it
+      </Check>
+      <TextField
+        label="Caption"
+        value={block.caption ?? ''}
+        maxLength={DOC_LIMITS.short}
+        onChange={(caption) => onChange({ ...block, caption: caption || undefined })}
+        help="A float sits beside the blocks that follow it, until a heading or a wide block."
+      />
+    </div>
+  )
 }
 
 type VideoBlock = Extract<WikiBlock, { type: 'video' }>
@@ -626,7 +654,7 @@ export const blockSummary = (block: WikiBlock) => {
     case 'quote':
       return block.text
     case 'figure':
-      return `${block.asset || 'no image'} · ${block.align}`
+      return [block.asset || 'no image', block.align, block.mobileAsset && 'mobile image', block.share && 'share'].filter(Boolean).join(' · ')
     case 'gallery':
       return `${block.assets.length} images · ${block.layout}`
     case 'cards':

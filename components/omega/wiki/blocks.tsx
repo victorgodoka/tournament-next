@@ -1,10 +1,11 @@
-import Image from 'next/image'
+import Image, { getImageProps } from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { CardImage } from '@omega/card-art'
 import { CARD_ART_URL } from '@utils/const'
 import { faqKey, imageSource, type CalloutTone, type CardsAlign, type DocHtml, type FigureAlign, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { Lightbox } from './lightbox'
+import { ShareButtons } from './share-buttons'
 import { Video } from './video'
 
 /** Floats sit beside the text that follows; everything wider clears them first. */
@@ -34,9 +35,34 @@ const Caption =({ children, credit }: { children?: React.ReactNode; credit?: str
 /** Nodes from `renderDocHtml`: parsed, classed and sanitized before they get here. */
 const Markdown = ({ html, className }: { html?: React.ReactNode; className?: string }) => <div className={className}>{html}</div>
 
-type BlockProps = { block: WikiBlock; assets: Record<string, WikiAsset>; html: DocHtml }
+const FIGURE_IMAGE = 'h-auto w-full border border-line'
 
-const Block = ({ block, assets, html }: BlockProps) => {
+/** A `<picture>` when there is a mobile image: the browser fetches one of the two, never both. */
+const FigureImage = ({ asset, mobile, wide }: { asset: WikiAsset; mobile?: WikiAsset; wide: boolean }) => {
+  const image = {
+    ...imageSource(asset, wide ? 1600 : 640),
+    width: asset.width,
+    height: asset.height,
+    sizes: wide ? '(min-width: 1024px) 860px, 100vw' : '(min-width: 640px) 300px, 100vw',
+    className: FIGURE_IMAGE,
+  }
+  if (!mobile) return <Image {...image} alt={asset.alt} />
+  const { props: small } = getImageProps({ ...imageSource(mobile, 640), alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
+  return (
+    <picture>
+      {/* The site's `sm` breakpoint. Width and height let the browser reserve the mobile image's own shape. */}
+      <source media="(max-width: 639px)" srcSet={small.srcSet ?? small.src} width={mobile.width} height={mobile.height} />
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- `alt` is in the props. */}
+      <img {...getImageProps({ ...image, alt: asset.alt }).props} />
+    </picture>
+  )
+}
+
+type Share = { url: string; title: string }
+
+type BlockProps = { block: WikiBlock; assets: Record<string, WikiAsset>; html: DocHtml; share?: Share }
+
+const Block = ({ block, assets, html, share }: BlockProps) => {
   switch (block.type) {
     case 'text':
       return <Markdown html={html[block.id]} className="mb-4" />
@@ -61,16 +87,15 @@ const Block = ({ block, assets, html }: BlockProps) => {
     case 'figure': {
       const asset = assets[block.asset]
       if (!asset) return null
+      const anchor = `figure-${block.id}`
       return (
-        <figure className={ALIGN[block.align]}>
-          <Image
-            {...imageSource(asset, block.align === 'wide' ? 1600 : 640)}
-            alt={asset.alt}
-            width={asset.width}
-            height={asset.height}
-            sizes={block.align === 'wide' ? '(min-width: 1024px) 860px, 100vw' : '(min-width: 640px) 300px, 100vw'}
-            className="h-auto w-full border border-line"
-          />
+        <figure id={block.share ? anchor : undefined} className={twMerge(ALIGN[block.align], 'scroll-mt-24')}>
+          {block.share && share ? (
+            <div className="mb-2 flex justify-end">
+              <ShareButtons url={`${share.url}#${anchor}`} title={block.caption || share.title} />
+            </div>
+          ) : null}
+          <FigureImage asset={asset} mobile={block.mobileAsset ? assets[block.mobileAsset] : undefined} wide={block.align === 'wide'} />
           <Caption credit={asset.credit}>{block.caption}</Caption>
         </figure>
       )
@@ -173,11 +198,12 @@ const Block = ({ block, assets, html }: BlockProps) => {
 /**
  * The article flow. `flow-root` keeps floated figures inside it. `html` comes from `renderDocHtml(doc)`.
  * Synchronous and client-safe, so the editor preview renders through this exact component.
+ * `shareUrl`: the article's address, which a figure's share buttons point at. Without it they don't show.
  */
-export const WikiBlocks = ({ doc, html, className }: { doc: WikiDoc; html: DocHtml; className?: string }) => (
+export const WikiBlocks = ({ doc, html, className, shareUrl }: { doc: WikiDoc; html: DocHtml; className?: string; shareUrl?: string }) => (
   <div className={twMerge('flow-root', className)}>
     {doc.blocks.map((block) => (
-      <Block key={block.id} block={block} assets={doc.assets} html={html} />
+      <Block key={block.id} block={block} assets={doc.assets} html={html} share={shareUrl ? { url: shareUrl, title: doc.title } : undefined} />
     ))}
   </div>
 )

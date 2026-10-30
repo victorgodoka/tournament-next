@@ -144,7 +144,20 @@ export const EXAMPLE_DOC: WikiDoc = {
       assets: ['hero', 'screen', 'cover'],
       caption: 'Strip — a swipeable row, for screenshots and step-by-step sequences.',
     },
-    { id: 'b20', type: 'figure', asset: 'screen', align: 'wide', caption: 'Wide figure — spans the whole column and clears any float above it.' },
+    {
+      id: 'b20',
+      type: 'figure',
+      asset: 'screen',
+      mobileAsset: 'card-63166095',
+      share: true,
+      align: 'wide',
+      caption: 'Wide figure — spans the whole column and clears any float above it. On a phone it swaps to its mobile image; the buttons above it link straight here.',
+    },
+    {
+      id: 'b20-color',
+      type: 'text',
+      md: 'Text takes any hex colour, bold and links included: [+1.2]{#4fdc8c} and **[−0.8]{#ff8594}**, or [a **bold** word and a [link](/wiki)]{#efd17e}.\n\n| Deck | Change |\n|---|---:|\n| **Sky Striker** | **[−1.0]{#ff8594}** |\n| **Radiant Typhoon** | **[+0.8]{#4fdc8c}** |',
+    },
     {
       id: 'b21',
       type: 'callout',
