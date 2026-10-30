@@ -57,6 +57,17 @@ export const RAIL_LEFT_AD_OPTIONS = { ...RAIL, rail: 'left' } as const satisfies
 export const RAIL_RIGHT_AD_OPTIONS = { ...RAIL, rail: 'right' } as const satisfies NitroRailAdOptions
 
 /**
+ * Signed in, the messenger dock's 52px bar sits in this rail's column, and Nitro's rails stack over
+ * everything of ours: a rail on the bar makes it unclickable. Top-aligned the rail ends 700px down at
+ * most (100 + 600), so from 752px of height the two never touch. Shorter screens go without.
+ */
+export const RAIL_RIGHT_DOCK_AD_OPTIONS = {
+  ...RAIL_RIGHT_AD_OPTIONS,
+  railVerticalAlign: 'top',
+  mediaQuery: '(min-width: 1366px) and (min-height: 752px)',
+} as const satisfies NitroRailAdOptions
+
+/**
  * The body width from which a 300px rail, 10px off the edge, clears 1280px of content. Narrower, a
  * page whose wrapper is allowlisted (`.oh-space`) would get one over its content: 160x600 only.
  */
