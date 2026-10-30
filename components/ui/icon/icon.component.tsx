@@ -3,6 +3,7 @@ import { twMerge } from 'tailwind-merge'
 /** Solid 24px stand-ins for the client's white icon set. Swap in the exported glyphs under the same names. */
 const PATHS = {
   close: 'M5.3 3.9 12 10.6l6.7-6.7 1.4 1.4-6.7 6.7 6.7 6.7-1.4 1.4-6.7-6.7-6.7 6.7-1.4-1.4 6.7-6.7-6.7-6.7z',
+  shuffle: 'M3 6h4.6l10 11H20v-3l4 4-4 4v-3h-3.3l-10-11H3zM3 18h4.6l2.6-2.9 1.4 1.5L8.4 20H3zM16.7 6H20V3l4 4-4 4V8h-2.4l-2.5 2.8-1.4-1.5z',
   plus: 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z',
   info: 'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1 8v7h2v-7zm0-4v2h2V6z',
   search: 'M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z',

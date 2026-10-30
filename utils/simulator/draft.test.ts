@@ -19,6 +19,9 @@ const actions: Action[] = [
   { t: 'activate', card: 7, targets: [9] },
   { t: 'move', card: 10, to: 'm1' },
   { t: 'endTurn' },
+  { t: 'lp', side: 'rival', delta: -1000 },
+  { t: 'phase', to: 'battle' },
+  { t: 'move', card: 1, to: 'm1', how: 'special' },
 ]
 const combo: SavedRef = { id: '0123456789abcdef', title: 'Snake-Eye line', revision: 3, saved: 'deadbeef' }
 const session: Session = { deck, name: 'Combo', actions, cursor: 9, start: 2, deckId: 'abcdefabcdefabcd', combo, counterTypes: [] }
