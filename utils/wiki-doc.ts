@@ -270,9 +270,13 @@ export const toAnchor = (text: string) =>
 /** Table of contents, straight from the heading blocks. */
 export const outline = (doc: WikiDoc) => doc.blocks.flatMap((block) => (block.type === 'heading' ? [block] : []))
 
-/** Where a wiki image may live: site paths, card arts, and the wiki's own Cloudinary folder. The server refuses anything else. */
+/**
+ * Where a wiki image may live: files in `public/`, card arts, and the wiki's own Cloudinary folder. The server refuses
+ * anything else. A route of this site is not a file: the image optimiser would run it for readers, and
+ * `/statistics/infographic/*` takes ~33 s on production, in the process that serves the site.
+ */
 const ALLOWED_SRC = [
-  /^\/(?!\/)/,
+  /^\/(?!\/)[^?#]*\.(?:png|jpe?g|webp|avif|gif)$/i,
   /^https:\/\/ygopro\.online\/assets\/card-arts\//,
   /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/wiki_assets\//,
 ]
