@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
 import { createTranslator } from 'next-intl'
 import type { CSSProperties, ReactNode } from 'react'
+import sharp from 'sharp'
 import { CARD_ART_URL, CARD_IMAGE_URL } from '@utils/const'
 import { SITE_URL } from '@utils/config'
 import { LOCALES, DEFAULT_LOCALE } from '@i18n/request'
@@ -58,12 +59,17 @@ export const row: CSSProperties = { display: 'flex', flexDirection: 'row', align
 export const col: CSSProperties = { display: 'flex', flexDirection: 'column' }
 export const mono: CSSProperties = { fontFamily: F.mono, letterSpacing: 2, textTransform: 'uppercase' }
 
-export const toDataUri = async (url: string): Promise<string | null> => {
+/** The largest art any infographic draws. Every 624 px original goes into the SVG whole otherwise: a 50-deck board peaked at 300 MB instead of 150. */
+const ART_WIDTH = 320
+
+export const toDataUri = async (url: string, width?: number): Promise<string | null> => {
   try {
     // A day in the data cache: art never changes, and the origin takes seconds per file.
     const res = await fetch(url, { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(8000) })
     if (!res.ok) return null
-    return `data:${res.headers.get('content-type') ?? 'image/jpeg'};base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`
+    const file = Buffer.from(await res.arrayBuffer())
+    if (width) return `data:image/jpeg;base64,${(await sharp(file).resize({ width, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer()).toString('base64')}`
+    return `data:${res.headers.get('content-type') ?? 'image/jpeg'};base64,${file.toString('base64')}`
   } catch {
     return null
   }
@@ -72,7 +78,7 @@ export const toDataUri = async (url: string): Promise<string | null> => {
 /** Card art (`'art'`) or the full card (`'card'`) as data URIs, fetched in parallel. A miss is left out, never a failed render. */
 export const loadImages = async (ids: (number | null | undefined)[], kind: 'art' | 'card' = 'art') => {
   const unique = [...new Set(ids.filter((id): id is number => id != null))]
-  const uris = await Promise.all(unique.map((id) => toDataUri(kind === 'art' ? CARD_ART_URL(id) : CARD_IMAGE_URL(id))))
+  const uris = await Promise.all(unique.map((id) => toDataUri(kind === 'art' ? CARD_ART_URL(id) : CARD_IMAGE_URL(id), ART_WIDTH)))
   return new Map(unique.flatMap((id, i) => (uris[i] ? [[id, uris[i]] as const] : [])))
 }
 
@@ -291,5 +297,6 @@ export const render = async ({ size, eyebrow, aside, title, subtitle, chips = []
     { width, height, fonts: faces.length ? faces : undefined },
   )
   image.headers.set('cache-control', cache)
-  return image
+  // `ImageResponse` draws behind its stream: waited for here, or `oneAtATime` lets go before the render starts.
+  return new Response(await image.arrayBuffer(), { headers: image.headers })
 }

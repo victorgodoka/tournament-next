@@ -7,6 +7,7 @@
 
 import { notFound } from 'next/navigation'
 import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMode, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
+import { oneAtATime } from '@utils/one-at-a-time'
 import { deckFaces, powerRanked, type PowerDeck } from '@utils/power-tier'
 import type { RankedLadderId } from '@utils/types'
 import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
@@ -722,7 +723,11 @@ const BODY: Record<Section, (ctx: Ctx, tm: T) => Promise<React.ReactNode>> = {
   'meta-report': metaReport,
 }
 
-export const GET = async (request: Request, { params }: { params: Promise<{ section: string }> }) => {
+type Route = { params: Promise<{ section: string }> }
+
+export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route))
+
+const draw = async (request: Request, { params }: Route) => {
   const { section } = await params
   if (!(SECTIONS as readonly string[]).includes(section)) notFound()
   const q = new URL(request.url).searchParams

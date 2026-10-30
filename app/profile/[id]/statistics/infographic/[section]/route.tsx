@@ -6,6 +6,7 @@
 
 import { notFound } from 'next/navigation'
 import { archKey, getPlayerStatistics, type PlayerStatisticsData, type Tally3 } from '@utils/statistics'
+import { oneAtATime } from '@utils/one-at-a-time'
 import { getProfile } from '@utils/profile'
 import { getPlayerTournamentStats } from '@utils/tournaments'
 import type { Profile, RankedLadderId } from '@utils/types'
@@ -227,7 +228,11 @@ const tournaments = async (profile: Owner, id: string, cookie: string | null, fo
   )
 }
 
-export const GET = async (request: Request, { params }: { params: Promise<{ id: string; section: string }> }) => {
+type Route = { params: Promise<{ id: string; section: string }> }
+
+export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route))
+
+const draw = async (request: Request, { params }: Route) => {
   const { id, section } = await params
   if (!(SECTIONS as readonly string[]).includes(section)) notFound()
   const cookie = request.headers.get('cookie')
