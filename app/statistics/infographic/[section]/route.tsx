@@ -7,11 +7,14 @@
 
 import { notFound } from 'next/navigation'
 import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMode, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
+import { deckFaces, powerRanked } from '@utils/power-tier'
 import type { RankedLadderId } from '@utils/types'
 import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
-const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'archetype-analysis', 'comparator', 'cards', 'deep-dive'] as const
+const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'archetype-analysis', 'comparator', 'cards', 'deep-dive', 'tier-list', 'meta-report'] as const
 type Section = (typeof SECTIONS)[number]
+/** These two read every tiered deck: the endpoint's default 30 rows stop before Tier 4. */
+const WHOLE_META: readonly Section[] = ['tier-list', 'meta-report']
 
 type T = (key: string, values?: Record<string, string | number>) => string
 const MODES: readonly DeepDiveMode[] = ['general', 'pure', 'combined']
@@ -574,6 +577,123 @@ const cards = async ({ data, size, t }: Ctx) => {
   )
 }
 
+const TIERS = [1, 2, 3, 4] as const
+const ROW_WIDTH = { wide: 1634, tall: 810 }
+/** Art side by tier, and how many lines of tiles a tier may take. */
+const TILE = { wide: { 1: 130, 2: 114, 3: 100, 4: 90 }, tall: { 1: 176, 2: 146, 3: 146, 4: 146 } } as const
+const LINES = { wide: 1, tall: 2 } as const
+const TILE_GAP = 10
+
+/** A deck on the board: its art, name and win rate. */
+const Tile = ({ a, src, side, t }: { a: StatArchetype; src?: string; side: number; t: T }) => (
+  <div style={{ ...col, width: side, gap: 5, flexShrink: 0 }}>
+    <Art src={src} size={side} />
+    {/* `block`, not flex: Satori only draws the ellipsis on a block. */}
+    <div style={{ display: 'block', fontSize: 14, lineHeight: 1.1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a, t)}</div>
+    <div style={{ display: 'flex', ...mono, fontSize: 13, lineHeight: 1, letterSpacing: 1, color: wrColor(a.winRate) }}>{pct(a.winRate)}</div>
+  </div>
+)
+
+const tierList = async ({ data, size, t }: Ctx) => {
+  const ranked = powerRanked(data.archetypes)
+  const rows = TIERS.flatMap((tier) => {
+    const decks = ranked.filter((a) => a.tier === tier)
+    if (!decks.length) return []
+    const side = TILE[size][tier]
+    const slots = Math.floor((ROW_WIDTH[size] + TILE_GAP) / (side + TILE_GAP)) * LINES[size]
+    const fits = decks.length <= slots
+    return [{ tier, decks, side, shown: fits ? decks : decks.slice(0, slots - 1), share: decks.reduce((sum, a) => sum + a.metaShare, 0) }]
+  })
+  const faces = deckFaces(rows.flatMap((r) => r.shown))
+  const arts = await loadImages([...faces.values()].map((face) => face.id))
+  return (
+    <div style={{ ...col, flex: 1, justifyContent: 'space-between', gap: 8 }}>
+      {rows.map(({ tier, decks, side, shown, share }) => (
+        <div key={tier} style={{ ...row, alignItems: 'stretch', gap: 14 }}>
+          <div style={{ ...col, width: 128, flexShrink: 0, justifyContent: 'center', gap: 4, padding: '0 16px', background: C.surface, borderLeft: `6px solid ${C.tier[tier]}` }}>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 58, lineHeight: 1, color: C.tier[tier] }}>{`T${tier}`}</div>
+            <Label size={13}>{pct(share)}</Label>
+          </div>
+          <div style={{ ...row, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, gap: TILE_GAP }}>
+            {shown.map((a) => <Tile key={archKey(a.archetype)} a={a} src={arts.get(faces.get(archKey(a.archetype))?.id ?? -1)} side={side} t={t} />)}
+            {shown.length < decks.length ? (
+              <div style={{ ...col, width: side, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
+                <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
+                <Label size={12}>{t('more')}</Label>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ))}
+      <Label size={14}>{t('tierListNote')}</Label>
+    </div>
+  )
+}
+
+const points = (growth: number) => `${growth >= 0 ? '+' : '−'}${Math.abs(growth * 100).toFixed(1)}`
+
+const MoverRow = ({ a, src, t }: { a: StatArchetype; src?: string; t: T }) => (
+  <div style={{ ...row, gap: 16 }}>
+    <Art src={src} size={64} />
+    <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
+      <div style={{ display: 'block', fontSize: 21, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a, t)}</div>
+      <div style={{ ...row, gap: 12 }}>
+        {a.tier ? <Label size={13} color={C.tier[a.tier]} weight={700}>{`T${a.tier}`}</Label> : null}
+        <Label size={13}>{t('winRateShort', { rate: pct(a.winRate) })}</Label>
+      </div>
+    </div>
+    <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1, color: (a.growth ?? 0) >= 0 ? C.win : C.loss }}>{points(a.growth ?? 0)}</div>
+  </div>
+)
+
+const metaReport = async ({ data, size, t }: Ctx) => {
+  const wide = size === 'wide'
+  const listed = powerRanked(data.archetypes).filter((a) => a.growth != null)
+  const rising = listed.filter((a) => a.growth! > 0).sort((a, b) => b.growth! - a.growth!).slice(0, 5)
+  const falling = listed.filter((a) => a.growth! < 0).sort((a, b) => a.growth! - b.growth!).slice(0, 5)
+  const hero = rising[0]
+  const arts = await loadImages([...rising, ...falling].map((a) => a.face?.id))
+  // The server's growth window: half the season, at most 7 days.
+  const days = Math.min(7, Math.max(1, Math.floor(data.syncedDays.count / 2)))
+  const list = (n: string, title: string, decks: StatArchetype[]) => (
+    <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
+      <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
+        {decks.length ? decks.map((a) => <MoverRow key={archKey(a.archetype)} a={a} src={art(arts, a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}
+      </div>
+    </Panel>
+  )
+  return (
+    <div style={{ ...col, flex: 1, gap: 16 }}>
+      <div style={{ ...(wide ? row : col), flex: 1, alignItems: 'stretch', gap: 20 }}>
+        {hero ? (
+          <Panel n="01" title={t('fastestRiser')} style={wide ? { width: 460 } : undefined}>
+            <div style={{ ...(wide ? col : row), alignItems: 'stretch', gap: 18 }}>
+              <Art src={art(arts, hero)} size={wide ? 280 : 260} edge={C.gold} />
+              {/* A column inside a column must not take `flex: 1`: its basis of 0 collapses it over the art. */}
+              <div style={{ ...col, ...(wide ? {} : { flex: 1 }), gap: 14 }}>
+                <div style={{ display: 'flex', fontFamily: F.display, fontSize: 40, lineHeight: 1.1, textTransform: 'uppercase' }}>{nameOf(hero, t)}</div>
+                <div style={{ ...row, alignItems: 'flex-start' }}>
+                  <div style={{ ...col, width: '50%', gap: 6 }}>
+                    <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: C.win }}>{points(hero.growth!)}</div>
+                    <Label size={13}>{t('change')}</Label>
+                  </div>
+                  <div style={{ ...col, width: '50%', gap: 6 }}>
+                    <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: wrColor(hero.winRate) }}>{pct(hero.winRate)}</div>
+                    <Label size={13}>{t('winRate')}</Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Panel>
+        ) : null}
+        {list('02', t('rising'), rising)}
+        {list('03', t('falling'), falling)}
+      </div>
+      <Label size={14}>{t('moversNote', { days })}</Label>
+    </div>
+  )
+}
+
 const BODY: Record<Section, (ctx: Ctx, tm: T) => Promise<React.ReactNode>> = {
   overview,
   trends,
@@ -583,6 +703,8 @@ const BODY: Record<Section, (ctx: Ctx, tm: T) => Promise<React.ReactNode>> = {
   comparator,
   cards,
   'deep-dive': (ctx) => archetype(ctx, true),
+  'tier-list': tierList,
+  'meta-report': metaReport,
 }
 
 export const GET = async (request: Request, { params }: { params: Promise<{ section: string }> }) => {
@@ -590,7 +712,7 @@ export const GET = async (request: Request, { params }: { params: Promise<{ sect
   if (!(SECTIONS as readonly string[]).includes(section)) notFound()
   const q = new URL(request.url).searchParams
   const ladder: RankedLadderId = q.get('ladder') === 'genesys' ? 'genesys' : 'tcg'
-  const result = await getStatistics({ ladder, season: q.get('season') || undefined })
+  const result = await getStatistics({ ladder, season: q.get('season') || undefined, archetypes: WHOLE_META.includes(section as Section) ? 100 : undefined })
   if (!result.ok) return new Response(null, { status: result.status === 404 ? 404 : 502 })
   const { data } = result
   const size = sizeOf(q)
@@ -605,7 +727,12 @@ export const GET = async (request: Request, { params }: { params: Promise<{ sect
     aside: day ? t('asOf', { date: day }) : undefined,
     title: t(`sections.${section}`),
     subtitle: data.season.ladder === 'genesys' ? 'Genesys' : 'TCG',
-    chips: [data.season.label, t('gamesCount', { count: num(data.totals.games, locale) }), t('playersCount', { count: num(data.totals.players, locale) })],
+    // `totals.games` counts each duel twice: the two weekly images go out with articles that quote matches.
+    chips: [
+      data.season.label,
+      WHOLE_META.includes(section as Section) ? t('matchesCount', { count: num(data.totals.matches, locale) }) : t('gamesCount', { count: num(data.totals.games, locale) }),
+      t('playersCount', { count: num(data.totals.players, locale) }),
+    ],
     footer: t('footer', { days: data.syncedDays.count }),
     body,
     // The statistics endpoint's own 5 minutes.

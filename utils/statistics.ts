@@ -204,11 +204,13 @@ export type StatisticsResult = { ok: true; data: Statistics } | { ok: false; sta
  * `season` (a code) wins over `ladder` server-side, so only one is sent. Cached 5 minutes like the
  * endpoint; a network failure comes back as status 0.
  */
-export const getStatistics = async ({ ladder, season, ranking }: { ladder: RankedLadderId; season?: string; ranking?: RankingMode }): Promise<StatisticsResult> => {
+export const getStatistics = async ({ ladder, season, ranking, archetypes }: { ladder: RankedLadderId; season?: string; ranking?: RankingMode; archetypes?: number }): Promise<StatisticsResult> => {
   const params = new URLSearchParams(season ? { season } : { ladder })
   if (ranking) params.set('ranking', ranking)
+  if (archetypes) params.set('archetypes', String(archetypes))
   try {
-    const res = await fetch(`${API_URL}/statistics?${params}`, { next: { revalidate: 300 } })
+    // A long list runs to ~6 MB, past the 2 MB the data cache takes.
+    const res = await fetch(`${API_URL}/statistics?${params}`, archetypes ? { cache: 'no-store' } : { next: { revalidate: 300 } })
     return res.ok ? { ok: true, data: (await res.json()) as Statistics } : { ok: false, status: res.status }
   } catch (error) {
     console.error(error)
