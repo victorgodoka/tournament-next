@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Bot guard for `/profile/*`. Every profile view is an SSR call to the API's
- * heaviest read (~8 Postgres queries), and each profile links its opponents, so a
+ * Bot guard for `/profile/*` and `/wiki/card/*`. Every profile view is an SSR call to the
+ * API's heaviest read (~8 Postgres queries), and each profile links its opponents, so a
  * crawler walks them forever. On 2026-10-26 one did and drained the API's pool.
  * The API only sees this container's IP, so this is the last place that knows the
  * visitor.
+ *
+ * Card pages only turn scrapers away. A search engine reads many of them from one
+ * address, so the rate limit would answer it with 429s.
  *
  * Trusts `cf-connecting-ip`: only valid while the container is reachable through
  * Cloudflare alone.
@@ -44,7 +47,7 @@ export function proxy(request: NextRequest) {
     console.warn(JSON.stringify({ event: 'BOT_BLOCKED', reason: 'agent', ip, agent, path: request.nextUrl.pathname }))
     return new NextResponse(null, { status: 403 })
   }
-  if (ip && !allow(ip)) {
+  if (ip && request.nextUrl.pathname.startsWith('/profile') && !allow(ip)) {
     console.warn(JSON.stringify({ event: 'BOT_BLOCKED', reason: 'rate', ip, agent, path: request.nextUrl.pathname }))
     return new NextResponse(null, { status: 429, headers: { 'retry-after': String(WINDOW_MS / 1000) } })
   }
@@ -54,9 +57,17 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Prefetches of the opponents' links don't reach the API (they stop at the
   // loading boundary) and would eat a visitor's budget: skip them.
+  // Literal twice over: Next reads this object statically at build.
   matcher: [
     {
       source: '/profile/:path*',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+    {
+      source: '/wiki/card/:path*',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

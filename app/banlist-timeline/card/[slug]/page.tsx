@@ -143,7 +143,7 @@ const CardBanlist = ({ card, current }: { card: number; current: Banlist }) => {
           <div className="flex flex-col gap-2">
             <Breadcrumbs items={crumbs} className="pt-8" />
             <PageHeader eyebrow={t('eyebrow')} title={name} lead={t('card.lead', { card: name, lists: BANLISTS.length })} />
-            <Link href={wikiPath(card)} target="_blank" rel="noopener" className={twMerge(buttonClasses({ size: 'sm' }), 'self-start')}>
+            <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className={twMerge(buttonClasses({ size: 'sm' }), 'self-start')}>
               {t('history.wiki')} <Icon name="right" size={14} />
             </Link>
           </div>

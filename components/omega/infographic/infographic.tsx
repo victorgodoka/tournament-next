@@ -82,6 +82,9 @@ export const loadImages = async (ids: (number | null | undefined)[], kind: 'art'
   return new Map(unique.flatMap((id, i) => (uris[i] ? [[id, uris[i]] as const] : [])))
 }
 
+/** The answer when the render queue is full: the download buttons show it as a failed try. */
+export const busy = () => new Response(null, { status: 503, headers: { 'retry-after': '60' } })
+
 let mark: Promise<string | null> | null = null
 const markUri = () =>
   (mark ??= readFile(join(process.cwd(), 'public', 'omega-mark.png'))

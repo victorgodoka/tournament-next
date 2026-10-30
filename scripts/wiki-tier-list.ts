@@ -3,21 +3,24 @@
  * to paste into the editor's "Load a document":
  *
  * - `yu-gi-oh-tcg-tier-list` and `yu-gi-oh-genesys-tier-list`: one fixed address each, replaced in place every
- *   week, so links and ranking add up on one page. Their images are drawn live by the infographic route.
+ *   week, so links and ranking add up on one page.
  * - `yu-gi-oh-meta-report-{date}`: a new article each week with only what changed on both ladders, under the
- *   TCG list as its hub. Its images are saved to public/wiki-images, because a dated report must keep its numbers.
+ *   TCG list as its hub.
+ *
+ * All their images are saved to public/wiki-images. An article never embeds the infographic route: a render takes
+ * ~33 s on production, in the process that serves the site, and the wiki refuses it.
  *
  * Every number and every claim in the copy comes from the report, so a week where the leader or the tiers
  * change can't print something false. Refuses to write a doc the wiki would reject, and lists what the
  * editor's SEO panel would flag. Each run also saves a snapshot, which next week's report compares against:
- * commit it, and the report's images with it. A snapshot from another season is ignored, since tiers restart
- * with the season.
+ * commit it, and the images with it, and publish after they deploy. A snapshot from another season is ignored,
+ * since tiers restart with the season.
  *
  *   npx tsx --tsconfig tsconfig.json scripts/wiki-tier-list.ts [YYYY-MM-DD]
  *
- * The date defaults to today (UTC). WIKI_IMAGE_BASE=http://localhost:5173 renders the report's images from a
- * dev server, for a change to the images that isn't deployed yet. Copy that reads like a judgment stays out of
- * here: add it by hand in the editor.
+ * The date defaults to today (UTC). WIKI_IMAGE_BASE=http://localhost:5173 renders the images from a dev server,
+ * which spares production eight renders in a row and also covers a change to the images that isn't deployed yet.
+ * Copy that reads like a judgment stays out of here: add it by hand in the editor.
  *
  * Publish in this order: Genesys, TCG, report. The server wants `hub` and `related` to exist, and each names the one before it.
  */
@@ -46,6 +49,7 @@ const COVER = {
 const PAGES = 'docs/wiki-pages'
 const SNAPSHOTS = `${PAGES}/snapshots`
 const REPORT_IMAGES = '/wiki-images/meta-report'
+const BOARD_IMAGES = '/wiki-images/tier-list'
 const IMAGE_SIZES = { wide: { width: 1920, height: 1080 }, tall: { width: 1080, height: 1920 } } as const
 const MIN_MATCHUP_GAMES = { TCG: 300, Genesys: 80 }
 /** How far back a report's meta events reach, in season days. */
@@ -121,18 +125,17 @@ const imagePair = (id: string, src: (size: Size) => string, alt: string): ImageP
 }
 
 /**
- * The tier board, drawn live by the statistics infographic route: this page changes every week, so its image can too.
- * `v` is ignored by the route: the image optimizer keeps a variant for 31 days and Discord and X cache by
- * URL, so the same address would show an old board all month.
+ * The tier board. The date in the name is what shows the new one: the image optimizer keeps a variant for 31 days and
+ * Discord and X cache by URL, so the same address would show an old board all month.
  */
 const boardImages = (ladder: Ladder, issue: string) =>
   imagePair(
     `tier-board-${ladder.prefix}`,
-    (size) => `/statistics/infographic/tier-list?ladder=${ladder.prefix}&size=${size}&v=${issue}`,
+    (size) => `${BOARD_IMAGES}/${issue}-${ladder.prefix}-${size}.jpg`,
     `${ladder.label} tier list board with ${and(tier(ladder, 1).map(name))} in Tier 1, showing each deck's win rate`,
   )
 
-/** Files, not the live route: a dated report keeps the numbers of its week. */
+/** A dated report keeps the numbers of its week. */
 const reportImages = (ladder: Ladder, issue: string) =>
   imagePair(
     `report-${ladder.prefix}`,
@@ -597,17 +600,20 @@ const load = async (label: Ladder['label'], prefix: Ladder['prefix']): Promise<L
   return { label, prefix, stats, decks: powerRanked(stats.archetypes) }
 }
 
-/** JPG: the report's images stay in git forever, and at this quality they weigh a fifth of the PNG. */
-const saveReportImages = async (ladders: Ladder[], issue: string) => {
-  mkdirSync(`public${REPORT_IMAGES}`, { recursive: true })
-  for (const ladder of ladders) {
-    for (const size of Object.keys(IMAGE_SIZES) as Size[]) {
-      const url = `${IMAGE_BASE}/statistics/infographic/meta-report?ladder=${ladder.prefix}&size=${size}`
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`GET ${url} failed with ${res.status}. Not deployed yet? WIKI_IMAGE_BASE points at a dev server.`)
-      await sharp(Buffer.from(await res.arrayBuffer()))
-        .jpeg({ quality: 88, mozjpeg: true })
-        .toFile(`public${reportImages(ladder, issue)[size].src}`)
+/** JPG: these images stay in git forever, and at this quality they weigh a fifth of the PNG. One at a time: the route's queue is short. */
+const saveImages = async (ladders: Ladder[], issue: string) => {
+  const sections = [['tier-list', BOARD_IMAGES, boardImages], ['meta-report', REPORT_IMAGES, reportImages]] as const
+  for (const [section, folder, images] of sections) {
+    mkdirSync(`public${folder}`, { recursive: true })
+    for (const ladder of ladders) {
+      for (const size of Object.keys(IMAGE_SIZES) as Size[]) {
+        const url = `${IMAGE_BASE}/statistics/infographic/${section}?ladder=${ladder.prefix}&size=${size}`
+        const res = await fetch(url)
+        if (!res.ok) throw new Error(`GET ${url} failed with ${res.status}. Not deployed yet? WIKI_IMAGE_BASE points at a dev server.`)
+        await sharp(Buffer.from(await res.arrayBuffer()))
+          .jpeg({ quality: 88, mozjpeg: true })
+          .toFile(`public${images(ladder, issue)[size].src}`)
+      }
     }
   }
 }
@@ -628,7 +634,7 @@ const main = async () => {
     const problems = validateDoc(doc)
     if (problems.length) throw new Error(`The wiki would refuse ${slug}:\n- ${problems.join('\n- ')}`)
   }
-  await saveReportImages([tcg, genesys], issue)
+  await saveImages([tcg, genesys], issue)
 
   for (const { slug, doc } of articles) {
     const path = `${PAGES}/${slug}.json`
@@ -641,10 +647,7 @@ const main = async () => {
   mkdirSync(SNAPSHOTS, { recursive: true })
   writeFileSync(`${SNAPSHOTS}/${issue}.json`, `${JSON.stringify(snapshotOf(issue, [tcg, genesys]), null, 2)}\n`)
 
-  console.log(`\nReport images saved to public${REPORT_IMAGES}: commit them before publishing. Images for the posts (size=tall for stories):`)
-  for (const section of ['tier-list', 'meta-report']) {
-    for (const ladder of ['tcg', 'genesys']) console.log(`${SITE}/statistics/infographic/${section}?ladder=${ladder}&size=wide`)
-  }
+  console.log(`\nImages saved to public${BOARD_IMAGES} and public${REPORT_IMAGES}: commit them and publish after they deploy. The posts use the same files.`)
 }
 
 main().catch((error) => {
