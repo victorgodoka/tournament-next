@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: BanlistRouteProps) {
   const label = format.dateTime(date, { month: 'long', year: 'numeric', timeZone: 'UTC' })
   return pageMetadata({
     title: t('listTitle', { label }),
-    path: banlistPath(list),
+    // Near-identical to /banlist while it is the current list: one URL for that query.
+    path: list.date === currentBanlist().date ? '/banlist' : banlistPath(list),
     description: t('listDescription', {
       label,
       start: format.dateTime(date, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),

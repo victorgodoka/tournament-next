@@ -128,7 +128,7 @@ export const HOME_NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Our Simulator", to: '#top' },
       { item: "Why Omega?", to: '#alternative' },
       { item: "Our Tournaments", to: '#tournaments' },
-      { item: "Different Rullings", to: '#rullings' },
+      { item: "Different Rulings", to: '#rulings' },
       { item: "Formats", to: '#formats' },
       { item: "Ranked", to: '#meta' },
       { item: "Our Tools", to: '#tools' },

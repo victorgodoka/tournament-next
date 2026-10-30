@@ -306,7 +306,7 @@ const SPLIT = {
 }
 
 const Rulings = () => (
-  <Band id="rullings">
+  <Band id="rulings">
     <Rail num="03">Yugioh TCG OCG rulings</Rail>
     <h2 className={twMerge(BAND_TITLE, "max-w-[18ch]")}>When two texts disagree, the card gets two scripts</h2>
     <p className="max-w-[72ch] text-[clamp(15px,1.4vw,18px)] leading-[1.6] text-ink-dim">

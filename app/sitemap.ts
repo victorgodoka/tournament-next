@@ -14,9 +14,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Where the old tournament.duelistsunite.org links now land.
     { url: `${SITE_URL}/leaderboard`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/tournaments`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/calendar`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${SITE_URL}/statistics`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/decks`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${SITE_URL}/deck-builder`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${SITE_URL}/simulator`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${SITE_URL}/banlist`, lastModified: currentBanlist().date, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/banlist-timeline`, lastModified: BANLISTS.at(-1)!.date, changeFrequency: 'weekly', priority: 0.8 },
-    ...BANLISTS.map((list) => ({
+    // The current list's dated page canonicalises to /banlist.
+    ...BANLISTS.filter((list) => list.date !== currentBanlist().date).map((list) => ({
       url: `${SITE_URL}${banlistPath(list)}`,
       lastModified: list.end ?? list.date,
       changeFrequency: list.end ? ('yearly' as const) : ('weekly' as const),
