@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom'
 import { cardsByIds } from '@utils/cards'
 import { getCombo, type SharedCombo } from '@utils/combos'
 import type { CardMap } from '@utils/deck/types'
-import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
+import { chainAt, destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { sessionOf } from '@utils/simulator/combo'
 import { fitCardWidth } from '@utils/simulator/fit'
 import { sessionReducer } from '@utils/simulator/session'
@@ -14,6 +14,7 @@ import { renderTimeline } from '@utils/simulator/timing'
 import type { Session } from '@utils/simulator/types'
 import { BoardView, FLIP_MS } from './board'
 import type { Speed } from './replay-bar'
+import { Room } from './room'
 import { useDrag } from './use-drag'
 
 /** How the recorder drives the frame: it awaits `ready`, then seeks to the replay's time on every frame it records. */
@@ -99,11 +100,11 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
   const video = useMemo(() => renderTimeline(opened.actions, opened.start, speed), [opened, speed])
 
   // Fitted before the first paint, so each image is asked for once, at the width it is drawn. The board's root fills the
-  // row, so its size is the span of its zones; nothing around it depends on the fonts (one line each, a fixed caption).
-  // The caption shares the room, under the board: the board gets the room less the caption and the gap above it.
+  // row, so its size is the span of the table and the hand; nothing around it depends on the fonts (one line each, a fixed
+  // caption). The caption shares the room, under the board: the board gets the room less the caption and the gap above it.
   useLayoutEffect(() => {
     const el = room.current!
-    const boxes = [...el.querySelectorAll('[data-zone]')].map((zone) => zone.getBoundingClientRect())
+    const boxes = [...el.querySelectorAll('[data-mat], [data-zone="hand"]')].map((part) => part.getBoundingClientRect())
     const bottom = Math.max(...boxes.map((b) => b.bottom))
     const measured = {
       width: Math.max(...boxes.map((b) => b.right)) - Math.min(...boxes.map((b) => b.left)),
@@ -148,6 +149,7 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
   const w = cardW ?? PROBE
   return (
     <div className="relative flex size-full flex-col gap-4 p-6">
+      <Room still />
       <header className="flex shrink-0 items-center justify-between gap-6">
         <div className="min-w-0">
           <h1 className="truncate text-ink display-3">{combo.title}</h1>
@@ -160,6 +162,8 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
             arrows are taken at the fitted size, never at the probe's. */}
         <BoardView
           key={cardW ?? 'probe'}
+          still
+          chain={chainAt(session.actions, session.cursor)}
           board={board}
           cards={cards}
           selected={null}

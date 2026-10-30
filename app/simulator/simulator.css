@@ -678,6 +678,16 @@
     --hand-w: calc(var(--card-w) * 1.02);
   }
 
+  /* In a page's flow: the table tilts in the room its width allows, and gives back the height the tilt saves. */
+  .sim-board:not([data-fill]) {
+    --card-w: min(108px, calc((100cqw - 56px) / 10.4));
+  }
+
+  .sim-board:not([data-fill]) .sim-tilt {
+    padding-block: calc(var(--card-w) * 0.5) calc(var(--card-w) * 0.7);
+    margin-block: calc(var(--card-h) * -0.34);
+  }
+
   .sim-board[data-fill] {
     container-type: size;
     height: 100%;
@@ -878,16 +888,17 @@
   }
 }
 
+/* What the recorder drives holds still: `seek` would restart a loop on every step. */
 @media (prefers-reduced-motion: no-preference) {
-  .sim-shard {
+  .sim-room:not([data-still]) .sim-shard {
     animation: sim-drift var(--t, 24s) ease-in-out var(--d, 0s) infinite alternate;
   }
 
-  .sim-trace-pulse {
+  .sim-room:not([data-still]) .sim-trace-pulse {
     animation: sim-run 7s linear var(--d, 0s) infinite;
   }
 
-  .sim-vein-pulse {
+  .sim-board:not([data-still]) .sim-vein-pulse {
     animation: sim-run 6s linear var(--d, 0s) infinite;
   }
 

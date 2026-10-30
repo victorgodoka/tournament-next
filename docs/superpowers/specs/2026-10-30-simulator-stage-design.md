@@ -50,10 +50,10 @@ Do `omega-hero.png` vem a linguagem de luz: veios de circuito com dobras chanfra
 - **Mesa.** Placa flutuante em `surface-100` com notch, grade de hairlines em `line`, aresta `line-strong` e face frontal dando espessura. Veios finos em SVG correm sob as zonas, do núcleo às bordas.
 - **Zonas.** Vidro `ground-soft` com aresta `line-mid` e notch. Espelhadas no lado do rival. O hover sobe um degrau de superfície e o alvo de drop ganha aresta `cyan`. Mantém os marks de GY, Banished, Pendulum e Field, e ganha o triângulo de monstro.
 - **Núcleo.** Hexágono no centro da fileira dos EMZ, com o turno em Anton e a fase em `signal`. Clique avança a fase.
-- **HUD.** Home e nome do deck no topo à esquerda. Sua placa de LP (`steel`) embaixo à esquerda, com a doca: Draw, Shuffle, Undo, Redo. Placa do rival (`surface-100`) no topo, à direita do palco.
+- **HUD.** Home e nome do deck no topo à esquerda; o nome é o botão que troca o deck. Sua placa de LP (`steel`) embaixo à esquerda. Doca ao lado do Deck, embaixo à direita: Draw, Shuffle, Undo, Redo. Placa do rival (`surface-100`) no topo, à direita do palco.
 - **Mão.** Plana, fora da mesa, em leque, cortada pela borda da tela. O hover levanta a carta e afasta as vizinhas. 5 versos do rival no topo, como cenário.
 - **Coluna direita, 340px.**
-  - Comandos: New Hand, Choose Hand, Deck, Save, More.
+  - Comandos: New Hand, Choose Hand, Save, More (Save as, My combos, Share, Video, Reset, Shortcuts).
   - `01 Card`, com arte, stats e texto.
   - `02 Duel log`, narrado e agrupado por turno, com clique para voltar ao passo e campo de legenda.
   - `03 Zones`, com Deck, Extra, GY e Banished com contagem, abrindo a pile.
@@ -100,7 +100,7 @@ Tudo em DOM e CSS 3D, sem dependência nova.
 ## Decisões tomadas
 
 - **MessengerDock.** Ele fica no `app/layout.tsx`, no canto inferior direito, em cima do End Turn. Some no `/simulator`.
-- **Celular (abaixo de `lg`).** Sem inclinação e sem a metade do rival. Fluxo com rolagem como hoje, histórico no drawer. Long-press continua.
+- **Celular (abaixo de `lg`).** Sem inclinação e sem a metade do rival. Fluxo com rolagem como hoje. O log fica na própria coluna, abaixo da mesa, sem drawer. Long-press continua.
 - **`/simulator/c/[id]`.** Mantém Header e anúncios, com a mesa nova numa caixa limitada e sem ambiente.
 - **Fases.** `initial` e `endTurn` deixam a fase em `main1`. Combos antigos abrem sem erro.
 - **Chain.** Derivada: `activate` consecutivos até o cursor formam a chain, sem estado novo.
@@ -108,6 +108,8 @@ Tudo em DOM e CSS 3D, sem dependência nova.
 - **Fora, por serem automáticos.** Chain Auto, lembrete de efeito contínuo e pause automático de resolução.
 
 ## Etapas
+
+A ordem real foi: palco, efeitos, servidor, LP e fases, interação, replay e vídeo. O menu depende do campo `how`, então o servidor veio antes dele.
 
 Worktree `tournament-next/.worktrees/simulator-stage`, branch `feat/simulator-stage` a partir de `main`, não de `feat/series-cover`. O spec aprovado vai para `docs/superpowers/specs/2026-10-30-simulator-stage-design.md`. Cada etapa fecha com commit, testes e revisão visual no navegador.
 

@@ -12,7 +12,7 @@ import { Panel } from '@ui/panel'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { getCombo, type SharedCombo } from '@utils/combos'
-import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
+import { chainAt, destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { comboSession, operateFrom, payloadOf, sessionOf } from '@utils/simulator/combo'
 import { draftStorage, readDraft, writeDraft } from '@utils/simulator/draft'
 import { sessionReducer } from '@utils/simulator/session'
@@ -224,6 +224,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             tags={session.cursor === session.actions.length}
             step={{ cursor: session.cursor, actions: session.actions }}
             droppedRef={droppedRef}
+            chain={chainAt(session.actions, session.cursor)}
             flipMs={FLIP_MS / Math.max(1, replay.speed)}
             onCard={show}
             onMenu={() => {}}

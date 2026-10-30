@@ -63,6 +63,8 @@ export type BoardViewProps = {
   /** The zones a card being brought into play can go to: the rest of the board steps back and each of these takes a click. */
   pick?: ZoneId[]
   onPick?(zone: ZoneId): void
+  /** No ambient motion: the recorder drives every animation by hand, and would restart what loops on each step. */
+  still?: boolean
 }
 
 /** `[zone, column, row]` on the 7 × 5 grid. Banished takes the EMZ row's last column, above the GY. */
@@ -431,6 +433,7 @@ export const BoardView = (p: BoardViewProps) => {
       ref={root}
       data-fill={p.fill || undefined}
       data-picking={p.pick ? '' : undefined}
+      data-still={p.still || undefined}
       style={p.cardW === undefined ? undefined : ({ '--card-w': `${p.cardW}px` } as React.CSSProperties)}
       className="sim-board"
     >

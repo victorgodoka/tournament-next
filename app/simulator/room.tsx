@@ -20,9 +20,9 @@ const SHARDS: [number, number, number, number, number, number][] = [
   [88, 36, 18, -70, 37, -20],
 ]
 
-/** Behind the table: deep space, the dot field, the hero's rays and the circuits. Nothing here takes a pointer. */
-export const Room = () => (
-  <div aria-hidden className="sim-room">
+/** Behind the table: deep space, the dot field, the hero's rays and the circuits. Nothing here takes a pointer. `still`: nothing drifts, for a frame the recorder drives. */
+export const Room = ({ still = false }: { still?: boolean }) => (
+  <div aria-hidden data-still={still || undefined} className="sim-room">
     <div className="sim-room-dots dots" />
     <div className="sim-room-art" />
     <svg className="sim-room-traces" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMin slice">

@@ -55,7 +55,7 @@ function layout(this: Element) {
     const hand = this.closest('[data-zone]')!.getAttribute('data-zone') === 'hand'
     return hand ? new DOMRect(0, 4 * w, w, w) : new DOMRect(w, w, w, w)
   }
-  if (this.hasAttribute('data-zone')) return new DOMRect(0, 0, 724, 640)
+  if (this.hasAttribute('data-zone') || this.hasAttribute('data-mat')) return new DOMRect(0, 0, 724, 640)
   return this.tagName === 'P' ? new DOMRect(0, 656, 1200, 48) : new DOMRect(0, 0, 1200, 624)
 }
 /** Whether `p` has settled by the time pending work has run. */
