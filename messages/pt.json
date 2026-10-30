@@ -1254,7 +1254,18 @@
       "more": "Mais"
     },
     "home": "Voltar ao site",
-    "life": { "you": "Você", "rival": "Rival" },
+    "life": {
+      "you": "Você",
+      "rival": "Rival",
+      "edit": "Mudar os Pontos de Vida: {side}",
+      "half": "Metade",
+      "amount": "Somar ou subtrair LP",
+      "apply": "Aplicar"
+    },
+    "phases": { "draw": "Compra", "standby": "Apoio", "main1": "Principal 1", "battle": "Batalha", "main2": "Principal 2", "end": "Final" },
+    "phaseNext": "{phase}: ir para a próxima fase",
+    "chain": { "title": "Corrente" },
+    "fx": { "normal": "Invocação-Normal", "special": "Invocação-Especial", "set": "Baixada" },
     "rail": {
       "label": "Carta, registro do duelo e zonas",
       "card": "Carta",
@@ -1458,10 +1469,15 @@
     "history": {
       "title": "Histórico",
       "start": "Início",
-      "move": "{card}: {from} → {to}",
-      "draw": "Comprou {n}",
+      "move": "{zone, select, gy {“{card}” foi enviada ao Cemitério} banished {“{card}” foi banida} hand {Você adicionou “{card}” à mão} deck {“{card}” voltou ao Deck} extra {“{card}” voltou ao Extra Deck} other {{card}: {from} → {to}}}",
+      "normal": "Você fez a Invocação-Normal de “{card}”",
+      "special": "Você fez a Invocação-Especial de “{card}” de {from}",
+      "set": "Você baixou “{card}”",
+      "lp": "{side, select, me {Seus LP} other {LP do rival}}: {delta}, agora {lp}",
+      "phase": "Fase: {phase}",
+      "draw": "Você comprou {n, plural, one {# carta} other {# cartas}}",
       "shuffle": "Embaralhou o deck",
-      "activate": "{n, plural, =0 {Ativou {card}} other {Ativou {card} → {targets}}}",
+      "activate": "{n, plural, =0 {Ativou “{card}”} other {Ativou “{card}” → {targets}}}",
       "flip": "{to, select, up {Virou {card} para cima} down {Virou {card} para baixo} atk {{card} em posição de ataque} other {{card} em posição de defesa}}",
       "negate": "{to, select, on {Negou {card}} other {{card} deixou de ser negada}}",
       "counter": "{kind} em {card}: {delta}",

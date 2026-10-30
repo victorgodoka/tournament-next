@@ -9,8 +9,8 @@ import { CardTile } from '@app/deck-builder/card-tile'
 import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot, isSlot, locate, stepCards } from '@utils/simulator/board'
-import type { Action, Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
-import { backFace, banner, burst, fly, lookOf, pileGain, pillar, poseOf, riffle, ripple, scan, shatter, sink, sizeOf, strike, sweep, type Flight, type Pose, type Stage } from './fx'
+import type { Action, Board, Card, MonsterSlot, Phase, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import { backFace, banner, burst, fly, label, lookOf, pileGain, pillar, poseOf, riffle, ripple, scan, shatter, sink, sizeOf, strike, sweep, type Flight, type Pose, type Stage } from './fx'
 import type { Drag } from './use-drag'
 
 /** The card that was activated and the cards it targets. */
@@ -56,6 +56,10 @@ export type BoardViewProps = {
   imageSizes?: string
   /** The board fills a box of known height, the stage's, its hand in a fan along the bottom edge; else it flows, the hand under it. */
   fill?: boolean
+  /** The core was pressed: the next phase. Without it the core only shows. */
+  onPhase?(): void
+  /** The chain on screen, card ids, the first link first: each card carries its link number. */
+  chain?: number[]
 }
 
 /** `[zone, column, row]` on the 7 × 5 grid. Banished takes the EMZ row's last column, above the GY. */
@@ -136,13 +140,17 @@ const Veins = () => (
   </svg>
 )
 
-/** The hexagon at the heart of the table: the turn, the phase under it. */
-const Core = ({ turn }: { turn: number }) => {
+/** The hexagon at the heart of the table: the turn, the phase under it. Pressing it moves on to the next phase. */
+const Core = ({ turn, phase, onPhase }: { turn: number; phase: Phase; onPhase?(): void }) => {
   const t = useTranslations('Simulator')
+  const label = t(`phases.${phase}`)
   return (
-    <div className="sim-core">
-      <span className="sim-core-turn text-ink dock-title">{t('turn', { n: turn })}</span>
-    </div>
+    <button type="button" disabled={!onPhase} aria-label={t('phaseNext', { phase: label })} title={onPhase ? t('phaseNext', { phase: label }) : undefined} onClick={onPhase} className="sim-core">
+      <span className="flex flex-col items-center gap-1">
+        <span className="sim-core-turn text-ink dock-title">{t('turn', { n: turn })}</span>
+        <span className="sim-core-phase text-cyan signal">{label}</span>
+      </span>
+    </button>
   )
 }
 
@@ -174,6 +182,13 @@ const Counters = ({ counters, plain }: { counters: Record<string, number>; plain
         {kind ? `${kind.slice(0, 3).toUpperCase()} ${n}` : n}
       </span>
     ))}
+  </span>
+)
+
+/** A card's place in the chain on screen, stamped on it. */
+const ChainLink = ({ n }: { n: number }) => (
+  <span aria-hidden className="sim-link sim-link-card">
+    {n}
   </span>
 )
 
@@ -275,6 +290,8 @@ export const BoardView = (p: BoardViewProps) => {
   /** The overlays cards carry for the step on screen. */
   const marks = useRef<Element[]>([])
   const turnWord = t('turn', { n: board.turn })
+  const shown = actions[cursor - 1]
+  const summonWord = shown?.t === 'move' && shown.how ? t(`fx.${shown.how}`) : ''
 
   // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
   // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
@@ -376,6 +393,14 @@ export const BoardView = (p: BoardViewProps) => {
     else if (played?.t === 'move') {
       if (isSlot(played.to)) ripple(stage, cell(played.to), touchdown(played.card))
       else pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
+      const card = el.querySelector<HTMLElement>(`[data-card="${played.card}"]`)
+      if (played.how && card) {
+        label(stage, pose(card), sizeOf(card), summonWord, touchdown(played.card))
+        if (played.how === 'special') {
+          pillar(stage, pose(card), sizeOf(card), touchdown(played.card))
+          burst(stage, pose(card), sizeOf(card), 'cyan', touchdown(played.card))
+        }
+      }
     } else if (played?.t === 'activate') {
       const on = host(played.card)
       if (on) scan(stage, on)
@@ -388,7 +413,7 @@ export const BoardView = (p: BoardViewProps) => {
       banner(stage, turnWord)
       sweep(stage, el)
     }
-  }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord])
+  }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord, summonWord])
 
   return (
     <div
@@ -425,7 +450,7 @@ export const BoardView = (p: BoardViewProps) => {
                 {p.destroyed?.from === zone ? <DestroyMark /> : null}
               </div>
             ))}
-            <Core turn={board.turn} />
+            <Core turn={board.turn} phase={board.phase} onPhase={p.onPhase} />
             <div ref={ground} aria-hidden className="sim-ground" />
           </div>
         </div>
@@ -497,6 +522,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   // Not in the hand: there the brackets of a draw would cover every card.
   const marked = p.marked.includes(id) && !p.board.zones.hand.includes(id)
   const locked = p.locked === id
+  const link = p.chain?.lastIndexOf(id) ?? -1
   const name = p.cards.get(card.code)?.name ?? String(card.code)
   return (
     <div className={twMerge('group relative', className)} onPointerEnter={() => p.onHover?.(id)} onPointerLeave={() => p.onHover?.(null)}>
@@ -538,6 +564,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
         {card.face === 'down' ? <Back sizes={p.imageSizes} /> : null}
         <ActivationMarks active={active} targeted={targeted} />
         {marked ? <StepMark /> : null}
+        {link >= 0 ? <ChainLink n={link + 1} /> : null}
       </div>
       {card.negated ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-crimson-lift')}>
@@ -601,6 +628,7 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
       {/* The card the step just put on top of the pile (a send to the GY, a banish). */}
       {top && p.marked.includes(top.id) ? <StepMark /> : null}
       {top && p.destroyed?.card === top.id ? <DestroyMark /> : null}
+      {top && p.chain?.includes(top.id) ? <ChainLink n={p.chain.lastIndexOf(top.id) + 1} /> : null}
       {top && p.tags && top.tag && !back ? <Tag text={top.tag} /> : null}
     </div>
   )

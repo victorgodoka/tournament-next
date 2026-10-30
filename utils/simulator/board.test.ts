@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
-import { apply, destroyedBy, initial, isMonsterSlot, isSlot, isValid, kindsIn, locate, shuffleAction, stepCards, timeline, validRun } from './board'
+import { apply, chainAt, destroyedBy, initial, isMonsterSlot, isSlot, isValid, kindsIn, locate, nextPhase, shuffleAction, stepCards, timeline, validRun } from './board'
 import type { Action, Board, Face, Pos, ZoneId } from './types'
 
 const deck: Deck = { main: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], extra: [201, 202, 203], side: [] }
@@ -232,6 +232,33 @@ describe('simulator board', () => {
     expect(isValid(b, activate(5, []))).toBe(true)
     rejects(b, activate(0, [13]))
     rejects(b, activate(0, [-1]))
+  })
+
+  it('Life Points start at 8000 on each side, move by the delta and stop at 0', () => {
+    expect(b0.lp).toEqual({ me: 8000, rival: 8000 })
+    expect(run({ t: 'lp', side: 'rival', delta: -1500 }).lp).toEqual({ me: 8000, rival: 6500 })
+    expect(run({ t: 'lp', side: 'me', delta: 500 }).lp.me).toBe(8500)
+    expect(run({ t: 'lp', side: 'me', delta: -9000 }).lp.me).toBe(0)
+    rejects(b0, { t: 'lp', side: 'me', delta: 0 })
+    rejects(b0, { t: 'lp', side: 'me', delta: 1.5 })
+    rejects(b0, { t: 'lp', side: 'me', delta: 1000000 })
+  })
+
+  it('the phase is set by hand, runs round, and a new turn opens in Main 1', () => {
+    expect(b0.phase).toBe('main1')
+    expect(run({ t: 'phase', to: 'battle' }).phase).toBe('battle')
+    expect(run({ t: 'phase', to: 'end' }, { t: 'endTurn' }).phase).toBe('main1')
+    expect(nextPhase('main1')).toBe('battle')
+    expect(nextPhase('end')).toBe('draw')
+  })
+
+  it('chainAt is the run of activations up to the step on screen, the first link first', () => {
+    const log: Action[] = [activate(1, []), draw(1), activate(2, []), activate(3, [2])]
+    expect(chainAt(log, 0)).toEqual([])
+    expect(chainAt(log, 1)).toEqual([1])
+    expect(chainAt(log, 2)).toEqual([])
+    expect(chainAt(log, 3)).toEqual([2])
+    expect(chainAt(log, 4)).toEqual([2, 3])
   })
 
   it('endTurn adds a turn', () => {

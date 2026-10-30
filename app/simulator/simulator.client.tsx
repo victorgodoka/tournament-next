@@ -11,7 +11,7 @@ import { RailHead } from '@ui/rail-head'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import type { SharedCombo } from '@utils/combos'
-import { destroyedBy, initial, isMonsterSlot, kindsIn, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
+import { chainAt, destroyedBy, initial, isMonsterSlot, kindsIn, nextPhase, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
 import { dropAction } from '@utils/simulator/drop'
@@ -24,7 +24,7 @@ import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
 import { History } from './history'
-import { LifePlate, PileCounts } from './hud'
+import { ChainPlate, LifePlate, PileCounts } from './hud'
 import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar } from './replay-bar'
@@ -38,8 +38,6 @@ import { VideoDialog } from './video-dialog'
 
 const DRAFT_DELAY_MS = 300
 const END_TURN: Action = { t: 'endTurn' }
-/** Until the Life Points are played by hand. */
-const START_LP = 8000
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -168,6 +166,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** The cards the step on screen played: the board marks them. */
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
   const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
+  /** The chain the steps on screen build. */
+  const chain = useMemo(() => chainAt(session.actions, session.cursor), [session.actions, session.cursor])
   /** The counter kinds the menu offers: those added by hand and those the log already uses. */
   const kinds = useMemo(() => [...new Set([...session.counterTypes, ...kindsIn(session.actions)])], [session.counterTypes, session.actions])
 
@@ -486,8 +486,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           ) : null}
         </div>
 
-        <LifePlate label={t('life.rival')} lp={START_LP} className="sim-life-rival" />
-        <LifePlate mine label={t('life.you')} lp={START_LP} className="sim-life-you" />
+        <LifePlate side="rival" lp={board.lp.rival} disabled={playing || targetMode} onChange={(delta) => perform([{ t: 'lp', side: 'rival', delta }])} className="sim-life-rival" />
+        <LifePlate side="me" lp={board.lp.me} disabled={playing || targetMode} onChange={(delta) => perform([{ t: 'lp', side: 'me', delta }])} className="sim-life-you" />
+        <ChainPlate names={chain.map(nameOf)} />
         <BoardView
           fill
           board={board}
@@ -500,7 +501,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           step={{ cursor, actions: session.actions }}
           droppedRef={droppedRef}
           dealtRef={dealtRef}
+          chain={chain}
           flipMs={FLIP_MS / Math.max(1, speed)}
+          onPhase={playing || targetMode ? undefined : () => perform([{ t: 'phase', to: nextPhase(board.phase) }])}
           onCard={onCard}
           onMenu={onMenu}
           onLongPress={(id, at) => !targeting && openMenu(id, at)}
@@ -534,18 +537,16 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         {/* It follows the pointer over the board, or stays on the card it is locked on. */}
         <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="sim-rail-section sim-rail-card" />
         <RailHead num="02" label={t('rail.log')} />
-        <div className="sim-rail-section sim-rail-log">
-          <History
-            session={session}
-            boards={boards}
-            cards={cards}
-            nameOf={nameOf}
-            disabled={playing || targetMode}
-            onSeek={step}
-            onSetStart={(start) => dispatch({ type: 'setStart', start })}
-            className="max-h-none overflow-visible"
-          />
-        </div>
+        <History
+          session={session}
+          boards={boards}
+          cards={cards}
+          nameOf={nameOf}
+          disabled={playing || targetMode}
+          onSeek={step}
+          onSetStart={(start) => dispatch({ type: 'setStart', start })}
+          className="sim-rail-section sim-rail-log"
+        />
         {/* The caption of the step on screen: a field to write it in by hand; while a replay plays, its text shows over the field. */}
         {cursor === 0 || playing ? null : (
           <div className="sim-rail-section border-t border-line">

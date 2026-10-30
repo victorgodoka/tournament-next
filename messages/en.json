@@ -1254,7 +1254,18 @@
       "more": "More"
     },
     "home": "Back to the site",
-    "life": { "you": "You", "rival": "Rival" },
+    "life": {
+      "you": "You",
+      "rival": "Rival",
+      "edit": "Change the Life Points: {side}",
+      "half": "Half",
+      "amount": "Add or subtract LP",
+      "apply": "Apply"
+    },
+    "phases": { "draw": "Draw", "standby": "Standby", "main1": "Main 1", "battle": "Battle", "main2": "Main 2", "end": "End" },
+    "phaseNext": "{phase}: go to the next phase",
+    "chain": { "title": "Chain" },
+    "fx": { "normal": "Normal Summon", "special": "Special Summon", "set": "Set" },
     "rail": {
       "label": "Card, duel log and zones",
       "card": "Card",
@@ -1458,10 +1469,15 @@
     "history": {
       "title": "History",
       "start": "Start",
-      "move": "{card}: {from} → {to}",
-      "draw": "Drew {n}",
+      "move": "{zone, select, gy {“{card}” was sent to the GY} banished {“{card}” was banished} hand {You added “{card}” to your hand} deck {“{card}” went back to the Deck} extra {“{card}” went back to the Extra Deck} other {{card}: {from} → {to}}}",
+      "normal": "You Normal Summoned “{card}”",
+      "special": "You Special Summoned “{card}” from {from}",
+      "set": "You Set “{card}”",
+      "lp": "{side, select, me {Your LP} other {Rival's LP}}: {delta}, now {lp}",
+      "phase": "Phase: {phase}",
+      "draw": "You drew {n, plural, one {# card} other {# cards}}",
       "shuffle": "Shuffled the deck",
-      "activate": "{n, plural, =0 {Activated {card}} other {Activated {card} → {targets}}}",
+      "activate": "{n, plural, =0 {Activated “{card}”} other {Activated “{card}” → {targets}}}",
       "flip": "{to, select, up {Flipped {card} face-up} down {Flipped {card} face-down} atk {{card} to Attack Position} other {{card} to Defense Position}}",
       "negate": "{to, select, on {Negated {card}} other {{card} no longer negated}}",
       "counter": "{kind} on {card}: {delta}",

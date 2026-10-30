@@ -1200,6 +1200,60 @@ describe('Simulator history and replay', () => {
   })
 })
 
+describe('Simulator duel state', () => {
+  /** A Life Points plate, its menu opened: the rival's comes first on the page. */
+  const openLife = (index: number) => act(async () => void fireEvent.click(screen.getAllByRole('button', { name: 'life.edit' })[index]!))
+
+  it('the Life Points change by hand, go in the log and come back with Undo', async () => {
+    await open(DECK)
+    expect(screen.getAllByText('8000')).toHaveLength(2)
+    await openLife(0)
+    await click('−1000')
+    expect(screen.getByText('7000')).toBeTruthy()
+    expect(screen.getAllByText('8000')).toHaveLength(1)
+    expect(steps().at(-1)).toBe('history.lp')
+    await click('toolbar.undo')
+    expect(screen.getAllByText('8000')).toHaveLength(2)
+  })
+
+  it('a typed amount is applied, and half takes what is left down by half', async () => {
+    await open(DECK)
+    await openLife(1)
+    await act(async () => void fireEvent.change(screen.getByRole('textbox', { name: 'life.amount' }), { target: { value: '-1500' } }))
+    await click('life.apply')
+    expect(screen.getByText('6500')).toBeTruthy()
+    await openLife(1)
+    await click('life.half')
+    expect(screen.getByText('3250')).toBeTruthy()
+  })
+
+  it('the core moves on to the next phase', async () => {
+    await open(DECK)
+    expect(screen.getByText('phases.main1')).toBeTruthy()
+    await click('phaseNext')
+    expect(screen.getByText('phases.battle')).toBeTruthy()
+    expect(steps().at(-1)).toBe('history.phase')
+  })
+
+  it('E ends the turn, and the new one opens in Main 1', async () => {
+    await open(DECK)
+    await click('phaseNext')
+    await act(async () => void fireEvent.keyDown(window, { key: 'e' }))
+    expect(steps().at(-1)).toBe('history.endTurn')
+    expect(screen.getByText('phases.main1')).toBeTruthy()
+  })
+
+  it('activations in a row build the chain, and any other step closes it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    for (const card of hand().slice(0, 2)) await act(async () => void fireEvent.doubleClick(card))
+    expect(within(screen.getByRole('list', { name: 'chain.title' })).getAllByRole('listitem')).toHaveLength(2)
+    expect([...document.querySelectorAll('.sim-link-card')].map((el) => el.textContent)).toEqual(['1', '2'])
+    await click('toolbar.draw')
+    expect(screen.queryByRole('list', { name: 'chain.title' })).toBeNull()
+  })
+})
+
 describe('Simulator replay bar', () => {
   const position = () => screen.getByText(/^\d+ \/ \d+$/).textContent
   const timeline = () => screen.getByRole<HTMLInputElement>('slider', { name: 'replay.timeline' })
