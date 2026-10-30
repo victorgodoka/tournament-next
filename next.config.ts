@@ -20,13 +20,6 @@ const nextConfig: NextConfig = {
     { source: '/ads.txt', destination: 'https://api.nitropay.com/v1/ads-2429.txt', permanent: true },
   ],
   output: "standalone",
-  experimental: {
-    /**
-     * The CSS goes into the HTML as <style>, so first paint doesn't wait on three stylesheet
-     * requests (Lighthouse: render-blocking requests). Production builds only.
-     */
-    inlineCss: true,
-  },
   images: {
     /**
      * Every distinct `url`+`w`+`q` is a fresh sharp decode/encode on the Node server that
