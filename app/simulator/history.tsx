@@ -58,6 +58,11 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
         return t('history.tag', { card: nameOf(a.card), text: a.text, has: a.text ? 'yes' : 'no' })
       case 'endTurn':
         return t('history.endTurn', { turn: before.turn })
+      // Only a combo saved from /simulator/new carries these two.
+      case 'lp':
+        return t('history.lp', { side: a.side, delta: a.delta > 0 ? `+${a.delta}` : `−${-a.delta}`, lp: Math.max(0, before.lp[a.side] + a.delta) })
+      case 'phase':
+        return t('history.phase', { phase: a.to })
     }
   }
   /** Each row's line, and the passcode of the card it names (none for a draw, a shuffle or an end of turn). */

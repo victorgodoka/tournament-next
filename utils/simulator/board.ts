@@ -1,6 +1,6 @@
 import type { Deck } from '@utils/deck/types'
-import { LIMITS, MONSTER_SLOTS, PLAIN, SPELL_SLOTS, ZONES } from './types'
-import type { Action, Board, Card, Face, MonsterSlot, Slot, ZoneId } from './types'
+import { LIMITS, MONSTER_SLOTS, PHASES, PLAIN, SIDES, SPELL_SLOTS, START_LP, ZONES } from './types'
+import type { Action, Board, Card, Face, MonsterSlot, Phase, Slot, ZoneId } from './types'
 
 type Move = Extract<Action, { t: 'move' }>
 type Shuffle = Extract<Action, { t: 'shuffle' }>
@@ -26,14 +26,28 @@ export const destroyedBy = (a: Action | undefined, before: Board): { card: numbe
 export const isMonsterSlot = (zone: ZoneId): zone is MonsterSlot => MONSTER.has(zone)
 export const isSlot = (zone: ZoneId): zone is Slot => SLOTS.has(zone)
 
-/** The board before any action: main in deck order (top = 0), extra face-down, turn 1. Side is ignored. */
+/** The chain on screen: the cards of the run of activations that ends at step `cursor`, the first link first. Any other step closes it. */
+export const chainAt = (actions: readonly Action[], cursor: number): number[] => {
+  const links: number[] = []
+  for (let i = cursor - 1; i >= 0; i--) {
+    const a = actions[i]!
+    if (a.t !== 'activate') break
+    links.unshift(a.card)
+  }
+  return links
+}
+
+/** The phase after `phase`, round to the first. */
+export const nextPhase = (phase: Phase): Phase => PHASES[(PHASES.indexOf(phase) + 1) % PHASES.length]!
+
+/** The board before any action: main in deck order (top = 0), extra face-down, turn 1, Main Phase 1. Side is ignored. */
 export function initial(deck: Deck): Board {
   const { main, extra } = deck
   const zones = Object.fromEntries(ZONES.map((z) => [z, [] as number[]])) as Record<ZoneId, number[]>
   zones.deck = main.map((_, i) => i)
   zones.extra = extra.map((_, i) => main.length + i)
   const cards = [...main, ...extra].map((code, id): Card => ({ id, code, face: id < main.length ? 'up' : 'down', pos: 'atk', counters: {}, negated: false }))
-  return { cards, zones, turn: 1 }
+  return { cards, zones, turn: 1, phase: 'main1', lp: { me: START_LP, rival: START_LP } }
 }
 
 /** The zone holding a card and its index there, or null for an id the board does not have. */
@@ -86,6 +100,10 @@ export function isValid(board: Board, a: Action): boolean {
       return Number.isInteger(a.n) && a.n > 0 && board.zones.deck.length > 0
     case 'endTurn':
       return true
+    case 'lp':
+      return SIDES.includes(a.side) && Number.isInteger(a.delta) && a.delta !== 0 && Math.abs(a.delta) <= LIMITS.lp
+    case 'phase':
+      return PHASES.includes(a.to)
   }
 }
 
@@ -122,7 +140,11 @@ export function apply(board: Board, a: Action): Board {
       return { ...board, zones: { ...board.zones, deck: deck.slice(n), hand: [...hand, ...deck.slice(0, n)] } }
     }
     case 'endTurn':
-      return { ...board, turn: board.turn + 1 }
+      return { ...board, turn: board.turn + 1, phase: 'main1' }
+    case 'lp':
+      return { ...board, lp: { ...board.lp, [a.side]: Math.max(0, board.lp[a.side] + a.delta) } }
+    case 'phase':
+      return { ...board, phase: a.to }
     case 'activate':
       return board
   }

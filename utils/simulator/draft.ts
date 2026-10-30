@@ -2,7 +2,7 @@ import { assertDeck } from '@utils/deck/codecs/ydk'
 import { DeckCodeError } from '@utils/deck/types'
 import type { Deck } from '@utils/deck/types'
 import { apply, initial, isValid } from './board'
-import { ID, LIMITS, ZONES } from './types'
+import { HOWS, ID, LIMITS, PHASES, SIDES, ZONES } from './types'
 import type { Action, Session } from './types'
 
 export const DRAFT_KEY = 'simulator:draft'
@@ -51,10 +51,10 @@ function parseBody(x: unknown, count: number): Action | null {
   const ids = (v: unknown): v is number[] => Array.isArray(v) && v.every(id)
   switch (x.t) {
     case 'move': {
-      const { card, to, at, face, pos, destroy } = x
-      if (!id(card) || !oneOf(to, ZONES) || !optional(at, AT) || !optional(face, FACES) || !optional(pos, POSES)) return null
+      const { card, to, at, face, pos, destroy, how } = x
+      if (!id(card) || !oneOf(to, ZONES) || !optional(at, AT) || !optional(face, FACES) || !optional(pos, POSES) || !optional(how, HOWS)) return null
       if (destroy !== undefined && destroy !== true) return null
-      return { t: 'move', card, to, ...(at && { at }), ...(face && { face }), ...(pos && { pos }), ...(destroy && { destroy }) }
+      return { t: 'move', card, to, ...(at && { at }), ...(face && { face }), ...(pos && { pos }), ...(destroy && { destroy }), ...(how && { how }) }
     }
     case 'flip':
       return id(x.card) && oneOf(x.face, FACES) && oneOf(x.pos, POSES) ? { t: 'flip', card: x.card, face: x.face, pos: x.pos } : null
@@ -76,6 +76,10 @@ function parseBody(x: unknown, count: number): Action | null {
       return int(x.n, 1, LIMITS.draw) ? { t: 'draw', n: x.n } : null
     case 'endTurn':
       return { t: 'endTurn' }
+    case 'lp':
+      return oneOf(x.side, SIDES) && int(x.delta, -LIMITS.lp, LIMITS.lp) && x.delta !== 0 ? { t: 'lp', side: x.side, delta: x.delta } : null
+    case 'phase':
+      return oneOf(x.to, PHASES) ? { t: 'phase', to: x.to } : null
     default:
       return null
   }

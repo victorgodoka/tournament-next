@@ -6,13 +6,14 @@ import type { AuthUser } from '@utils/auth'
 export type AdsMode = 'none' | 'rail' | 'all'
 
 /**
- * Pages that never carry ads. The render page is the popup that records a combo's video. Every
- * pattern ends at a segment so `/wiki/new` can't swallow `/wiki/newbie-guide`.
+ * Pages that never carry ads. The simulator's preview fills the window; the render page is the popup that
+ * records a combo's video. Every pattern ends at a segment so `/wiki/new` can't swallow `/wiki/newbie-guide`.
  */
 const NO_ADS = [
   /^\/admin(\/|$)/,
   /^\/(login|messenger)(\/|$)/,
   /^\/profile\/edit(\/|$)/,
+  /^\/simulator\/new\/?$/,
   /^\/simulator\/c\/[^/]+\/render(\/|$)/,
   /^\/wiki\/(new|panel|example)(\/|$)/,
   /^\/wiki\/[^/]+\/(edit|history)(\/|$)/,

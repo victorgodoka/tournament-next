@@ -4,8 +4,16 @@ const PILES = ['deck', 'hand', 'extra', 'gy', 'banished'] as const
 export const MONSTER_SLOTS = ['m0', 'm1', 'm2', 'm3', 'm4', 'emz0', 'emz1'] as const
 export const SPELL_SLOTS = ['s0', 's1', 's2', 's3', 's4', 'field'] as const
 
+export const SIDES = ['me', 'rival'] as const
+export const PHASES = ['draw', 'standby', 'main1', 'battle', 'main2', 'end'] as const
+export const HOWS = ['normal', 'special', 'set'] as const
+
 export type Face = 'up' | 'down'
 export type Pos = 'atk' | 'def'
+export type Side = (typeof SIDES)[number]
+export type Phase = (typeof PHASES)[number]
+/** How a card came into play: what the log says and the replay shows. */
+export type How = (typeof HOWS)[number]
 export type Pile = (typeof PILES)[number]
 export type MonsterSlot = (typeof MONSTER_SLOTS)[number]
 type SpellSlot = (typeof SPELL_SLOTS)[number]
@@ -25,12 +33,12 @@ export type Card = { id: number; code: number; face: Face; pos: Pos; counters: R
 export const PLAIN = ''
 
 /** Every zone is an ordered list of card ids. In a monster slot, `[0]` is the monster and the rest are its Xyz materials; in a pile, `[0]` is the top. */
-export type Board = { cards: Card[]; zones: Record<ZoneId, number[]>; turn: number }
+export type Board = { cards: Card[]; zones: Record<ZoneId, number[]>; turn: number; phase: Phase; lp: Record<Side, number> }
 
 /** Every action may carry a caption (≤ 100 characters), shown under the field while its step is on screen. */
 export type Action = (
   /** `destroy`: the move is a destruction (to the GY or Banished), shown as one. */
-  | { t: 'move'; card: number; to: ZoneId; at?: 'top' | 'bottom'; face?: Face; pos?: Pos; destroy?: true }
+  | { t: 'move'; card: number; to: ZoneId; at?: 'top' | 'bottom'; face?: Face; pos?: Pos; destroy?: true; how?: How }
   | { t: 'flip'; card: number; face: Face; pos: Pos }
   | { t: 'activate'; card: number; targets: number[] }
   | { t: 'negate'; card: number; on: boolean }
@@ -41,6 +49,8 @@ export type Action = (
   | { t: 'shuffle'; order: number[] }
   | { t: 'draw'; n: number }
   | { t: 'endTurn' }
+  | { t: 'lp'; side: Side; delta: number }
+  | { t: 'phase'; to: Phase }
 ) & { note?: string }
 
 /** What a saved combo holds: the session minus its cursor and ties. `start` is where the replay starts, 0..actions.length. */
@@ -65,7 +75,9 @@ export type Session = {
   counterTypes: string[]
 }
 
-export const LIMITS = { actions: 2000, name: 80, title: 80, counters: 99, draw: 60, note: 100, kind: 20, kinds: 20, tag: 40 } as const
+export const LIMITS = { actions: 2000, name: 80, title: 80, counters: 99, draw: 60, note: 100, kind: 20, kinds: 20, tag: 40, lp: 999999 } as const
+
+export const START_LP = 8000
 
 /** A deck or combo id: 16 lowercase hex characters, as the server issues them. */
 export const ID = /^[0-9a-f]{16}$/
