@@ -653,6 +653,10 @@ export type ArticleSummary = {
   publishedAt: string | null
   createdAt: string
   updatedAt: string
+  /** Only the index fills these three; an open article reads them from `ArticleSocial`. */
+  views?: number
+  likes?: number
+  commentCount?: number
 }
 
 export type Article = ArticleSummary & {

@@ -9,6 +9,7 @@ import { buttonClasses } from '@ui/button'
 import { countView, likeArticle, socialError, unlikeArticle } from '@utils/articles'
 import { setReturnTo } from '@utils/return-to'
 import type { ArticleSocial } from '@utils/types'
+import { COMPACT } from './article'
 import { ShareButtons } from './share-buttons'
 
 type ArticleBarProps = {
@@ -20,7 +21,6 @@ type ArticleBarProps = {
   social: ArticleSocial | null
 }
 
-const COMPACT = new Intl.NumberFormat('en', { notation: 'compact' })
 const STAT = 'inline-flex items-center gap-1.5 text-ink-dim mono-data'
 
 const commentCount = (social: ArticleSocial) =>

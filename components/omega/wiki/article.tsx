@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
 import { Chip } from '@ui/chip'
+import { Icon } from '@ui/icon'
 import type { ArticleSummary, WikiUser } from '@utils/types'
 import { imageSource } from '@utils/wiki-doc'
 
@@ -13,6 +14,8 @@ export const ARTICLE_DATE_TIME: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
 }
+
+export const COMPACT = new Intl.NumberFormat('en', { notation: 'compact' })
 
 /** What a byline needs of a duelist: a `WikiUser`, or a deck comment's author (no cosmetics). */
 export type BylineUser = Pick<WikiUser, 'id' | 'username' | 'avatarUrl'>
@@ -54,6 +57,14 @@ export const Byline = ({ user, size = 20, className }: { user: BylineUser | null
   </span>
 )
 
+const CardStat = ({ icon, count, label }: { icon: 'eye' | 'heartOutline' | 'comment'; count: number; label: string }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <Icon name={icon} />
+    {COMPACT.format(count)}
+    <span className="sr-only">{label}</span>
+  </span>
+)
+
 /**
  * Index card: cover, title, summary, who wrote it, when it last moved, and whether it is live.
  * No cover gets the same box, empty, so a row of cards lines up.
@@ -64,18 +75,15 @@ export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
       href={`/wiki/${article.slug}`}
       className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-space-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
     >
-      {/* 1200×630, the share-image ratio; it bleeds over the card's padding to its edges. */}
-      <span className="relative -mx-4.5 -mt-4.5 block aspect-[40/21] overflow-hidden border-b border-line bg-surface-200">
+      {/* Fixed height, cropped from the center; it bleeds over the card's padding to its edges. */}
+      <span className="relative -mx-4.5 -mt-4.5 block h-[210px] shrink-0 overflow-hidden border-b border-line bg-surface-200">
         {article.cover ? (
           <Image
             {...imageSource(article.cover, 640)}
             alt=""
             fill
             sizes="(min-width: 1280px) 400px, (min-width: 640px) 50vw, 100vw"
-            style={{
-              objectPosition: article.cover.focal ? `${article.cover.focal.x}% ${article.cover.focal.y}%` : undefined,
-            }}
-            className="object-cover"
+            className="object-cover object-center"
           />
         ) : null}
       </span>
@@ -91,6 +99,15 @@ export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
           <LocalTime iso={article.publishedAt ?? article.updatedAt} options={ARTICLE_DATE} />
         </span>
       </span>
+
+      {/* Absent until the API deploy that adds them: hide rather than show zeros. */}
+      {article.views === undefined ? null : (
+        <span className="flex items-center gap-4 border-t border-line pt-3 text-ink-muted mono-data">
+          <CardStat icon="eye" count={article.views} label="views" />
+          <CardStat icon="heartOutline" count={article.likes ?? 0} label="likes" />
+          <CardStat icon="comment" count={article.commentCount ?? 0} label="comments" />
+        </span>
+      )}
     </Link>
   </li>
 )
