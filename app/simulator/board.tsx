@@ -10,6 +10,7 @@ import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot, isSlot, locate, stepCards } from '@utils/simulator/board'
 import type { Action, Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import { fly, lookOf, poseOf, sink, sizeOf, type Pose } from './fx'
 import type { Drag } from './use-drag'
 
 /** The card that was activated and the cards it targets. */
@@ -47,20 +48,39 @@ export type BoardViewProps = {
   destroyed?: { card: number; from: ZoneId } | null
   /** Show the tags: on the last frame, where the line ends. */
   tags?: boolean
-  /** A card width in px, in place of the one that fits the width (at most 84px): the render page sizes the board itself. */
+  /** A card width in px, in place of the one that fits the box: the render page sizes the board itself. */
   cardW?: number
-  /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 84px. */
+  /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 150px. */
   imageSizes?: string
+  /** The board fills a box of known height, the stage's, its hand in a fan along the bottom edge; else it flows, the hand under it. */
+  fill?: boolean
 }
 
-/** `[zone, column, row]` on the 7 × 3 grid. Banished takes the EMZ row's last column, above the GY. */
+/** `[zone, column, row]` on the 7 × 5 grid. Banished takes the EMZ row's last column, above the GY. */
 const LAYOUT: [Exclude<ZoneId, 'hand'>, number, number][] = [
-  ['emz0', 3, 1], ['emz1', 5, 1], ['banished', 7, 1],
-  ['field', 1, 2], ['m0', 2, 2], ['m1', 3, 2], ['m2', 4, 2], ['m3', 5, 2], ['m4', 6, 2], ['gy', 7, 2],
-  ['extra', 1, 3], ['s0', 2, 3], ['s1', 3, 3], ['s2', 4, 3], ['s3', 5, 3], ['s4', 6, 3], ['deck', 7, 3],
+  ['emz0', 3, 3], ['emz1', 5, 3], ['banished', 7, 3],
+  ['field', 1, 4], ['m0', 2, 4], ['m1', 3, 4], ['m2', 4, 4], ['m3', 5, 4], ['m4', 6, 4], ['gy', 7, 4],
+  ['extra', 1, 5], ['s0', 2, 5], ['s1', 3, 5], ['s2', 4, 5], ['s3', 5, 5], ['s4', 6, 5], ['deck', 7, 5],
 ]
 
-const SIZES = '84px'
+/** The rival's cells, scenery with no `data-zone`: `[column, row, what stands there]`, the player's side turned round. */
+const RIVAL: [number, number, 'pile' | 'monster' | 'empty'][] = [
+  [1, 1, 'pile'], [2, 1, 'empty'], [3, 1, 'empty'], [4, 1, 'empty'], [5, 1, 'empty'], [6, 1, 'empty'], [7, 1, 'pile'],
+  [1, 2, 'empty'], [2, 2, 'monster'], [3, 2, 'monster'], [4, 2, 'monster'], [5, 2, 'monster'], [6, 2, 'monster'], [7, 2, 'empty'],
+  [1, 3, 'empty'],
+]
+
+/** The circuits under the player's half, in a 70 × 50 box of the mat; the rival's half mirrors them. */
+const VEINS = [
+  'M35 30V33L33 35V40L35 42V50',
+  'M31 27L28 30V34L25 37V43L22 46V50',
+  'M39 27L42 30V34L45 37V43L48 46V50',
+  'M28 25H14L11 28V38L8 41V50',
+  'M42 25H56L59 28V38L62 41V50',
+]
+
+const SIZES = '150px'
+const RIVAL_HAND = [0, 1, 2, 3, 4]
 const BADGE = 'pointer-events-none absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
 /** A small marker over a card's corner (negated, face-down). */
 export const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
@@ -98,8 +118,35 @@ const ZoneMark = ({ zone }: { zone: ZoneId }) => {
     : zone === 's0' ? icon('gem', 'rotate-90 text-azure')
     : zone === 's4' ? icon('gem', '-rotate-90 text-crimson')
     : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
+    : /^m\d$/.test(zone) ? <span className="sim-arrow" />
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
+}
+
+/** The circuits under the glass: the player's half, then the same turned over for the rival's. */
+const Veins = () => (
+  <svg aria-hidden className="sim-veins" viewBox="0 0 70 50" preserveAspectRatio="none">
+    {[undefined, 'matrix(1 0 0 -1 0 50)'].map((transform) => (
+      <g key={transform ?? 'near'} transform={transform}>
+        {VEINS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        {VEINS.map((d, i) => (
+          <path key={d} className="sim-vein-pulse" d={d} pathLength={100} style={{ '--d': `${-i * 1.7 - (transform ? 0.9 : 0)}s` } as React.CSSProperties} />
+        ))}
+      </g>
+    ))}
+  </svg>
+)
+
+/** The hexagon at the heart of the table: the turn, the phase under it. */
+const Core = ({ turn }: { turn: number }) => {
+  const t = useTranslations('Simulator')
+  return (
+    <div className="sim-core">
+      <span className="sim-core-turn text-ink dock-title">{t('turn', { n: turn })}</span>
+    </div>
+  )
 }
 
 /** Cracks and a crimson glow: the card was destroyed in the step on screen. Over the cell it left and the pile it went to. */
@@ -146,8 +193,10 @@ const StepMark = () => (
 /** An arrowhead's barbs, in px, and how far they spread from the line. */
 const HEAD = 10
 const SPREAD = 0.5
-/** How long a card takes to slide into its new place at 1x: slow enough to follow. */
+/** How long a card takes to fly to its new place at 1x: slow enough to follow. */
 export const FLIP_MS = 450
+/** What a flight is drawn through where the field lies flat and there is no camera to read: far enough to change nothing. */
+const NO_CAMERA = 4000
 
 type Point = { x: number; y: number }
 const centre = (r: DOMRect): Point => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
@@ -204,6 +253,7 @@ export const BoardView = (p: BoardViewProps) => {
   const { cursor, actions } = p.step
   const root = useRef<HTMLDivElement>(null)
   const arrows = useRef<SVGSVGElement>(null)
+  const fx = useRef<HTMLDivElement>(null)
 
   // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
   // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
@@ -219,23 +269,19 @@ export const BoardView = (p: BoardViewProps) => {
     return () => observer.disconnect()
   }, [board, activation])
 
-  // FLIP, after the arrows so they measure where the cards land. Each card button's centre is kept, relative to the board
-  // (a scroll moves nothing); on the next board the cards of the step between the two slide from there, lifted over the
-  // rest: one step on, the step just played; one step back, the step undone. Everything else jumps to its place (the hand
-  // closing a gap, a seek, a new hand), so the eye has one card to follow. A card that was in a pile had no button there,
-  // so it slides from the pile's cell; one that goes into a pile has nothing left to slide; one a drag just dropped is
-  // already there. The button is measured, since in DEF its box is the turned card; its wrapper slides, since
-  // `translate` there is not turned by DEF.
-  // ponytail: positions are only taken on a board change, so a resize in between slides every card once on the next step; re-measure from the ResizeObserver if that shows.
-  const seen = useRef<{ board: Board; cursor: number; actions: readonly Action[]; at: Map<string, Point> } | null>(null)
+  // The flights, after the arrows so they measure where the cards land. Each card's pose and look are kept; on the next
+  // board the cards of the step between the two fly from there: one step on, the step just played; one step back, the step
+  // undone. Everything else jumps to its place (the hand closing a gap, a seek, a new hand), so the eye has one card to
+  // follow. A card that was in a pile had no button there, so it leaves from the pile's cell; one a drag just dropped is
+  // already there. The button is measured, since in DEF its box is the turned card; its wrapper is what hides.
+  // ponytail: poses are only taken on a board change, so a resize in between flies a card from the old spot; re-measure from the ResizeObserver if that shows.
+  const seen = useRef<{ board: Board; cursor: number; actions: readonly Action[]; at: Map<number, Pose>; looks: Map<number, HTMLElement> } | null>(null)
   useLayoutEffect(() => {
     const el = root.current
-    if (!el) return
+    const layer = fx.current
+    if (!el || !layer) return
+    layer.replaceChildren()
     const origin = el.getBoundingClientRect()
-    const local = (box: DOMRect): Point => {
-      const c = centre(box)
-      return { x: c.x - origin.left, y: c.y - origin.top }
-    }
     const before = seen.current
     const motion = matchMedia('(prefers-reduced-motion: no-preference)').matches
     const played = before && cursor === before.cursor + 1 ? actions[cursor - 1] : undefined
@@ -243,70 +289,83 @@ export const BoardView = (p: BoardViewProps) => {
     const moving = played ? stepCards(played, before!.board) : undone ? stepCards(undone, board) : []
     const landed = droppedRef.current
     droppedRef.current = null
-    const slide = (target: Element | null | undefined, was: Point | null | undefined, at: Point) => {
-      if (!target || !was || (was.x === at.x && was.y === at.y)) return
-      target.animate(
-        [
-          { translate: `${was.x - at.x}px ${was.y - at.y}px`, scale: '1.08', zIndex: '20' },
-          { translate: '0 0', scale: '1', zIndex: '20' },
-        ],
-        { duration: flipMs, easing: 'ease-out' },
-      )
-    }
-    const now = new Map<string, Point>()
+    const tilt = parseFloat(getComputedStyle(el).getPropertyValue('--tilt')) || 0
+    const camera = parseFloat(getComputedStyle(el.querySelector('.sim-tilt')!).perspective) || NO_CAMERA
+    const pose = (box: HTMLElement) => poseOf(box, origin, box.closest('[data-mat]') ? tilt : 0)
+    const cell = (zone: ZoneId) => el.querySelector<HTMLElement>(`[data-zone="${zone}"]`)!
+
+    const now = new Map<number, Pose>()
+    const looks = new Map<number, HTMLElement>()
     for (const card of el.querySelectorAll<HTMLElement>('[data-card]')) {
-      const id = card.dataset.card!
-      const at = local(card.getBoundingClientRect())
+      const id = Number(card.dataset.card)
+      const at = pose(card)
       now.set(id, at)
-      if (!motion || !before || !moving.includes(Number(id)) || Number(id) === landed) continue
-      const pile = before.at.has(id) ? null : locate(before.board, Number(id))?.zone
-      const cell = pile ? el.querySelector(`[data-zone="${pile}"]`) : null
-      slide(card.parentElement, before.at.get(id) ?? (cell ? local(cell.getBoundingClientRect()) : null), at)
+      looks.set(id, lookOf(card))
+      if (!motion || !before || !moving.includes(id) || id === landed) continue
+      const pile = before.at.has(id) ? null : locate(before.board, id)?.zone
+      const from = before.at.get(id) ?? (pile ? pose(cell(pile)) : null)
+      if (!from || (from.x === at.x && from.y === at.y)) continue
+      fly(layer, before.looks.get(id) ?? lookOf(card), from, at, sizeOf(card), camera, flipMs)
+      sink(card.parentElement, flipMs)
     }
-    // A card that went into a pile has no button there: the pile's top slides in from where the card was, when it is that card.
+    // A card that went into a pile has no button there: its copy lands on the pile, whose top shows once it has, when that top is this card.
     for (const id of moving) {
-      if (!motion || !before || now.has(String(id)) || id === landed) continue
+      if (!motion || !before || now.has(id) || id === landed) continue
       const to = locate(board, id)
       if (!to || isSlot(to.zone) || to.index !== 0) continue
-      const top = el.querySelector(`[data-zone="${to.zone}"] > *`)
-      if (top) slide(top, before.at.get(String(id)), local(top.getBoundingClientRect()))
+      const from = before.at.get(id)
+      const look = before.looks.get(id)
+      if (!from || !look) continue
+      fly(layer, look, from, pose(cell(to.zone)), sizeOf(cell(to.zone)), camera, flipMs)
+      sink(cell(to.zone).querySelector('[data-pile] > *'), flipMs)
     }
-    seen.current = { board, cursor, actions, at: now }
+    seen.current = { board, cursor, actions, at: now, looks }
   }, [board, cursor, actions, flipMs, droppedRef])
 
   return (
     <div
       ref={root}
+      data-fill={p.fill || undefined}
       style={p.cardW === undefined ? undefined : ({ '--card-w': `${p.cardW}px` } as React.CSSProperties)}
-      className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]"
+      className="sim-board"
     >
-      <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
-        {LAYOUT.map(([zone, column, row]) => (
-          <div
-            key={zone}
-            role="group"
-            aria-label={t(`zones.${zone}`)}
-            data-zone={zone}
-            style={{ gridColumn: column, gridRow: row }}
-            className="relative aspect-[59/86] bg-surface-100"
-          >
-            {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
-            {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
-            {p.destroyed?.from === zone ? <DestroyMark /> : null}
-          </div>
+      <div aria-hidden className="sim-rival-hand">
+        {RIVAL_HAND.map((n) => (
+          <span key={n}>
+            <Back sizes="96px" />
+          </span>
         ))}
       </div>
-      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. Centred; when a card
-          leaves, the others jump to their new place (only the card of the step slides). */}
-      <div
-        role="group"
-        aria-label={t('zones.hand')}
-        data-zone="hand"
-        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-center gap-1"
-      >
+      <div className="sim-tilt">
+        <div data-mat className="sim-mat">
+          <span aria-hidden className="sim-table cut notch" />
+          <span aria-hidden className="sim-table-front" />
+          <Veins />
+          <div className="sim-grid">
+            {RIVAL.map(([column, row, kind]) => (
+              <span key={`${column}:${row}`} aria-hidden style={{ gridColumn: column, gridRow: row }} className="sim-rival">
+                <span className="sim-plate cut notch" />
+                {kind === 'monster' ? <span className="sim-arrow" /> : null}
+                {kind === 'pile' ? <Back /> : null}
+              </span>
+            ))}
+            {LAYOUT.map(([zone, column, row]) => (
+              <div key={zone} role="group" aria-label={t(`zones.${zone}`)} data-zone={zone} style={{ gridColumn: column, gridRow: row }} className="sim-zone">
+                <span aria-hidden className="sim-plate cut notch" />
+                {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
+                {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
+                {p.destroyed?.from === zone ? <DestroyMark /> : null}
+              </div>
+            ))}
+            <Core turn={board.turn} />
+          </div>
+        </div>
+      </div>
+      {/* Centred; when a card leaves, the others jump to their new place (only the card of the step slides). */}
+      <div role="group" aria-label={t('zones.hand')} data-zone="hand" className="sim-hand">
         {p.board.zones.hand.map((id) => (
-          <div key={id} className="max-w-(--card-w) min-w-0 flex-1 last:flex-none">
-            <CardView id={id} p={p} className="w-(--card-w)" />
+          <div key={id} className="sim-hand-slot">
+            <CardView id={id} p={p} className="sim-hand-card" />
           </div>
         ))}
       </div>
@@ -316,6 +375,7 @@ export const BoardView = (p: BoardViewProps) => {
         data-arrows
         className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible fill-none stroke-gold stroke-3 [stroke-linecap:round] [stroke-linejoin:round]"
       />
+      <div ref={fx} aria-hidden className="sim-fx" />
     </div>
   )
 }
@@ -378,6 +438,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           card={p.cards.get(card.code)}
           sizes={p.imageSizes ?? SIZES}
           data-card={id}
+          data-pos={card.pos}
           data-active={active || undefined}
           data-targeted={targeted || undefined}
           data-step={marked || undefined}
@@ -453,7 +514,7 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
   const open = () => p.onPile(pile)
   const back = (pile === 'deck' || pile === 'extra') && activated === null
   return (
-    <div className="absolute inset-0" onPointerEnter={() => top && p.onHover?.(top.id)} onPointerLeave={() => p.onHover?.(null)}>
+    <div data-pile className="absolute inset-0" onPointerEnter={() => top && p.onHover?.(top.id)} onPointerLeave={() => p.onHover?.(null)}>
       {!top ? null : back ? (
         <button type="button" aria-label={label} onClick={open} className="relative block aspect-[59/86] w-full cursor-pointer">
           <Back sizes={p.imageSizes} />

@@ -32,8 +32,9 @@ export type PilePanelProps = {
   onClose(): void
 }
 
-/** The window's width from `lg`, and the space kept from the viewport edges. */
+/** The window's width from `lg`, the rail it stays clear of, and the space kept from the viewport edges. */
 const WIDTH = 320
+const RAIL = 340
 const EDGE = 16
 /** Each window opens this far down and in from the one before. */
 const CASCADE = 28
@@ -51,8 +52,8 @@ export const PilePanel = ({ board, zone, cards, activation, picking, index, onCa
   const ids = stack ? board.zones[zone].slice(1) : board.zones[zone]
   const name = stack ? t('pile.materials', { count: ids.length }) : t(`zones.${zone}`)
 
-  // Where the window sits, from `lg`: opened over the side column, then wherever its header was dragged to.
-  const [pos, setPos] = useState(() => ({ x: Math.max(EDGE, window.innerWidth - WIDTH - EDGE - index * CASCADE), y: 120 + index * CASCADE }))
+  // Where the window sits, from `lg`: opened beside the rail, then wherever its header was dragged to.
+  const [pos, setPos] = useState(() => ({ x: Math.max(EDGE, window.innerWidth - RAIL - WIDTH - EDGE - index * CASCADE), y: 120 + index * CASCADE }))
   /** The pointer's offset from the window's corner while its header is held. */
   const held = useRef<{ dx: number; dy: number } | null>(null)
   const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {

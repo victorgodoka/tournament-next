@@ -1238,10 +1238,11 @@
     "turn": "Turn {n}",
     "toolbar": {
       "deck": "Choose deck",
-      "newHand": "New hand",
-      "chooseHand": "Choose hand",
+      "newHand": "New Hand",
+      "chooseHand": "Choose Hand",
       "draw": "Draw 1",
-      "endTurn": "End turn",
+      "shuffle": "Shuffle Deck",
+      "endTurn": "End Turn",
       "undo": "Undo",
       "redo": "Redo",
       "reset": "Reset",
@@ -1250,8 +1251,21 @@
       "myCombos": "My combos",
       "share": "Share",
       "unsaved": "Unsaved changes",
-      "more": "More",
-      "history": "History"
+      "more": "More"
+    },
+    "home": "Back to the site",
+    "life": { "you": "You", "rival": "Rival" },
+    "rail": {
+      "label": "Card, duel log and zones",
+      "card": "Card",
+      "log": "Duel log",
+      "zones": "Zones",
+      "dock": "Deck and steps",
+      "open": "Open {zone}",
+      "deck": "Deck",
+      "extra": "Extra",
+      "gy": "GY",
+      "banished": "Banished"
     },
     "confirm": {
       "title": "Discard this line?",
@@ -1454,7 +1468,6 @@
       "destroy": "Destroyed {card} → {to}",
       "tag": "{has, select, yes {Tagged {card}: {text}} other {Cleared the tag on {card}}}",
       "endTurn": "End of turn {turn}",
-      "close": "Close history",
       "replayFromHere": "Replay starts here",
       "startMark": "Replay start"
     },

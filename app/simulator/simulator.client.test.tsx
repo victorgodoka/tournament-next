@@ -63,8 +63,6 @@ const tied = async () => {
   await click('toolbar.more')
   return yes
 }
-/** The history is a drawer: open once per test, then the rows are on the page. */
-const openHistory = () => click('toolbar.history')
 
 const menu = () => screen.getByRole('menu')
 const names = () => within(menu()).getAllByRole('menuitem').map((el) => el.textContent)
@@ -348,7 +346,6 @@ describe('Simulator card menu', () => {
     await choose('menu.moveTo')
     await choose('menu.shuffleDeck')
     expect(hand()).toHaveLength(4)
-    await openHistory()
     expect(steps().slice(-2)).toEqual(['history.move', 'history.shuffle'])
     // the extra card, from its pile: Hand sends it back to the Extra Deck, and there is no deck to shuffle it into
     const extra = within(await openPile('extra')).getAllByRole('button')[0]!
@@ -529,7 +526,7 @@ describe('Simulator card panel', () => {
     await click('toolbar.newHand')
     expect(screen.getByText('cardPanel.empty')).toBeTruthy()
     await mouseClick(hand()[0]!)
-    await click('toolbar.reset')
+    await more('toolbar.reset')
     await click('confirm.discard')
     expect(screen.getByText('cardPanel.empty')).toBeTruthy()
   })
@@ -954,9 +951,6 @@ describe('Simulator history and replay', () => {
   it('history lists steps and seeking shows that moment', async () => {
     await open(DECK)
     await click('toolbar.newHand')
-    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull() // a drawer, closed until asked
-    await openHistory()
-    expect(button('toolbar.history').getAttribute('aria-pressed')).toBe('true')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
     expect(rows().map((row) => row.querySelector('[data-step-number]')?.textContent ?? null)).toEqual([null, '#1', '#2'])
     expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
@@ -964,14 +958,11 @@ describe('Simulator history and replay', () => {
     await click('history.shuffle')
     expect(hand()).toHaveLength(0)
     expect(button('history.shuffle').getAttribute('aria-current')).toBe('step')
-    await click('history.close')
-    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull()
   })
 
   it('acting after a seek drops the later steps', async () => {
     await open(DECK)
     await click('toolbar.newHand')
-    await openHistory()
     await click('history.shuffle')
     await click('toolbar.draw')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
@@ -982,7 +973,6 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await click('toolbar.draw')
-    await openHistory()
     await replayFrom(1) // the shuffle
     await replayFrom(2) // back to the draw of 5
     expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy()
@@ -1048,7 +1038,7 @@ describe('Simulator history and replay', () => {
   it('Escape in an open dialog leaves target mode alone', async () => {
     await open(DECK)
     await targetMode()
-    await click('toolbar.reset') // the confirm dialog
+    await more('toolbar.reset') // the confirm dialog
     await key(document.body, { key: 'Escape' })
     expect(button('targets.confirm')).toBeTruthy()
   })
@@ -1058,7 +1048,6 @@ describe('Simulator history and replay', () => {
     await click('toolbar.newHand')
     const card = hand()[0]!
     await play('zones.m0')
-    await openHistory()
     expect(steps()[3]).toBe('history.move')
     const thumb = rows()[3]!.querySelector('[data-tile]')
     expect(thumb?.getAttribute('title')).toBe(card.title)
@@ -1066,7 +1055,7 @@ describe('Simulator history and replay', () => {
     expect(rows()[2]!.querySelector('[data-tile]')).toBeNull() // a draw names no card
   })
 
-  describe('FLIP', () => {
+  describe('flights', () => {
     let motion = true
     let animate = vi.fn()
     beforeEach(() => {
@@ -1075,7 +1064,7 @@ describe('Simulator history and replay', () => {
       animate = vi.fn()
       Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
       // The hand sits at y 300, each of its cards 50 px right of the one before; m0 at x 200, the deck at x 600;
-      // everything else at the origin.
+      // everything else at the origin. Every box is 10 px wide, so a centre is 5 px in.
       vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
         const at = this.closest('[data-zone]')?.getAttribute('data-zone')
         const slot = this.closest('[data-zone="hand"] > *')
@@ -1087,68 +1076,80 @@ describe('Simulator history and replay', () => {
       vi.restoreAllMocks()
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate
     })
-    const slide = (dx: number, dy: number) => [
-      [
-        { translate: `${dx}px ${dy}px`, scale: '1.08', zIndex: '20' },
-        { translate: '0 0', scale: '1', zIndex: '20' },
-      ],
-      { duration: 450, easing: 'ease-out' },
-    ]
+    /** Every copy that flew: where it left, where it landed, and what stayed hidden meanwhile (the next call to animate). */
+    const flights = (): { from: string; to: string; hidden: Element }[] =>
+      animate.mock.calls.flatMap((call, i) => {
+        if (!(animate.mock.contexts[i] as HTMLElement).classList.contains('sim-flight')) return []
+        const frames = call[0] as Keyframe[]
+        const place = (frame: Keyframe) => /translate\(([^)]*)\)/.exec(String(frame.transform))![1]!
+        return [{ from: place(frames[0]!), to: place(frames.at(-1)!), hidden: animate.mock.contexts[i + 1] as Element }]
+      })
 
-    it('a move slides the card from where it was, unless motion is reduced', async () => {
+    it('a move flies a copy from where the card was and hides the card until it lands, unless motion is reduced', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.m0')
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
-      expect(animate.mock.calls[0]).toEqual(slide(-200, 300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '205px, 5px' })
+      expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
+      expect(cardsIn('m0')[0]!.closest('.sim-fx')).toBeNull()
+      expect(document.querySelector('.sim-flight [data-card]')).toBeNull() // a copy is no card
       motion = false
       await play('zones.m1')
-      expect(animate).toHaveBeenCalledTimes(1)
+      expect(flights()).toHaveLength(1)
     })
 
-    it('a draw from the deck slides the new hand card from the deck pile', async () => {
+    it('a draw from the deck flies the new hand card from the deck pile', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await click('toolbar.draw')
-      expect(animate).toHaveBeenCalledTimes(1) // the cards already in the hand stay put
-      expect(animate.mock.contexts[0]).toBe(hand()[5]!.parentElement)
-      expect(animate.mock.calls[0]).toEqual(slide(350, -300))
+      expect(flights()).toHaveLength(1) // the cards already in the hand stay put
+      expect(flights()[0]).toMatchObject({ from: '605px, 5px', to: '255px, 305px' })
+      expect(flights()[0]!.hidden).toBe(hand()[5]!.parentElement)
     })
 
-    it('only the card of the step slides: the hand closing the gap it left does not', async () => {
+    it('only the card of the step flies: the hand closing the gap it left does not', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.m0') // the four cards after it each shift 50 px left
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement)
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement)
     })
 
-    it('a card sent to a pile slides in as the pile’s top card', async () => {
+    it('a card sent to a pile lands on the pile, whose top shows once it has', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.gy') // from the hand at (0, 300) to the GY at the origin
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(zone('gy').firstElementChild)
-      expect(animate.mock.calls[0]).toEqual(slide(0, 300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '5px, 5px' })
+      expect(flights()[0]!.hidden).toBe(zone('gy').querySelector('[data-pile] > *'))
     })
 
-    it('a step back slides the card back to where it came from', async () => {
+    it('a step back flies the card back to where it came from', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       await play('zones.m0')
       animate.mockClear()
       await click('replay.prev')
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(hand()[0]!.parentElement)
-      expect(animate.mock.calls[0]).toEqual(slide(200, -300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '205px, 5px', to: '5px, 305px' })
+      expect(flights()[0]!.hidden).toBe(hand()[0]!.parentElement)
     })
 
-    it('a card dropped by drag lands where it was dropped, with no slide', async () => {
+    it('the next step clears the copies of the last one', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
+      await play('zones.m1')
+      expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
+    })
+
+    it('a card dropped by drag lands where it was dropped, with no flight', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
@@ -1192,7 +1193,6 @@ describe('Simulator replay bar', () => {
     await click('toolbar.newHand')
     await play('zones.m0')
     await play('zones.m1')
-    await openHistory()
     await replayFrom(3) // after the first move
     vi.useFakeTimers()
     await click('replay.play')
@@ -1301,7 +1301,6 @@ describe('Simulator board details', () => {
     await click('handPicker.confirm')
     expect(hand().map((card) => card.title)).toEqual(['2', '5'])
     expect(within(zone('deck')).getByText('4')).toBeTruthy()
-    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.move', 'history.move'])
     expect(within(rows()[3]!).getByText('history.startMark')).toBeTruthy()
   })
@@ -1312,7 +1311,6 @@ describe('Simulator board details', () => {
     await play('zones.m0')
     const caption = () => screen.queryByRole<HTMLInputElement>('textbox', { name: 'caption.label' })
     await act(async () => void fireEvent.change(caption()!, { target: { value: 'Normal Summon' } }))
-    await openHistory()
     expect(rows()[3]!.textContent).toContain('Normal Summon')
     await click('toolbar.endTurn') // a step after it, so the replay is still playing when it shows the caption
     expect(caption()!.value).toBe('')
@@ -1782,7 +1780,6 @@ describe('Simulator my combos', () => {
     expect(getCombo).toHaveBeenCalledWith('c1')
     expect(listShown()).toBe(false)
     expect(hand()).toHaveLength(4)
-    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.draw', 'history.draw'])
     expect(unsaved()).toBe(false) // the hash is of the session as parsed, not of the payload as the server ordered it
 
@@ -2002,7 +1999,6 @@ describe('Simulator my combos', () => {
     await click('Close')
     await act(async () => arrive(stored('c1')))
     expect(hand()).toHaveLength(0)
-    await openHistory()
     expect(steps()).toEqual(['history.start'])
   })
 

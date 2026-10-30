@@ -6,7 +6,8 @@ import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { TextInput } from '@ui/field'
-import { PageHeader } from '@ui/page-header'
+import { Icon } from '@ui/icon'
+import { RailHead } from '@ui/rail-head'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import type { SharedCombo } from '@utils/combos'
@@ -22,18 +23,23 @@ import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
-import { History, HistoryDrawer } from './history'
+import { History } from './history'
+import { LifePlate, PileCounts } from './hud'
 import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar } from './replay-bar'
+import { Room } from './room'
 import { SaveFlowView } from './save-dialog'
-import { Toolbar, TOUCH } from './toolbar'
+import { Commands, Dock, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 import { useReplay } from './use-replay'
 import { useSave } from './use-save'
 import { VideoDialog } from './video-dialog'
 
 const DRAFT_DELAY_MS = 300
+const END_TURN: Action = { t: 'endTurn' }
+/** Until the Life Points are played by hand. */
+const START_LP = 8000
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -142,7 +148,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
   const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
-  const [historyOpen, setHistoryOpen] = useState(false)
   /** The card a new counter kind is being named for, and the card being tagged. */
   const [naming, setNaming] = useState<number | null>(null)
   const [tagging, setTagging] = useState<number | null>(null)
@@ -325,10 +330,12 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       : e.key === 'ArrowLeft' ? 'undo'
       : e.key === 'ArrowRight' ? 'redo'
       : e.key === ' ' && !target?.matches('button') ? 'play'
+      : key === 'e' ? 'endTurn'
       : null
     if (!run) return
     e.preventDefault()
     if (run === 'play') togglePlay()
+    else if (run === 'endTurn') perform([END_TURN])
     else step(cursor + (run === 'redo' ? 1 : -1))
   })
   useEffect(() => {
@@ -392,8 +399,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const lookupFailed = [...session.deck.main, ...session.deck.extra].some((id) => failed.has(id))
 
   return (
-    <div className="mx-auto flex w-[min(var(--container-page),calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
-      <PageHeader eyebrow={t('eyebrow')} eyebrowMeta={session.name || undefined} title={t('title')} />
+    <div className="sim-stage">
+      <h1 className="sr-only">{t('title')}</h1>
       <DeckPicker
         open={picker}
         onClose={() => setPicker(false)}
@@ -406,114 +413,138 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           })
         }
       />
-
-      {notice ? (
-        <Alert
-          tone="warn"
-          edged
-          title={t(notice)}
-          action={
-            <Button variant="ghost" size="sm" onClick={() => setNotice(null)} className={TOUCH}>
-              {t('dismiss')}
-            </Button>
-          }
-        />
-      ) : null}
-      {lookupFailed ? (
-        <Alert
-          tone="warn"
-          edged
-          title={t('lookupFailed')}
-          action={
-            <Button variant="secondary" size="sm" onClick={() => setLookupAttempt((n) => n + 1)} className={TOUCH}>
-              {t('retry')}
-            </Button>
-          }
-        />
-      ) : null}
-      <SaveFlowView flow={saves} playing={playing} />
-
-      {/* A save on its way holds the toolbar too: a deck or hand loaded before it lands would be tied to that combo. */}
-      <Toolbar
-        board={board}
-        session={session}
-        playing={playing || saves.busy}
-        picking={targetMode}
-        onDeck={() => setPicker(true)}
-        onNewHand={newHand}
-        onChooseHand={() => setChoosing(true)}
-        onAct={perform}
-        onUndo={() => step(cursor - 1)}
-        onRedo={() => step(cursor + 1)}
-        onReset={reset}
-        unsaved={saves.unsaved}
-        onSave={saves.save}
-        onSaveAs={saves.saveAs}
-        onMyCombos={() => saves.gate(() => setListing(true))}
-        onShare={saves.share}
-        onVideo={askVideo}
-        historyOpen={historyOpen}
-        onHistory={() => setHistoryOpen((o) => !o)}
-      />
       <MyCombos open={listing} onClose={() => setListing(false)} onOpen={openCombo} onDeleted={comboDeleted} />
       <VideoDialog open={videoOpen} onClose={() => setVideoFor(null)} comboId={session.combo?.id ?? ''} actions={session.actions} start={session.start} />
-      <ReplayBar
-        cursor={cursor}
-        end={end}
-        start={session.start}
-        playing={playing}
-        picking={targetMode}
-        speed={speed}
-        onStep={step}
-        onPlay={togglePlay}
-        onSpeed={setSpeed}
-      />
 
-      {targeting ? (
-        <Alert
-          tone="info"
-          edged
-          title={t('targets.prompt', { count: targeting.targets.length })}
-          action={
-            <div className="flex gap-2">
-              <Button size="sm" disabled={targeting.targets.length === 0} onClick={confirmTargets} className={TOUCH}>
-                {t('targets.confirm')}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setTargeting(null)} className={TOUCH}>
-                {t('targets.cancel')}
-              </Button>
-            </div>
-          }
+      <section aria-label={t('title')} className="sim-field">
+        <Room />
+        <div className="sim-bar">
+          <Button variant="secondary" size="icon" href="/" aria-label={t('home')} title={t('home')} className="shrink-0">
+            <Icon name="left" />
+          </Button>
+          <button
+            type="button"
+            aria-label={t('toolbar.deck')}
+            title={t('toolbar.deck')}
+            disabled={playing || saves.busy}
+            onClick={() => setPicker(true)}
+            className="min-w-0 cursor-pointer text-left disabled:cursor-not-allowed"
+          >
+            <span className="block text-ink-muted signal-sm">{t('eyebrow')}</span>
+            <span className="flex items-center gap-1 text-ink body-strong">
+              <span className="truncate">{session.name || t('toolbar.deck')}</span>
+              <Icon name="down" size={14} className="shrink-0" />
+            </span>
+          </button>
+        </div>
+
+        <div className="sim-notices">
+          {notice ? (
+            <Alert
+              tone="warn"
+              edged
+              title={t(notice)}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => setNotice(null)} className={TOUCH}>
+                  {t('dismiss')}
+                </Button>
+              }
+            />
+          ) : null}
+          {lookupFailed ? (
+            <Alert
+              tone="warn"
+              edged
+              title={t('lookupFailed')}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setLookupAttempt((n) => n + 1)} className={TOUCH}>
+                  {t('retry')}
+                </Button>
+              }
+            />
+          ) : null}
+          <SaveFlowView flow={saves} playing={playing} />
+          {targeting ? (
+            <Alert
+              tone="info"
+              edged
+              title={t('targets.prompt', { count: targeting.targets.length })}
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={targeting.targets.length === 0} onClick={confirmTargets} className={TOUCH}>
+                    {t('targets.confirm')}
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setTargeting(null)} className={TOUCH}>
+                    {t('targets.cancel')}
+                  </Button>
+                </div>
+              }
+            />
+          ) : null}
+        </div>
+
+        <LifePlate label={t('life.rival')} lp={START_LP} className="sim-life-rival" />
+        <LifePlate mine label={t('life.you')} lp={START_LP} className="sim-life-you" />
+        <BoardView
+          fill
+          board={board}
+          cards={cards}
+          selected={selected}
+          activation={activation}
+          marked={marked}
+          destroyed={destroyed}
+          tags={cursor === end}
+          step={{ cursor, actions: session.actions }}
+          droppedRef={droppedRef}
+          flipMs={FLIP_MS / Math.max(1, speed)}
+          onCard={onCard}
+          onMenu={onMenu}
+          onLongPress={(id, at) => !targeting && openMenu(id, at)}
+          onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
+          onHover={setHovered}
+          locked={locked}
+          onLock={toggleLock}
+          drag={drag}
+          onPile={togglePile}
         />
-      ) : null}
+        {playing && shown?.note ? <p className="sim-caption text-ink body">{shown.note}</p> : null}
+        <Dock board={board} session={session} playing={playing || saves.busy} picking={targetMode} onAct={perform} onUndo={() => step(cursor - 1)} onRedo={() => step(cursor + 1)} />
+      </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <BoardView
-            board={board}
+      <aside aria-label={t('rail.label')} className="sim-rail">
+        {/* A save on its way holds these too: a deck or hand loaded before it lands would be tied to that combo. */}
+        <Commands
+          session={session}
+          playing={playing || saves.busy}
+          onNewHand={newHand}
+          onChooseHand={() => setChoosing(true)}
+          onReset={reset}
+          unsaved={saves.unsaved}
+          onSave={saves.save}
+          onSaveAs={saves.saveAs}
+          onMyCombos={() => saves.gate(() => setListing(true))}
+          onShare={saves.share}
+          onVideo={askVideo}
+        />
+        <RailHead num="01" label={t('rail.card')} />
+        {/* It follows the pointer over the board, or stays on the card it is locked on. */}
+        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="sim-rail-section sim-rail-card" />
+        <RailHead num="02" label={t('rail.log')} />
+        <div className="sim-rail-section sim-rail-log">
+          <History
+            session={session}
+            boards={boards}
             cards={cards}
-            selected={selected}
-            activation={activation}
-            marked={marked}
-            destroyed={destroyed}
-            tags={cursor === end}
-            step={{ cursor, actions: session.actions }}
-            droppedRef={droppedRef}
-            flipMs={FLIP_MS / Math.max(1, speed)}
-            onCard={onCard}
-            onMenu={onMenu}
-            onLongPress={(id, at) => !targeting && openMenu(id, at)}
-            onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
-            onHover={setHovered}
-            locked={locked}
-            onLock={toggleLock}
-            drag={drag}
-            onPile={togglePile}
+            nameOf={nameOf}
+            disabled={playing || targetMode}
+            onSeek={step}
+            onSetStart={(start) => dispatch({ type: 'setStart', start })}
+            className="max-h-none overflow-visible"
           />
-          {/* The caption of the step on screen: a field to write it in by hand, its text alone while a replay plays. */}
-          {cursor === 0 ? null : playing ? (
-            shown?.note ? <p className="text-center text-ink body">{shown.note}</p> : null
-          ) : (
+        </div>
+        {/* The caption of the step on screen: a field to write it in by hand; while a replay plays, its text shows over the field. */}
+        {cursor === 0 || playing ? null : (
+          <div className="sim-rail-section border-t border-line">
             <TextInput
               aria-label={t('caption.label')}
               placeholder={t('caption.placeholder')}
@@ -522,11 +553,27 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               onChange={(e) => dispatch({ type: 'note', index: cursor - 1, note: e.target.value })}
               plateClassName={TOUCH}
             />
-          )}
+          </div>
+        )}
+        <RailHead num="03" label={t('rail.zones')} className="border-t" />
+        <PileCounts board={board} onPile={togglePile} />
+        <div className="sim-rail-section flex flex-col gap-3 border-t border-line">
+          <ReplayBar
+            cursor={cursor}
+            end={end}
+            start={session.start}
+            playing={playing}
+            picking={targetMode}
+            speed={speed}
+            onStep={step}
+            onPlay={togglePlay}
+            onSpeed={setSpeed}
+          />
+          <Button size="lg" disabled={playing || saves.busy || board.cards.length === 0} onClick={() => perform([END_TURN])} className="w-full">
+            {t('toolbar.endTurn')}
+          </Button>
         </div>
-        {/* The side column is the card panel alone: it follows the pointer over the board, or stays on the card it is locked on. */}
-        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="lg:sticky lg:top-24" />
-      </div>
+      </aside>
 
       {/* Each open pile in its own window, the last opened on top. */}
       {piles.map((zone, index) => (
@@ -545,19 +592,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onClose={() => togglePile(zone)}
         />
       ))}
-
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)}>
-        <History
-          session={session}
-          boards={boards}
-          cards={cards}
-          nameOf={nameOf}
-          disabled={playing || targetMode}
-          onSeek={step}
-          onSetStart={(start) => dispatch({ type: 'setStart', start })}
-          className="max-h-none"
-        />
-      </HistoryDrawer>
 
       <DragGhost card={dragging === null ? undefined : board.cards[dragging]} cards={cards} ghostRef={drag.ghostRef} />
 

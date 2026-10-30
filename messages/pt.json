@@ -1241,6 +1241,7 @@
       "newHand": "Nova mão",
       "chooseHand": "Escolher mão",
       "draw": "Comprar 1",
+      "shuffle": "Embaralhar deck",
       "endTurn": "Encerrar turno",
       "undo": "Desfazer",
       "redo": "Refazer",
@@ -1250,8 +1251,21 @@
       "myCombos": "Meus combos",
       "share": "Compartilhar",
       "unsaved": "Alterações não salvas",
-      "more": "Mais",
-      "history": "Histórico"
+      "more": "Mais"
+    },
+    "home": "Voltar ao site",
+    "life": { "you": "Você", "rival": "Rival" },
+    "rail": {
+      "label": "Carta, registro do duelo e zonas",
+      "card": "Carta",
+      "log": "Registro do duelo",
+      "zones": "Zonas",
+      "dock": "Deck e passos",
+      "open": "Abrir {zone}",
+      "deck": "Deck",
+      "extra": "Extra",
+      "gy": "Cemitério",
+      "banished": "Banidas"
     },
     "confirm": {
       "title": "Descartar esta linha?",
@@ -1454,7 +1468,6 @@
       "destroy": "Destruiu {card} → {to}",
       "tag": "{has, select, yes {Marcou {card}: {text}} other {Removeu a marca de {card}}}",
       "endTurn": "Fim do turno {turn}",
-      "close": "Fechar histórico",
       "replayFromHere": "O replay começa aqui",
       "startMark": "Início do replay"
     },

@@ -1,0 +1,640 @@
+/*
+ * The duel stage: the Omega client's field, rebuilt. A table floating in deep space, glass zones over veins of light.
+ * Chrome stays flat and on the design system; light and long motion live on the field only, and stop under
+ * `prefers-reduced-motion` (bottom of this file).
+ *
+ *   .sim-board         sizes everything from --card-w
+ *   .sim-tilt          the camera (perspective), from `lg`
+ *   .sim-mat           the plane; zones and field cards sit in it, so a drag, a hit test and a box measure just work
+ *   .sim-table(-front) the slab and its front edge
+ *   .sim-grid          7 × 5: the rival's two rows and the shared row are scenery but for the player's cells
+ */
+
+.sim-board {
+  --card-w: min(84px, calc((100cqw - 24px) / 7));
+  --card-h: calc(var(--card-w) * 86 / 59);
+  --gap-x: 4px;
+  --gap-y: 4px;
+  container-type: inline-size;
+  position: relative;
+}
+
+/* ---- The stage: the page itself. A phone scrolls it, the field on top; from `lg` it fills the window, the rail on the right. ---- */
+
+.sim-stage {
+  --spacing-gutter: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.sim-field {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: 'bar bar' 'notices notices' 'rival you' 'board board' 'caption caption' 'dock dock';
+  gap: 8px;
+  padding: 12px;
+}
+
+.sim-bar {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sim-notices {
+  grid-area: notices;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sim-notices:empty {
+  display: none;
+}
+
+.sim-life-rival {
+  grid-area: rival;
+  width: auto;
+}
+
+.sim-life-you {
+  grid-area: you;
+  width: auto;
+}
+
+.sim-field > .sim-board {
+  grid-area: board;
+  min-width: 0;
+}
+
+.sim-caption {
+  grid-area: caption;
+  text-align: center;
+}
+
+.sim-dock {
+  grid-area: dock;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sim-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface-100);
+  border-top: var(--hairline) solid var(--color-line);
+}
+
+.sim-rail-section {
+  padding: 12px 16px;
+}
+
+/* Flights take their copies over the whole board, above the hand. */
+.sim-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.sim-flight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.sim-flight [data-tile] {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+}
+
+/* ---- The room ---- */
+
+.sim-room {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--color-space-000);
+}
+
+/* The dots sink into the dark away from the table. */
+.sim-room-dots {
+  position: absolute;
+  inset: 0;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
+}
+
+/* The hero's mark and rays, cut off at the table's far edge. Black is nothing in `screen`, so the ground shows through. */
+.sim-room-art {
+  position: absolute;
+  inset: 0;
+  background: var(--room-art, url('/omega-hero.png')) 50% -46% / max(1500px, 100%) auto no-repeat;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(#000 12%, transparent 62%);
+}
+
+.sim-room-traces {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-linejoin: round;
+  mask-image: linear-gradient(#000 35%, transparent 92%);
+}
+
+.sim-trace {
+  stroke: url(#sim-trace-ink);
+  stroke-width: 1.5;
+}
+
+.sim-trace-halo {
+  stroke: var(--color-azure);
+  stroke-width: 7;
+  opacity: 0.09;
+}
+
+.sim-trace-pulse {
+  stroke: var(--color-cyan);
+  stroke-width: 2;
+  stroke-dasharray: 5 95;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.sim-shard {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  aspect-ratio: 3 / 4;
+  overflow: visible;
+  fill: rgba(74, 111, 216, 0.07);
+  stroke: rgba(127, 156, 240, 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  rotate: var(--r);
+}
+
+/* ---- The field ---- */
+
+.sim-tilt {
+  position: relative;
+}
+
+.sim-mat {
+  position: relative;
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.sim-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, var(--card-w));
+  grid-template-rows: 0 0 repeat(3, var(--card-h));
+  gap: var(--gap-y) var(--gap-x);
+  margin-top: calc(var(--gap-y) * -2);
+}
+
+.sim-table,
+.sim-table-front,
+.sim-veins,
+.sim-rival {
+  display: none;
+}
+
+.sim-zone {
+  position: relative;
+  aspect-ratio: 59 / 86;
+}
+
+/* The glass of a zone: a little wider than the card, so the card sits in it. Under everything in the zone. */
+.sim-plate {
+  position: absolute;
+  inset: 0;
+  --cut: var(--cut-sm);
+  --edge: var(--color-line-mid);
+  --fill: var(--color-surface-100);
+  transition: scale 120ms ease-out;
+}
+
+.sim-zone:hover > .sim-plate {
+  --fill: var(--color-surface-300);
+}
+
+.sim-zone [data-tile] {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* A monster zone's mark, as on the client's field: a small triangle towards the rival. */
+.sim-arrow {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16%;
+  aspect-ratio: 1;
+  background: var(--color-line-mid);
+  clip-path: polygon(50% 18%, 100% 82%, 0 82%);
+}
+
+.sim-core {
+  grid-column: 4;
+  grid-row: 3;
+  place-self: center;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: calc(var(--card-w) * 1.16);
+  aspect-ratio: 1.155;
+  isolation: isolate;
+}
+
+/* Flat-top hexagons, edge over fill, as the client's coin. */
+.sim-core::before,
+.sim-core::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.sim-core::before {
+  inset: 0;
+  background: var(--color-steel-edge);
+}
+
+.sim-core::after {
+  inset: 2px;
+  background: var(--color-space-000);
+}
+
+.sim-core-turn {
+  font-size: calc(var(--card-w) * 0.2);
+}
+
+/* ---- The hand ---- */
+
+/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. */
+.sim-hand {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  width: calc(var(--card-w) * 7 + 24px);
+  max-width: 100%;
+  min-height: var(--card-h);
+  margin: 8px auto 0;
+}
+
+.sim-hand-slot {
+  flex: 1;
+  min-width: 0;
+  max-width: var(--card-w);
+}
+
+.sim-hand-slot:last-child {
+  flex: none;
+}
+
+.sim-hand-card {
+  width: var(--card-w);
+}
+
+.sim-rival-hand {
+  display: none;
+}
+
+/* ---- Fills the stage, tilted: from `lg` ---- */
+
+@media (width >= 1024px) {
+  .sim-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--rail-w);
+    --rail-w: 340px;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .sim-field {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .sim-field > .sim-board {
+    height: 100%;
+  }
+
+  .sim-bar {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 5;
+  }
+
+  .sim-notices {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    z-index: 6;
+    width: min(560px, 60%);
+    translate: -50% 0;
+  }
+
+  .sim-life-rival {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
+    width: 176px;
+  }
+
+  .sim-life-you {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    z-index: 5;
+    width: 176px;
+  }
+
+  .sim-caption {
+    position: absolute;
+    inset: auto 0 24%;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .sim-dock {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5;
+    flex-direction: column;
+  }
+
+  .sim-rail {
+    min-height: 0;
+    border-top: 0;
+    border-left: var(--hairline) solid var(--color-line);
+  }
+
+  .sim-rail-card {
+    max-height: 38dvh;
+    overflow-y: auto;
+  }
+
+  .sim-rail-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .sim-board {
+    --gap-x: calc(var(--card-w) * 0.2);
+    --gap-y: calc(var(--card-w) * 0.15);
+    --pad-x: calc(var(--card-w) * 0.34);
+    --pad-y: calc(var(--card-w) * 0.34);
+    --tilt: 34deg;
+    --camera: calc(var(--card-w) * 20);
+    --hand-w: calc(var(--card-w) * 1.02);
+  }
+
+  .sim-board[data-fill] {
+    container-type: size;
+    height: 100%;
+    --card-w: min(150px, calc((100cqh - 150px) / 7.4), calc((100cqw - 56px) / 10.4));
+  }
+
+  .sim-tilt {
+    display: grid;
+    place-items: center;
+    perspective: var(--camera);
+    perspective-origin: 50% 12%;
+  }
+
+  .sim-board[data-fill] .sim-tilt {
+    position: absolute;
+    inset: calc(var(--card-w) * 0.1) 0 calc(var(--card-h) * 0.5);
+  }
+
+  .sim-mat {
+    transform: rotateX(var(--tilt));
+    transform-style: preserve-3d;
+    transform-origin: 50% 50%;
+  }
+
+  .sim-table,
+  .sim-table-front,
+  .sim-veins,
+  .sim-rival {
+    display: block;
+  }
+
+  .sim-table {
+    position: absolute;
+    inset: calc(var(--pad-y) * -1) calc(var(--pad-x) * -1);
+    --cut: calc(var(--card-w) * 0.34);
+    --edge: var(--color-line-strong);
+    --sw: 1.5px;
+    --fill: radial-gradient(ellipse 55% 55% at 50% 50%, rgba(30, 63, 98, 0.55), rgba(30, 63, 98, 0) 100%), var(--color-surface-100);
+    box-shadow: 0 calc(var(--card-w) * 0.5) calc(var(--card-w) * 0.9) rgba(0, 0, 0, 0.7);
+  }
+
+  /* The slab's near edge: stood up from the table's bottom side. */
+  .sim-table-front {
+    position: absolute;
+    left: calc(var(--pad-x) * -1);
+    right: calc(var(--pad-x) * -1);
+    bottom: calc(var(--pad-y) * -1);
+    height: calc(var(--card-w) * 0.26);
+    transform-origin: 50% 100%;
+    transform: rotateX(-90deg);
+    background: linear-gradient(var(--color-steel), var(--color-space-000));
+    box-shadow: inset 0 1px 0 var(--color-steel-edge);
+  }
+
+  .sim-veins {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: var(--color-azure-lift);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    opacity: 0.32;
+  }
+
+  .sim-vein-pulse {
+    stroke: var(--color-cyan);
+    stroke-width: 2;
+    stroke-dasharray: 8 92;
+    stroke-linecap: round;
+    opacity: 0;
+  }
+
+  .sim-veins path {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .sim-grid {
+    grid-template-rows: repeat(5, var(--card-h));
+    margin-top: 0;
+  }
+
+  /* Glass, wider than the card: the circuits show through it. */
+  .sim-plate {
+    inset: calc(var(--card-w) * -0.055);
+    --cut: calc(var(--card-w) * 0.14);
+    --edge: var(--color-line-mid);
+    --fill: rgba(21, 26, 46, 0.72);
+  }
+
+  .sim-zone:hover > .sim-plate {
+    --edge: var(--color-line-strong);
+    --fill: rgba(29, 36, 64, 0.82);
+  }
+
+  /* The rival's side, turned to face them. */
+  .sim-rival {
+    position: relative;
+    aspect-ratio: 59 / 86;
+  }
+
+  .sim-rival .sim-plate {
+    rotate: 180deg;
+    --edge: var(--color-line);
+    --fill: rgba(14, 18, 34, 0.6);
+  }
+
+  .sim-rival .sim-arrow {
+    rotate: 180deg;
+    opacity: 0.5;
+  }
+
+  /* Scenery: their piles never compete with the player's. */
+  .sim-rival > img {
+    opacity: 0.4;
+  }
+
+  .sim-zone [data-tile] {
+    box-shadow: 0 calc(var(--card-w) * 0.04) calc(var(--card-w) * 0.12) rgba(0, 0, 0, 0.6);
+  }
+
+  .sim-board[data-fill] .sim-hand {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 2;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    height: calc(var(--hand-w) * 86 / 59 * 0.74);
+    min-height: 0;
+    gap: 0;
+    pointer-events: none;
+  }
+
+  .sim-board[data-fill] .sim-hand-slot {
+    flex: none;
+    width: calc(var(--hand-w) * 0.86);
+    max-width: none;
+    pointer-events: auto;
+    transition: translate 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .sim-board[data-fill] .sim-hand-slot:last-child {
+    width: var(--hand-w);
+  }
+
+  .sim-board[data-fill] .sim-hand-card {
+    width: var(--hand-w);
+    transition:
+      translate 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      scale 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Lifted to read it, and the cards after it step aside. */
+  .sim-board[data-fill] .sim-hand-slot:hover {
+    z-index: 3;
+  }
+
+  .sim-board[data-fill] .sim-hand-slot:hover .sim-hand-card,
+  .sim-board[data-fill] .sim-hand-slot:focus-within .sim-hand-card {
+    translate: 0 -30%;
+    scale: 1.1;
+  }
+
+  .sim-board[data-fill] .sim-hand-slot:hover ~ .sim-hand-slot {
+    translate: calc(var(--hand-w) * 0.2) 0;
+  }
+
+  .sim-board[data-fill] .sim-rival-hand {
+    position: absolute;
+    top: calc(var(--card-h) * -0.42);
+    left: 50%;
+    z-index: 1;
+    display: flex;
+    translate: -50% 0;
+  }
+
+  .sim-rival-hand > span {
+    position: relative;
+    display: block;
+    width: calc(var(--card-w) * 0.62);
+    aspect-ratio: 59 / 86;
+    margin-inline: calc(var(--card-w) * -0.11);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sim-shard {
+    animation: sim-drift var(--t, 24s) ease-in-out var(--d, 0s) infinite alternate;
+  }
+
+  .sim-trace-pulse {
+    animation: sim-run 7s linear var(--d, 0s) infinite;
+  }
+
+  .sim-vein-pulse {
+    animation: sim-run 6s linear var(--d, 0s) infinite;
+  }
+}
+
+@keyframes sim-drift {
+  to {
+    translate: 14px -26px;
+    rotate: calc(var(--r) + 12deg);
+  }
+}
+
+@keyframes sim-run {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+
+  8%,
+  70% {
+    opacity: 0.9;
+  }
+
+  85%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}

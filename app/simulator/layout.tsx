@@ -1,4 +1,5 @@
 import { ClientMessages } from '@i18n/client-messages'
+import './simulator.css'
 
 const Layout = ({ children }: { children: React.ReactNode }) => (
   <ClientMessages namespaces={['Simulator', 'Calculator', 'DeckEditor']}>{children}</ClientMessages>

@@ -120,30 +120,3 @@ export const History = ({ session, boards, cards, nameOf, disabled, onSeek, onSe
     </ol>
   )
 }
-
-/** The history as a drawer down the right edge, over the page and out of the board's way; the board stays in use. Escape closes it. */
-export const HistoryDrawer = ({ open, onClose, children }: { open: boolean; onClose(): void; children: React.ReactNode }) => {
-  const t = useTranslations('Simulator')
-  useEffect(() => {
-    if (!open) return
-    // not from inside a dialog or the card menu: those own their Escape
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('dialog[open], [role="menu"]') && onClose()
-    document.addEventListener('keydown', escape)
-    return () => document.removeEventListener('keydown', escape)
-  }, [open, onClose])
-  if (!open) return null
-  return (
-    <aside
-      aria-label={t('history.title')}
-      className="fixed inset-y-0 right-0 z-(--z-dock-window) flex w-[min(380px,100vw)] flex-col border-l border-line-mid bg-surface-100 shadow-lift motion-safe:animate-drawer-in"
-    >
-      <header className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-3">
-        <h3 className="display-3">{t('history.title')}</h3>
-        <Button variant="ghost" size="icon-sm" aria-label={t('history.close')} onClick={onClose} className="ml-auto max-lg:size-11">
-          <Icon name="close" />
-        </Button>
-      </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
-    </aside>
-  )
-}
