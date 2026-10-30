@@ -8,6 +8,7 @@ import { Header } from '@ui/header'
 import { Icon } from '@ui/icon'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
+import { DOWNLOAD_BUILDS, RELEASES_URL } from '@utils/const'
 import { pageMetadata } from '@utils/metadata'
 import { SystemRequirements } from './system-requirements'
 import { VipPanel } from './vip-panel'
@@ -16,16 +17,6 @@ export async function generateMetadata() {
   const t = await getTranslations('Download.meta')
   return pageMetadata({ title: t('title'), path: '/download', description: t('description') })
 }
-
-const RELEASES = 'https://github.com/duelists-unite/omega-releases/releases/download/Latest/'
-
-const BUILDS = [
-  { name: 'Windows', kind: 'EXE', file: 'Omega_Installer-Windows.exe' },
-  { name: 'Linux', kind: 'ZIP', file: 'linux-x64.zip' },
-  { name: 'Mac', kind: 'DMG', file: 'Omega_Launcher-Mac.dmg' },
-  { name: 'Android', kind: 'APK', file: 'android.apk' },
-  { name: 'iOS', kind: 'IPA', file: 'ios.ipa' },
-]
 
 const COMMUNITY = [
   { name: 'GitHub', host: 'github.com/duelists-unite', href: 'https://github.com/duelists-unite' },
@@ -58,10 +49,10 @@ const Hero = () => {
           <span className="text-ink-muted signal-sm">{t('latest')}</span>
         </div>
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4">
-          {BUILDS.map(({ name, kind, file }) => (
+          {DOWNLOAD_BUILDS.map(({ name, kind, file }) => (
             <li key={file}>
               <a
-                href={RELEASES + file}
+                href={RELEASES_URL + file}
                 className="cut notch flex min-h-38 flex-col gap-4 p-5 text-ink [--cut:var(--cut-md)] hover:-translate-y-0.5 hover:[--fill:var(--color-surface-300)] motion-safe:transition-transform motion-safe:duration-120"
               >
                 <span className="flex items-center justify-between">

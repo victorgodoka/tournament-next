@@ -186,6 +186,16 @@ export const FOOTER_MEDIA_NOTE =
 /** Launcher download page, the target of every download call to action. */
 export const DOWNLOAD_URL = "/download"
 
+export const RELEASES_URL = "https://github.com/duelists-unite/omega-releases/releases/download/Latest/"
+
+export const DOWNLOAD_BUILDS = [
+  { name: "Windows", kind: "EXE", file: "Omega_Installer-Windows.exe" },
+  { name: "Linux", kind: "ZIP", file: "linux-x64.zip" },
+  { name: "Mac", kind: "DMG", file: "Omega_Launcher-Mac.dmg" },
+  { name: "Android", kind: "APK", file: "android.apk" },
+  { name: "iOS", kind: "IPA", file: "ios.ipa" },
+]
+
 /** Browser deck builder and its companion tools, hosted on the tournament site. */
 export const DECK_BUILDER_URL = "/deck-builder"
 

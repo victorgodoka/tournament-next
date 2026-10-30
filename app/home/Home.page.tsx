@@ -11,6 +11,7 @@ import { Header } from "@ui/header";
 import { Icon } from "@ui/icon";
 import {
   DECK_BUILDER_URL,
+  DOWNLOAD_BUILDS,
   DOWNLOAD_URL,
   FORMATS_SUPPORTED,
   HOME_AUTO_TOURNAMENT_FAQ,
@@ -21,6 +22,7 @@ import {
   HOME_MODES,
   HOME_NAVBAR_ITEMS,
   HOME_TOOLS,
+  RELEASES_URL,
 } from "@utils/const";
 import { getLatestArticles } from "@utils/articles";
 import { getTopDecks } from "@utils/global-explorer";
@@ -139,6 +141,15 @@ const Hero = ({ ranked }: { ranked: Ranked }) => (
             <Download size="lg" />
             <DownloadNote />
           </div>
+          {/* Keeps #downloads alive: Google sitelinks and old links still point here. */}
+          <p id="downloads" className={twMerge(NOTE, "flex scroll-mt-16 flex-wrap items-center gap-x-4")}>
+            Direct download:
+            {DOWNLOAD_BUILDS.map(({ name, kind, file }) => (
+              <a key={file} href={RELEASES_URL + file} className="py-1.5 text-ink-dim underline underline-offset-4 hover:text-ink">
+                {name} {kind}
+              </a>
+            ))}
+          </p>
         </div>
         <Suspense fallback={<CardFan />}>
           <LiveCardFan ranked={ranked} />
