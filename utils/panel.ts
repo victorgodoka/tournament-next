@@ -533,6 +533,8 @@ export type Series = {
   archetypes: { code: number; name: string | null; keep: boolean }[]
   cards: CardRef[]
   mentions: CardRef[]
+  /** The pinned cover, any card. null: first mention, then most included of the first child, of the overridden setcode, first card. */
+  cover: CardRef | null
   updatedAt: string
   /** `GET /panel/series/{id}` only: what it takes today, direct + resolved mentions. */
   members?: CardRef[]
@@ -546,6 +548,7 @@ export type SeriesBody = {
   archetypes?: { code: number; keep: boolean }[]
   cards?: number[]
   mentions?: number[]
+  cover?: number | null
 }
 
 export const listSeries = (signal?: AbortSignal) =>
