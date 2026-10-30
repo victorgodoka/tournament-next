@@ -8,7 +8,7 @@ import { API_URL } from '@utils/auth'
 import { searchCardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
 import { cardLoader } from '@utils/image-loader'
-import { DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
+import { CODE_LANGUAGES, DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type CodeLanguage, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
 import { Check, FieldHead, Frame, Help, INPUT, type Tone } from './ui'
 
@@ -480,6 +480,20 @@ export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFields
         </div>
       )
 
+    case 'code':
+      return (
+        <div className="flex flex-col gap-4">
+          <Segmented
+            label="Language"
+            value={block.lang}
+            options={(Object.keys(CODE_LANGUAGES) as CodeLanguage[]).map((value) => ({ value, label: CODE_LANGUAGES[value] }))}
+            onChange={(lang) => onChange({ ...block, lang })}
+          />
+          <TextField label="Code" mono rows={6} value={block.code} maxLength={DOC_LIMITS.md} onChange={(code) => onChange({ ...block, code })} />
+          <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
+        </div>
+      )
+
     case 'video':
       return <VideoFields block={block} onChange={onChange} />
 
@@ -653,6 +667,8 @@ export const blockSummary = (block: WikiBlock) => {
     case 'heading':
     case 'quote':
       return block.text
+    case 'code':
+      return `${CODE_LANGUAGES[block.lang]} · ${block.code.replace(/\s+/g, ' ').slice(0, 80)}`
     case 'figure':
       return [block.asset || 'no image', block.align, block.mobileAsset && 'mobile image', block.share && 'share'].filter(Boolean).join(' · ')
     case 'gallery':

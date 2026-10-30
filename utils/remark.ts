@@ -146,9 +146,13 @@ const ARTICLE_CLASSES = {
   'th': 'px-3.5 py-2.5 text-left signal-sm',
   'tbody': 'divide-y divide-line',
   'td': 'px-3.5 py-3 text-ink-dim body-sm',
-  'code': 'border border-line bg-surface-200 px-1.5 py-px text-cyan mono-note',
+  ':not(pre) > code': 'border border-line bg-surface-200 px-1.5 py-px text-cyan mono-note',
   'pre': 'my-4 overflow-x-auto border border-line bg-surface-200 p-4',
-  'pre code': 'border-none bg-transparent p-0 text-ink-dim',
+  'pre code': 'font-mono text-sm text-ink-dim',
+  '.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-type': 'text-cyan',
+  '.hljs-string, .hljs-regexp': 'text-win',
+  '.hljs-number, .hljs-variable, .hljs-template-variable, .hljs-attr': 'text-gold',
+  '.hljs-comment, .hljs-meta': 'italic text-ink-muted',
   'img': 'my-4 max-w-full border border-line',
 }
 
@@ -192,6 +196,23 @@ const toReact = (node: HastNode, key?: number): ReactNode => {
   return VOID.has(node.tagName) ? createElement(node.tagName, props) : createElement(node.tagName, props, ...children)
 }
 
+/** Fences with a known language become `hljs-*` spans, coloured in `ARTICLE_CLASSES`. Any other stays plain text. */
+const rehypeHighlight = () => async (tree: HastNode) => {
+  const fences: HastNode[] = []
+  const walk = (node: HastNode) => {
+    if (node.tagName === 'code') fences.push(node)
+    node.children?.forEach(walk)
+  }
+  walk(tree)
+  if (!fences.length) return
+  const { lowlight } = await import('./code-highlight')
+  for (const code of fences) {
+    const language = String(code.properties?.className ?? '').match(/language-(\S+)/)?.[1]
+    const text = code.children?.[0]?.value
+    if (language && text && lowlight.registered(language)) code.children = lowlight.highlight(language, text).children as HastNode[]
+  }
+}
+
 /** The same pipeline as `toHtml`, stopped at the sanitized tree and turned into React nodes. */
 const toNodes = async (markdownText: string, classes: Record<string, string>): Promise<ReactNode> => {
   const processor = unified()
@@ -200,6 +221,7 @@ const toNodes = async (markdownText: string, classes: Record<string, string>): P
     .use(remarkBreaks)
     .use(remarkColor)
     .use(remarkRehype)
+    .use(rehypeHighlight)
     .use(rehypeClassNames, classes)
     .use(rehypeSanitize, customSanitizeSchema)
   const tree = await processor.run(processor.parse(markdownText))
@@ -208,3 +230,9 @@ const toNodes = async (markdownText: string, classes: Record<string, string>): P
 
 /** Wiki Markdown (text, callout, FAQ answers, legacy bodies) as React nodes. */
 export const renderArticle = (markdownText: string) => toNodes(markdownText, ARTICLE_CLASSES)
+
+/** A wiki code block: literal text in a fence longer than any backtick run inside it, so nothing in it reads as Markdown. */
+export const renderCode = (code: string, language: string) => {
+  const fence = '`'.repeat(Math.max(3, ...(code.match(/`+/g) ?? []).map((run) => run.length + 1)))
+  return renderArticle(`${fence}${language}\n${code}\n${fence}`)
+}

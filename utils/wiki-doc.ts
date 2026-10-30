@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from 'react'
 import { cardsByIds } from '@utils/cards'
-import { renderArticle } from '@utils/remark'
+import { renderArticle, renderCode } from '@utils/remark'
 import type { WikiCard } from '@utils/wiki'
 
 /** Bump on any breaking change to a block; the reader migrates old docs up before rendering. */
@@ -42,6 +42,19 @@ export type CardsAlign = 'left' | 'center' | 'right'
 
 export type WikiCardRef = { id: number; name: string; note?: string }
 
+/** What a code block can be coloured as, in the order the editor lists them. `text` stays plain. */
+export const CODE_LANGUAGES = {
+  bash: 'Bash',
+  powershell: 'PowerShell',
+  cmd: 'CMD',
+  json: 'JSON',
+  lua: 'Lua',
+  sql: 'SQL',
+  text: 'Plain',
+} as const
+
+export type CodeLanguage = keyof typeof CODE_LANGUAGES
+
 /** Every block carries a stable `id`: editors reorder and diff by it, and it anchors comments later. */
 export type WikiBlock =
   | { id: string; type: 'text'; md: string }
@@ -53,6 +66,8 @@ export type WikiBlock =
   | { id: string; type: 'cards'; cards: WikiCardRef[]; perRow?: number; align?: CardsAlign; caption?: string }
   | { id: string; type: 'callout'; tone: CalloutTone; title?: string; md: string }
   | { id: string; type: 'quote'; text: string; cite?: string }
+  /** Literal text, never Markdown: `<` and backticks are fine here. */
+  | { id: string; type: 'code'; lang: CodeLanguage; code: string; caption?: string }
   /**
    * YouTube only. `start` in seconds. Nothing loads from YouTube until the reader presses play.
    * `uploadDate` (`YYYY-MM-DD`) is the day it went up on YouTube: without it there is no video rich result.
@@ -140,6 +155,7 @@ export const BLOCK_CATALOG: { type: WikiBlockType; label: string; hint: string }
   { type: 'cards', label: 'Cards', hint: 'Card links' },
   { type: 'callout', label: 'Callout', hint: 'Rule · warning' },
   { type: 'quote', label: 'Quote', hint: 'With source' },
+  { type: 'code', label: 'Code', hint: 'Coloured by language' },
   { type: 'video', label: 'Video', hint: 'YouTube' },
   { type: 'faq', label: 'FAQ', hint: 'Questions → FAQPage' },
 ]
@@ -162,6 +178,8 @@ export const emptyBlock = (type: WikiBlockType, id: string): WikiBlock => {
       return { id, type, tone: 'gold', md: '' }
     case 'quote':
       return { id, type, text: '' }
+    case 'code':
+      return { id, type, lang: 'bash', code: '' }
     case 'video':
       return { id, type, videoId: '', title: '' }
     case 'faq':
@@ -416,6 +434,12 @@ export const validateDoc = (doc: WikiDoc): string[] => {
       case 'quote':
         if (!block.text.trim()) problems.push(`${where} has no text.`)
         return
+      case 'code':
+        if (!block.code.trim()) problems.push(`${where} has no code.`)
+        if (block.code.length > DOC_LIMITS.md) problems.push(`${where} is over ${DOC_LIMITS.md.toLocaleString('en-US')} characters.`)
+        if (!(block.lang in CODE_LANGUAGES)) problems.push(`${where} needs a language.`)
+        plain(block.caption, `${where} caption`, DOC_LIMITS.short)
+        return
       case 'video':
         if (!YOUTUBE_ID.test(block.videoId)) problems.push(`${where} needs a YouTube link.`)
         if (!block.title.trim()) problems.push(`${where} needs a title (screen readers announce it).`)
@@ -470,6 +494,9 @@ export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
   const linkCards = (md: string) =>
     md.replace(CARD_TAG, (_, id: string) => `[${(cards.get(Number(id))?.name ?? id).replace(/[\\[\]*_`]/g, '\\$&')}](/wiki/card/${id})`)
 
-  const entries = await Promise.all(sources.map(([key, md]) => renderArticle(linkCards(md)).then((html) => [key, html] as const)))
+  const entries = await Promise.all([
+    ...sources.map(([key, md]) => renderArticle(linkCards(md)).then((html) => [key, html] as const)),
+    ...doc.blocks.flatMap((block) => (block.type === 'code' ? [renderCode(block.code, block.lang).then((html) => [block.id, html] as const)] : [])),
+  ])
   return Object.fromEntries(entries)
 }

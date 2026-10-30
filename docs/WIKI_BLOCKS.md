@@ -13,7 +13,7 @@
 - A página pública renderiza **só** a partir do JSON. Mesmo JSON ⇒ mesma página, pixel a pixel. Não existe estado de layout fora dele.
 - O Markdown não sumiu: ele vive **dentro** dos blocos `text` e `callout`, com as mesmas regras de hoje (sem HTML cru, links só `http(s)` ou caminho interno).
 - Artigos antigos (só `body`) continuam funcionando: `doc: null` ⇒ o front usa o renderer de Markdown de sempre. O `/edit` deles tem um botão que converte para blocos no navegador (§10.1).
-- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `callout`, `quote`, `video`.
+- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `callout`, `quote`, `code`, `video`.
 - O rascunho automático fica no navegador e não exige nada do back (§10.2).
 
 ---
@@ -267,6 +267,7 @@ O front roda `validateDoc` antes de salvar, mas isso é só para mensagens legí
 | `cards` | `cards: { id, name, note? }[]`, `caption?` | 1–12 cartas; `name` 1–300 |
 | `callout` | `tone: 'gold' \| 'cyan' \| 'negative'`, `title?`, `md` | Markdown, §5.2 |
 | `quote` | `text`, `cite?` | `text` 1–300 |
+| `code` | `lang: 'bash' \| 'powershell' \| 'cmd' \| 'json' \| 'lua' \| 'sql' \| 'text'`, `code`, `caption?` | `code` 1–20 000, texto literal: `<` e crases são permitidos, nada ali é Markdown nem HTML |
 | `video` | `videoId`, `title`, `start?`, `caption?` | `videoId` `^[A-Za-z0-9_-]{11}$` (só YouTube); `title` 1–300 (é o nome acessível do player); `start` inteiro ≥ 0, em segundos |
 
 **Sobre o `video`:** o doc guarda só o **id**, nunca a URL. O editor aceita qualquer link (`watch?v=`, `youtu.be/`, `shorts/`, `embed/`, com `t=1m30s` ou `start=90`) e extrai id e início com `parseYouTube`. A página mostra a miniatura (`i.ytimg.com/vi/{id}/hqdefault.jpg`) e só cria o iframe `youtube-nocookie.com/embed/{id}` quando o leitor aperta play. Até esse clique, nada de script, cookie ou player do YouTube carrega. Se um dia houver CSP, ela precisa liberar `frame-src https://www.youtube-nocookie.com` e `img-src https://i.ytimg.com`.

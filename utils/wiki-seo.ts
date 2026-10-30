@@ -58,6 +58,7 @@ const blockText = (block: WikiBlock): string => {
     case 'figure':
     case 'gallery':
     case 'cards':
+    case 'code':
       return block.caption ?? ''
     case 'video':
       return block.caption ?? ''

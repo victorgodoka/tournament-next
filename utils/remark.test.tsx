@@ -1,8 +1,27 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { renderArticle } from './remark'
+import { renderArticle, renderCode } from './remark'
 
 const html = async (md: string) => renderToStaticMarkup(<>{await renderArticle(md)}</>)
+
+describe('code', () => {
+  it('colours a fence in a known language and keeps its text', async () => {
+    const page = renderToStaticMarkup(<>{await renderCode('echo "hi" # say', 'bash')}</>)
+    expect(page).toMatch(/<span class="hljs-string [^"]*text-win[^"]*">&quot;hi&quot;<\/span>/)
+    expect(page).toMatch(/<span class="hljs-comment [^"]*">/)
+    expect(page.replace(/<[^>]+>/g, '')).toBe('echo &quot;hi&quot; # say\n')
+  })
+
+  it('leaves plain text and an unknown language uncoloured', async () => {
+    for (const language of ['text', 'klingon']) expect(renderToStaticMarkup(<>{await renderCode('echo hi', language)}</>)).not.toContain('hljs')
+  })
+
+  it('never reads a code block as Markdown or HTML', async () => {
+    const page = renderToStaticMarkup(<>{await renderCode('```\n<script>**x** [a](b)', 'text')}</>)
+    expect(page).toContain('&lt;script&gt;**x** [a](b)')
+    expect(page).not.toContain('<strong')
+  })
+})
 
 describe('article classes', () => {
   it('survive the sanitizer on tags with their own className rule', async () => {

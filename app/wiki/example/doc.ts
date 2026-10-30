@@ -108,6 +108,13 @@ export const EXAMPLE_DOC: WikiDoc = {
       text: 'You never play a Sky Striker card. You play the card your opponent just did, one turn later.',
       cite: 'Omega community saying',
     },
+    {
+      id: 'b13code',
+      type: 'code',
+      lang: 'bash',
+      code: '# Reset the settings from a terminal\n./YGO\\ Omega --reset',
+      caption: 'Literal text, coloured by language.',
+    },
     { id: 'b13a', type: 'heading', level: 3, text: 'See it played', anchor: 'see-it-played' },
     {
       id: 'b13b',

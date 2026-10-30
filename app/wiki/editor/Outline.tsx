@@ -1,7 +1,7 @@
 'use client'
 
 import { twMerge } from 'tailwind-merge'
-import { BLOCK_CATALOG, type WikiBlock, type WikiBlockType } from '@utils/wiki-doc'
+import { BLOCK_CATALOG, CODE_LANGUAGES, type WikiBlock, type WikiBlockType } from '@utils/wiki-doc'
 import { Flag, Help, Panel } from './ui'
 
 const ALIGN = { left: 'float left', right: 'float right', center: 'centre', wide: 'wide' } as const
@@ -24,6 +24,8 @@ const outlineLabel = (block: WikiBlock, first: boolean) => {
       return `Callout · ${TONE[block.tone]}`
     case 'quote':
       return 'Quote'
+    case 'code':
+      return `Code · ${CODE_LANGUAGES[block.lang]}`
     case 'video':
       return `Video · ${block.title || 'untitled'}`
     case 'faq':

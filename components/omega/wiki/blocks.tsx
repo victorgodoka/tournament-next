@@ -164,6 +164,14 @@ const Block = ({ block, assets, html, share }: BlockProps) => {
         </figure>
       )
 
+    case 'code':
+      return (
+        <figure className="clear-both my-6">
+          <Markdown html={html[block.id]} className="[&_pre]:my-0" />
+          <Caption>{block.caption}</Caption>
+        </figure>
+      )
+
     case 'video':
       return (
         <figure className="clear-both my-7">
