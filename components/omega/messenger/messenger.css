@@ -375,6 +375,8 @@ a.oh-song:hover { color: var(--ink); text-decoration: underline; }
 /* Dock */
 .oh-dock { position: fixed; right: 16px; bottom: 0; z-index: var(--z-dock); display: flex; align-items: flex-end; gap: 12px; pointer-events: none; font-family: var(--font-sans); color: var(--ink); }
 .oh-dock > * { pointer-events: auto; }
+/* Nitro's rails sit at z-index 2147483644, over this whole scale: an open dock climbs past them, or the ad covers the chat. */
+@media (min-width: 1366px) { .oh-dock:has(.oh-dock-panel.is-open, .oh-dock-wins > *) { z-index: 2147483645; } }
 .oh-dock-wins { display: flex; align-items: flex-end; gap: 12px; }
 .oh-dock-panel { --cut: var(--cut-md); --edge: var(--line-mid); --fill: var(--surface-100); width: 336px; display: flex; flex-direction: column; filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.5)); }
 .oh-dock-panel.is-open { height: min(620px, calc(100vh - 72px)); }
