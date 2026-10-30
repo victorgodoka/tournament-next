@@ -9,6 +9,7 @@ import {
   NITRO_AD_SLOT_IDS,
   RAIL_LEFT_AD_OPTIONS,
   RAIL_RIGHT_AD_OPTIONS,
+  RAIL_RIGHT_DOCK_AD_OPTIONS,
 } from '@utils/nitro-ads.const'
 import { Ads } from './ads'
 
@@ -79,10 +80,10 @@ describe('Ads', () => {
     expect(optionsOf(NITRO_AD_SLOT_IDS.anchor)).toBe(ANCHOR_AD_OPTIONS)
   })
 
-  it('keeps a signed-in reader off the right side, where the messenger dock lives', async () => {
+  it('keeps a signed-in reader\'s right rail clear of the messenger dock, and the anchor on phones', async () => {
     await show(free, '/decks')
-    expect(created()).not.toContain(NITRO_AD_SLOT_IDS.railRight)
-    expect(created()).toHaveLength(4)
+    expect(created().sort()).toEqual([...ALL].sort())
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railRight)).toEqual({ ...RAIL_RIGHT_DOCK_AD_OPTIONS, sizes: [[160, 600]] })
     expect(optionsOf(NITRO_AD_SLOT_IDS.anchor)).toBe(ANCHOR_MOBILE_AD_OPTIONS)
   })
 

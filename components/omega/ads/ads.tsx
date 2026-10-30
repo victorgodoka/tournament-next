@@ -14,6 +14,7 @@ import {
   NITRO_AD_SLOT_IDS,
   RAIL_LEFT_AD_OPTIONS,
   RAIL_RIGHT_AD_OPTIONS,
+  RAIL_RIGHT_DOCK_AD_OPTIONS,
   RAIL_WIDE_MIN_WIDTH,
 } from '@utils/nitro-ads.const'
 import type { NitroAdOptions, NitroRailAdOptions } from '@utils/nitro-ads.types'
@@ -38,11 +39,12 @@ const fitRail = (options: NitroRailAdOptions) => (): NitroRailAdOptions =>
   document.body.clientWidth >= RAIL_WIDE_MIN_WIDTH ? options : { ...options, sizes: [[160, 600]] }
 const RAIL_LEFT = fitRail(RAIL_LEFT_AD_OPTIONS)
 const RAIL_RIGHT = fitRail(RAIL_RIGHT_AD_OPTIONS)
+const RAIL_RIGHT_DOCK = fitRail(RAIL_RIGHT_DOCK_AD_OPTIONS)
 
 /**
  * The site-wide placements. A VIP, or anyone while /auth/me is in flight, gets nothing, not even
- * the script. Signed in, the messenger dock owns the bottom-right from 640px up, so no right rail
- * and the anchor stays on phones.
+ * the script. Signed in, the messenger dock owns the bottom-right from 640px up, so the right rail
+ * keeps clear of it and the anchor stays on phones.
  */
 export const Ads = () => {
   const { user } = useAuth()
@@ -68,9 +70,11 @@ export const Ads = () => {
       <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={RAIL_LEFT} />
       {mode === 'all' ? (
         <>
-          {signedOut ? (
-            <Placement key={NITRO_AD_SLOT_IDS.railRight} id={NITRO_AD_SLOT_IDS.railRight} options={RAIL_RIGHT} />
-          ) : null}
+          <Placement
+            key={NITRO_AD_SLOT_IDS.railRight}
+            id={NITRO_AD_SLOT_IDS.railRight}
+            options={signedOut ? RAIL_RIGHT : RAIL_RIGHT_DOCK}
+          />
           <Placement
             key={NITRO_AD_SLOT_IDS.anchor}
             id={NITRO_AD_SLOT_IDS.anchor}
