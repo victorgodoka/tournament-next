@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@ui/button/button.component'
@@ -75,6 +76,9 @@ const Hero = () => {
             </li>
           ))}
         </ul>
+        <Link href="/wiki/omega-install-guide" className="flex items-center gap-2 self-end text-cyan signal-sm hover:text-ink">
+          {t('guide')} <Icon name="arrow" />
+        </Link>
       </div>
     </section>
   )

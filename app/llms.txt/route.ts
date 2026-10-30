@@ -3,7 +3,7 @@ import { SITE_URL } from '@utils/config'
 /** https://llmstxt.org: what the site is and where its pages are, for language models. Static at build. */
 const LLMS = `# YGO Omega
 
-> Free Yu-Gi-Oh! simulator by Duelists Unite: every card unlocked, Bo3 ranked with Elo, automatic Swiss tournaments, and TCG, OCG, GOAT and Edison formats. Runs on Windows, macOS, Linux and Android.
+> Free Yu-Gi-Oh! simulator by Duelists Unite: every card unlocked, Bo3 ranked with Elo, automatic Swiss tournaments, and TCG, OCG, GOAT and Edison formats. Runs on Windows, macOS, Linux, Android and iOS.
 
 ## Pages
 

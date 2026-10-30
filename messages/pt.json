@@ -380,7 +380,8 @@
       "lead": "O simulador definitivo de Yu-Gi-Oh!.",
       "github": "Ver projeto no GitHub",
       "platforms": "Baixe para o seu sistema",
-      "latest": "Versão mais recente"
+      "latest": "Versão mais recente",
+      "guide": "Guia de instalação passo a passo"
     },
     "specs": {
       "heading": "Requisitos de sistema",

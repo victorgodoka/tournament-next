@@ -11,7 +11,10 @@ import { createElement, Fragment, type ReactNode } from 'react';
 const customSanitizeSchema = {
   ...defaultSchema,
   attributes: {
-    ...defaultSchema.attributes,
+    // A tag's own `className` rule beats `*`: the defaults' would strip our classes from a, code, ol, ul and li.
+    ...Object.fromEntries(
+      Object.entries(defaultSchema.attributes ?? {}).map(([tag, rules]) => [tag, rules.filter((rule) => !Array.isArray(rule) || rule[0] !== 'className')]),
+    ),
     // Every tag keeps the classes rehype-class-names put on it.
     '*': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
     // Nothing but a hex reaches `style`: see `toReact`.
@@ -130,9 +133,12 @@ const ARTICLE_CLASSES = {
   'del': 'text-ink-muted line-through',
   'a': 'text-cyan underline underline-offset-2 hover:text-cyan',
   'ul': 'mb-4 flow-root last:mb-0 list-none p-0',
-  'ol': 'mb-4 flow-root last:mb-0 list-decimal pl-5 text-ink-dim marker:font-mono marker:text-cyan',
-  'li': 'relative text-ink-dim body [&+li]:mt-1.5',
-  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-cyan before:content-['']",
+  'ol': 'mb-5 flow-root last:mb-0 list-none p-0',
+  'li': 'relative text-ink-dim body',
+  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-cyan before:content-[''] [&+li]:mt-1.5",
+  // A numbered list reads as steps: notched number, rule down to the next one. `list-item` is the browser's own counter, so `start` still holds.
+  'ol > li':
+    "min-h-8 pt-1 pb-4 pl-11 last:pb-0 before:absolute before:top-0 before:left-0 before:flex before:size-8 before:items-center before:justify-center before:bg-ground-cyan before:font-mono before:text-sm before:text-cyan before:[clip-path:polygon(0_0,calc(100%-var(--cut-sm))_0,100%_var(--cut-sm),100%_100%,0_100%)] before:content-[counter(list-item)] after:absolute after:top-8 after:bottom-0 after:left-4 after:w-px after:bg-line-mid after:content-[''] last:after:hidden",
   'hr': 'my-7 h-px w-full border-none bg-line',
   'blockquote': 'my-4 border-l-2 border-cyan bg-ground-cyan py-2 pl-4 text-ink-dim italic',
   'table': 'my-5 w-full border border-line',

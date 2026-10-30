@@ -1,0 +1,292 @@
+{
+  "slug": "omega-install-guide",
+  "published": false,
+  "doc": {
+    "v": 1,
+    "title": "YGO Omega Install Guide",
+    "summary": "YGO Omega install guide for Windows, Mac, Linux, Android and iOS: which file to download, the first launch, Discord authorization, and how to fix a blank online screen.",
+    "tags": ["install", "download", "guide", "windows", "mac", "android", "ios", "troubleshooting"],
+    "cover": {
+      "asset": "omega-duel"
+    },
+    "infobox": {
+      "asset": "omega-hero",
+      "caption": "YGO Omega, the free Yu-Gi-Oh! simulator by Duelists Unite",
+      "facts": [
+        { "label": "Price", "value": "Free" },
+        { "label": "Developer", "value": "Duelists Unite" },
+        { "label": "Platforms", "value": "Windows\nmacOS\nLinux\nAndroid\niOS" },
+        { "label": "Online play", "value": "Needs Discord" },
+        { "label": "Storage", "value": "4 GB minimum\n6 GB recommended" },
+        { "label": "Help", "value": "Omega-help channel on Discord" },
+        { "label": "Updated", "value": "October 30, 2026" }
+      ]
+    },
+    "blocks": [
+      {
+        "id": "intro",
+        "type": "text",
+        "md": "This YGO Omega install guide covers every platform. To install **YGO Omega**, open the [download page](/download), get the file for your system, run it and let the first update finish. Then press **Online** and authorize the game in Discord. The game is free and every card is unlocked from the first launch.\n\nWindows, Mac and Android take a few minutes. iOS needs a computer, because the game isn't on the App Store and has to be sideloaded. If you're already installed and just want to play, the [Beginner's Guide](/wiki/beginner-s-guide-to-ygo-omega) picks up from your first deck."
+      },
+      {
+        "id": "h-platforms",
+        "type": "heading",
+        "level": 2,
+        "text": "YGO Omega install guide by platform",
+        "anchor": "install-by-platform"
+      },
+      {
+        "id": "platforms",
+        "type": "text",
+        "md": "Every build is on the [download page](/download). It always points at the latest release, which is also published on [GitHub](https://github.com/duelists-unite/omega-releases/releases/tag/Latest).\n\n| Platform | File | Minimum system | Memory |\n|---|---|---|---|\n| Windows | `Omega_Installer-Windows.exe` | Windows 10, DirectX 11 | 2 GB |\n| macOS | `Omega_Launcher-Mac.dmg` | macOS 10.13 | 4 GB |\n| Linux | `linux-x64.zip` | Latest Linux revision | 4 GB |\n| Android | `android.apk` | Android 5.1 | 3 GB |\n| iOS | `ios.ipa` | iOS 12, Apple A10 Fusion | 3 GB |\n\nEvery platform needs at least **4 GB of free space**, and 6 GB is recommended. On desktop, the minimum graphics are Intel HD Graphics 3000 and the minimum resolution is 1280 x 720. The [download page](/download) lists the recommended specs."
+      },
+      {
+        "id": "h-windows",
+        "type": "heading",
+        "level": 2,
+        "text": "How to install YGO Omega on Windows",
+        "anchor": "install-on-windows"
+      },
+      {
+        "id": "windows",
+        "type": "text",
+        "md": "1. Install the [Discord](https://discord.com/download) desktop app and leave it running. The game needs it to go online.\n2. Download `Omega_Installer-Windows.exe` from the [download page](/download).\n3. Run the installer and follow the prompts.\n4. Open YGO Omega and let it update.\n\nThe installer is optional, because the Omega Launcher alone can install the whole game. It's still the better choice for most players: it adds the Windows Firewall exceptions, checks for updates and lets you uninstall from the Control Panel."
+      },
+      {
+        "id": "h-mac",
+        "type": "heading",
+        "level": 2,
+        "text": "How to install YGO Omega on Mac",
+        "anchor": "install-on-mac"
+      },
+      {
+        "id": "mac",
+        "type": "text",
+        "md": "1. Download `Omega_Launcher-Mac.dmg` from the [download page](/download) and move the app to Applications.\n2. On an Apple silicon Mac (M1, M2 or later), right-click the app and choose **Get Info**.\n3. Check **Open using Rosetta**. Intel Macs can skip this step.\n4. Open the app and let it update.\n\nIf the game won't start, reset it from Terminal. This assumes it's in Applications:\n\n```bash\ncd /Applications/YGO\\ Omega/YGO\\ Omega.app/Contents/MacOS\n./YGO\\ Omega --reset\n```\n\nOpen the game, close it, then open the updater again."
+      },
+      {
+        "id": "h-linux",
+        "type": "heading",
+        "level": 2,
+        "text": "How to install YGO Omega on Linux",
+        "anchor": "install-on-linux"
+      },
+      {
+        "id": "linux",
+        "type": "text",
+        "md": "1. Download `linux-x64.zip` from the [download page](/download).\n2. Extract it to a folder your user can write to, since the game updates itself there.\n3. Run the game from that folder and let it update.\n\nDiscord has to be running for online play, the same as on Windows. For distro-specific problems, ask in the Omega-help channel."
+      },
+      {
+        "id": "h-android",
+        "type": "heading",
+        "level": 2,
+        "text": "How to install YGO Omega on Android",
+        "anchor": "install-on-android"
+      },
+      {
+        "id": "android",
+        "type": "text",
+        "md": "1. Download `android.apk` from the [download page](/download) on your phone or tablet.\n2. Open the file. If Android blocks it, allow installs from that app when prompted.\n3. Open YGO Omega and let it update.\n\nIf you drop offline during duels, turn off **Battery Optimization** for the game, or the setting that closes apps in the background. The name changes between phone makers, so search for your model if you can't find it."
+      },
+      {
+        "id": "h-ios",
+        "type": "heading",
+        "level": 2,
+        "text": "How to install YGO Omega on iOS",
+        "anchor": "install-on-ios"
+      },
+      {
+        "id": "ios",
+        "type": "text",
+        "md": "YGO Omega isn't on the App Store, so you sideload `ios.ipa` with a Mac or PC. Try AltStore first, and use Sideloadly if it fails."
+      },
+      {
+        "id": "ios-windows",
+        "type": "callout",
+        "tone": "gold",
+        "title": "Windows PC?",
+        "md": "Install iTunes and iCloud from Apple's website, **not** the Microsoft Store. AltStore doesn't work with the Store versions."
+      },
+      {
+        "id": "h-altstore",
+        "type": "heading",
+        "level": 3,
+        "text": "Install with AltStore",
+        "anchor": "ios-altstore"
+      },
+      {
+        "id": "altstore",
+        "type": "text",
+        "md": "1. Download [AltStore](https://altstore.io/), install AltServer on your computer, then use AltServer to install AltStore on your phone.\n2. On your phone, download [`ios.ipa`](https://github.com/duelists-unite/omega-releases/releases/download/Latest/ios.ipa).\n3. Open AltStore, go to **My Apps**, press **+** and select `ios.ipa`.\n\nIf a step fails, the [AltStore FAQ](https://altstore.io/faq/) covers the common errors."
+      },
+      {
+        "id": "h-sideloadly",
+        "type": "heading",
+        "level": 3,
+        "text": "Install with Sideloadly",
+        "anchor": "ios-sideloadly"
+      },
+      {
+        "id": "sideloadly",
+        "type": "text",
+        "md": "1. Install [Sideloadly](https://sideloadly.io/) on your computer.\n2. Download [`ios.ipa`](https://github.com/duelists-unite/omega-releases/releases/download/Latest/ios.ipa) to the computer, not the phone.\n3. Connect the phone, open Sideloadly and press **Trust** on the phone when asked.\n4. Select the phone, add your Apple account and drag `ios.ipa` into Sideloadly.\n5. Press **Start** and sign in to your Apple account when prompted.\n6. On the phone, open **Settings > General > VPN & Device Management**, tap your Apple email under Developer App, then tap **Trust**.\n\nThe app has to be re-signed **every 7 days**, and it stops opening when that's due. Connect the phone and press **Start** again. The [Sideloadly FAQ](https://sideloadly.io/#faq) covers install errors."
+      },
+      {
+        "id": "h-online",
+        "type": "heading",
+        "level": 2,
+        "text": "Go online for the first time",
+        "anchor": "go-online"
+      },
+      {
+        "id": "online",
+        "type": "text",
+        "md": "1. Launch the game and let the first update finish. It's about 2.9 GB, so use a stable connection.\n2. From the main menu, click **Online**.\n3. Discord asks you to authorize YGO Omega. Accept it. **You can't play online without this step.**\n\nIf you land on a blank background or get disconnected, work through the next section."
+      },
+      {
+        "id": "h-fix",
+        "type": "heading",
+        "level": 2,
+        "text": "Fix a blank screen or a disconnect",
+        "anchor": "fix-online-problems"
+      },
+      {
+        "id": "fix",
+        "type": "text",
+        "md": "Try these in order:\n\n1. **Check the Discord authorization.** If you missed or denied the prompt, close YGO Omega and Discord, open Discord first, then open the game and accept.\n2. **Check your firewall.** The installer only adds exceptions to Windows Firewall. Any other antivirus or firewall needs a manual exception for YGO Omega.\n3. **On Android, check battery settings.** Turn off Battery Optimization for the game, as in the [Android section](#install-on-android).\n4. **Ask in Omega-help.** The channel is on the [Duelists Unite Discord](https://discord.gg/duelistsunite)."
+      },
+      {
+        "id": "no-reinstall",
+        "type": "callout",
+        "tone": "negative",
+        "title": "Don't reinstall first",
+        "md": "A fresh install can add new problems on top of the old one. Ask in the Omega-help channel before you reinstall, and only do it if the help staff tell you to."
+      },
+      {
+        "id": "bugs",
+        "type": "text",
+        "md": "If a card behaves wrong, that's a bug rather than an install problem. Confirm it with a judge in the Discord Rulings channel, then follow the steps in [Bug Reports](/wiki/bug-reports-how-to-report-a-ygo-omega-bug)."
+      },
+      {
+        "id": "h-settings",
+        "type": "heading",
+        "level": 2,
+        "text": "Settings to change after you install",
+        "anchor": "first-settings"
+      },
+      {
+        "id": "settings",
+        "type": "text",
+        "md": "The defaults work on most machines. If the game runs slowly, change these under **Settings > Graphics**, starting at the top:\n\n| Setting | Change it to | Why |\n|---|---|---|\n| GFX | Off | Removes summon and attack effects. Integrated graphics may need this |\n| Quality Level | Lower | Reduces anti-aliasing on the field |\n| Background | Static | A plain image uses less CPU and RAM than Animated or Rendered |\n| FPS Limit | At or below your refresh rate | 30, 60, 90, 120 and 240 are the usual caps |\n| Resolution | Your monitor's resolution | Keeps the field sharp |\n\nTwo more that matter to new players:\n\n- **Language** changes the interface and **Card Language** changes card text. They're separate settings, under **Other**.\n- **Update Server** and **Game Server** should stay on their defaults unless the Omega team tells you otherwise."
+      },
+      {
+        "id": "h-custom",
+        "type": "heading",
+        "level": 2,
+        "text": "Add custom sleeves, playmats and backgrounds",
+        "anchor": "custom-sleeves-and-playmats"
+      },
+      {
+        "id": "custom",
+        "type": "text",
+        "md": "Your images go in the game folder. On Windows it's here:\n\n```text\n%userprofile%\\AppData\\LocalLow\\Duelists Unite\\YGO Omega\n```\n\nYou can also open it from the game: go to **Settings** and click the icon at the top right.\n\n| Type | Width x height | Format |\n|---|---|---|\n| Card sleeves | 271 x 395 px | JPG |\n| Playmats | 1485 x 785 px | JPG |\n| Backgrounds | 1920 x 1080 px | JPG or PNG |\n\nJPG loads faster and PNG looks better.\n\nName a sleeve image exactly like the deck it belongs to: the deck *Aroma* uses the image *Aroma*. A deck with no match gets a random sleeve. Sleeves only appear while you're connected online, and the turn card button in the deck editor previews them.\n\nOpponents see your sleeves and mat if you're a VIP, so keep them PG-13. The [download page](/download) explains VIP."
+      },
+      {
+        "id": "h-sync",
+        "type": "heading",
+        "level": 2,
+        "text": "Sync decks between computers",
+        "anchor": "sync-between-computers"
+      },
+      {
+        "id": "sync",
+        "type": "text",
+        "md": "YGO Omega doesn't sync local files on its own. The free personal version of [Resilio Sync](https://www.resilio.com/individuals/) keeps your decks, sleeves, replays and deck thumbnails the same on every computer. Install it normally, but **not** as a service.\n\n**On your main computer:**\n\n1. Open Resilio Sync, click **+** at the top left and choose **Standard Folder**.\n2. Type `%userprofile%\\AppData\\LocalLow` in the address bar and press Enter.\n3. Open **Duelists Unite**, select **YGO Omega** and click **Select Folder**.\n4. Share the folder by emailing yourself the link.\n\n**On every other computer:**\n\n1. Install Resilio Sync the same way, then open the emailed link and let Resilio handle it.\n2. Set **Save to location** to the YGO Omega folder on that computer, then click **Connect**.\n3. Approve the access request on your main computer."
+      },
+      {
+        "id": "h-faq",
+        "type": "heading",
+        "level": 2,
+        "text": "Install questions",
+        "anchor": "install-faq"
+      },
+      {
+        "id": "faq",
+        "type": "faq",
+        "items": [
+          {
+            "q": "Is YGO Omega free to install?",
+            "md": "Yes. The download is free and every card is unlocked. [VIP donations](/download) are optional and add cosmetics."
+          },
+          {
+            "q": "Do I need Discord to play YGO Omega?",
+            "md": "Yes, for online play. The game needs the Discord desktop app running and your authorization the first time you press **Online**."
+          },
+          {
+            "q": "Can I play YGO Omega in a browser?",
+            "md": "No. Duels run in the client you install. The website handles decks, tournaments and rankings."
+          },
+          {
+            "q": "How much storage does YGO Omega need?",
+            "md": "At least 4 GB of free space, and 6 GB is recommended, on every platform. The first update alone is about 2.9 GB."
+          },
+          {
+            "q": "Does YGO Omega work on M1 and M2 Macs?",
+            "md": "Yes. Turn on **Open using Rosetta** in the app's **Get Info** window before you open it."
+          },
+          {
+            "q": "Why did YGO Omega stop opening on my iPhone?",
+            "md": "Apps installed with Sideloadly have to be re-signed every 7 days. Connect the phone, open Sideloadly and press **Start** again."
+          },
+          {
+            "q": "Why is my online screen blank?",
+            "md": "Usually the Discord authorization was missed, or a third-party firewall is blocking the game. Close YGO Omega and Discord, open Discord first, then the game, and accept the prompt. If that fails, add a firewall exception."
+          },
+          {
+            "q": "Should I reinstall YGO Omega if it breaks?",
+            "md": "Not on your own. A reinstall can add new problems, so ask in the Omega-help channel on [Discord](https://discord.gg/duelistsunite) first."
+          }
+        ]
+      },
+      {
+        "id": "h-next",
+        "type": "heading",
+        "level": 2,
+        "text": "After you install",
+        "anchor": "next-steps"
+      },
+      {
+        "id": "next",
+        "type": "text",
+        "md": "- Follow the [Beginner's Guide](/wiki/beginner-s-guide-to-ygo-omega) from your first deck to your first tournament.\n- Build a deck in the [Deck Builder](/deck-builder) and load it into the game.\n- Read the [Format Primer](/wiki/yu-gi-oh-formats) to pick what to play.\n\nThis page updates the [YGO Omega Guide](https://forum.duelistsunite.org/t/ygo-omega-guide/519) by AntiMetaman on the Duelists Unite forum. The forum post also documents every in-game menu, including the deck manager, host options and chat commands."
+      }
+    ],
+    "assets": {
+      "omega-duel": {
+        "id": "omega-duel",
+        "src": "/SCREEN_1.png",
+        "width": 1920,
+        "height": 1080,
+        "alt": "A YGO Omega duel on turn 2, with cards on a 3D field and two rendered dragons beside the board",
+        "credit": "Duelists Unite"
+      },
+      "omega-hero": {
+        "id": "omega-hero",
+        "src": "/omega-hero.png",
+        "width": 1920,
+        "height": 1080,
+        "alt": "The YGO Omega emblem glowing at the center of blue circuit lines",
+        "credit": "Duelists Unite"
+      }
+    },
+    "seo": {
+      "title": "How to Install YGO Omega on PC, Mac and Mobile",
+      "description": "YGO Omega install guide for Windows, Mac, Linux, Android and iOS: which file to download, Discord setup and fixes for a blank online screen.",
+      "keyword": "omega install guide",
+      "keywords": ["how to install ygo omega", "ygo omega download", "ygo omega android", "ygo omega ios", "ygo omega mac"],
+      "schema": "Article"
+    },
+    "hub": "ygo-omega-wiki",
+    "related": ["beginner-s-guide-to-ygo-omega", "yu-gi-oh-formats", "bug-reports-how-to-report-a-ygo-omega-bug"]
+  }
+}

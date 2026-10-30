@@ -52,7 +52,7 @@ const Download = ({ size, variant }: { size?: "lg"; variant?: "secondary" }) => 
 )
 
 const DownloadNote = ({ className }: { className?: string }) => (
-  <span className={twMerge(NOTE, className)}>No credit card. Install takes under 2 minutes.</span>
+  <span className={twMerge(NOTE, className)}>No credit card. Discord required to play online.</span>
 )
 
 /** Numbered strip that opens a band: gold number, mono label, a rule to the edge. */
@@ -126,7 +126,7 @@ const Hero = ({ ranked }: { ranked: Ranked }) => (
     <div aria-hidden className="absolute top-[-18%] right-[-12%] aspect-square w-[min(900px,90%)] rounded-round bg-[radial-gradient(circle,rgba(0,253,255,0.22)_0%,rgba(74,111,216,0.16)_35%,rgba(8,10,20,0)_68%)]" />
     <Image src="/omega-mark.png" alt="" width={720} height={720} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
-      <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android">Free · every card unlocked</Eyebrow>
+      <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android · iOS">Free · every card unlocked</Eyebrow>
       <h1 className="font-display text-[clamp(52px,10.4vw,115px)] leading-[0.88] tracking-[-0.005em] uppercase text-balance">
         The first Yu-Gi-Oh! simulator with <span className="text-cyan">automatic tournaments</span>
       </h1>
@@ -560,12 +560,12 @@ const ClosingCta = () => (
         <DownloadNote />
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        {["Windows", "macOS", "Linux", "Android"].map((os) => <Chip key={os}>{os}</Chip>)}
+        {["Windows", "macOS", "Linux", "Android", "iOS"].map((os) => <Chip key={os}>{os}</Chip>)}
       </div>
       <div className="flex flex-wrap justify-center gap-6 text-ink-dim signal">
         <span>Every card unlocked</span>
         <span aria-hidden className="text-line-strong">/</span>
-        <span>Install under 2 minutes</span>
+        <span>First update about 2.9 GB</span>
       </div>
     </div>
   </section>

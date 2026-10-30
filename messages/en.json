@@ -380,7 +380,8 @@
       "lead": "The Ultimate Yu-Gi-Oh! Simulator.",
       "github": "View project on GitHub",
       "platforms": "Download for your system",
-      "latest": "Latest release"
+      "latest": "Latest release",
+      "guide": "Step-by-step install guide"
     },
     "specs": {
       "heading": "System requirements",

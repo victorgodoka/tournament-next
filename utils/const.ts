@@ -212,7 +212,7 @@ export const HOME_MODES = [
 
 export const HOME_FAQ = [
   { question: "Is Omega free?", answer: "Yes. Every card is unlocked, ranked play is open and tournaments cost nothing. No currency, no crafting, no packs." },
-  { question: "Does it run in a browser?", answer: "No. Omega runs through a launcher on Windows, macOS, Linux and Android. The install takes under two minutes." },
+  { question: "Does it run in a browser?", answer: "No. Omega runs through a launcher on Windows, macOS, Linux, Android and iOS. The first update is about 2.9 GB, and online play needs Discord." },
   { question: "Which rulings does it follow, TCG or OCG?", answer: "Both. Omega runs the official Fluorohydride core with fixes to damage calculation and TCG rulings, and scripts a card twice when the two texts disagree." },
   { question: "Can I play manually?", answer: "Yes, in the same client, with chat commands and custom cards." },
   { question: "Is there an offline AI opponent?", answer: "Not yet. Offline AI depends on donations, and it has no release date. Duels run against people." },

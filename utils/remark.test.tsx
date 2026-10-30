@@ -4,6 +4,17 @@ import { renderArticle } from './remark'
 
 const html = async (md: string) => renderToStaticMarkup(<>{await renderArticle(md)}</>)
 
+describe('article classes', () => {
+  it('survive the sanitizer on tags with their own className rule', async () => {
+    const page = await html('1. [step](/download) `code`\n\n- item')
+    for (const tag of ['ol', 'li', 'a', 'code', 'ul']) expect(page).toMatch(new RegExp(`<${tag} [^>]*class="[^"]+"`))
+  })
+
+  it('still drops an unsafe link', async () => {
+    expect(await html('[x](javascript:alert(1))')).not.toContain('javascript:')
+  })
+})
+
 describe('coloured text', () => {
   it('colours a run of text', async () => {
     expect(await html('[+1.2]{#4fdc8c} up')).toContain('<span style="color:#4fdc8c">+1.2</span> up')
