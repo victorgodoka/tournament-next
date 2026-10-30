@@ -1,8 +1,7 @@
-import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { CARD_ART_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
 import type { CardArt as CardArtType } from '@utils/types'
+import { CardImage } from './card-image'
 
 type CardArtProps = {
   art: CardArtType
@@ -19,9 +18,8 @@ type CardArtProps = {
 /** Card artwork filling its container. The wrapper owns the size, the image only fills it. */
 export const CardArt = ({ art, alt, sizes, className, imageClassName, priority, children }: CardArtProps) => (
   <div className={twMerge('relative overflow-hidden bg-space-000', className)}>
-    <Image
+    <CardImage
       src={CARD_ART_URL(art.id)}
-      loader={cardLoader}
       alt={alt ?? (art.name ? `${art.name} card artwork` : 'Card artwork')}
       fill
       sizes={sizes}
