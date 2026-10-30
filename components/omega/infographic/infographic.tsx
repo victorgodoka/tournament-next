@@ -30,7 +30,7 @@ export const C = {
   win: '#4fdc8c',
   loss: '#ff8594',
   series: ['#00a6b5', '#e14660', '#337bd0', '#c0851f', '#8169dd', '#36a558', '#d45fb8', '#5fa8ff', '#9ab33c', '#c3cbd8'],
-  tier: { 1: '#5fa8ff', 2: '#5fd4c4', 3: '#c3cbd8', 4: '#efd17e' } as Record<number, string>,
+  tier: { 1: '#5fa8ff', 1.5: '#5fbfe4', 2: '#5fd4c4', 3: '#c3cbd8', 4: '#efd17e' } as Record<number, string>,
 }
 
 /** The DS families; `loadFonts` fetches their TTFs, and Satori falls back to its bundled sans when that fails. */

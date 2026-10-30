@@ -25,6 +25,16 @@ describe('powerRanked', () => {
     ])
   })
 
+  it('keeps two decks in Tier 1 and moves the rest of the band to Tier 1.5', () => {
+    expect(tiers([deck(0.54), deck(0.545), deck(0.548), deck(0.542), deck(0.5)])).toEqual([
+      [0.548, 1],
+      [0.545, 1],
+      [0.542, 1.5],
+      [0.54, 1.5],
+      [0.5, 3],
+    ])
+  })
+
   it('puts a deck on a band edge in the better tier, despite float subtraction', () => {
     expect(tiers([deck(0.548), deck(0.538), deck(0.518), deck(0.488), deck(0.458), deck(0.4579)])).toEqual([
       [0.548, 1],

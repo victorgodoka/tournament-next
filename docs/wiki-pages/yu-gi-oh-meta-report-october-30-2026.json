@@ -42,7 +42,30 @@
       {
         "id": "intro",
         "type": "text",
-        "md": "This Yu-Gi-Oh! meta report covers what moved on the YGO Omega ranked ladders, using data through October 29, 2026. Power Patron / Light and Darkness Ritual rose fastest in TCG, and Invoked rose fastest in Genesys.\n\nFor where every deck stands, see the full [Yu-Gi-Oh! tier list](/wiki/yu-gi-oh-tier-list). This report only covers the changes."
+        "md": "This Yu-Gi-Oh! meta report covers what moved on the YGO Omega ranked ladders, using data through October 29, 2026. Power Patron / Light and Darkness Ritual rose fastest in TCG, and Invoked rose fastest in Genesys."
+      },
+      {
+        "id": "report-board-tcg",
+        "type": "figure",
+        "asset": "report-tcg-wide",
+        "mobileAsset": "report-tcg-tall",
+        "share": true,
+        "align": "wide",
+        "caption": "TCG movers for October 30, 2026"
+      },
+      {
+        "id": "report-board-genesys",
+        "type": "figure",
+        "asset": "report-genesys-wide",
+        "mobileAsset": "report-genesys-tall",
+        "share": true,
+        "align": "wide",
+        "caption": "Genesys movers for October 30, 2026"
+      },
+      {
+        "id": "intro-more",
+        "type": "text",
+        "md": "For where every deck stands, see the [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list). This report only covers the changes."
       },
       {
         "id": "h-moves",
@@ -66,7 +89,7 @@
       {
         "id": "moves-tcg",
         "type": "text",
-        "md": "Over the last 5 days, against the 5 before.\n\n**Rising**\n\n| Deck | Tier | Season share | Change | Win rate |\n|---|---:|---:|---:|---:|\n| **Power Patron / Light and Darkness Ritual** | 2 | 1.2% | **[+1.2]{#4fdc8c}** | **[53.0% ±1.2]{#4fdc8c}** |\n| **Radiant Typhoon** | 1 | 2.9% | **[+0.8]{#4fdc8c}** | **[54.9% ±0.8]{#4fdc8c}** |\n| **Artmage / Power Patron** | 2 | 3.1% | **[+0.5]{#4fdc8c}** | **[53.0% ±0.7]{#4fdc8c}** |\n| **HERO** | 3 | 5.1% | **[+0.5]{#4fdc8c}** | **[51.7% ±0.6]{#4fdc8c}** |\n| **Blue-Eyes / Primite** | 4 | 1.8% | **[+0.4]{#4fdc8c}** | **[48.6% ±0.9]{#ff8594}** |\n\n**Falling**\n\n| Deck | Tier | Season share | Change | Win rate |\n|---|---:|---:|---:|---:|\n| **Sky Striker** | 4 | 4.8% | **[−1.0]{#ff8594}** | **[48.7% ±0.6]{#ff8594}** |\n| **Angelechy** | 1 | 10.6% | **[−0.8]{#ff8594}** | **[55.2% ±0.4]{#4fdc8c}** |\n| **Maliss** | 3 | 1.4% | **[−0.3]{#ff8594}** | **[51.2% ±1.1]{#4fdc8c}** |\n| **Mitsurugi** | 4 | 0.5% | **[−0.2]{#ff8594}** | **[47.9% ±1.8]{#ff8594}** |\n| **Clown Crew** | 4 | 2.5% | **[−0.2]{#ff8594}** | **[49.5% ±0.8]{#ff8594}** |"
+        "md": "Over the last 5 days, against the 5 before.\n\n**Rising**\n\n| Deck | Tier | Season share | Change | Win rate |\n|---|---:|---:|---:|---:|\n| **Power Patron / Light and Darkness Ritual** | 2 | 1.2% | **[+1.2]{#4fdc8c}** | **[53.0% ±1.2]{#4fdc8c}** |\n| **Radiant Typhoon** | 1.5 | 2.9% | **[+0.8]{#4fdc8c}** | **[54.9% ±0.8]{#4fdc8c}** |\n| **Artmage / Power Patron** | 2 | 3.1% | **[+0.5]{#4fdc8c}** | **[53.0% ±0.7]{#4fdc8c}** |\n| **HERO** | 3 | 5.1% | **[+0.5]{#4fdc8c}** | **[51.7% ±0.6]{#4fdc8c}** |\n| **Blue-Eyes / Primite** | 4 | 1.8% | **[+0.4]{#4fdc8c}** | **[48.6% ±0.9]{#ff8594}** |\n\n**Falling**\n\n| Deck | Tier | Season share | Change | Win rate |\n|---|---:|---:|---:|---:|\n| **Sky Striker** | 4 | 4.8% | **[−1.0]{#ff8594}** | **[48.7% ±0.6]{#ff8594}** |\n| **Angelechy** | 1 | 10.6% | **[−0.8]{#ff8594}** | **[55.2% ±0.4]{#4fdc8c}** |\n| **Maliss** | 3 | 1.4% | **[−0.3]{#ff8594}** | **[51.2% ±1.1]{#4fdc8c}** |\n| **Mitsurugi** | 4 | 0.5% | **[−0.2]{#ff8594}** | **[47.9% ±1.8]{#ff8594}** |\n| **Clown Crew** | 4 | 2.5% | **[−0.2]{#ff8594}** | **[49.5% ±0.8]{#ff8594}** |"
       },
       {
         "id": "h-moves-genesys",
@@ -182,7 +205,7 @@
         "type": "callout",
         "tone": "cyan",
         "title": "Where these numbers come from",
-        "md": "Ranked matches on YGO Omega, not tournament results. Seasons run per ladder, so TCG and Genesys cover different dates. [How the tiers work](/wiki/yu-gi-oh-tier-list#methodology)."
+        "md": "Ranked matches on YGO Omega, not tournament results. Seasons run per ladder, so TCG and Genesys cover different dates. [How the tiers work](/wiki/yu-gi-oh-tcg-tier-list#methodology)."
       },
       {
         "id": "h-faq",
@@ -200,8 +223,8 @@
             "md": "Power Patron / Light and Darkness Ritual rose fastest in TCG, and Invoked rose fastest in Genesys. The tables above list every top mover."
           },
           {
-            "q": "What is the difference between this report and the tier list?",
-            "md": "The [tier list](/wiki/yu-gi-oh-tier-list) ranks every deck and is updated in place. This report is a dated record of what moved that week."
+            "q": "What is the difference between this report and the tier lists?",
+            "md": "The [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list) rank every deck and are updated in place. This report is a dated record of what moved that week."
           },
           {
             "q": "How often is the meta report published?",
@@ -218,6 +241,38 @@
         "height": 1008,
         "alt": "Glowing blue and purple YGO Omega emblem on a black background",
         "credit": "Duelists Unite"
+      },
+      "report-tcg-wide": {
+        "id": "report-tcg-wide",
+        "src": "/wiki-images/meta-report/2026-10-30-tcg-wide.jpg",
+        "width": 1920,
+        "height": 1080,
+        "alt": "TCG meta report: the decks rising and falling fastest on the ladder for October 30, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-tcg-tall": {
+        "id": "report-tcg-tall",
+        "src": "/wiki-images/meta-report/2026-10-30-tcg-tall.jpg",
+        "width": 1080,
+        "height": 1920,
+        "alt": "TCG meta report: the decks rising and falling fastest on the ladder for October 30, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-genesys-wide": {
+        "id": "report-genesys-wide",
+        "src": "/wiki-images/meta-report/2026-10-30-genesys-wide.jpg",
+        "width": 1920,
+        "height": 1080,
+        "alt": "Genesys meta report: the decks rising and falling fastest on the ladder for October 30, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-genesys-tall": {
+        "id": "report-genesys-tall",
+        "src": "/wiki-images/meta-report/2026-10-30-genesys-tall.jpg",
+        "width": 1080,
+        "height": 1920,
+        "alt": "Genesys meta report: the decks rising and falling fastest on the ladder for October 30, 2026",
+        "credit": "Duelists Unite"
       }
     },
     "seo": {
@@ -229,10 +284,12 @@
         "yugioh meta this week",
         "rising yugioh decks"
       ],
+      "image": "report-tcg-wide",
       "schema": "Article"
     },
-    "hub": "yu-gi-oh-tier-list",
+    "hub": "yu-gi-oh-tcg-tier-list",
     "related": [
+      "yu-gi-oh-genesys-tier-list",
       "yu-gi-oh-formats"
     ]
   }

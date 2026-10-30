@@ -2046,7 +2046,7 @@
     },
     "more": "more",
     "matchesCount": "{count} matches",
-    "tierListNote": "Power tiers, by Wilson score: sample size counts. Beside a tier, its share of the meta. Under a deck, its win rate.",
+    "tierListNote": "Power tiers, by Wilson score: sample size counts. T1 holds two decks at most. Beside a tier, its share of the meta. Under a deck, its win rate.",
     "fastestRiser": "Fastest riser",
     "rising": "Rising",
     "falling": "Falling",

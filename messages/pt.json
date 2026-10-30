@@ -2046,7 +2046,7 @@
     },
     "more": "mais",
     "matchesCount": "{count} partidas",
-    "tierListNote": "Power tiers, por Wilson score: a amostra conta. Ao lado do tier, sua fatia do meta. Abaixo do deck, o win rate.",
+    "tierListNote": "Power tiers, por Wilson score: a amostra conta. O T1 tem no máximo dois decks. Ao lado do tier, sua fatia do meta. Abaixo do deck, o win rate.",
     "fastestRiser": "Maior alta",
     "rising": "Em alta",
     "falling": "Em queda",

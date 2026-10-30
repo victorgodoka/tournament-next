@@ -7,7 +7,7 @@
 
 import { notFound } from 'next/navigation'
 import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMode, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
-import { deckFaces, powerRanked } from '@utils/power-tier'
+import { deckFaces, powerRanked, type PowerDeck } from '@utils/power-tier'
 import type { RankedLadderId } from '@utils/types'
 import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
@@ -39,7 +39,7 @@ const pick = async ({ data, key, mode }: Ctx): Promise<{ a: StatArchetype; rank:
   return local ? { a: local, rank: ranked.indexOf(local) + 1 } : null
 }
 const wrColor = (wr: number | null | undefined) => (wr == null ? C.muted : wr >= 0.5 ? C.win : C.loss)
-const art = (arts: Map<number, string>, a: StatArchetype) => arts.get(a.face?.id ?? -1)
+const art = (arts: Map<number, string>, a: Pick<StatArchetype, 'face'>) => arts.get(a.face?.id ?? -1)
 
 /** The deck's name in Anton, with its tier beside. */
 const DeckName = ({ a, t, size }: { a: StatArchetype; t: T; size: number }) => (
@@ -577,15 +577,20 @@ const cards = async ({ data, size, t }: Ctx) => {
   )
 }
 
-const TIERS = [1, 2, 3, 4] as const
+const TIERS = [1, 1.5, 2, 3, 4] as const
+type PowerTier = (typeof TIERS)[number]
 const ROW_WIDTH = { wide: 1634, tall: 810 }
 /** Art side by tier, and how many lines of tiles a tier may take. */
-const TILE = { wide: { 1: 130, 2: 114, 3: 100, 4: 90 }, tall: { 1: 176, 2: 146, 3: 146, 4: 146 } } as const
+const TILE = { wide: { 1: 130, 1.5: 130, 2: 114, 3: 100, 4: 90 }, tall: { 1: 176, 1.5: 146, 2: 146, 3: 146, 4: 146 } } as const
 const LINES = { wide: 1, tall: 2 } as const
 const TILE_GAP = 10
+/** Wide only: Tier 1 sits beside Tier 1.5 on one line, which is what keeps five tiers from shrinking the art. */
+const TIER_1_WIDTH = 128 + 14 + 2 * 130 + TILE_GAP
+const TIER_ROW_GAP = 20
+const rowWidth = (size: Size, tier: PowerTier) => (size === 'wide' && tier === 1.5 ? ROW_WIDTH.wide - TIER_1_WIDTH - TIER_ROW_GAP - 128 - 14 : ROW_WIDTH[size])
 
 /** A deck on the board: its art, name and win rate. */
-const Tile = ({ a, src, side, t }: { a: StatArchetype; src?: string; side: number; t: T }) => (
+const Tile = ({ a, src, side, t }: { a: PowerDeck; src?: string; side: number; t: T }) => (
   <div style={{ ...col, width: side, gap: 5, flexShrink: 0 }}>
     <Art src={src} size={side} />
     {/* `block`, not flex: Satori only draws the ellipsis on a block. */}
@@ -600,31 +605,41 @@ const tierList = async ({ data, size, t }: Ctx) => {
     const decks = ranked.filter((a) => a.tier === tier)
     if (!decks.length) return []
     const side = TILE[size][tier]
-    const slots = Math.floor((ROW_WIDTH[size] + TILE_GAP) / (side + TILE_GAP)) * LINES[size]
+    const slots = Math.floor((rowWidth(size, tier) + TILE_GAP) / (side + TILE_GAP)) * LINES[size]
     const fits = decks.length <= slots
     return [{ tier, decks, side, shown: fits ? decks : decks.slice(0, slots - 1), share: decks.reduce((sum, a) => sum + a.metaShare, 0) }]
   })
   const faces = deckFaces(rows.flatMap((r) => r.shown))
   const arts = await loadImages([...faces.values()].map((face) => face.id))
+  const tierRow = ({ tier, decks, side, shown, share }: (typeof rows)[number], fit: React.CSSProperties = {}) => (
+    <div key={tier} style={{ ...row, alignItems: 'stretch', flexShrink: 0, gap: 14, ...fit }}>
+      <div style={{ ...col, width: 128, flexShrink: 0, justifyContent: 'center', gap: 4, padding: '0 14px', background: C.surface, borderLeft: `6px solid ${C.tier[tier]}` }}>
+        <div style={{ display: 'flex', fontFamily: F.display, fontSize: tier === 1.5 ? 50 : 58, lineHeight: 1, color: C.tier[tier] }}>{`T${tier}`}</div>
+        <Label size={13}>{pct(share)}</Label>
+      </div>
+      <div style={{ ...row, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, gap: TILE_GAP }}>
+        {shown.map((a) => <Tile key={archKey(a.archetype)} a={a} src={arts.get(faces.get(archKey(a.archetype))?.id ?? -1)} side={side} t={t} />)}
+        {shown.length < decks.length ? (
+          <div style={{ ...col, width: side, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
+            <Label size={12}>{t('more')}</Label>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+  const first = rows.find((r) => r.tier === 1)
+  const half = rows.find((r) => r.tier === 1.5)
+  const paired = size === 'wide' && first && half
   return (
     <div style={{ ...col, flex: 1, justifyContent: 'space-between', gap: 8 }}>
-      {rows.map(({ tier, decks, side, shown, share }) => (
-        <div key={tier} style={{ ...row, alignItems: 'stretch', gap: 14 }}>
-          <div style={{ ...col, width: 128, flexShrink: 0, justifyContent: 'center', gap: 4, padding: '0 16px', background: C.surface, borderLeft: `6px solid ${C.tier[tier]}` }}>
-            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 58, lineHeight: 1, color: C.tier[tier] }}>{`T${tier}`}</div>
-            <Label size={13}>{pct(share)}</Label>
-          </div>
-          <div style={{ ...row, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, gap: TILE_GAP }}>
-            {shown.map((a) => <Tile key={archKey(a.archetype)} a={a} src={arts.get(faces.get(archKey(a.archetype))?.id ?? -1)} side={side} t={t} />)}
-            {shown.length < decks.length ? (
-              <div style={{ ...col, width: side, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
-                <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
-                <Label size={12}>{t('more')}</Label>
-              </div>
-            ) : null}
-          </div>
+      {paired ? (
+        <div style={{ ...row, alignItems: 'stretch', gap: TIER_ROW_GAP }}>
+          {tierRow(first, { width: TIER_1_WIDTH })}
+          {tierRow(half, { flex: 1, minWidth: 0 })}
         </div>
-      ))}
+      ) : null}
+      {rows.filter((r) => !paired || r.tier > 1.5).map((r) => tierRow(r))}
       <Label size={14}>{t('tierListNote')}</Label>
     </div>
   )
@@ -632,7 +647,7 @@ const tierList = async ({ data, size, t }: Ctx) => {
 
 const points = (growth: number) => `${growth >= 0 ? '+' : '−'}${Math.abs(growth * 100).toFixed(1)}`
 
-const MoverRow = ({ a, src, t }: { a: StatArchetype; src?: string; t: T }) => (
+const MoverRow = ({ a, src, t }: { a: PowerDeck; src?: string; t: T }) => (
   <div style={{ ...row, gap: 16 }}>
     <Art src={src} size={64} />
     <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
@@ -655,7 +670,7 @@ const metaReport = async ({ data, size, t }: Ctx) => {
   const arts = await loadImages([...rising, ...falling].map((a) => a.face?.id))
   // The server's growth window: half the season, at most 7 days.
   const days = Math.min(7, Math.max(1, Math.floor(data.syncedDays.count / 2)))
-  const list = (n: string, title: string, decks: StatArchetype[]) => (
+  const list = (n: string, title: string, decks: PowerDeck[]) => (
     <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
       <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
         {decks.length ? decks.map((a) => <MoverRow key={archKey(a.archetype)} a={a} src={art(arts, a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}
