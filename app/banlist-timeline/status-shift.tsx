@@ -41,7 +41,7 @@ export const StatusShift = ({ from, to, short, className }: { from: BanStatus; t
 /** A card's scan linking to its wiki page, with the change it took on this list when there is one. */
 export const CardTile = ({ card, from, to }: { card: number; from?: BanStatus; to?: BanStatus }) => (
   <li className="flex min-w-0 flex-col gap-1.5">
-    <Link href={wikiPath(card)} target="_blank" rel="noopener" className="group flex flex-col gap-1.5">
+    <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className="group flex flex-col gap-1.5">
       <span
         className={twMerge(
           'relative block aspect-[59/86] overflow-hidden bg-surface-300 motion-safe:transition-transform group-hover:-translate-y-0.5',

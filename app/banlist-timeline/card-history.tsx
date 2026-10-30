@@ -91,7 +91,7 @@ export const CardHistory = ({ selected, current }: { selected: number; current: 
         {card >= 0 ? (
           <div className="flex flex-col gap-5 pt-1">
             <div className="flex flex-wrap items-end gap-4">
-              <Link href={wikiPath(card)} target="_blank" rel="noopener" className="relative aspect-[59/86] w-20 shrink-0 overflow-hidden bg-surface-300">
+              <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className="relative aspect-[59/86] w-20 shrink-0 overflow-hidden bg-surface-300">
                 <Image loader={cardLoader} src={CARD_IMAGE_URL(cardId(card))} alt={cardName(card)} fill sizes="80px" className="object-cover" />
               </Link>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -108,7 +108,7 @@ export const CardHistory = ({ selected, current }: { selected: number; current: 
                 <span className={twMerge('px-2.5 py-1.5 font-bold signal', STATUS_TONE[now].fill, STATUS_TONE[now].on)}>
                   {t('history.now', { status: status(now) })}
                 </span>
-                <Link href={wikiPath(card)} target="_blank" rel="noopener" className={buttonClasses({ size: 'sm' })}>
+                <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className={buttonClasses({ size: 'sm' })}>
                   {t('history.wiki')} <Icon name="right" size={14} />
                 </Link>
               </div>
