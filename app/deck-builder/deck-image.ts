@@ -25,7 +25,7 @@ export type ImageInfo = {
   points: Record<number, number>
 }
 
-const SITE = 'next.duelistsunite.org'
+const SITE = 'omega.duelistsunite.org'
 const C = {
   bg: '#080a14',
   s100: '#0e1222',

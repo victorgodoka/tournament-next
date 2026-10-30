@@ -15,7 +15,7 @@ export const pt: LegalDoc = {
       </p>
       <p>
         Estes termos são um acordo entre você e a Duelists Unite (&quot;nós&quot;), o projeto de fãs que mantém o YGO Omega, sobre o uso do
-        next.duelistsunite.org e da API por trás dele (o &quot;Hub&quot;). Ao usar o Hub, você os aceita. Se não aceitar, por favor não use o
+        omega.duelistsunite.org e da API por trás dele (o &quot;Hub&quot;). Ao usar o Hub, você os aceita. Se não aceitar, por favor não use o
         Hub. Nossa <Link href="/privacy">Política de Privacidade</Link> explica como tratamos seus dados.
       </p>
 

@@ -14,7 +14,7 @@ export const pt: LegalDoc = {
         Esta tradução existe para sua conveniência. Se ela divergir da versão em inglês, vale a versão em inglês.
       </p>
       <p>
-        Esta política explica o que a Duelists Unite (&quot;nós&quot;) coleta quando você usa o next.duelistsunite.org (o &quot;Hub&quot;)
+        Esta política explica o que a Duelists Unite (&quot;nós&quot;) coleta quando você usa o omega.duelistsunite.org (o &quot;Hub&quot;)
         e a API por trás dele, por que coletamos, quem mais recebe esses dados e o que você pode fazer a respeito. A Duelists Unite é o
         projeto de fãs que mantém o YGO Omega. Não temos ligação com a Konami. O fórum em forum.duelistsunite.org tem a própria política.
       </p>

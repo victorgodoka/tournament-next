@@ -1,5 +1,5 @@
 const rawSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://next.duelistsunite.org'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://omega.duelistsunite.org'
 
 export const SITE_URL = rawSiteUrl.replace(/\/$/, '')
 

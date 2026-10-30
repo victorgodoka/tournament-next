@@ -14,7 +14,7 @@ import type { ArchetypeStat, Standing, TournamentSummary } from '@utils/types'
  * list beside or under it. Drawn on a canvas so it downloads and shares as a PNG with no library.
  */
 
-const SITE = 'next.duelistsunite.org'
+const SITE = 'omega.duelistsunite.org'
 /** Rows the left column holds in two columns; past it the tail folds into Others. */
 const MAX_ROWS = 20
 

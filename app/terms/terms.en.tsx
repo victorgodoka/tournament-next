@@ -12,7 +12,7 @@ export const en: LegalDoc = {
     <>
       <p>
         These terms are an agreement between you and Duelists Unite (&quot;we&quot;, &quot;us&quot;), the fan project that runs YGO Omega,
-        for your use of next.duelistsunite.org and the API behind it (the &quot;Hub&quot;). By using the Hub you accept them. If you
+        for your use of omega.duelistsunite.org and the API behind it (the &quot;Hub&quot;). By using the Hub you accept them. If you
         don&apos;t, please don&apos;t use it. Our <Link href="/privacy">Privacy Policy</Link> explains how we handle your data.
       </p>
 

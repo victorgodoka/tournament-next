@@ -11,7 +11,7 @@ export const en: LegalDoc = {
   Body: () => (
     <>
       <p>
-        This policy explains what Duelists Unite (&quot;we&quot;, &quot;us&quot;) collects when you use next.duelistsunite.org (the
+        This policy explains what Duelists Unite (&quot;we&quot;, &quot;us&quot;) collects when you use omega.duelistsunite.org (the
         &quot;Hub&quot;) and the API behind it, why we collect it, who else receives it, and what you can do about it. Duelists Unite is the fan
         project that runs YGO Omega. We are not affiliated with Konami. The forum at forum.duelistsunite.org has its own policy.
       </p>
