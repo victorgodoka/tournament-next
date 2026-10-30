@@ -10,7 +10,7 @@ import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMod
 import { oneAtATime } from '@utils/one-at-a-time'
 import { deckFaces, powerRanked, type PowerDeck } from '@utils/power-tier'
 import type { RankedLadderId } from '@utils/types'
-import { Art, Bar, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
+import { Art, Bar, busy, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
 const SECTIONS = ['overview', 'trends', 'deck-ranking', 'matchup-matrix', 'archetype-analysis', 'comparator', 'cards', 'deep-dive', 'tier-list', 'meta-report'] as const
 type Section = (typeof SECTIONS)[number]
@@ -725,7 +725,7 @@ const BODY: Record<Section, (ctx: Ctx, tm: T) => Promise<React.ReactNode>> = {
 
 type Route = { params: Promise<{ section: string }> }
 
-export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route))
+export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route), busy)
 
 const draw = async (request: Request, { params }: Route) => {
   const { section } = await params

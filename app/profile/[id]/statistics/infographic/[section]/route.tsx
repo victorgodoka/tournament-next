@@ -11,7 +11,7 @@ import { getProfile } from '@utils/profile'
 import { getPlayerTournamentStats } from '@utils/tournaments'
 import type { Profile, RankedLadderId } from '@utils/types'
 import { played, standingOf, winRate } from '@app/profile/statistics/insights'
-import { Art, Bar, C, col, Empty, Kpi, Label, loadImages, num, Panel, pct, render, row, sizeOf, toDataUri, translator, type Size } from '@omega/infographic/infographic'
+import { Art, Bar, busy, C, col, Empty, Kpi, Label, loadImages, num, Panel, pct, render, row, sizeOf, toDataUri, translator, type Size } from '@omega/infographic/infographic'
 
 const SECTIONS = ['overview', 'decks', 'matchups', 'tournaments'] as const
 type Section = (typeof SECTIONS)[number]
@@ -230,7 +230,7 @@ const tournaments = async (profile: Owner, id: string, cookie: string | null, fo
 
 type Route = { params: Promise<{ id: string; section: string }> }
 
-export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route))
+export const GET = (request: Request, route: Route) => oneAtATime(() => draw(request, route), busy)
 
 const draw = async (request: Request, { params }: Route) => {
   const { id, section } = await params
