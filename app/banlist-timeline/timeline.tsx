@@ -430,7 +430,7 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
                           <ul className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-6">
                             {rows.map(({ card, from }) => (
                               <li key={card} className="flex min-w-0 items-center gap-3 border-b border-line py-2">
-                                <Link href={wikiPath(card)} target="_blank" rel="noopener" className="min-w-0 flex-1 text-ink body hover:text-cyan">{cardName(card)}</Link>
+                                <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className="min-w-0 flex-1 text-ink body hover:text-cyan">{cardName(card)}</Link>
                                 <StatusShift from={from} to={to} />
                               </li>
                             ))}
@@ -459,7 +459,7 @@ export const BanlistTimeline = ({ currentIndex }: { currentIndex: number }) => {
                           <ul className="columns-[13rem] gap-6">
                             {list.cards[code].map((card) => (
                               <li key={card}>
-                                <Link href={wikiPath(card)} target="_blank" rel="noopener" className="block py-1 text-ink-dim body-sm hover:text-cyan">{cardName(card)}</Link>
+                                <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className="block py-1 text-ink-dim body-sm hover:text-cyan">{cardName(card)}</Link>
                               </li>
                             ))}
                           </ul>
