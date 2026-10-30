@@ -1,0 +1,578 @@
+{
+  "slug": "yu-gi-oh-tier-list-october-30-2026",
+  "published": false,
+  "doc": {
+    "v": 1,
+    "title": "Yu-Gi-Oh! Tier List: October 30, 2026",
+    "summary": "The Yu-Gi-Oh! tier list for October 30, 2026: Angelechy is the only TCG Tier 1 deck, and Blitzclique and Angelechy lead Genesys. Ranked from 164,971 YGO Omega ladder matches.",
+    "cover": {
+      "asset": "wa-e7694119d6"
+    },
+    "infobox": {
+      "asset": "card-55393975",
+      "caption": "Angelechy Destrier, the most used card of the top TCG deck",
+      "facts": [
+        {
+          "label": "Issue",
+          "value": "October 30, 2026"
+        },
+        {
+          "label": "Data through",
+          "value": "October 29, 2026"
+        },
+        {
+          "label": "TCG Tier 1",
+          "value": "Angelechy"
+        },
+        {
+          "label": "Genesys Tier 1",
+          "value": "Blitzclique\nAngelechy"
+        },
+        {
+          "label": "TCG matches",
+          "value": "121,902"
+        },
+        {
+          "label": "Genesys matches",
+          "value": "43,069"
+        },
+        {
+          "label": "Players",
+          "value": "12,233 TCG\n4,927 Genesys"
+        },
+        {
+          "label": "Source",
+          "value": "YGO Omega ranked ladders"
+        },
+        {
+          "label": "Updates",
+          "value": "Weekly"
+        }
+      ]
+    },
+    "tags": [
+      "tier-list",
+      "meta-report",
+      "tcg",
+      "genesys",
+      "deck-rankings"
+    ],
+    "blocks": [
+      {
+        "id": "intro",
+        "type": "text",
+        "md": "This Yu-Gi-Oh! tier list ranks the decks people are playing on the YGO Omega ranked ladders, using data through October 29, 2026. **Angelechy** sits alone in TCG Tier 1 with 10.6% of the meta and a 55.2% win rate. **Blitzclique** (4.5%, 60.7%) and **Angelechy** (3.3%, 60.4%) share Genesys Tier 1.\n\nA tier here measures **how much a deck is played**, not how strong it is. Read each tier with its win rate, and check the [live statistics page](/statistics) for the numbers as they move."
+      },
+      {
+        "id": "h-glance",
+        "type": "heading",
+        "level": 2,
+        "text": "Yu-Gi-Oh! tier list at a glance",
+        "anchor": "at-a-glance"
+      },
+      {
+        "id": "glance",
+        "type": "text",
+        "md": "| | TCG ladder | Genesys ladder |\n|---|---|---|\n| Tier 1 | Angelechy | Blitzclique, Angelechy |\n| Tier 2 | HERO, Sky Striker, Elfnote, Light and Darkness Ritual, Blitzclique | Hecahands, HERO, Dragon Ruler, Labrynth, Invoked, Darklord, Fire King, Dracotail, Paleozoic, Adamancipator, Dark Time Wizard |\n| Decks in Tiers 1 to 4 | 31 | 57 |\n| Matches counted | 121,902 | 43,069 |\n| Players | 12,233 | 4,927 |\n| Going first wins | 53.5% | 56.8% |\n| Season opened | October 19, 2026 | September 20, 2026 |"
+      },
+      {
+        "id": "h-tcg",
+        "type": "heading",
+        "level": 2,
+        "text": "TCG tier list",
+        "anchor": "tcg-tier-list"
+      },
+      {
+        "id": "tcg-intro",
+        "type": "text",
+        "md": "The TCG ladder is 11 days into the 10.2026 season, with 121,902 matches from 12,233 players. The top deck holds 10.6% of the meta, and 32% of games come from decks outside all four tiers."
+      },
+      {
+        "id": "h-tcg-1",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG Tier 1",
+        "anchor": "tcg-tier-1"
+      },
+      {
+        "id": "cards-tcg-1",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 55393975,
+            "name": "Angelechy",
+            "note": "10.6% · 55.2% WR"
+          }
+        ],
+        "caption": "Share of the meta and win rate. Art is the deck's most used card."
+      },
+      {
+        "id": "tcg-1",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Angelechy | 10.6% | 55.2% ±0.4 | 62,418 | 1,496 |\n\nAngelechy holds 2.1 times the share of the next deck and wins 55.2%. It wins 58.8% going first and 51.9% going second. Its share fell 0.8 points over the last 5 days."
+      },
+      {
+        "id": "h-tcg-2",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG Tier 2",
+        "anchor": "tcg-tier-2"
+      },
+      {
+        "id": "cards-tcg-2",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 60461804,
+            "name": "HERO",
+            "note": "5.1% · 51.7% WR"
+          },
+          {
+            "id": 63166095,
+            "name": "Sky Striker",
+            "note": "4.8% · 48.7% WR"
+          },
+          {
+            "id": 12375297,
+            "name": "Elfnote",
+            "note": "4.4% · 54.7% WR"
+          },
+          {
+            "id": 33599853,
+            "name": "Light and Darkness Ritual",
+            "note": "4.0% · 52.1% WR"
+          },
+          {
+            "id": 22912101,
+            "name": "Blitzclique",
+            "note": "3.9% · 54.5% WR"
+          }
+        ]
+      },
+      {
+        "id": "tcg-2",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| HERO | 5.1% | 51.7% ±0.6 | 29,651 | 782 |\n| Sky Striker | 4.8% | 48.7% ±0.6 | 27,959 | 1,140 |\n| Elfnote | 4.4% | 54.7% ±0.6 | 25,812 | 685 |\n| Light and Darkness Ritual | 4.0% | 52.1% ±0.7 | 23,399 | 768 |\n| Blitzclique | 3.9% | 54.5% ±0.7 | 22,825 | 632 |\n\nWin rates here run from 48.7% (Sky Striker) to 54.7% (Elfnote). Sky Striker is here on popularity, winning under half of its games."
+      },
+      {
+        "id": "h-tcg-3",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG Tier 3",
+        "anchor": "tcg-tier-3"
+      },
+      {
+        "id": "cards-tcg-3",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 17473466,
+            "name": "Artmage / Power Patron",
+            "note": "3.1% · 53.0% WR"
+          },
+          {
+            "id": 20508881,
+            "name": "Radiant Typhoon",
+            "note": "2.9% · 54.9% WR"
+          },
+          {
+            "id": 37432075,
+            "name": "Invoked",
+            "note": "2.7% · 49.7% WR"
+          },
+          {
+            "id": 83232904,
+            "name": "Clown Crew",
+            "note": "2.5% · 49.5% WR"
+          },
+          {
+            "id": 40235813,
+            "name": "K9 / Dark Time Wizard",
+            "note": "2.2% · 51.7% WR"
+          },
+          {
+            "id": 86937530,
+            "name": "Magistus / Fairy Tail",
+            "note": "2.0% · 52.5% WR"
+          },
+          {
+            "id": 89631139,
+            "name": "Blue-Eyes / Primite",
+            "note": "1.8% · 48.6% WR"
+          },
+          {
+            "id": 74311226,
+            "name": "Atlantean",
+            "note": "1.6% · 49.6% WR"
+          }
+        ]
+      },
+      {
+        "id": "tcg-3",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Artmage / Power Patron | 3.1% | 53.0% ±0.7 | 18,012 | 531 |\n| Radiant Typhoon | 2.9% | 54.9% ±0.8 | 16,718 | 526 |\n| Invoked | 2.7% | 49.7% ±0.8 | 16,065 | 538 |\n| Clown Crew | 2.5% | 49.5% ±0.8 | 14,756 | 594 |\n| K9 / Dark Time Wizard | 2.2% | 51.7% ±0.9 | 12,899 | 429 |\n| Magistus / Fairy Tail | 2.0% | 52.5% ±0.9 | 11,968 | 384 |\n| Blue-Eyes / Primite | 1.8% | 48.6% ±0.9 | 10,786 | 512 |\n| Atlantean | 1.6% | 49.6% ±1.0 | 9,604 | 260 |"
+      },
+      {
+        "id": "h-tcg-4",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG Tier 4",
+        "anchor": "tcg-tier-4"
+      },
+      {
+        "id": "tcg-4",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Maliss | 1.4% | 51.2% ±1.1 | 8,408 | 354 |\n| Despia | 1.4% | 51.1% ±1.1 | 8,186 | 353 |\n| Ashtra | 1.3% | 45.6% ±1.1 | 7,453 | 342 |\n| Power Patron / Light and Darkness Ritual | 1.2% | 53.0% ±1.2 | 6,974 | 262 |\n| Dracotail | 1.1% | 49.9% ±1.2 | 6,772 | 315 |\n| DoomZ | 1.1% | 52.0% ±1.3 | 6,213 | 209 |\n| Power Patron | 1.0% | 53.4% ±1.3 | 6,019 | 201 |\n| Power Patron / Elfnote | 1.0% | 55.7% ±1.3 | 5,872 | 236 |\n| Vanquish Soul / K9 | 1.0% | 49.7% ±1.3 | 5,773 | 315 |\n| Orcust | 0.8% | 51.0% ±1.4 | 4,913 | 217 |\n| Umbral Horror | 0.8% | 45.3% ±1.4 | 4,794 | 217 |\n| White Forest | 0.8% | 47.2% ±1.5 | 4,395 | 199 |\n| Memento | 0.7% | 47.7% ±1.5 | 4,109 | 227 |\n| Phantom Knights | 0.7% | 49.9% ±1.6 | 3,940 | 194 |\n| Fire King | 0.7% | 47.6% ±1.6 | 3,934 | 199 |\n| Lunalight | 0.7% | 46.3% ±1.6 | 3,791 | 217 |\n| Junk / Stardust | 0.6% | 46.6% ±1.7 | 3,518 | 109 |"
+      },
+      {
+        "id": "h-genesys",
+        "type": "heading",
+        "level": 2,
+        "text": "Genesys tier list",
+        "anchor": "genesys-tier-list"
+      },
+      {
+        "id": "genesys-intro",
+        "type": "text",
+        "md": "The Genesys ladder is 40 days into the 09.2026 season, with 43,069 matches from 4,927 players. The top deck holds 4.5% of the meta, and 38% of games come from decks outside all four tiers. New to the format? The [format primer](/wiki/yu-gi-oh-formats) explains the 100-point rule."
+      },
+      {
+        "id": "h-genesys-1",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys Tier 1",
+        "anchor": "genesys-tier-1"
+      },
+      {
+        "id": "cards-genesys-1",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 22912101,
+            "name": "Blitzclique",
+            "note": "4.5% · 60.7% WR"
+          },
+          {
+            "id": 81797573,
+            "name": "Angelechy",
+            "note": "3.3% · 60.4% WR"
+          }
+        ],
+        "caption": "Share of the meta and win rate. Art is the deck's most used card."
+      },
+      {
+        "id": "genesys-1",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Blitzclique | 4.5% | 60.7% ±1.0 | 9,306 | 336 |\n| Angelechy | 3.3% | 60.4% ±1.2 | 6,799 | 225 |\n\nBlitzclique holds 1.4 times the share of the next deck and wins 60.7%. It wins 70.5% going first and 52.1% going second. Its share rose 0.1 points over the last 7 days."
+      },
+      {
+        "id": "h-genesys-2",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys Tier 2",
+        "anchor": "genesys-tier-2"
+      },
+      {
+        "id": "cards-genesys-2",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 67021206,
+            "name": "Hecahands",
+            "note": "2.6% · 54.0% WR"
+          },
+          {
+            "id": 50720316,
+            "name": "HERO",
+            "note": "2.3% · 50.2% WR"
+          },
+          {
+            "id": 90411554,
+            "name": "Dragon Ruler",
+            "note": "2.3% · 50.5% WR"
+          },
+          {
+            "id": 92714517,
+            "name": "Labrynth",
+            "note": "2.1% · 49.1% WR"
+          },
+          {
+            "id": 70383419,
+            "name": "Invoked",
+            "note": "1.9% · 55.1% WR"
+          },
+          {
+            "id": 84031359,
+            "name": "Darklord",
+            "note": "1.8% · 54.1% WR"
+          },
+          {
+            "id": 66431519,
+            "name": "Fire King",
+            "note": "1.5% · 54.0% WR"
+          },
+          {
+            "id": 70871153,
+            "name": "Dracotail",
+            "note": "1.5% · 55.3% WR"
+          },
+          {
+            "id": 64765016,
+            "name": "Paleozoic",
+            "note": "1.5% · 41.1% WR"
+          },
+          {
+            "id": 85914562,
+            "name": "Adamancipator",
+            "note": "1.4% · 45.7% WR"
+          },
+          {
+            "id": 40235813,
+            "name": "Dark Time Wizard",
+            "note": "1.4% · 55.3% WR"
+          }
+        ]
+      },
+      {
+        "id": "genesys-2",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Hecahands | 2.6% | 54.0% ±1.4 | 5,343 | 213 |\n| HERO | 2.3% | 50.2% ±1.4 | 4,821 | 207 |\n| Dragon Ruler | 2.3% | 50.5% ±1.5 | 4,718 | 188 |\n| Labrynth | 2.1% | 49.1% ±1.5 | 4,305 | 242 |\n| Invoked | 1.9% | 55.1% ±1.6 | 3,881 | 148 |\n| Darklord | 1.8% | 54.1% ±1.6 | 3,837 | 116 |\n| Fire King | 1.5% | 54.0% ±1.8 | 3,066 | 213 |\n| Dracotail | 1.5% | 55.3% ±1.8 | 3,062 | 164 |\n| Paleozoic | 1.5% | 41.1% ±1.8 | 3,036 | 168 |\n| Adamancipator | 1.4% | 45.7% ±1.8 | 2,992 | 148 |\n| Dark Time Wizard | 1.4% | 55.3% ±1.8 | 2,895 | 162 |\n\nWin rates here run from 41.1% (Paleozoic) to 55.3% (Dracotail). Labrynth, Paleozoic and Adamancipator are here on popularity, winning under half of their games."
+      },
+      {
+        "id": "h-genesys-3",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys Tier 3",
+        "anchor": "genesys-tier-3"
+      },
+      {
+        "id": "genesys-3",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Swordsoul / Ashtra | 1.3% | 47.8% ±1.9 | 2,655 | 145 |\n| Archfiend / Resonator | 1.3% | 54.4% ±1.9 | 2,639 | 118 |\n| Shaddoll | 1.2% | 47.4% ±2.0 | 2,440 | 169 |\n| Exosister | 1.2% | 54.8% ±2.0 | 2,432 | 111 |\n| White Forest / Angelechy | 1.1% | 57.6% ±2.0 | 2,342 | 96 |\n| Ashtra | 1.1% | 51.0% ±2.1 | 2,249 | 143 |\n| Crystron | 0.9% | 51.4% ±2.2 | 1,958 | 76 |\n| Mimighoul | 0.9% | 52.9% ±2.2 | 1,958 | 85 |\n| Phantom Knights | 0.9% | 47.6% ±2.2 | 1,935 | 87 |\n| Atlantean | 0.9% | 52.8% ±2.3 | 1,921 | 77 |\n| Ghoti | 0.9% | 50.0% ±2.3 | 1,906 | 70 |\n| Predap | 0.9% | 51.6% ±2.3 | 1,834 | 75 |\n| Purrely | 0.9% | 48.2% ±2.3 | 1,827 | 140 |\n| Six Samurai | 0.8% | 46.8% ±2.3 | 1,750 | 42 |\n| Melffy | 0.8% | 45.4% ±2.4 | 1,722 | 99 |\n| Predap / Dracotail | 0.8% | 52.7% ±2.4 | 1,707 | 61 |\n| Rescue-ACE | 0.8% | 48.7% ±2.4 | 1,656 | 120 |\n| True Draco | 0.8% | 38.9% ±2.4 | 1,641 | 107 |\n| Floowandereeze | 0.8% | 43.6% ±2.5 | 1,571 | 108 |\n| Angelechy / Ashtra | 0.8% | 59.9% ±2.4 | 1,564 | 73 |\n| Dragonmaid / Dracotail | 0.7% | 53.4% ±2.5 | 1,522 | 87 |\n| Centur-Ion | 0.7% | 51.3% ±2.6 | 1,479 | 87 |\n| Dark Magician | 0.7% | 48.4% ±2.6 | 1,403 | 83 |\n| Witchcrafter / Fairy Tail | 0.7% | 58.1% ±2.6 | 1,397 | 70 |"
+      },
+      {
+        "id": "h-genesys-4",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys Tier 4",
+        "anchor": "genesys-tier-4"
+      },
+      {
+        "id": "genesys-4",
+        "type": "text",
+        "md": "| Deck | Meta share | Win rate | Deck-games | Players |\n|---|---:|---:|---:|---:|\n| Blue-Eyes / Primite | 0.7% | 50.3% ±2.6 | 1,389 | 63 |\n| Artmage | 0.7% | 59.9% ±2.6 | 1,389 | 64 |\n| DoomZ | 0.7% | 54.5% ±2.6 | 1,389 | 71 |\n| Forbidden One | 0.7% | 46.8% ±2.7 | 1,378 | 88 |\n| Clown Crew | 0.7% | 53.9% ±2.6 | 1,374 | 69 |\n| Monarch | 0.7% | 54.4% ±2.7 | 1,352 | 67 |\n| Ritual Beast | 0.6% | 54.9% ±2.7 | 1,337 | 61 |\n| Dragonmaid | 0.6% | 44.3% ±2.7 | 1,313 | 80 |\n| Jurrac / GMX | 0.6% | 46.2% ±2.7 | 1,294 | 77 |\n| White Forest | 0.6% | 52.2% ±2.8 | 1,283 | 92 |\n| Apophis | 0.6% | 52.0% ±2.8 | 1,280 | 46 |\n| P.U.N.K. | 0.6% | 46.3% ±2.8 | 1,266 | 88 |\n| Lunalight | 0.6% | 46.7% ±2.8 | 1,264 | 79 |\n| Vendread | 0.6% | 49.5% ±2.8 | 1,260 | 41 |\n| Archfiend | 0.6% | 55.9% ±2.8 | 1,215 | 60 |\n| Madolche | 0.6% | 48.2% ±2.8 | 1,200 | 60 |\n| Centur-Ion / Angelechy | 0.6% | 59.7% ±2.8 | 1,184 | 67 |\n| Blackwing | 0.5% | 42.0% ±2.9 | 1,085 | 72 |\n| Fire King / Snake-Eye | 0.5% | 50.9% ±3.0 | 1,063 | 63 |\n| Ice Barrier | 0.5% | 46.2% ±3.0 | 1,048 | 57 |"
+      },
+      {
+        "id": "h-movers",
+        "type": "heading",
+        "level": 2,
+        "text": "Which decks are rising and falling?",
+        "anchor": "rising-and-falling"
+      },
+      {
+        "id": "movers",
+        "type": "text",
+        "md": "Growth compares each deck's meta share over the latest days with the same span before it, in percentage points.\n\n| Ladder | Window | Rising | Falling |\n|---|---|---|---|\n| TCG | 5 days | Power Patron / Light and Darkness Ritual (+1.2), Radiant Typhoon (+0.8) and Artmage / Power Patron (+0.5) | Sky Striker (−1.0), Angelechy (−0.8) and Maliss (−0.3) |\n| Genesys | 7 days | Invoked (+1.1), Dark Time Wizard (+1.0) and Angelechy (+1.0) | Forbidden One (−0.8), White Forest / Angelechy (−0.7) and Labrynth (−0.6) |"
+      },
+      {
+        "id": "h-sleepers",
+        "type": "heading",
+        "level": 2,
+        "text": "Which decks win more than their tier suggests?",
+        "anchor": "underplayed-decks"
+      },
+      {
+        "id": "sleepers",
+        "type": "text",
+        "md": "These Tier 3 and 4 decks post the best win rates outside the top of each ladder. Their samples are smaller, and the people playing them may be specialists, so treat them as leads to test, not as proof.\n\n- **TCG:** Power Patron / Elfnote (55.7% ±1.3), Radiant Typhoon (54.9% ±0.8) and Power Patron (53.4% ±1.3)\n- **Genesys:** Angelechy / Ashtra (59.9% ±2.4), Artmage (59.9% ±2.6) and Centur-Ion / Angelechy (59.7% ±2.8)"
+      },
+      {
+        "id": "h-matchups",
+        "type": "heading",
+        "level": 2,
+        "text": "What beats the top decks?",
+        "anchor": "matchups"
+      },
+      {
+        "id": "matchups-tcg",
+        "type": "text",
+        "md": "Best and worst matchup for each top deck against Tiers 1 to 3. A matchup is listed only when its whole 95% confidence interval sits on one side of 50%, with at least 300 games in TCG and 80 in Genesys.\n\n### TCG matchups\n\n| Deck | Best matchup | Worst matchup |\n|---|---|---|\n| Angelechy | Invoked, 59.0% (1,720 games) | Radiant Typhoon, 44.3% (2,086 games) |\n| HERO | Blitzclique, 56.3% (1,178 games) | Artmage / Power Patron, 45.2% (1,009 games) |\n| Sky Striker | None clear | Blitzclique, 43.4% (1,135 games) |\n| Elfnote | Blue-Eyes / Primite, 59.8% (453 games) | None clear |\n| Light and Darkness Ritual | Blue-Eyes / Primite, 57.9% (401 games) | Elfnote, 43.0% (1,092 games) |\n| Blitzclique | Invoked, 58.5% (583 games) | HERO, 43.7% (1,178 games) |"
+      },
+      {
+        "id": "matchups-gen",
+        "type": "text",
+        "md": "### Genesys matchups\n\n| Deck | Best matchup | Worst matchup |\n|---|---|---|\n| Blitzclique | Shaddoll, 73.6% (87 games) | None clear |\n| Angelechy | Paleozoic, 71.1% (97 games) | Blitzclique, 44.0% (389 games) |\n| Hecahands | Dragon Ruler, 62.0% (113 games) | Blitzclique, 44.4% (331 games) |\n| HERO | Paleozoic, 60.2% (98 games) | Angelechy, 39.4% (246 games) |\n| Dragon Ruler | None clear | Angelechy, 33.6% (140 games) |\n| Labrynth | None clear | Blitzclique, 33.5% (179 games) |"
+      },
+      {
+        "id": "h-staples",
+        "type": "heading",
+        "level": 2,
+        "text": "Most played generic cards",
+        "anchor": "most-played-cards"
+      },
+      {
+        "id": "staples-tcg",
+        "type": "text",
+        "md": "Generic Main Deck cards seen across at least two archetypes, by share of deck-games. In TCG, [Ash Blossom & Joyous Spring](/wiki/card/14558127) shows up in 89.1% of decks, and [Mulcharmy Fuwalos](/wiki/card/42141493) shows up in 83.5% of decks."
+      },
+      {
+        "id": "cards-staples-tcg",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 14558127,
+            "name": "Ash Blossom & Joyous Spring",
+            "note": "in 89.1% of decks"
+          },
+          {
+            "id": 42141493,
+            "name": "Mulcharmy Fuwalos",
+            "note": "in 83.5% of decks"
+          },
+          {
+            "id": 94145021,
+            "name": "Droll & Lock Bird",
+            "note": "in 70.0% of decks"
+          },
+          {
+            "id": 59438930,
+            "name": "Ghost Ogre & Snow Rabbit",
+            "note": "in 65.4% of decks"
+          }
+        ],
+        "caption": "TCG ladder"
+      },
+      {
+        "id": "staples-gen",
+        "type": "text",
+        "md": "In Genesys, [Skull Meister](/wiki/card/67750322) shows up in 28.4% of decks, and [Ghost Ogre & Snow Rabbit](/wiki/card/59438930) shows up in 27.1% of decks."
+      },
+      {
+        "id": "cards-staples-gen",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 67750322,
+            "name": "Skull Meister",
+            "note": "in 28.4% of decks"
+          },
+          {
+            "id": 59438930,
+            "name": "Ghost Ogre & Snow Rabbit",
+            "note": "in 27.1% of decks"
+          },
+          {
+            "id": 42141493,
+            "name": "Mulcharmy Fuwalos",
+            "note": "in 21.5% of decks"
+          },
+          {
+            "id": 24508238,
+            "name": "D.D. Crow",
+            "note": "in 13.0% of decks"
+          }
+        ],
+        "caption": "Genesys ladder"
+      },
+      {
+        "id": "h-method",
+        "type": "heading",
+        "level": 2,
+        "text": "How this tier list works",
+        "anchor": "methodology"
+      },
+      {
+        "id": "method",
+        "type": "text",
+        "md": "Every number comes from ranked matches played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](/statistics). Nothing is voted on or picked by hand.\n\n**Tiers follow meta share, measured against the most played deck of the season:**\n\n| Tier | Share compared with the top deck |\n|---|---|\n| Tier 1 | 60% or more |\n| Tier 2 | 30% to 60% |\n| Tier 3 | 15% to 30% |\n| Tier 4 | 5% to 15% |\n\nA deck also needs at least 0.5% of the meta to get a tier at all, so the top deck is always Tier 1 and a small format can't fill its tiers with fringe decks.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **Win rate** leaves mirror matches out, because a mirror always wins exactly half. The ± is its 95% confidence interval.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds.\n- **Seasons:** each ladder has its own season, so TCG and Genesys cover different date ranges."
+      },
+      {
+        "id": "limits",
+        "type": "callout",
+        "tone": "cyan",
+        "title": "What this list can't tell you",
+        "md": "This is ladder play on a simulator, not tournament results. Players of every level are in it. It shows what you will face on the ladder, which is not always what wins a premier event."
+      },
+      {
+        "id": "h-faq",
+        "type": "heading",
+        "level": 2,
+        "text": "Frequently asked questions",
+        "anchor": "faq"
+      },
+      {
+        "id": "faq",
+        "type": "faq",
+        "items": [
+          {
+            "q": "What is the best Yu-Gi-Oh! deck right now?",
+            "md": "On the TCG ladder, Angelechy, with a 55.2% win rate at 10.6% of the meta. It has the strongest win rate once sample size is counted."
+          },
+          {
+            "q": "What is the best Genesys deck right now?",
+            "md": "Megalith / Magnet, with a 64.9% win rate at 0.3% of the meta. It has the strongest win rate once sample size is counted."
+          },
+          {
+            "q": "Is this tier list based on tournament results?",
+            "md": "No. It comes from ranked ladder matches on YGO Omega. That gives a far larger sample than tournaments, but it reflects ladder play, not premier events."
+          },
+          {
+            "q": "How are the tiers decided?",
+            "md": "By meta share compared with the most played deck: 60% of its share or more is Tier 1, 30% is Tier 2, 15% is Tier 3 and 5% is Tier 4. Decks under 0.5% of the meta get no tier."
+          },
+          {
+            "q": "Does a higher tier mean a stronger deck?",
+            "md": "Not always. Tiers measure popularity. Sky Striker is TCG Tier 2 with a 48.7% win rate, while Power Patron / Elfnote is Tier 4 at 55.7%."
+          },
+          {
+            "q": "How much does going first matter?",
+            "md": "Going first wins 53.5% of games on the TCG ladder and 56.8% in Genesys."
+          },
+          {
+            "q": "How often is the tier list updated?",
+            "md": "Every week, as a new dated article. Between issues, the [statistics page](/statistics) shows the current numbers for TCG and [Genesys](/statistics?ladder=genesys)."
+          },
+          {
+            "q": "Where can I see decklists for these decks?",
+            "md": "The [statistics page](/statistics) has sample decklists, card usage and full matchup tables for each deck."
+          }
+        ]
+      }
+    ],
+    "assets": {
+      "wa-e7694119d6": {
+        "id": "wa-e7694119d6",
+        "src": "https://res.cloudinary.com/dtmg8vjff/image/upload/wiki_assets/e7694119d6edfd945a9bf07ffa2b353e",
+        "width": 1920,
+        "height": 1008,
+        "alt": "Glowing blue and purple YGO Omega emblem on a black background",
+        "credit": "Duelists Unite"
+      },
+      "card-55393975": {
+        "id": "card-55393975",
+        "src": "https://ygopro.online/assets/card-arts/55393975.jpg",
+        "width": 624,
+        "height": 624,
+        "alt": "Angelechy Destrier card art, the most used card of the Angelechy deck"
+      }
+    },
+    "seo": {
+      "title": "Yu-Gi-Oh! Tier List Oct 30, 2026: TCG and Genesys",
+      "description": "Yu-Gi-Oh! tier list for October 30, 2026: Angelechy leads TCG and Blitzclique leads Genesys, ranked from 164,971 ladder matches.",
+      "keyword": "Yu-Gi-Oh! tier list",
+      "keywords": [
+        "yugioh tier list",
+        "yugioh meta",
+        "best yugioh decks",
+        "tcg tier list",
+        "genesys tier list"
+      ],
+      "schema": "Article"
+    },
+    "hub": "ygo-omega-wiki",
+    "related": [
+      "yu-gi-oh-formats",
+      "beginner-s-guide-to-ygo-omega"
+    ]
+  }
+}
