@@ -187,6 +187,11 @@ type CommentsProps = CommentsApi & {
   initial: Thread[] | null
 }
 
+/** An article's `Comments` for a server component: `forArticle`'s functions cannot cross into the client, the slug can. */
+export const ArticleComments = ({ slug, initial }: { slug: string; initial: Thread[] | null }) => (
+  <Comments {...forArticle(slug)} initial={initial} />
+)
+
 /** Threads newest first, one level of replies. Signed-in duelists post; authors and moderators delete. */
 export const Comments = ({ initial, post, remove: removeComment, canModerate }: CommentsProps) => {
   const { user } = useAuth()

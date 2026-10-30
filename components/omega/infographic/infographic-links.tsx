@@ -24,12 +24,6 @@ type InfographicLinksProps = {
   className?: string
 }
 
-/** The wide and tall URLs of one PNG route: `path?…query&size=wide|tall`. */
-export const infographicHrefs = (path: string, query: Record<string, string>): Record<Size, string> => ({
-  wide: `${path}?${new URLSearchParams({ ...query, size: 'wide' })}`,
-  tall: `${path}?${new URLSearchParams({ ...query, size: 'tall' })}`,
-})
-
 const LINK ='inline-flex min-h-8 items-center gap-1.5 border border-line px-2.5 text-ink-dim signal-sm transition-colors hover:border-cyan hover:text-cyan aria-busy:border-cyan aria-busy:text-cyan'
 
 /**

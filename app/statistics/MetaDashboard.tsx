@@ -30,7 +30,8 @@ import { DeckComparator } from './dashboard/DeckComparator'
 import { ArchetypeDetailCard } from './dashboard/ArchetypeDetailCard'
 import { MetaTrendsCard } from './dashboard/MetaTrendsCard'
 import { SampleDecks } from './dashboard/SampleDecks'
-import { InfographicLinks, infographicHrefs } from '@omega/infographic/infographic-links'
+import { InfographicLinks } from '@omega/infographic/infographic-links'
+import { infographicHrefs } from '@utils/statistics'
 
 const sectionId = (s: NavSection) => `stat-section-${s}`
 

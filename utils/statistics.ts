@@ -2,8 +2,18 @@
  * The public meta statistics of a ranked season: omega-server-v3 STATISTICS_API.md.
  * Rates are 0–1 fractions, `null` when their denominator is 0; `games` are always deck-games.
  */
+import type { Size } from '@omega/infographic/infographic'
 import { API_URL } from '@utils/auth'
 import type { RankedLadderId, Tier } from '@utils/types'
+
+/**
+ * The wide and tall URLs of one PNG route: `path?…query&size=wide|tall`. Not beside `InfographicLinks`:
+ * that is a client module, and PlayerStatistics, a server component, calls this.
+ */
+export const infographicHrefs = (path: string, query: Record<string, string>): Record<Size, string> => ({
+  wide: `${path}?${new URLSearchParams({ ...query, size: 'wide' })}`,
+  tall: `${path}?${new URLSearchParams({ ...query, size: 'tall' })}`,
+})
 
 /** One entry, or two for a mixed deck. Use it as the key; `name` is only the label. */
 export type ArchetypeKey = number[]

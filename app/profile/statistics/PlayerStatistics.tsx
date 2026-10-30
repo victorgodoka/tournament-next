@@ -10,7 +10,7 @@ import { TierBadge } from "@ui/tier-badge";
 import { EmptyBox } from "@omega/profile/empty-box";
 import { PrivateNotice } from "@omega/profile/private-notice";
 import { Skeleton } from "@omega/analytics/primitives";
-import { getPlayerStatistics } from "@utils/statistics";
+import { getPlayerStatistics, infographicHrefs } from "@utils/statistics";
 import { getPlayerTournamentStats } from "@utils/tournaments";
 import type { Match, Profile, RankedLadderId } from "@utils/types";
 import { RankedDashboard, type LadderStanding } from "./RankedDashboard";
@@ -18,7 +18,7 @@ import { standingOf } from "./insights";
 import { StatisticsFilters } from "./StatisticsFilters";
 import { TournamentSummary } from "./TournamentSummary";
 import { TournamentReport } from "./TournamentReport";
-import { InfographicLinks, infographicHrefs } from "@omega/infographic/infographic-links";
+import { InfographicLinks } from "@omega/infographic/infographic-links";
 
 export type SeasonChoice = { code: string; label: string; format: 'TCG' | 'Genesys'; open: boolean }
 
