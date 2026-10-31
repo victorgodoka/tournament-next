@@ -72,9 +72,9 @@ describe('AdBanner', () => {
     expect((container.firstElementChild as HTMLElement).className).toContain('max-lg:hidden')
   })
 
-  it('pins to the bottom of the scrolling aside, which would otherwise keep it below the fold', () => {
+  it('scrolls with the page: nothing in the right-hand column is ever pinned', () => {
     const { container } = render(<AdBanner id="ad-aside" placement="aside" />)
-    expect((container.firstElementChild as HTMLElement).className).toMatch(/lg:sticky.*lg:bottom-0/)
+    expect((container.firstElementChild as HTMLElement).className).not.toContain('sticky')
   })
 
   it('holds its box while auth loads, without asking Nitro yet', async () => {

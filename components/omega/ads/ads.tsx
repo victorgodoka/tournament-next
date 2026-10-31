@@ -12,13 +12,15 @@ import {
   INTERSTITIAL_AD_OPTIONS,
   NITROPAY_SCRIPT_URL,
   NITRO_AD_SLOT_IDS,
+  RAIL_ARTICLE_DOCK_QUERY,
+  RAIL_ARTICLE_QUERY,
   RAIL_LEFT_AD_OPTIONS,
   RAIL_RIGHT_AD_OPTIONS,
   RAIL_RIGHT_DOCK_AD_OPTIONS,
   RAIL_WIDE_MIN_WIDTH,
 } from '@utils/nitro-ads.const'
 import type { NitroAdOptions, NitroRailAdOptions } from '@utils/nitro-ads.types'
-import { adsMode, isVideoPage } from './ads-mode'
+import { adsMode, isArticlePage, isVideoPage } from './ads-mode'
 import { useNitroAd } from './use-nitro-ad'
 
 /** Nitro's install snippet: queues createAd calls until the real script arrives. */
@@ -40,6 +42,9 @@ const fitRail = (options: NitroRailAdOptions) => (): NitroRailAdOptions =>
 const RAIL_LEFT = fitRail(RAIL_LEFT_AD_OPTIONS)
 const RAIL_RIGHT = fitRail(RAIL_RIGHT_AD_OPTIONS)
 const RAIL_RIGHT_DOCK = fitRail(RAIL_RIGHT_DOCK_AD_OPTIONS)
+const RAIL_LEFT_ARTICLE = fitRail({ ...RAIL_LEFT_AD_OPTIONS, mediaQuery: RAIL_ARTICLE_QUERY })
+const RAIL_RIGHT_ARTICLE = fitRail({ ...RAIL_RIGHT_AD_OPTIONS, mediaQuery: RAIL_ARTICLE_QUERY })
+const RAIL_RIGHT_DOCK_ARTICLE = fitRail({ ...RAIL_RIGHT_DOCK_AD_OPTIONS, mediaQuery: RAIL_ARTICLE_DOCK_QUERY })
 
 /**
  * The site-wide placements. A VIP, or anyone while /auth/me is in flight, gets nothing, not even
@@ -53,6 +58,7 @@ export const Ads = () => {
   if (mode === 'none') return null
 
   const signedOut = user === null
+  const article = isArticlePage(pathname)
   return (
     <>
       <Script id="nitro-ads-stub" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: STUB }} />
@@ -67,13 +73,15 @@ export const Ads = () => {
         // Blocked script: the ad-blocker rate, per section, for the revenue reports.
         onError={() => track('ad_blocked', { ads_mode: mode })}
       />
-      <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={RAIL_LEFT} />
+      <Placement key={NITRO_AD_SLOT_IDS.railLeft} id={NITRO_AD_SLOT_IDS.railLeft} options={article ? RAIL_LEFT_ARTICLE : RAIL_LEFT} />
       {mode === 'all' ? (
         <>
           <Placement
             key={NITRO_AD_SLOT_IDS.railRight}
             id={NITRO_AD_SLOT_IDS.railRight}
-            options={signedOut ? RAIL_RIGHT : RAIL_RIGHT_DOCK}
+            options={
+              article ? (signedOut ? RAIL_RIGHT_ARTICLE : RAIL_RIGHT_DOCK_ARTICLE) : signedOut ? RAIL_RIGHT : RAIL_RIGHT_DOCK
+            }
           />
           <Placement
             key={NITRO_AD_SLOT_IDS.anchor}

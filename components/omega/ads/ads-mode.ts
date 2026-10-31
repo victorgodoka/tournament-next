@@ -24,6 +24,9 @@ const RAIL_ONLY = [/^\/deck-builder(\/|$)/, /^\/(calculator|simulator)\/?$/]
 /** Pages with a `video-nc` player in the content, where the floating outstream player stays off. */
 const VIDEO_PAGES = [/^\/wiki\/(card\/)?[^/]+\/?$/, /^\/statistics\/?$/]
 
+/** A wiki article: `/wiki/[slug]`, whose page keeps its 1280px column where the others narrow for the rails. */
+const ARTICLE_PAGE = /^\/wiki\/[^/]+\/?$/
+
 /** An /auth/me without `isVip` predates the field: treat it as VIP rather than risk ads for one. */
 const vip = (user: AuthUser | null | undefined) => !!user && user.isVip !== false
 
@@ -46,6 +49,8 @@ export const adsLayout = (user: AuthUser | null | undefined, pathname: string): 
 export const promoLayout = (user: AuthUser | null | undefined): boolean => user === undefined || promoVisible(user)
 
 export const isVideoPage = (pathname: string): boolean => VIDEO_PAGES.some((re) => re.test(pathname))
+
+export const isArticlePage = (pathname: string): boolean => ARTICLE_PAGE.test(pathname)
 
 export const useAdsMode = (): AdsMode => adsMode(useAuth().user, usePathname())
 

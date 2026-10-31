@@ -102,6 +102,25 @@ describe('Ads', () => {
     }
   })
 
+  it('holds a wiki article\'s rails until its 1280px column leaves them room, and no other page\'s', async () => {
+    await show(null, '/wiki/foo')
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railLeft)).toMatchObject({ mediaQuery: '(min-width: 1620px)' })
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railRight)).toMatchObject({ mediaQuery: '(min-width: 1620px)' })
+    cleanup()
+    vi.clearAllMocks()
+
+    await show(null, '/wiki')
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railLeft)).toMatchObject({ mediaQuery: '(min-width: 1366px)' })
+    cleanup()
+    vi.clearAllMocks()
+
+    await show(free, '/wiki/foo')
+    expect(optionsOf(NITRO_AD_SLOT_IDS.railRight)).toMatchObject({
+      railVerticalAlign: 'top',
+      mediaQuery: '(min-width: 1620px) and (min-height: 752px)',
+    })
+  })
+
   it('drops the floating player on a page with an in-content video', async () => {
     await show(null, '/wiki/foo')
     expect(created()).not.toContain(NITRO_AD_SLOT_IDS.floating)

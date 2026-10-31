@@ -7,7 +7,7 @@ import { useAdsMode } from './ads-mode'
 import { useNitroAd } from './use-nitro-ad'
 
 const ArticlePlacement = ({ targetId }: { targetId: string }) => {
-  // Read when the slot asks: the column is 860px on desktop, less on a tablet.
+  // Read when the slot asks: the column is 620 to 700px on desktop, less on a phone.
   const options = useCallback(() => {
     const sizes = fitSizes(ARTICLE_AD_OPTIONS.sizes, contentWidth(document.getElementById(targetId)))
     return sizes.length ? { ...ARTICLE_AD_OPTIONS, sizes } : null
