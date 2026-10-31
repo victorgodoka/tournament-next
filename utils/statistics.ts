@@ -22,10 +22,10 @@ export type TurnSplit = { first: Side; second: Side }
 
 type WilsonInterval = { lower: number; upper: number; margin: number }
 export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
-/** A matchup at or past `FAVORABLE` is favorable, under `UNFAVORABLE` unfavorable. The API sends only the rate; this is the page's reading. */
-export const FAVORABLE = 0.52
-export const UNFAVORABLE = 0.49
-export const matchupStatus = (rate: number): MatchupStatus => (rate >= FAVORABLE ? 'favorable' : rate < UNFAVORABLE ? 'unfavorable' : 'neutral')
+/** Favorable when the whole 95% interval is above 50%, unfavorable when it is all below. The API sends no status; this is the page's reading. */
+export const matchupStatus = (ci: WilsonInterval | undefined): MatchupStatus => (!ci ? 'neutral' : ci.lower > 0.5 ? 'favorable' : ci.upper < 0.5 ? 'unfavorable' : 'neutral')
+/** The window `growth` covers on the server: half the synced days, at most 7. */
+export const growthDays = (syncedDays: number) => Math.min(7, Math.max(1, Math.floor(syncedDays / 2)))
 export type RankingMode = 'mostPlayed' | 'highestWinRate' | 'rising' | 'sleeper' | 'consistent'
 export const RANKING_MODES: readonly RankingMode[] = ['mostPlayed', 'highestWinRate', 'rising', 'sleeper', 'consistent']
 
@@ -43,7 +43,8 @@ export type MatchupOthers = {
 
 type TierDistribution = {
   tier1: { share: number; archetypes: number }
-  tier15: { share: number; archetypes: number }
+  /** Absent from a server older than Tier 1.5. */
+  tier15?: { share: number; archetypes: number }
   tier2: { share: number; archetypes: number }
   tier3: { share: number; archetypes: number }
   tier4: { share: number; archetypes: number }
@@ -274,8 +275,21 @@ export const getPlayerStatistics = async (
 
 export const archKey = (a: ArchetypeKey) => a.join('-')
 
-/** `general`: all decks; `pure`: single-archetype decks; `combined`: mixed decks, key `[lead, second]` in that order. */
-export type DeepDiveMode = 'general' | 'pure' | 'combined'
+/**
+ * `main`: the ranking's keys, one archetype or a sorted pair; `general`: every deck A leads; `pure`: decks of A alone
+ * (the same row as `main` for one key); `combined`: mixes, key `[lead, second]` in that order.
+ */
+export type DeepDiveMode = 'main' | 'general' | 'pure' | 'combined'
+const modeParams = (mode: DeepDiveMode): Record<string, string> => (mode === 'main' ? {} : { mode })
+
+/** Keeps `?season=` or `?ladder=` on the way between the statistics pages. */
+export type StatisticsScope = { ladder: RankedLadderId; season?: string }
+const scopeQuery = ({ ladder, season }: StatisticsScope, extra: Record<string, string> = {}) =>
+  new URLSearchParams({ ...(season ? { season } : { ladder }), ...extra }).toString()
+export const statisticsHref = (scope: StatisticsScope) => `/statistics?${scopeQuery(scope)}`
+export const deckHref = (key: ArchetypeKey, scope: StatisticsScope, mode: DeepDiveMode = 'main') =>
+  `/statistics/archetypes/${archKey(key)}?${scopeQuery(scope, modeParams(mode))}`
+export const cardHref = (id: number, scope: StatisticsScope) => `/statistics/cards/${id}?${scopeQuery(scope)}`
 
 /** One searchable archetype of a ranked season. `ready`: in the season build or already calculated. */
 export type IndexEntry = { archetype: ArchetypeKey; name: string | null; games: number; ready: boolean }
@@ -296,11 +310,11 @@ const ok = async (res: Response) => {
 
 /** Every searchable archetype of the mode, most played first. */
 export const getArchetypeIndex = async (season: string, mode: DeepDiveMode, signal?: AbortSignal): Promise<IndexEntry[]> =>
-  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season, mode })}`, { signal }))).archetypes
+  (await ok(await fetch(`${API_URL}/statistics/archetypes?${new URLSearchParams({ season, ...modeParams(mode) })}`, { signal }))).archetypes
 
 /** Always a state, never cached: poll it while `queued` or `running`. */
 export const getDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey, signal?: AbortSignal): Promise<DeepDiveState> =>
-  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, mode, key: archKey(key) })}`, { cache: 'no-store', signal }))
+  ok(await fetch(`${API_URL}/statistics/archetype?${new URLSearchParams({ season, ...modeParams(mode), key: archKey(key) })}`, { cache: 'no-store', signal }))
 
 /** Signed in only (`omega_session`). 429 is the account's hourly limit, not an error. */
 export const requestDeepDive = async (season: string, mode: DeepDiveMode, key: ArchetypeKey): Promise<DeepDiveState> => {
@@ -309,7 +323,7 @@ export const requestDeepDive = async (season: string, mode: DeepDiveMode, key: A
     credentials: 'include',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ season, mode, key: archKey(key) }),
+    body: JSON.stringify({ season, ...modeParams(mode), key: archKey(key) }),
   })
   /* The IP limiter answers 429 too, without a `retryAt`. */
   if (res.status === 429) return { status: 'limited', retryAt: (await res.json().catch(() => null))?.retryAt }

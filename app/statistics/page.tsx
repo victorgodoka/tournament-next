@@ -1,10 +1,9 @@
 import { getTranslations } from 'next-intl/server'
-import { Footer } from '@ui/footer'
-import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
 import { getPastSeasons } from '@utils/ranked'
 import { getOmegaActivity, getStatistics } from '@utils/statistics'
 import { MetaDashboard } from './MetaDashboard'
+import { StatsShell } from './StatsShell'
 
 type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }> }
 
@@ -29,16 +28,9 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
   const openLabel = openReport?.ok ? openReport.data.season.label : null
 
   return (
-    <>
-      <Header />
-      <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-        {/* 64px clears the fixed header. */}
-        <main style={{ width: 'min(var(--container-page), calc(100% - 32px))', margin: '0 auto', padding: '88px 0 96px' }}>
-          <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} />
-        </main>
-      </div>
-      <Footer />
-    </>
+    <StatsShell>
+      <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} />
+    </StatsShell>
   )
 }
 

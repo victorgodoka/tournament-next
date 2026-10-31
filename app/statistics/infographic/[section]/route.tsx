@@ -60,7 +60,7 @@ const overview = async ({ data, size, t, locale }: Ctx) => {
   const wide = size === 'wide'
   const tiers = data.tierDistribution
   const tierRows = tiers
-    ? ([[1, tiers.tier1], [1.5, tiers.tier15], [2, tiers.tier2], [3, tiers.tier3], [4, tiers.tier4], [0, tiers.others]] as const).filter(([, v]) => v.share > 0)
+    ? ([[1, tiers.tier1], [1.5, tiers.tier15 ?? { share: 0, archetypes: 0 }], [2, tiers.tier2], [3, tiers.tier3], [4, tiers.tier4], [0, tiers.others]] as const).filter(([, v]) => v.share > 0)
     : []
   const slices: Slice[] = tierRows.map(([k, v]) => ({ value: v.share, color: k ? C.tier[k]! : C.lineMid, label: k ? `T${k}` : undefined, sub: pct(v.share, 0) }))
   const kpis = (

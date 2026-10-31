@@ -1,23 +1,20 @@
 'use client'
 
 /**
- * One archetype's deep dive: the header, then general figures, tracked cards, engines and techs, and
- * the hand traps it faced, one tab at a time. Also home of the helpers the statistics pages share
- * (formatters, bars, sortable div tables).
+ * The tables of a deck's page (tracked cards, engines and techs, what it faced) and the helpers the statistics
+ * pages share (formatters, bars, sortable div tables).
  */
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
-import { BarList, WinRateRing } from '@ui/chart'
-import { Panel } from '@ui/panel'
-import { StatGrid } from '@ui/stat-grid'
-import { TabBar } from '@ui/tab-bar'
-import type { AgainstCard, CardGroup, StatArchetype, StatCard } from '@utils/statistics'
+import type { AgainstCard, CardGroup, StatCard } from '@utils/statistics'
 
 export const pct = (r: number | null | undefined) => (r == null ? '—' : (r * 100).toFixed(1) + '%')
-const fixed = (n: number | null, digits: number) => (n == null ? '—' : n.toFixed(digits))
+export const fixed = (n: number | null, digits: number) => (n == null ? '—' : n.toFixed(digits))
+export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 export const num =(n: number) => n.toLocaleString('en-US')
 export const nameOf = (a: { name: string | null; archetype: number[] }) => a.name ?? `Setcode ${a.archetype.join(' / ')}`
 export const cardName = (c: { name: string | null; id: number }) => c.name ?? `#${c.id}`
@@ -30,7 +27,6 @@ export const NUM = 'text-right tabular-nums'
 export const NOTE = 'text-[13px] leading-5 text-ink-muted'
 /** `minmax(0, …)` everywhere, so a wide table scrolls in its box instead of stretching the column. */
 export const SPLIT = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
-const THIRDS = 'grid grid-cols-[minmax(0,1fr)] gap-6 min-[980px]:grid-cols-3'
 const CARD_COLS = 'minmax(180px, 2fr) minmax(130px, 1.3fr) repeat(5, minmax(64px, 0.7fr))'
 
 /** 8px bar on a surface-200 track with the figure after it. `mark`: a tick on the track at that value (0.5 = even). */
@@ -137,7 +133,8 @@ const CARD_GET: Getters<StatCard, CardSortKey> = {
   winRateInDeck: (c) => c.winRateInDeck,
 }
 
-const CardsTable = ({ cards, label }: { cards: StatCard[]; label: string }) => {
+/** `hrefOf`: each name links to the card's page. */
+export const CardsTable = ({ cards, label, hrefOf }: { cards: StatCard[]; label: string; hrefOf: (id: number) => string }) => {
   const t = useTranslations('Statistics.deepDive')
   const [sort, onSort] = useSort<CardSortKey>()
   return (
@@ -153,7 +150,7 @@ const CardsTable = ({ cards, label }: { cards: StatCard[]; label: string }) => {
         />
         {sortBy(cards, sort, CARD_GET).map((c) => (
           <div key={c.id} role="row" className={ROW} style={{ gridTemplateColumns: CARD_COLS }}>
-            <span role="cell"><Named card={c}><span title={cardName(c)} className="truncate font-bold text-ink">{cardName(c)}</span></Named></span>
+            <span role="cell"><Named card={c}><Link href={hrefOf(c.id)} title={cardName(c)} className="truncate font-bold text-ink hover:text-cyan">{cardName(c)}</Link></Named></span>
             <span role="cell"><Bar value={c.inclusion} label={pct(c.inclusion)} w={52} /></span>
             <span role="cell" className={NUM}>{pct(c.sideRate)}</span>
             <span role="cell" className={NUM}>{c.averageCopies.toFixed(2)}</span>
@@ -170,7 +167,7 @@ const CardsTable = ({ cards, label }: { cards: StatCard[]; label: string }) => {
 const GROUP_COLS = '24px minmax(200px, 2fr) minmax(90px, 0.7fr) minmax(140px, 1.2fr) minmax(80px, 0.7fr) minmax(70px, 0.5fr)'
 
 /** Engines and techs in one table; a row with cards opens them under it. */
-const GroupsTable = ({ engines, techs }: { engines: CardGroup[]; techs: CardGroup[] }) => {
+export const GroupsTable = ({ engines, techs, hrefOf }: { engines: CardGroup[]; techs: CardGroup[]; hrefOf: (id: number) => string }) => {
   const t = useTranslations('Statistics.deepDive')
   const [open, setOpen] = useState<string | null>(null)
   const rows = [...engines.map((g) => ({ ...g, kind: 'engine' as const })), ...techs.map((g) => ({ ...g, kind: 'tech' as const }))]
@@ -212,7 +209,7 @@ const GroupsTable = ({ engines, techs }: { engines: CardGroup[]; techs: CardGrou
               )}
               {isOpen && g.cards ? (
                 <div className="border-b border-line bg-space-000 p-3">
-                  <CardsTable cards={g.cards} label={g.name} />
+                  <CardsTable cards={g.cards} label={g.name} hrefOf={hrefOf} />
                 </div>
               ) : null}
             </div>
@@ -232,7 +229,7 @@ const AGAINST_GET: Getters<AgainstCard, AgainstSort> = {
 }
 
 /** Generic cards the opponent used against the deck, hand traps tagged: how often it faced each, and how it did then. */
-const AgainstTable = ({ cards }: { cards?: AgainstCard[] | null }) => {
+export const AgainstTable = ({ cards }: { cards?: AgainstCard[] | null }) => {
   const t = useTranslations('Statistics.deepDive')
   const [sort, onSort] = useSort<AgainstSort>()
   if (!cards) return <p className={NOTE}>{t('againstMissing')}</p>
@@ -268,84 +265,5 @@ const AgainstTable = ({ cards }: { cards?: AgainstCard[] | null }) => {
       </div>
       <p className={NOTE}>{t('againstNote')}</p>
     </div>
-  )
-}
-
-type DiveTab = 'general' | 'cards' | 'groups' | 'against'
-const DIVE_TABS: readonly DiveTab[] = ['general', 'cards', 'groups', 'against']
-
-/** `rank` is the deck's place by deck-games. The header stays; the rest is one tab at a time. */
-export const DeepDive = ({ archetype: focus, rank }: { archetype: StatArchetype; rank: number }) => {
-  const t = useTranslations('Statistics.deepDive')
-  const [tab, setTab] = useState<DiveTab>('general')
-  const nullCardRates = focus.cards.some((c) => c.winRateWhenUsed == null || c.winRateInDeck == null)
-
-  return (
-    <>
-      <Panel tone="steel" title={nameOf(focus)} meta={t('rank', { rank, players: num(focus.players) })}>
-        <div className="flex flex-wrap items-center gap-8">
-          <Art card={faceOf(focus)} size={148} className="size-37 max-[720px]:hidden" />
-          <div className="min-w-0 flex-[999_1_560px]">
-            <StatGrid
-              columns={4}
-              items={[
-                { label: t('share'), value: pct(focus.metaShare), hint: t('deckGames', { count: num(focus.games) }) },
-                { label: t('winRate'), value: pct(focus.winRate), hint: t('wilson', { rate: pct(focus.wilsonLower) }) },
-                { label: t('mirrors'), value: pct(focus.mirrorShare), hint: t('mirrorsHint') },
-                { label: t('players'), value: num(focus.players), hint: t('perPlayer', { count: (focus.games / (focus.players || 1)).toFixed(1) }) },
-              ]}
-            />
-          </div>
-          <div className="flex flex-[1_1_160px] justify-center">
-            <WinRateRing wins={focus.wins} losses={focus.losses} draws={focus.draws} size={148} />
-          </div>
-        </div>
-      </Panel>
-
-      <TabBar tabs={DIVE_TABS.map((id) => ({ id, label: t(`tabs.${id}`) }))} active={tab} onSelect={setTab} label={t('tabsLabel')} idPrefix="deep-dive" fit />
-
-      {tab === 'general' ? (
-        <div className={THIRDS}>
-          <BarList
-            title={t('turnOrder')}
-            subtitle={t('gamesPair', { a: num(focus.turnOrder.first.games), b: num(focus.turnOrder.second.games) })}
-            items={[
-              { label: t('first'), value: focus.turnOrder.first.winRate ?? 0 },
-              { label: t('second'), value: focus.turnOrder.second.winRate ?? 0, color: 'series-3' },
-            ]}
-            format={pct}
-            max={1}
-          />
-          <BarList
-            title={t('siding')}
-            subtitle={t('gamesPair', { a: num(focus.sideboarding.game1.games), b: num(focus.sideboarding.postSide.games) })}
-            items={[
-              { label: 'G1', value: focus.sideboarding.game1.winRate ?? 0 },
-              { label: t('postSide'), value: focus.sideboarding.postSide.winRate ?? 0, color: 'series-3' },
-            ]}
-            format={pct}
-            max={1}
-          />
-          <StatGrid
-            columns={2}
-            items={[
-              { label: t('pace.turns'), value: fixed(focus.pace.averageTurns, 2) },
-              { label: t('pace.actions'), value: fixed(focus.pace.actionsPerTurn, 1) },
-              { label: t('pace.t1'), value: fixed(focus.pace.turn1SpecialSummons, 1) },
-              { label: t('pace.chain'), value: fixed(focus.pace.averageLongestChain, 2) },
-            ]}
-          />
-        </div>
-      ) : tab === 'cards' ? (
-        <div className="flex flex-col gap-3">
-          <CardsTable cards={focus.cards} label={t('tabs.cards')} />
-          {nullCardRates ? <p className={NOTE}>{t('oldServer')}</p> : null}
-        </div>
-      ) : tab === 'groups' ? (
-        <GroupsTable engines={focus.engines} techs={focus.techs} />
-      ) : (
-        <AgainstTable cards={focus.against} />
-      )}
-    </>
   )
 }

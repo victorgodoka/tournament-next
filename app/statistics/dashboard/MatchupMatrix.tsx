@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
+import { Select } from '@ui/field'
 import { Panel } from '@ui/panel'
-import { archKey, FAVORABLE, matchupStatus, UNFAVORABLE } from '@utils/statistics'
-import type { Matchup, MatchupOthers, StatArchetype, MatchupStatus } from '@utils/statistics'
+import { archKey, deckHref, matchupStatus } from '@utils/statistics'
+import type { Matchup, MatchupOthers, StatArchetype, MatchupStatus, StatisticsScope } from '@utils/statistics'
 import { pct, num, nameOf, faceOf, Art, NOTE } from '../DeepDive'
 import { DeckPicker, FilterField, matches } from './controls'
 
@@ -14,7 +16,7 @@ type CellView = 'winRate' | 'games'
 type MatchupMatrixProps = {
   archetypes: StatArchetype[]
   matchups: Matchup[]
-  onPickArchetype?: (key: string) => void
+  scope: StatisticsScope
 }
 
 /** A matchup cell, or the row's record against every deck outside the page's list. */
@@ -28,7 +30,7 @@ const MAX_COLUMNS = 12
 const FOLD = 10
 const MIN_GAMES = [1, 50, 100, 250] as const
 
-const statusOf = (c: Cell): MatchupStatus => (c.winRate == null ? 'neutral' : matchupStatus(c.winRate))
+const statusOf = (c: Cell): MatchupStatus => (c.winRate == null ? 'neutral' : matchupStatus(c.ci))
 const marginOf = (c: Cell) => c.ci?.margin ?? (c.winRate != null && c.wilsonLower != null ? c.winRate - c.wilsonLower : null)
 export const isLoose = (c: Cell) => (marginOf(c) ?? 1) > LOOSE_MARGIN
 
@@ -70,8 +72,46 @@ const Tooltip = ({ hover: { row, col, cell, x, y } }: { hover: Hover }) => {
   )
 }
 
+/** On a phone the matrix is one deck at a time: its matchups as bars, each with its 95% interval on a 40–70% scale. */
+export const MatchupRow = ({ archetypes, matchups, scope, className }: MatchupMatrixProps & { className?: string }) => {
+  const t = useTranslations('Statistics.matrix')
+  const [key, setKey] = useState(archetypes[0] ? archKey(archetypes[0].archetype) : '')
+  const rows = matchups
+    .filter((m) => archKey(m.archetype) === key && m.winRate != null)
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 12)
+  const names = new Map(archetypes.map((a) => [archKey(a.archetype), nameOf(a)]))
+  const at = (rate: number) => `${Math.min(100, Math.max(0, ((rate - 0.4) / 0.3) * 100))}%`
+  return (
+    <div className={twMerge('flex flex-col gap-3', className)}>
+      <Select label={t('pickDeck')} value={key} onChange={(e) => setKey(e.target.value)} options={archetypes.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))} />
+      <ul className="flex flex-col gap-px border border-line bg-line">
+        {rows.map((m) => {
+          const opponent = archKey(m.opponent)
+          const status = statusOf(m)
+          return (
+            <li key={opponent} className="flex flex-col gap-2 bg-surface-100 p-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <Link href={deckHref(m.opponent, scope)} className="truncate font-bold text-ink">{t('versusShort', { name: names.get(opponent) ?? opponent })}</Link>
+                <span className={twMerge('font-mono text-sm font-bold', TEXT[status])}>{pct(m.winRate)}</span>
+              </div>
+              <div className="relative h-3.5 bg-surface-200" aria-hidden>
+                <span className="absolute top-0 bottom-0 w-px bg-line-strong" style={{ left: at(0.5) }} />
+                {m.ci ? <span className={twMerge('absolute top-1 h-1.5', status === 'favorable' ? 'bg-win' : status === 'unfavorable' ? 'bg-loss' : 'bg-series-3')} style={{ left: at(m.ci.lower), right: `calc(100% - ${at(m.ci.upper)})` }} /> : null}
+                <span className="absolute top-0 h-3.5 w-0.5 bg-ink" style={{ left: at(m.winRate ?? 0.5) }} />
+              </div>
+              <span className="text-ink-muted signal-sm">{m.ci ? `±${(m.ci.margin * 100).toFixed(1)} · ` : ''}{t('games', { count: num(m.games) })}</span>
+            </li>
+          )
+        })}
+      </ul>
+      <p className={NOTE}>{t('barNote')}</p>
+    </div>
+  )
+}
+
 /** Rows: every listed deck, searchable. Columns: the decks picked (top 10 to start), plus "outside the list". */
-export const MatchupMatrix = ({ archetypes, matchups, onPickArchetype }: MatchupMatrixProps) => {
+export const MatchupMatrix = ({ archetypes, matchups, scope }: MatchupMatrixProps) => {
   const t = useTranslations('Statistics.matrix')
   const [view, setView] = useState<CellView>('winRate')
   const [hover, setHover] = useState<Hover | null>(null)
@@ -156,7 +196,8 @@ export const MatchupMatrix = ({ archetypes, matchups, onPickArchetype }: Matchup
         </div>
       }
     >
-      <div className="mb-4 flex flex-col gap-3">
+      <MatchupRow archetypes={archetypes} matchups={matchups} scope={scope} className="min-[720px]:hidden" />
+      <div className="mb-4 flex flex-col gap-3 max-[719px]:hidden">
         <div className="flex flex-wrap items-center gap-4">
           <FilterField label={t('searchRows')} value={query} onChange={setQuery} />
           <div role="group" aria-label={t('minGames')} className="flex items-center gap-1">
@@ -194,7 +235,7 @@ export const MatchupMatrix = ({ archetypes, matchups, onPickArchetype }: Matchup
         </div>
       </div>
 
-      <div>
+      <div className="max-[719px]:hidden">
         {hover ? <Tooltip hover={hover} /> : null}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -239,16 +280,10 @@ export const MatchupMatrix = ({ archetypes, matchups, onPickArchetype }: Matchup
                 return (
                   <tr key={rowKey}>
                     <th scope="row" className="sticky left-0 z-10 bg-surface-100 p-0 text-left">
-                      <button
-                        type="button"
-                        disabled={!onPickArchetype}
-                        onClick={() => onPickArchetype?.(rowKey)}
-                        title={rowName}
-                        className="flex h-11 w-36 cursor-pointer items-center gap-2 px-2 text-sm font-semibold text-ink hover:text-cyan disabled:cursor-default min-[720px]:w-44"
-                      >
+                      <Link href={deckHref(row.archetype, scope)} title={rowName} className="flex h-11 w-36 items-center gap-2 px-2 text-sm font-semibold text-ink hover:text-cyan min-[720px]:w-44">
                         <Art card={faceOf(row)} size={24} className="size-6" />
                         <span className="truncate">{rowName}</span>
-                      </button>
+                      </Link>
                     </th>
                     {cols.map((col) =>
                       col === row ? (
@@ -266,18 +301,52 @@ export const MatchupMatrix = ({ archetypes, matchups, onPickArchetype }: Matchup
         </div>
       </div>
       {!query && sorted.length > FOLD ? (
-        <button type="button" onClick={() => setExpanded((v) => !v)} className="mt-3 cursor-pointer text-[13px] text-azure-lift transition-colors hover:text-ink">
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="mt-3 cursor-pointer text-[13px] text-azure-lift transition-colors hover:text-ink max-[719px]:hidden">
           {expanded ? t('showTop', { count: FOLD }) : t('showAll', { count: sorted.length })}
         </button>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-ink-muted">
-        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-win/30 bg-win/20" />{t('legend.favorable', { min: Math.round(FAVORABLE * 100) })}</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-line bg-surface-200" />{t('legend.neutral', { min: Math.round(UNFAVORABLE * 100), max: Math.round(FAVORABLE * 100) })}</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-loss/30 bg-loss/20" />{t('legend.unfavorable', { max: Math.round(UNFAVORABLE * 100) })}</span>
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-ink-muted max-[719px]:hidden">
+        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-win/30 bg-win/20" />{t('legend.favorable')}</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-line bg-surface-200" />{t('legend.neutral')}</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block size-3 border border-loss/30 bg-loss/20" />{t('legend.unfavorable')}</span>
         <span className="flex items-center gap-1.5"><i>{t('legend.looseMark')}</i>{t('legend.loose', { margin: LOOSE_MARGIN * 100 })}</span>
       </div>
-      <p className={twMerge(NOTE, 'mt-2')}>{t('note')}</p>
+      <p className={twMerge(NOTE, 'mt-2 max-[719px]:hidden')}>{t('note')}</p>
+    </Panel>
+  )
+}
+
+const BEATS_ROWS = 8
+
+/** Who wins most against one deck, from the same matrix: no extra data, only the rows that have a sample. */
+export const WhatBeatsIt = ({ archetypes, matchups, scope }: MatchupMatrixProps) => {
+  const t = useTranslations('Statistics.matrix')
+  const [target, setTarget] = useState(archetypes[0] ? archKey(archetypes[0].archetype) : '')
+  const names = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
+  const rows = matchups
+    .filter((m) => archKey(m.opponent) === target && m.winRate != null)
+    .sort((a, b) => (b.wilsonLower ?? 0) - (a.wilsonLower ?? 0))
+    .slice(0, BEATS_ROWS)
+  return (
+    <Panel title={t('beatsTitle')} actions={<div className="ml-auto w-full max-w-64"><Select label={t('beatsPick')} value={target} onChange={(e) => setTarget(e.target.value)} options={archetypes.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))} /></div>}>
+      <ol className="flex flex-col divide-y divide-line">
+        {rows.map((m, i) => {
+          const deck = names.get(archKey(m.archetype))
+          return (
+            <li key={archKey(m.archetype)} className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+              <span className="font-mono text-xs text-ink-muted">{i + 1}</span>
+              <Link href={deckHref(m.archetype, scope)} className="truncate font-bold text-ink hover:text-cyan">{deck ? nameOf(deck) : archKey(m.archetype)}</Link>
+              <span className="flex items-baseline gap-2 font-mono text-xs tabular-nums">
+                <span className={twMerge('text-sm font-bold', TEXT[statusOf(m)])}>{pct(m.winRate)}</span>
+                <span className="text-ink-muted">{t('games', { count: num(m.games) })}</span>
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      {!rows.length ? <p className={NOTE}>{t('beatsEmpty')}</p> : null}
+      <p className={twMerge(NOTE, 'mt-3')}>{t('beatsNote')}</p>
     </Panel>
   )
 }

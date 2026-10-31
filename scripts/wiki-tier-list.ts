@@ -23,7 +23,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
-import type { MetaEvent, StatArchetype, Statistics } from '@utils/statistics'
+import { growthDays as growthWindow, type MetaEvent, type StatArchetype, type Statistics } from '@utils/statistics'
 import { deckFaces, POWER_BANDS, POWER_MIN_PLAYERS, POWER_MIN_SHARE, POWER_T1_CAP, powerRanked } from '@utils/power-tier'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
@@ -86,7 +86,7 @@ const share = (decks: StatArchetype[]) => decks.reduce((total, deck) => total + 
 const score = (deck: StatArchetype) => pct(deck.wilsonLower)
 const goingFirst = (ladder: Ladder) => pct(ladder.stats.turnOrder.all.first.winRate)
 /** The window `growth` covers on the server: half the season, at most 7 days. */
-const growthDays = (ladder: Ladder) => Math.min(7, Math.max(1, Math.floor(ladder.stats.syncedDays.count / 2)))
+const growthDays = (ladder: Ladder) => growthWindow(ladder.stats.syncedDays.count)
 
 /** The site's `win` and `loss` tokens. */
 const WIN = '#4fdc8c'
