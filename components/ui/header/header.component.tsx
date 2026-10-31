@@ -31,7 +31,7 @@ const DownloadCta = () => (
     size="sm"
   >
     Download
-    <span className="hidden lg:inline">Free</span>
+    <span className="hidden xl:inline">Free</span>
   </Button>
 )
 
@@ -70,7 +70,8 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
 
 
         <span className="hidden text-left sm:block">
-          <span className="block caption font-bold tracking-normal normal-case">{name}</span>
+          {/* Capped so a long name can't push the bar over the Download button; the menu shows it whole. */}
+          <span className="block max-w-28 truncate caption font-bold tracking-normal normal-case">{name}</span>
           <span className="mt-0.5 flex items-center gap-1.5">
             <span aria-hidden className="block size-2 rounded-round bg-cyan" />
             <span className="signal-sm">Online</span>
@@ -111,7 +112,7 @@ export const Header = ({ elementRef, className, items, extra }: HeaderProps) => 
     <header
       id="site-header"
       ref={elementRef}
-      className={twMerge("absolute top-0 z-(--z-header) flex h-15 w-full flex-nowrap items-stretch gap-8 border-b border-line bg-surface-100/92 px-6 max-lg:gap-3 max-lg:px-4 xl:fixed", className)}
+      className={twMerge("absolute top-0 z-(--z-header) flex h-15 w-full flex-nowrap items-stretch gap-8 border-b border-line bg-surface-100/92 px-6 max-xl:gap-3 max-xl:px-4 xl:fixed", className)}
     >
       <Navbar
         items={(items ?? NAVBAR_ITEMS).filter((entry) => user || !entry.loggedIn)}
@@ -120,12 +121,14 @@ export const Header = ({ elementRef, className, items, extra }: HeaderProps) => 
           {extra}
           {account}
         </>}
-        keep={user ? <>
+        keep={<>
           {extra}
-          {/* Phones get no dock; the mailbox stands in for it. */}
-          <MessengerMailbox className={twMerge(CELL, "px-3 text-ink hover:bg-surface-300 sm:hidden")} />
-          {account}
-        </> : null}
+          {user ? <>
+            {/* Phones get no dock; the mailbox stands in for it. */}
+            <MessengerMailbox className={twMerge(CELL, "px-3 text-ink hover:bg-surface-300 sm:hidden")} />
+            {account}
+          </> : null}
+        </>}
         drawerExtra={<>
           <LanguageSwitcher />
           {user ? null : account}
