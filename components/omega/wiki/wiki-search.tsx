@@ -39,14 +39,14 @@ export const WikiSearch = ({ defaultQuery = '', keep = {} }: WikiSearchProps) =>
       onSubmit={(event) => mode === 'cards' && event.preventDefault()}
       className="flex w-full max-w-170 flex-col gap-2.5 sm:gap-3"
     >
-      <div role="group" aria-label="Search in" className="flex">
-        {MODES.map((item, i) => (
+      <div role="group" aria-label="Search in" className="flex gap-2">
+        {MODES.map((item) => (
           <button
             key={item.id}
             type="button"
             aria-pressed={mode === item.id}
             onClick={() => setMode(item.id)}
-            className={twMerge(WIKI_CHIP, 'max-sm:min-h-10 max-sm:flex-1 max-sm:justify-center', i && '-ml-px', mode === item.id && WIKI_CHIP_ON)}
+            className={twMerge(WIKI_CHIP, 'max-sm:min-h-10 max-sm:flex-1 max-sm:justify-center', mode === item.id && WIKI_CHIP_ON)}
           >
             {item.label}
           </button>

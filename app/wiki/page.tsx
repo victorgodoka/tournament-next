@@ -42,11 +42,8 @@ const SORTS = {
 } as const
 type SortKey = keyof typeof SORTS
 
-const SORT_CHIPS: { key: SortKey; label: string }[] = [
-  { key: 'published-desc', label: 'Newest' },
-  { key: 'published-asc', label: 'Oldest' },
-  { key: 'most-read', label: 'Most read' },
-]
+/** A reader's orders. The edit dates are an editor's, in Filters. */
+const READER_SORTS: SortKey[] = ['published-desc', 'published-asc', 'most-read']
 
 /** Search reads titles and summaries, so these go there. The turn timer is only in the FAQ's text. */
 const POPULAR = [
@@ -121,14 +118,13 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
     return `/wiki${search.size ? `?${search}` : ''}#articles`
   }
 
-  const countOf = (id?: typeof topic) => published.filter((article) => !id || topicOf(article.slug) === id).length
+  // Counts per topic are section 01's: chips carrying them too pushed the sort onto a second row.
   const topics: ListOption[] = [
-    { label: 'All', to: indexHref({ topic: undefined }), on: !topic, count: countOf() },
-    ...TOPIC_IDS.map((id) => ({ label: WIKI_TOPICS[id].chip, to: indexHref({ topic: id }), on: topic === id, count: countOf(id) })),
+    { label: 'All', to: indexHref({ topic: undefined }), on: !topic },
+    ...TOPIC_IDS.map((id) => ({ label: WIKI_TOPICS[id].chip, to: indexHref({ topic: id }), on: topic === id })),
   ]
-  const sorts: ListOption[] = SORT_CHIPS.map(({ key, label }) => ({
-    label,
-    full: SORTS[key],
+  const sorts: ListOption[] = READER_SORTS.map((key) => ({
+    label: SORTS[key],
     to: indexHref({ sort: key === 'published-desc' ? undefined : key }),
     on: sortKey === key,
   }))
@@ -276,7 +272,6 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
           num={hasMetaSection(published) ? '03' : '02'}
           heading={query.search ? `Titles matching “${query.search}”` : 'All articles'}
           total={published.length}
-          sortLabel={SORTS[sortKey]}
           topics={topics}
           sorts={sorts}
           filters={filters}

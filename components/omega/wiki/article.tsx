@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
-import { LocalTime } from '@omega/profile/local-time'
 import { LocalDay } from '@omega/wiki/local-day'
 import { Chip } from '@ui/chip'
 import { Icon } from '@ui/icon'
@@ -66,53 +65,6 @@ const CardStat = ({ icon, count, label }: { icon: 'eye' | 'heartOutline' | 'comm
     {COMPACT.format(count)}
     <span className="sr-only">{label}</span>
   </span>
-)
-
-/**
- * Index card: cover, title, summary, who wrote it, when it last moved, and whether it is live.
- * No cover gets the same box, empty, so a row of cards lines up.
- */
-export const ArticleCard = ({ article }: { article: ArticleSummary }) => (
-  <li className="flex">
-    <Link
-      href={`/wiki/${article.slug}`}
-      className="flex min-w-0 flex-1 flex-col gap-3 border border-line bg-space-000 p-4.5 hover:border-ink-muted hover:bg-ground-soft"
-    >
-      {/* Fixed height, cropped from the center; it bleeds over the card's padding to its edges. */}
-      <span className="relative -mx-4.5 -mt-4.5 block h-[210px] shrink-0 overflow-hidden border-b border-line bg-surface-200">
-        {article.cover ? (
-          <Image
-            {...imageSource(article.cover, 640)}
-            alt=""
-            fill
-            sizes="(min-width: 1280px) 400px, (min-width: 640px) 50vw, 100vw"
-            className="object-cover object-center"
-          />
-        ) : null}
-      </span>
-      <span className="flex items-start justify-between gap-3">
-        <span className="min-w-0 text-ink body-strong">{article.title}</span>
-        {article.publishedAt ? null : <StatusChip publishedAt={null} />}
-      </span>
-      {article.summary ? <span className="line-clamp-3 text-ink-dim body-sm">{article.summary}</span> : null}
-
-      <span className="mt-auto flex items-center justify-between gap-3 pt-2">
-        <Byline user={article.author} className="text-ink-dim body-sm" />
-        <span className="shrink-0 text-ink-muted mono-data">
-          <LocalTime iso={article.publishedAt ?? article.updatedAt} options={ARTICLE_DATE} />
-        </span>
-      </span>
-
-      {/* Absent until the API deploy that adds them: hide rather than show zeros. */}
-      {article.views === undefined ? null : (
-        <span className="flex items-center gap-4 border-t border-line pt-3 text-ink-muted mono-data">
-          <CardStat icon="eye" count={article.views} label="views" />
-          <CardStat icon="heartOutline" count={article.likes ?? 0} label="likes" />
-          <CardStat icon="comment" count={article.commentCount ?? 0} label="comments" />
-        </span>
-      )}
-    </Link>
-  </li>
 )
 
 const TOPIC_ICON: Record<WikiTopic, string> = {

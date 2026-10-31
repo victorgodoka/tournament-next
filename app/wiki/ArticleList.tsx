@@ -17,9 +17,6 @@ export type ListOption = {
   label: string
   to: string
   on: boolean
-  count?: number
-  /** A sort's name where it stands alone: the phone's select. */
-  full?: string
 }
 
 type ArticleListProps = {
@@ -32,7 +29,6 @@ type ArticleListProps = {
   heading: string
   /** Everything readable, for "Showing x of y". */
   total: number
-  sortLabel: string
   topics: ListOption[]
   sorts: ListOption[]
   /** The Filters form, and whether an active filter keeps it open. */
@@ -43,20 +39,20 @@ type ArticleListProps = {
   aside: React.ReactNode
 }
 
-/** A phone's sort: the three chips don't fit beside Filters. */
+/** The sort, one control: a chip per order made the toolbar a wall of chips. Fills the row on a phone. */
 const SortSelect = ({ sorts }: { sorts: ListOption[] }) => {
   const router = useRouter()
   return (
-    <label className={twMerge(WIKI_CHIP, 'relative min-h-10 min-w-0 flex-1 text-ink [--edge:var(--color-line-strong)] sm:hidden')}>
+    <label className={twMerge(WIKI_CHIP, 'relative min-h-10 min-w-0 flex-1 text-ink [--edge:var(--color-line-strong)] sm:min-h-9 sm:flex-none')}>
       <span className="sr-only">Order</span>
       <select
         value={sorts.find((sort) => sort.on)?.to}
         onChange={(event) => router.push(event.target.value)}
         className="w-full appearance-none bg-transparent pr-6 uppercase outline-none"
       >
-        {sorts.map(({ label, full, to }) => (
+        {sorts.map(({ label, to }) => (
           <option key={to} value={to} className="bg-surface-100">
-            {full ?? label}
+            {label}
           </option>
         ))}
       </select>
@@ -66,7 +62,7 @@ const SortSelect = ({ sorts }: { sorts: ListOption[] }) => {
 }
 
 /** The index list, with cursor pagination. A new search remounts it from the server's first page. */
-export const ArticleList = ({ first, query, empty, num, heading, total, sortLabel, topics, sorts, filters, filtersOpen, note, aside }: ArticleListProps) => {
+export const ArticleList = ({ first, query, empty, num, heading, total, topics, sorts, filters, filtersOpen, note, aside }: ArticleListProps) => {
   const [{ articles, nextCursor }, setPage] = useState(first)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [showFilters, setShowFilters] = useState(filtersOpen)
@@ -86,42 +82,40 @@ export const ArticleList = ({ first, query, empty, num, heading, total, sortLabe
 
   return (
     <section id="articles" aria-labelledby="articles-head" className="mx-auto flex w-full max-w-page scroll-mt-20 flex-col gap-3.5 px-gutter pt-10 sm:gap-6 sm:pt-14 sm:pb-18">
-      <WikiHead num={num} id="articles-head" end={`Showing ${articles.length} of ${Math.max(total, articles.length)} · ${sortLabel}`}>
+      {/* The order and Filters sit on the heading's row: the list's column is too narrow for them beside the topics. */}
+      <WikiHead
+        num={num}
+        id="articles-head"
+        end={
+          <span className="flex items-center gap-2.5 sm:gap-3">
+            <span className="max-sm:hidden">
+              Showing {articles.length} of {Math.max(total, articles.length)}
+            </span>
+            <SortSelect sorts={sorts} />
+            <button
+              type="button"
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters((open) => !open)}
+              className={twMerge(WIKI_CHIP, 'text-ink [--edge:var(--color-line-strong)] max-sm:min-h-10')}
+            >
+              <Icon name="filter" size={16} />
+              Filters
+            </button>
+          </span>
+        }
+      >
         {heading}
       </WikiHead>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-3.5 sm:gap-4">
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-            <nav aria-label="Topic" className={twMerge('flex max-w-[100vw] gap-2', WIKI_SCROLL_ROW)}>
-              {topics.map(({ label, to, on, count }) => (
-                <Link key={to} href={to} aria-current={on ? 'true' : undefined} className={twMerge(WIKI_CHIP, 'max-sm:min-h-10', on && WIKI_CHIP_ON)}>
-                  {label}
-                  <span className="opacity-70">{count}</span>
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex w-full items-center gap-2.5 sm:ml-auto sm:w-auto sm:gap-3">
-              <nav aria-label="Order" className="flex max-sm:hidden">
-                {sorts.map(({ label, to, on }, i) => (
-                  <Link key={to} href={to} aria-current={on ? 'true' : undefined} className={twMerge(WIKI_CHIP, i && '-ml-px', on && WIKI_CHIP_ON)}>
-                    {label}
-                  </Link>
-                ))}
-              </nav>
-              <SortSelect sorts={sorts} />
-              <button
-                type="button"
-                aria-expanded={showFilters}
-                onClick={() => setShowFilters((open) => !open)}
-                className={twMerge(WIKI_CHIP, 'text-ink [--edge:var(--color-line-strong)] max-sm:min-h-10')}
-              >
-                <Icon name="filter" size={16} />
-                Filters
-              </button>
-            </div>
-          </div>
+          <nav aria-label="Topic" className={twMerge('flex max-w-[100vw] gap-2', WIKI_SCROLL_ROW)}>
+            {topics.map(({ label, to, on }) => (
+              <Link key={to} href={to} aria-current={on ? 'true' : undefined} className={twMerge(WIKI_CHIP, 'max-sm:min-h-10', on && WIKI_CHIP_ON)}>
+                {label}
+              </Link>
+            ))}
+          </nav>
 
           {showFilters ? filters : null}
           {note}

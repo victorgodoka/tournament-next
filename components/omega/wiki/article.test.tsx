@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ArticleSummary } from '@utils/types'
-import { ArticleCard, ArticleRow } from './article'
+import { ArticleRow } from './article'
 
 vi.mock('next/image', () => ({ default: () => null }))
 // The real one needs next-intl's provider.
@@ -20,25 +20,13 @@ const article: ArticleSummary = {
   updatedAt: '2026-09-12T18:04:11.201Z',
 }
 
-describe('ArticleCard', () => {
-  afterEach(cleanup)
-
-  it('shows views, likes and comments', () => {
-    render(<ArticleCard article={{ ...article, views: 1520, likes: 34, commentCount: 0 }} />)
-
-    expect(screen.getByText('1.5K').textContent).toBe('1.5Kviews')
-    expect(screen.getByText('34').textContent).toBe('34likes')
-    expect(screen.getByText('0').textContent).toBe('0comments')
-  })
-
-  it('hides the row when the API sent no counts', () => {
-    render(<ArticleCard article={article} />)
+describe('ArticleRow', () => {
+  it('hides the counts when the API sent none', () => {
+    render(<ArticleRow article={article} />)
 
     expect(screen.queryByText('views')).toBeNull()
   })
-})
 
-describe('ArticleRow', () => {
   afterEach(cleanup)
 
   it('names a listed article\'s topic and counts its views, likes and comments', () => {

@@ -4,7 +4,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
-import { ArticleCard } from '@omega/wiki/article'
+import { ARTICLE_LIST, ArticleRow } from '@omega/wiki/article'
 import { EmptyBox } from '@omega/profile/empty-box'
 import { LocalTime } from '@omega/profile/local-time'
 import { calendarKey } from '@omega/tournament/calendar-row'
@@ -357,8 +357,9 @@ const Wiki = ({ num, articles }: { num: string; articles: ArticleSummary[] }) =>
       >
         {t('heading')}
       </SectionHead>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+      {/* One column: the rails leave no room for the home's three. */}
+      <ul className={ARTICLE_LIST}>
+        {articles.map((article) => <ArticleRow key={article.id} article={article} />)}
       </ul>
     </section>
   )
