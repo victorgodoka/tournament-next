@@ -2,6 +2,7 @@
  * Saved decks of the deck editor (DECKS_API.md). Cards are passcodes, in the order the user arranged them.
  */
 import { API_URL } from '@utils/auth'
+import { log } from '@utils/log'
 
 export type Visibility = 'public' | 'friends' | 'private'
 export const VISIBILITIES: Visibility[] = ['public', 'friends', 'private']
@@ -200,7 +201,7 @@ export const listSeasons = async (): Promise<Season[]> => {
   try {
     return (await request<{ seasons: Season[] }>('/decks/seasons', { cache: 'default' })).seasons
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /decks/seasons', err: error })
     return []
   }
 }
@@ -252,7 +253,7 @@ export const getDeckSocial = async (id: string, cookie?: string | null): Promise
   try {
     return await request<DeckSocial>(`${path(id)}/social`, cookie ? { headers: { cookie } } : undefined)
   } catch (error) {
-    if (!(error instanceof DeckApiError && error.status === 404)) console.error(error)
+    if (!(error instanceof DeckApiError && error.status === 404)) log('error', 'API_ERROR', { call: 'GET /decks/:id/social', id, err: error })
     return null
   }
 }

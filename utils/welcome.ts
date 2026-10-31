@@ -1,4 +1,5 @@
 import { API_URL } from './auth'
+import { log } from '@utils/log'
 import type { WelcomeData } from '@utils/types'
 import { cache } from 'react'
 
@@ -8,7 +9,7 @@ export const getWelcomeData = cache(async (): Promise<WelcomeData | null> => {
     const res = await fetch(`${API_URL}/welcome`, { next: { revalidate: 120 } })
     if (!res.ok) {
       // Log the error instead of throwing, so the page can still render.
-      console.error(`GET /welcome failed with ${res.status}`)
+      log('error', 'API_ERROR', { call: 'GET /welcome', status: res.status })
       return null
     }
     const data: WelcomeData = await res.json()
@@ -17,7 +18,7 @@ export const getWelcomeData = cache(async (): Promise<WelcomeData | null> => {
     const now = Date.now()
     return { ...data, tournaments: { ...data.tournaments, upcoming: data.tournaments.upcoming.filter((u) => Date.parse(u.startsAt) > now) } }
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /welcome', err: error })
     return null
   }
 })
