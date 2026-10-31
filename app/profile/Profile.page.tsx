@@ -154,10 +154,6 @@ const ProfileBody = ({ profile }: { profile: Profile }) => {
       }
       actions={
         <>
-          {/* Statistics are owner-only, even on a public profile. */}
-          {isOwner ? (
-            <Button variant="secondary" href={`/profile/${profile.id}/statistics`}><Icon name="chart" />Statistics</Button>
-          ) : null}
           {/* Each deck's own visibility decides who sees it there; the owner sees all of them. */}
           {profile.isPrivate ? null : <Button variant="secondary" href={`/profile/${profile.id}/my-decks`}><Icon name="deck" />{isOwner ? 'My decks' : 'Decks'}</Button>}
           <RelationActions id={profile.id} isOwner={isOwner} relation={profile.relation} />
