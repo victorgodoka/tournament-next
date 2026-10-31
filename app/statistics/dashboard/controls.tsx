@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef } from 'react'
+import { useCallback } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Tag } from '@ui/chip'
 import { FIELD } from '@ui/field'
@@ -69,35 +69,3 @@ export const DeckPicker = <A extends LeanArchetype>({ pool, selected, onChange, 
   )
 }
 
-/** A side sheet on the native `<dialog>`: focus trap and Escape for free, like `@ui/dialog`, but full height on the right. */
-export const Drawer = ({ open, onClose, title, closeLabel, children }: { open: boolean; onClose: () => void; title: React.ReactNode; closeLabel: string; children: React.ReactNode }) => {
-  const ref = useRef<HTMLDialogElement>(null)
-  const titleId = useId()
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
-  }, [open])
-  return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="m-0 ml-auto h-dvh max-h-none w-[min(520px,100vw)] max-w-none overflow-visible border-l border-line-mid bg-surface-100 p-0 text-ink backdrop:bg-scrim backdrop:backdrop-blur-[6px]"
-    >
-      {open ? (
-        <div className="flex h-full flex-col">
-          <header className="flex items-center gap-4 border-b border-line px-5 py-4">
-            <h2 id={titleId} className="min-w-0 flex-1 truncate display-3">{title}</h2>
-            <button type="button" aria-label={closeLabel} onClick={onClose} className="grid size-10 cursor-pointer place-items-center text-ink-dim hover:text-ink">
-              <Icon name="close" />
-            </button>
-          </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
-        </div>
-      ) : null}
-    </dialog>
-  )
-}

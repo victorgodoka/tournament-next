@@ -1,10 +1,9 @@
 import { getTranslations } from 'next-intl/server'
-import { Footer } from '@ui/footer'
-import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
 import { getPastSeasons } from '@utils/ranked'
-import { getOmegaActivity, getStatistics } from '@utils/statistics'
+import { archKey, getOmegaActivity, getStatistics } from '@utils/statistics'
 import { MetaDashboard } from './MetaDashboard'
+import { StatsShell } from './StatsShell'
 
 type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }> }
 
@@ -25,20 +24,19 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
     // The season select names the open season; on a past one that takes the open report too (cached 5 minutes).
     season ? getStatistics({ ladder }) : null,
   ])
+  // The season before the one on screen: past seasons come newest first, and the open one sits above them.
+  const before = past[season ? past.findIndex((s) => s.code === season) + 1 : 0]
+  const earlier = before ? await getStatistics({ ladder, season: before.code }) : null
+  const previous = earlier?.ok
+    ? { label: before!.label, decks: Object.fromEntries(earlier.data.archetypes.map((a) => [archKey(a.archetype), { share: a.metaShare, winRate: a.winRate }])) }
+    : null
   const openReport = season ? open : result
   const openLabel = openReport?.ok ? openReport.data.season.label : null
 
   return (
-    <>
-      <Header />
-      <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-        {/* 64px clears the fixed header. */}
-        <main style={{ width: 'min(var(--container-page), calc(100% - 32px))', margin: '0 auto', padding: '88px 0 96px' }}>
-          <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} />
-        </main>
-      </div>
-      <Footer />
-    </>
+    <StatsShell>
+      <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} previous={previous} />
+    </StatsShell>
   )
 }
 
