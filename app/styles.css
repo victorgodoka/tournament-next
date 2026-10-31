@@ -667,6 +667,34 @@
     background-size: 24px 24px;
   }
 
+  /* The wiki index's ground: a cyan and an azure haze from the top corners. */
+  .wiki-ground {
+    background-color: var(--color-space-000);
+    background-image:
+      radial-gradient(ellipse 60% 420px at 18% -120px, rgba(0, 253, 255, 0.08), rgba(8, 10, 20, 0) 70%),
+      radial-gradient(ellipse 55% 380px at 88% -100px, rgba(74, 111, 216, 0.12), rgba(8, 10, 20, 0) 70%);
+    background-repeat: no-repeat;
+  }
+
+  /* A GFM task box. An input has no ::before, so it can't take `.cut`: same 4px chamfer, clipped. */
+  .wiki-check {
+    position: absolute;
+    top: 5px;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    appearance: none;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-surface-200) center / 12px no-repeat;
+    clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  }
+
+  .wiki-check:checked {
+    border-color: var(--color-cyan);
+    background-color: var(--color-cyan);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2305121c'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E");
+  }
+
   .equalizer-bars {
     display: inline-flex;
     width: 18px;
