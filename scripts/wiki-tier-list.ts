@@ -23,8 +23,8 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
-import type { MetaEvent, Statistics } from '@utils/statistics'
-import { deckFaces, POWER_BANDS, POWER_MIN_PLAYERS, POWER_MIN_SHARE, POWER_T1_CAP, powerRanked, type PowerDeck } from '@utils/power-tier'
+import type { MetaEvent, StatArchetype, Statistics } from '@utils/statistics'
+import { deckFaces, POWER_BANDS, POWER_MIN_PLAYERS, POWER_MIN_SHARE, POWER_T1_CAP, powerRanked } from '@utils/power-tier'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
 
@@ -52,8 +52,8 @@ const MIN_MATCHUP_GAMES = { TCG: 300, Genesys: 80 }
 const EVENT_DAYS = 7
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-/** `decks` come from `powerRanked`: strongest first, and `tier` is the power tier, `null` past the last band. */
-type Ladder = { label: 'TCG' | 'Genesys'; prefix: 'tcg' | 'genesys'; stats: Statistics; decks: PowerDeck[] }
+/** `decks` come from `powerRanked`: strongest first, and `tier` is `null` past the last band. */
+type Ladder = { label: 'TCG' | 'Genesys'; prefix: 'tcg' | 'genesys'; stats: Statistics; decks: StatArchetype[] }
 type Tier = 1 | 1.5 | 2 | 3 | 4
 /** Last issue's tiered decks by archetype key. */
 type Snapshot = {
@@ -68,8 +68,8 @@ const day = (iso: string) => {
 const pct = (rate: number | null | undefined, digits = 1) => `${((rate ?? 0) * 100).toFixed(digits)}%`
 const num = (n: number) => n.toLocaleString('en-US')
 const key = (archetype: number[]) => archetype.join('+')
-const name = (deck: PowerDeck) => deck.name ?? `Archetype ${key(deck.archetype)}`
-const margin = (deck: PowerDeck) => (deck.ci ? ` ±${(deck.ci.margin * 100).toFixed(1)}` : '')
+const name = (deck: StatArchetype) => deck.name ?? `Archetype ${key(deck.archetype)}`
+const margin = (deck: StatArchetype) => (deck.ci ? ` ±${(deck.ci.margin * 100).toFixed(1)}` : '')
 const points = (growth: number) => `${growth >= 0 ? '+' : '−'}${Math.abs(growth * 100).toFixed(1)}`
 const and = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
 const capitalized = (sentence: string) => `${sentence[0]?.toUpperCase()}${sentence.slice(1)}`
@@ -82,8 +82,8 @@ const statisticsPath = (ladder: Ladder) => (ladder.prefix === 'tcg' ? '/statisti
 const tier = (ladder: Ladder, t: Tier) => ladder.decks.filter((deck) => deck.tier === t)
 const tiered = (ladder: Ladder) => ladder.decks.filter((deck) => deck.tier)
 const byShare = (ladder: Ladder) => [...ladder.decks].sort((a, b) => b.metaShare - a.metaShare)
-const share = (decks: PowerDeck[]) => decks.reduce((total, deck) => total + deck.metaShare, 0)
-const score = (deck: PowerDeck) => pct(deck.wilsonLower)
+const share = (decks: StatArchetype[]) => decks.reduce((total, deck) => total + deck.metaShare, 0)
+const score = (deck: StatArchetype) => pct(deck.wilsonLower)
 const goingFirst = (ladder: Ladder) => pct(ladder.stats.turnOrder.all.first.winRate)
 /** The window `growth` covers on the server: half the season, at most 7 days. */
 const growthDays = (ladder: Ladder) => Math.min(7, Math.max(1, Math.floor(ladder.stats.syncedDays.count / 2)))
@@ -93,9 +93,9 @@ const WIN = '#4fdc8c'
 const LOSS = '#ff8594'
 /** Bold and coloured: `[text]{#hex}` is the wiki's Markdown for coloured text. */
 const paint = (text: string, color: string) => `**[${text}]{${color}}**`
-const rateCell = (deck: PowerDeck) => paint(`${pct(deck.winRate)}${margin(deck)}`, (deck.winRate ?? 0) >= 0.5 ? WIN : LOSS)
+const rateCell = (deck: StatArchetype) => paint(`${pct(deck.winRate)}${margin(deck)}`, (deck.winRate ?? 0) >= 0.5 ? WIN : LOSS)
 
-const table = (decks: PowerDeck[]) =>
+const table = (decks: StatArchetype[]) =>
   [
     '| Deck | Score | Win rate | Meta share | Players |',
     '|---|---:|---:|---:|---:|',
@@ -103,7 +103,7 @@ const table = (decks: PowerDeck[]) =>
   ].join('\n')
 
 /** Deck names, not card names: readers look for the deck, and it dodges the raw-HTML rule. */
-const tierCards = (decks: PowerDeck[]) => {
+const tierCards = (decks: StatArchetype[]) => {
   const faces = deckFaces(decks)
   return decks.flatMap((deck) => {
     const face = faces.get(deck.archetype.join('-'))
@@ -165,7 +165,7 @@ const leaderNote = (ladder: Ladder) => {
   return `${name(first)} has the best score on the ladder, with ${pct(first.winRate)} wins over ${num(first.games)} deck-games. It wins ${pct(first.turnOrder.first.winRate)} going first and ${pct(first.turnOrder.second.winRate)} going second. Its share ${growth >= 0 ? 'rose' : 'fell'} ${Math.abs(growth * 100).toFixed(1)} points over the last ${growthDays(ladder)} days.`
 }
 
-const spreadNote = (decks: PowerDeck[]) => {
+const spreadNote = (decks: StatArchetype[]) => {
   const byRate = [...decks].sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0))
   const high = byRate[0]
   const low = byRate.at(-1)
@@ -193,7 +193,7 @@ const ladderBlocks = (ladder: Ladder): WikiBlock[] => {
     heading(`h-${prefix}`, 2, `${label} tiers`, 'tiers'),
     text(
       `${prefix}-intro`,
-      `The ${label} ladder is ${stats.syncedDays.count} days into the ${stats.season.label.split(' ')[0]} season, with ${num(stats.totals.matches)} matches from ${num(stats.totals.players)} players. The most played deck, ${name(byShare(ladder)[0] as PowerDeck)}, holds ${pct(byShare(ladder)[0]?.metaShare)} of the meta, and the ${tiered(ladder).length} decks in these tiers cover ${pct(share(tiered(ladder)), 0)} of it.${primer}`,
+      `The ${label} ladder is ${stats.syncedDays.count} days into the ${stats.season.label.split(' ')[0]} season, with ${num(stats.totals.matches)} matches from ${num(stats.totals.players)} players. The most played deck, ${name(byShare(ladder)[0] as StatArchetype)}, holds ${pct(byShare(ladder)[0]?.metaShare)} of the meta, and the ${tiered(ladder).length} decks in these tiers cover ${pct(share(tiered(ladder)), 0)} of it.${primer}`,
     ),
     ...tierBlocks(ladder, 1, leaderNote(ladder)),
     ...tierBlocks(ladder, 1.5, spreadNote(tier(ladder, 1.5))),
@@ -222,7 +222,7 @@ const overplayed = (ladder: Ladder) =>
     .slice(0, 3)
 
 /** Only matchups whose whole 95% interval sits on one side of 50%: the rest are noise. */
-const bestAndWorst = (ladder: Ladder, deck: PowerDeck) => {
+const bestAndWorst = (ladder: Ladder, deck: StatArchetype) => {
   const byKey = new Map(ladder.decks.map((d) => [key(d.archetype), d]))
   const seen = ladder.stats.matchups
     .filter((m) => {
@@ -237,7 +237,7 @@ const bestAndWorst = (ladder: Ladder, deck: PowerDeck) => {
   return { best: cell(seen.find((m) => (m.ci?.lower ?? 0) > 0.5)), worst: cell([...seen].reverse().find((m) => (m.ci?.upper ?? 1) < 0.5)) }
 }
 
-const matchupTable = (ladder: Ladder, decks: PowerDeck[]) => {
+const matchupTable = (ladder: Ladder, decks: StatArchetype[]) => {
   const rows = decks.map((deck) => {
     const { best, worst } = bestAndWorst(ladder, deck)
     return `| **${name(deck)}** | ${best ? paint(best, WIN) : 'None clear'} | ${worst ? paint(worst, LOSS) : 'None clear'} |`
@@ -247,7 +247,7 @@ const matchupTable = (ladder: Ladder, decks: PowerDeck[]) => {
 
 const staples = (ladder: Ladder) => ladder.stats.mostUsed.main.slice(0, 4).map((card) => ({ id: card.id, name: cardName(card), note: `in ${pct(card.popularity)} of decks` }))
 
-const tierName = (deck: PowerDeck) => (deck.tier ? `in Tier ${deck.tier}` : 'outside the tiers')
+const tierName = (deck: StatArchetype) => (deck.tier ? `in Tier ${deck.tier}` : 'outside the tiers')
 
 /** A pair from this week, so the answer always has a true example. */
 const tierVsPopularity = (ladder: Ladder) => {
@@ -318,7 +318,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
     heading('h-method', 2, 'How this tier list works', 'methodology'),
     text(
       'method',
-      `Every number comes from ranked matches played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](${live}). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results. The tiers on the statistics page measure something else, how much a deck is played, so the same deck can sit in different tiers on the two pages.\n\n**Each deck gets a score, the Wilson lower bound of its win rate.** That is the low end of the range its true win rate is likely in, so a deck needs both a good record and enough games to score well: 60% over 500 games scores below 58% over 5,000. A tier is how far a deck's score sits below the best deck on the ladder:\n\n| Tier | Points below the best score |\n|---|---|\n${bands}\n\nThe best deck is always Tier 1. Decks past the last band stay outside the tiers. A deck needs at least ${POWER_MIN_SHARE * 100}% of the meta and ${POWER_MIN_PLAYERS} players to be ranked at all, because the score corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **Win rate** leaves mirror matches out, because a mirror always wins exactly half. The ± is its 95% confidence interval.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds.`,
+      `Every number comes from ranked matches played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](${live}). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results, and the statistics page shows the same tiers.\n\n**Each deck gets a score, the Wilson lower bound of its win rate.** That is the low end of the range its true win rate is likely in, so a deck needs both a good record and enough games to score well: 60% over 500 games scores below 58% over 5,000. A tier is how far a deck's score sits below the best deck on the ladder:\n\n| Tier | Points below the best score |\n|---|---|\n${bands}\n\nThe best deck is always Tier 1. Decks past the last band stay outside the tiers. A deck needs at least ${POWER_MIN_SHARE * 100}% of the meta and ${POWER_MIN_PLAYERS} players to be ranked at all, because the score corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **Win rate** leaves mirror matches out, because a mirror always wins exactly half. The ± is its 95% confidence interval.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds.`,
     ),
     {
       id: 'limits',
@@ -401,7 +401,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
   }
 }
 
-const movementTable = (decks: PowerDeck[]) =>
+const movementTable = (decks: StatArchetype[]) =>
   [
     '| Deck | Tier | Season share | Change | Win rate |',
     '|---|---:|---:|---:|---:|',
@@ -542,8 +542,8 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
       facts: [
         { label: 'Issue', value: issueDay },
         { label: 'Data through', value: day(tcg.stats.syncedDays.last ?? issue) },
-        { label: 'TCG riser', value: lead(tcg) ? name(lead(tcg) as PowerDeck) : 'None' },
-        { label: 'Genesys riser', value: lead(genesys) ? name(lead(genesys) as PowerDeck) : 'None' },
+        { label: 'TCG riser', value: lead(tcg) ? name(lead(tcg) as StatArchetype) : 'None' },
+        { label: 'Genesys riser', value: lead(genesys) ? name(lead(genesys) as StatArchetype) : 'None' },
         { label: 'Source', value: 'YGO Omega ranked ladders' },
       ],
     },

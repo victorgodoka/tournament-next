@@ -43,6 +43,7 @@ export type MatchupOthers = {
 
 type TierDistribution = {
   tier1: { share: number; archetypes: number }
+  tier15: { share: number; archetypes: number }
   tier2: { share: number; archetypes: number }
   tier3: { share: number; archetypes: number }
   tier4: { share: number; archetypes: number }
@@ -94,7 +95,7 @@ export type StatArchetype = {
   name: string | null
   games: number
   metaShare: number
-  tier?: 1 | 2 | 3 | 4 | null
+  tier?: 1 | 1.5 | 2 | 3 | 4 | null
   growth?: number
   /** Worst Wilson lower bound across day blocks; null without two blocks of sample. */
   consistencyScore?: number | null

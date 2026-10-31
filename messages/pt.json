@@ -1525,12 +1525,12 @@
     },
     "method": {
       "title": "Como é contado",
-      "body": "Cada game conta uma vez por deck, então um Bo3 soma até seis deck-games. O win rate tira mirrors e games incompletos; empate conta como game, não como vitória. O meta share mantém tudo. Decks com menos de {minSamples} deck-games ficam fora das listas, por isso os shares não somam 100%. Decks desconhecidos entram nos totais, não como linha. ± é o intervalo de Wilson de 95%. Tier: o share do deck em relação ao do mais jogado (T1 ≥ 60%, T2 ≥ 30%, T3 ≥ 15%, T4 ≥ 5%; nenhum abaixo de 0,5% do meta)."
+      "body": "Cada game conta uma vez por deck, então um Bo3 soma até seis deck-games. O win rate tira mirrors e games incompletos; empate conta como game, não como vitória. O meta share mantém tudo. Decks com menos de {minSamples} deck-games ficam fora das listas, por isso os shares não somam 100%. Decks desconhecidos entram nos totais, não como linha. ± é o intervalo de Wilson de 95%. Tier: a distância entre o limite inferior de Wilson do deck e o do melhor deck (T1 e T1.5 até 1 ponto, T1 só para os dois melhores; T2 até 3, T3 até 6, T4 até 9; nenhum abaixo de 0,5% do meta ou de 10 jogadores)."
     },
     "overview": {
       "kpi": { "deckGames": "Deck-games", "matches": "Partidas", "players": "Jogadores", "archetypes": "Arquétipos listados", "archetypesHint": "de {count} com {min}+ deck-games", "updated": "Dados até", "days": "{count, plural, one {# dia sincronizado} other {# dias sincronizados}}" },
       "tiers": "Distribuição por tier",
-      "tiersMeta": "Em relação ao deck mais jogado",
+      "tiersMeta": "Participação no meta",
       "others": "Outros",
       "decks": "{count, plural, one {# deck} other {# decks}}",
       "turn": "Vantagem de turno",
@@ -1614,7 +1614,7 @@
     "detail": {
       "title": "Análise de arquétipo",
       "empty": "Escolha um deck no ranking ou na matrix.",
-      "tier": "Tier {tier} de popularidade",
+      "tier": "Tier {tier}",
       "sub": "{games} deck-games · {mirrors} mirrors",
       "deepDive": "Deep dive",
       "winRate": "Win rate",

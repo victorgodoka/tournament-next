@@ -1525,12 +1525,12 @@
     },
     "method": {
       "title": "How it’s counted",
-      "body": "Each game counts once per deck, so a Bo3 adds up to six deck-games. Win rates leave out mirrors and unfinished games; a draw counts as a game, not a win. Meta share keeps everything. Decks with fewer than {minSamples} deck-games are left out of the lists, so shares don’t add up to 100%. Unknown decks count in the totals, not as a row. ± is the 95% Wilson interval. Tier: a deck's share against the most played deck's (T1 ≥ 60%, T2 ≥ 30%, T3 ≥ 15%, T4 ≥ 5%; none under 0.5% of the meta)."
+      "body": "Each game counts once per deck, so a Bo3 adds up to six deck-games. Win rates leave out mirrors and unfinished games; a draw counts as a game, not a win. Meta share keeps everything. Decks with fewer than {minSamples} deck-games are left out of the lists, so shares don’t add up to 100%. Unknown decks count in the totals, not as a row. ± is the 95% Wilson interval. Tier: how far a deck's Wilson lower bound sits below the best deck's (T1 and T1.5 up to 1 point, T1 for the best two only; T2 up to 3, T3 up to 6, T4 up to 9; none under 0.5% of the meta or 10 players)."
     },
     "overview": {
       "kpi": { "deckGames": "Deck-games", "matches": "Matches", "players": "Players", "archetypes": "Archetypes listed", "archetypesHint": "of {count} with {min}+ deck-games", "updated": "Data up to", "days": "{count, plural, one {# day} other {# days}} synced" },
       "tiers": "Tier distribution",
-      "tiersMeta": "Against the most played deck",
+      "tiersMeta": "Share of the meta",
       "others": "Others",
       "decks": "{count, plural, one {# deck} other {# decks}}",
       "turn": "Turn advantage",
@@ -1614,7 +1614,7 @@
     "detail": {
       "title": "Archetype analysis",
       "empty": "Pick a deck in the ranking or the matrix.",
-      "tier": "Popularity tier {tier}",
+      "tier": "Tier {tier}",
       "sub": "{games} deck-games · {mirrors} mirrors",
       "deepDive": "Deep dive",
       "winRate": "Win rate",

@@ -42,6 +42,7 @@ const FIGURE = 'font-mono text-xs text-ink-muted tabular-nums'
 
 const TIER_ROWS = [
   { key: 'tier1', label: 'T1', bar: 'bg-tier-diamond' },
+  { key: 'tier15', label: 'T1.5', bar: 'bg-tier-diamond' },
   { key: 'tier2', label: 'T2', bar: 'bg-tier-platinum' },
   { key: 'tier3', label: 'T3', bar: 'bg-tier-silver' },
   { key: 'tier4', label: 'T4', bar: 'bg-tier-gold' },

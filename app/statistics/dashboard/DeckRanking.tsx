@@ -21,7 +21,7 @@ const COLS = '32px minmax(200px, 2fr) minmax(160px, 1.4fr) minmax(80px, 0.8fr) m
 /** Past ±3 pts the deck's rate is flagged: enough to list, not enough to lean on. */
 const SMALL_MARGIN = 0.03
 
-const TIER_COLOR = { 1: 'text-tier-diamond', 2: 'text-tier-platinum', 3: 'text-tier-silver', 4: 'text-tier-gold' } as const
+const TIER_COLOR = { 1: 'text-tier-diamond', 1.5: 'text-tier-diamond', 2: 'text-tier-platinum', 3: 'text-tier-silver', 4: 'text-tier-gold' } as const
 
 /** The ranking's order for a tab: the API's list first, any deck it leaves out after. */
 const ordered = (archetypes: StatArchetype[], keys: number[][] | undefined, mode: RankingMode): StatArchetype[] => {
