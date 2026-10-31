@@ -8,7 +8,7 @@
 import { notFound } from 'next/navigation'
 import { archKey, getDeepDive, getStatistics, type AgainstCard, type DeepDiveMode, type Matchup, type StatArchetype, type StatCard, type Statistics } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
-import { deckFaces, powerRanked, type PowerDeck } from '@utils/power-tier'
+import { deckFaces, powerRanked } from '@utils/power-tier'
 import type { RankedLadderId } from '@utils/types'
 import { Art, Bar, busy, C, Chip, col, Donut, Empty, F, Head, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size, type Slice } from '@omega/infographic/infographic'
 
@@ -60,7 +60,7 @@ const overview = async ({ data, size, t, locale }: Ctx) => {
   const wide = size === 'wide'
   const tiers = data.tierDistribution
   const tierRows = tiers
-    ? ([[1, tiers.tier1], [2, tiers.tier2], [3, tiers.tier3], [4, tiers.tier4], [0, tiers.others]] as const).filter(([, v]) => v.share > 0)
+    ? ([[1, tiers.tier1], [1.5, tiers.tier15 ?? { share: 0, archetypes: 0 }], [2, tiers.tier2], [3, tiers.tier3], [4, tiers.tier4], [0, tiers.others]] as const).filter(([, v]) => v.share > 0)
     : []
   const slices: Slice[] = tierRows.map(([k, v]) => ({ value: v.share, color: k ? C.tier[k]! : C.lineMid, label: k ? `T${k}` : undefined, sub: pct(v.share, 0) }))
   const kpis = (
@@ -591,7 +591,7 @@ const TIER_ROW_GAP = 20
 const rowWidth = (size: Size, tier: PowerTier) => (size === 'wide' && tier === 1.5 ? ROW_WIDTH.wide - TIER_1_WIDTH - TIER_ROW_GAP - 128 - 14 : ROW_WIDTH[size])
 
 /** A deck on the board: its art, name and win rate. */
-const Tile = ({ a, src, side, t }: { a: PowerDeck; src?: string; side: number; t: T }) => (
+const Tile = ({ a, src, side, t }: { a: StatArchetype; src?: string; side: number; t: T }) => (
   <div style={{ ...col, width: side, gap: 5, flexShrink: 0 }}>
     <Art src={src} size={side} />
     {/* `block`, not flex: Satori only draws the ellipsis on a block. */}
@@ -648,7 +648,7 @@ const tierList = async ({ data, size, t }: Ctx) => {
 
 const points = (growth: number) => `${growth >= 0 ? '+' : '−'}${Math.abs(growth * 100).toFixed(1)}`
 
-const MoverRow = ({ a, src, t }: { a: PowerDeck; src?: string; t: T }) => (
+const MoverRow = ({ a, src, t }: { a: StatArchetype; src?: string; t: T }) => (
   <div style={{ ...row, gap: 16 }}>
     <Art src={src} size={64} />
     <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
@@ -671,7 +671,7 @@ const metaReport = async ({ data, size, t }: Ctx) => {
   const arts = await loadImages([...rising, ...falling].map((a) => a.face?.id))
   // The server's growth window: half the season, at most 7 days.
   const days = Math.min(7, Math.max(1, Math.floor(data.syncedDays.count / 2)))
-  const list = (n: string, title: string, decks: PowerDeck[]) => (
+  const list = (n: string, title: string, decks: StatArchetype[]) => (
     <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
       <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
         {decks.length ? decks.map((a) => <MoverRow key={archKey(a.archetype)} a={a} src={art(arts, a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}

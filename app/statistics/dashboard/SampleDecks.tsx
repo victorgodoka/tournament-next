@@ -11,7 +11,7 @@ import { FilterField, matches } from './controls'
 
 const total = (cards: SampleCard[]) => cards.reduce((n, c) => n + c.count, 0)
 
-const Zone = ({ title, cards }: { title: string; cards: SampleCard[] }) =>
+export const Zone = ({ title, cards }: { title: string; cards: SampleCard[] }) =>
   cards.length ? (
     <div className="flex flex-col gap-2">
       <span className="text-ink-muted signal-sm">{title} · {total(cards)}</span>
@@ -27,7 +27,7 @@ const Zone = ({ title, cards }: { title: string; cards: SampleCard[] }) =>
   ) : null
 
 /** The last section: one automatic deck per listed archetype, built from the statistics, not from a played list. */
-export const SampleDecks = ({ decks }: { decks: SampleDeck[] }) => {
+export const SampleDecks = ({ decks, closed }: { decks: SampleDeck[]; closed: boolean }) => {
   const t = useTranslations('Statistics.sampleDecks')
   const locale = useLocale()
   const [open, setOpen] = useState<string | null>(decks[0] ? archKey(decks[0].archetype) : null)
@@ -87,7 +87,7 @@ export const SampleDecks = ({ decks }: { decks: SampleDeck[] }) => {
           <p className={NOTE}>{t('note')}</p>
         </div>
       ) : (
-        <p className={NOTE}>{t('empty')}</p>
+        <p className={NOTE}>{t(closed ? 'closed' : 'empty')}</p>
       )}
     </Panel>
   )
