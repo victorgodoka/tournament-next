@@ -10,6 +10,7 @@ import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
 import { can, listArticles, listAuthors, type ArticleQuery } from '@utils/articles'
 import { getMeServer } from '@utils/auth'
+import { log } from '@utils/log'
 import { pageMetadata } from '@utils/metadata'
 import { isWikiTopic, TOPIC_IDS, topicOf, WIKI_TOPICS } from '@utils/wiki-topics'
 import { ArticleList, type ListOption } from './ArticleList'
@@ -67,7 +68,7 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
   // The session decides whether drafts come back at all, so it is read before the index.
   // The index is public: if the session can't be read, it renders for a reader instead of failing.
   const me = await getMeServer(cookie).catch((error) => {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /auth/me', page: '/wiki', err: error })
     return null
   })
   const isEditor = can(me, 'wiki.write')
@@ -94,11 +95,11 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
   // ponytail: 100 is the wiki's whole index today. Counts and Most read would undercount past it.
   const [index, page, authors] = await Promise.all([
     listArticles({ limit: 100 }, cookie).catch((error) => {
-      console.error(error)
+      log('error', 'API_ERROR', { call: 'GET /wiki', page: '/wiki', err: error })
       return null
     }),
     listArticles({ ...query, limit: whole ? 100 : 24 }, cookie).catch((error) => {
-      console.error(error)
+      log('error', 'API_ERROR', { call: 'GET /wiki', page: '/wiki', query, err: error })
       return null
     }),
     authorsLoad,
