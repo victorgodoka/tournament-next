@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { twMerge } from 'tailwind-merge'
 import { searchCards } from '@utils/cards'
 import type { CardArt } from '@utils/types'
 import { WIKI_PAD } from './wiki'
@@ -18,22 +19,20 @@ type WikiBarProps = {
 type Answer = { query: string; cards: CardArt[]; failed: boolean }
 
 /**
- * Breadcrumb, card search and cross-link. The query is debounced so a *settled* search is what hits
- * `GET /cards`: the endpoint is cached publicly for an hour, and a request per keystroke never
- * reuses that cache.
+ * Card search for a box of text. The query is debounced so a *settled* search is what hits `GET /cards`: the
+ * endpoint is cached publicly for an hour, and a request per keystroke never reuses that cache.
  */
-export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
-  const [query, setQuery] = useState('')
+export const useCardSearch = (query: string, enabled = true) => {
   const [answer, setAnswer] = useState<Answer | null>(null)
 
   const text = query.trim()
-  const open = text.length >= 2
+  const open = enabled && text.length >= 2
   // Tagging the answer with its query is what makes stale results disappear the moment the box
   // changes, without an effect that resets state on every keystroke.
   const shown = answer?.query === text ? answer : null
 
   useEffect(() => {
-    if (text.length < 2) return
+    if (!open) return
 
     const controller = new AbortController()
     const timer = setTimeout(() => {
@@ -48,7 +47,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [text])
+  }, [text, open])
 
   const label = !shown
     ? `Searching for “${text}”…`
@@ -57,6 +56,35 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
       : shown.cards.length
         ? `${shown.cards.length} match${shown.cards.length === 1 ? '' : 'es'} for “${text}”`
         : `No cards match “${text}”`
+
+  return { open, label, cards: shown?.cards ?? [] }
+}
+
+/** What a card search found: a status line and a link per card. */
+export const CardResults = ({ label, cards, className }: { label: string; cards: CardArt[]; className?: string }) => (
+  <div className={twMerge('border-b border-cyan bg-ground-cyan py-3.5', className)} aria-live="polite">
+    <p className="text-cyan signal">{label}</p>
+    {cards.length ? (
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {cards.map((card) => (
+          <Link
+            key={card.id}
+            href={`/wiki/card/${card.id}`}
+            className="inline-flex items-baseline gap-2 border border-line bg-space-000 px-2.75 py-1.75 text-ink caption font-bold hover:bg-cyan hover:text-cyan-on"
+          >
+            <span>{card.name ?? 'Unknown card'}</span>
+            <span className="mono-handle">{card.id}</span>
+          </Link>
+        ))}
+      </div>
+    ) : null}
+  </div>
+)
+
+/** Breadcrumb, card search and cross-link. */
+export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
+  const [query, setQuery] = useState('')
+  const { open, label, cards } = useCardSearch(query)
 
   return (
     <>
@@ -81,25 +109,7 @@ export const WikiBar = ({ section, placeholder, link }: WikiBarProps) => {
         </Link>
       </div>
 
-      {open ? (
-        <div className={`border-b border-cyan bg-ground-cyan py-3.5 ${WIKI_PAD}`} aria-live="polite">
-          <p className="text-cyan signal">{label}</p>
-          {shown?.cards.length ? (
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {shown.cards.map((card) => (
-                <Link
-                  key={card.id}
-                  href={`/wiki/card/${card.id}`}
-                  className="inline-flex items-baseline gap-2 border border-line bg-space-000 px-2.75 py-1.75 text-ink caption font-bold hover:bg-cyan hover:text-cyan-on"
-                >
-                  <span>{card.name ?? 'Unknown card'}</span>
-                  <span className="mono-handle">{card.id}</span>
-                </Link>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      {open ? <CardResults label={label} cards={cards} className={WIKI_PAD} /> : null}
     </>
   )
 }

@@ -7,9 +7,12 @@ import type { Tone } from '@utils/wiki'
 /** Horizontal rhythm of every wiki block, lined up with the rails on the rest of the site. */
 export const WIKI_PAD = 'px-5.5 lg:px-11'
 
-/** A sidebar that pins itself beside the article once there is a column to pin it in, always one viewport tall (below the fixed header from xl). */
-export const WIKI_ASIDE =
-  'min-w-0 lg:sticky lg:top-0 lg:h-dvh lg:self-start lg:overflow-y-auto xl:top-16 xl:h-[calc(100dvh-4rem)]'
+/** The right-hand column. It scrolls with the page: never sticky. */
+export const WIKI_ASIDE = 'min-w-0'
+
+/** The contents rail on the left: pins itself beside the article, one viewport tall, below the fixed header from xl. */
+export const WIKI_RAIL =
+  'min-w-0 lg:sticky lg:top-0 lg:h-dvh lg:self-start lg:overflow-y-auto lg:[scrollbar-width:none] xl:top-16 xl:h-[calc(100dvh-4rem)] lg:[&::-webkit-scrollbar]:hidden'
 
 type WikiSectionProps = {
   id?: string
@@ -123,5 +126,40 @@ export const SourceBlock = ({ endpoints, synced }: { endpoints: string[]; synced
 )
 
 export const LINK = 'text-cyan hover:text-cyan'
+
+/** A 36px mono chip: filters, sort, tags, share links. Add `WIKI_CHIP_ON` to the pressed one. */
+export const WIKI_CHIP =
+  'cut inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-2 px-3.5 whitespace-nowrap text-ink-dim signal-strong [--cut:var(--cut-xs)] hover:text-ink hover:[--fill:var(--color-surface-300)]'
+export const WIKI_CHIP_ON = 'text-ink [--edge:var(--color-cyan)] [--fill:var(--color-ground-cyan)] hover:[--fill:var(--color-ground-cyan)]'
+
+/** A row of chips: bleeds to the screen edges and swipes on a phone, wraps from 640px. */
+export const WIKI_SCROLL_ROW =
+  '-mx-gutter overflow-x-auto px-gutter [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden'
+
+/** The wiki's card: top-right notch on a line-mid edge. */
+export const WIKI_CARD = 'cut notch [--cut:var(--cut-lg)]'
+/** A tile that lifts under the pointer. Links only. */
+export const WIKI_TILE =
+  'cut notch [--cut:var(--cut-md)] transition-[translate] duration-120 ease-out hover:-translate-y-0.5 hover:[--fill:var(--color-surface-200)] motion-reduce:transition-none'
+
+type WikiHeadProps = {
+  /** Two digits, in gold. */
+  num: string
+  id: string
+  /** Right side: a mono stamp. */
+  end?: React.ReactNode
+  children: React.ReactNode
+}
+
+/** A numbered section of the wiki index, under a hairline. */
+export const WikiHead = ({ num, id, end, children }: WikiHeadProps) => (
+  <div className="flex flex-wrap items-baseline gap-2.5 border-t border-line pt-3.5 sm:gap-3.5 sm:pt-4">
+    <span className="font-display text-xl text-gold sm:text-[22px]">{num}</span>
+    <h2 id={id} className="text-[28px] text-ink display-2 sm:text-[32px]">
+      {children}
+    </h2>
+    {end ? <span className="text-ink-muted signal-sm max-sm:basis-full sm:ml-auto">{end}</span> : null}
+  </div>
+)
 
 export const GHOST_ACTION = twMerge(buttonClasses({ variant: 'secondary', size: 'mono' }), 'min-h-10.5 w-full')
