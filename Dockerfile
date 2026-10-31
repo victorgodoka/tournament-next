@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-alpine AS base
+FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@11.1.2 --activate
 
 # --- deps ---
@@ -8,8 +8,7 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# pnpm's fetch timeout caps a whole tarball, not idle time, and `next` is 33 MB: the default 60 s fails on a slow runner.
-RUN pnpm install --frozen-lockfile --fetch-timeout=600000
+RUN pnpm install --frozen-lockfile
 
 # --- build ---
 FROM base AS builder
@@ -33,7 +32,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
 # --- runtime ---
-FROM base AS runner
+# Node 24 for TransformStream's fix (nodejs/node#62036). Native code here is sharp, one N-API binary for any Node.
+# ponytail: runtime only. Moving the stages above busts the cached `pnpm install`, and the runner can't finish a cold
+# download. Move them to 24 once it can.
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
