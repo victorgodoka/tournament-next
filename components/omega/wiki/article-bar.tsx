@@ -26,7 +26,7 @@ const STAT = 'inline-flex items-center gap-1.5 text-ink-dim mono-data'
 const commentCount = (social: ArticleSocial) =>
   social.comments.reduce((total, thread) => total + (thread.deleted ? 0 : 1) + thread.replies.length, 0)
 
-/** Under the article header: views, the like, the comment count, then share. */
+/** The right end of the article's byline: views, the like, the comment count, then share. */
 export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
   const { user } = useAuth()
   const [like, setLike] = useState({ likes: social?.likes ?? 0, liked: social?.liked ?? false })
@@ -61,51 +61,49 @@ export const ArticleBar = ({ slug, url, title, social }: ArticleBarProps) => {
   )
 
   return (
-    <div className="mb-8 border-b border-line pb-5">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {social ? (
-            <>
-              <span className={STAT}>
-                <Icon name="eye" />
-                {COMPACT.format(social.views)} {social.views === 1 ? 'view' : 'views'}
-              </span>
+    <div className="flex flex-1 flex-wrap items-center justify-end gap-x-5 gap-y-3 max-sm:justify-between">
+      {social ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className={STAT}>
+            <Icon name="eye" />
+            {COMPACT.format(social.views)}
+            <span className="sr-only">{social.views === 1 ? 'view' : 'views'}</span>
+          </span>
 
-              {user === null ? (
-                <Link
-                  href="/login"
-                  onClick={() => setReturnTo(location.pathname)}
-                  aria-label={`Sign in to like this article (${like.likes} likes)`}
-                  className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                >
-                  {likeLabel}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  onClick={toggleLike}
-                  disabled={pending || user === undefined}
-                  aria-pressed={like.liked}
-                  aria-label={`Like this article (${like.likes} likes)`}
-                  className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                >
-                  {likeLabel}
-                </button>
-              )}
+          {user === null ? (
+            <Link
+              href="/login"
+              onClick={() => setReturnTo(location.pathname)}
+              aria-label={`Sign in to like this article (${like.likes} likes)`}
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              {likeLabel}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleLike}
+              disabled={pending || user === undefined}
+              aria-pressed={like.liked}
+              aria-label={`Like this article (${like.likes} likes)`}
+              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            >
+              {likeLabel}
+            </button>
+          )}
 
-              <a href="#comments" className={twMerge(STAT, 'hover:text-cyan')}>
-                <Icon name="comment" />
-                {commentCount(social)} {commentCount(social) === 1 ? 'comment' : 'comments'}
-              </a>
-            </>
-          ) : null}
+          <a href="#comments" className={twMerge(STAT, 'hover:text-cyan')}>
+            <Icon name="comment" />
+            {commentCount(social)}
+            <span className="sr-only">{commentCount(social) === 1 ? 'comment' : 'comments'}</span>
+          </a>
         </div>
+      ) : null}
 
-        <ShareButtons url={url} title={title} />
-      </div>
+      <ShareButtons url={url} title={title} />
 
       {/* Never display:none: a live region that appears with its text isn't announced. */}
-      <p aria-live="polite" className="text-cyan signal-sm not-empty:mt-2">
+      <p aria-live="polite" className="basis-full text-right text-cyan signal-sm empty:hidden">
         {error}
       </p>
     </div>

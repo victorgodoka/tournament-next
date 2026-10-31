@@ -22,6 +22,9 @@ interface NavbarProps {
   cta?: React.ReactNode
 }
 
+/** The landing's extra link fits a signed-in bar under 1360px only with tighter cells. */
+const DENSE_NAV = 'max-[1359px]:gap-0 max-[1359px]:[&>a]:px-2 max-[1359px]:[&>div>button]:px-2'
+
 /** `▾`, rotated when its menu is open. */
 const Caret = ({ isOpen }: { isOpen: boolean }) => (
   <span aria-hidden className={twMerge("text-[9px] leading-none", isOpen && "rotate-180")}>▾</span>
@@ -93,8 +96,9 @@ const NavbarCell = ({ entry, pathname }: { entry: NavbarItem; pathname: string }
 }
 
 /**
- * The SiteNav: mark, mono links and the right-hand actions. Below 1024px the links and `end` fold
- * into a drawer that slides in from the right over a blurred scrim.
+ * The SiteNav: mark, mono links and the right-hand actions. Below 1280px the links and `end` fold
+ * into a drawer that slides in from the right over a blurred scrim: the bar needs 1097px signed out
+ * and 1228px on the landing, which has one link more, before an account cell widens it further.
  */
 export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: NavbarProps) => {
   const drawer = useRef<HTMLDialogElement>(null)
@@ -118,15 +122,15 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
     <>
       <Brand />
 
-      <nav aria-label="Main" className="hidden items-stretch gap-1 lg:flex">
+      <nav aria-label="Main" className={twMerge("hidden items-stretch gap-1 xl:flex", items.length > NAVBAR_ITEMS.length && DENSE_NAV)}>
         {items.map((entry) => (
           <NavbarCell key={entry.item} entry={entry} pathname={pathname} />
         ))}
       </nav>
 
-      <div className="ml-auto flex items-center gap-4 max-lg:gap-2">
-        <div className="hidden items-center gap-4 lg:flex">{end}</div>
-        <div className="flex items-center lg:hidden">{keep}</div>
+      <div className="ml-auto flex min-w-0 items-center gap-4 max-xl:gap-2">
+        <div className="hidden min-w-0 items-center gap-4 xl:flex">{end}</div>
+        <div className="flex items-center xl:hidden">{keep}</div>
         {cta}
         <Button
           variant="secondary"
@@ -134,7 +138,7 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
           aria-label="Open menu"
           aria-haspopup="dialog"
           onClick={() => drawer.current?.showModal()}
-          className="lg:hidden"
+          className="xl:hidden"
         >
           <Icon name="menu" />
         </Button>

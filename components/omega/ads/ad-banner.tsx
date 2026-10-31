@@ -41,9 +41,7 @@ export const AdBanner = ({ id, placement, className }: AdBannerProps) => {
     <div
       className={twMerge(
         'flex flex-col items-center gap-1.5',
-        // The wiki aside scrolls on its own and is taller than the screen: pinned to its bottom edge the
-        // unit stays in view while the contents above it stay readable.
-        placement === 'aside' && 'bg-space-000 p-5 max-lg:hidden lg:sticky lg:bottom-0',
+        placement === 'aside' && 'bg-space-000 p-5 max-lg:hidden',
         className,
       )}
     >

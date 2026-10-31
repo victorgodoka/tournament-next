@@ -10,7 +10,7 @@ const FRAMES: CardFrame[] = ['normal', 'effect', 'ritual', 'fusion', 'synchro', 
 const SPECIAL_FRAMES = ['ritual', 'fusion', 'synchro', 'xyz', 'link'] as const
 
 /** A monster's frame is its first special frame, else Normal or Effect; Pendulum follows the same rule. */
-export const frameOf = (card: CardData): CardFrame => {
+export const frameOf = (card: Pick<CardData, 'kind' | 'monsterTypes'>): CardFrame => {
   if (card.kind !== 'monster') return card.kind
   return SPECIAL_FRAMES.find((t) => card.monsterTypes.includes(t)) ?? (card.monsterTypes.includes('normal') ? 'normal' : 'effect')
 }

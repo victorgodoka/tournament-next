@@ -8,17 +8,23 @@ import remarkGfm from 'remark-gfm'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { createElement, Fragment, type ReactNode } from 'react';
 
+/** A tag's own `className` rule beats `*`: the defaults' would strip our classes from a, code, ol, ul and li. */
+const defaultRules = Object.fromEntries(
+  Object.entries(defaultSchema.attributes ?? {}).map(([tag, rules]) => [tag, rules.filter((rule) => !Array.isArray(rule) || rule[0] !== 'className')]),
+)
+
 const customSanitizeSchema = {
   ...defaultSchema,
+  // remark-rehype already prefixes footnote ids and their links, the only ids Markdown can make. A second prefix would break the links.
+  clobberPrefix: '',
   attributes: {
-    // A tag's own `className` rule beats `*`: the defaults' would strip our classes from a, code, ol, ul and li.
-    ...Object.fromEntries(
-      Object.entries(defaultSchema.attributes ?? {}).map(([tag, rules]) => [tag, rules.filter((rule) => !Array.isArray(rule) || rule[0] !== 'className')]),
-    ),
+    ...defaultRules,
     // Every tag keeps the classes rehype-class-names put on it.
     '*': [...(defaultSchema.attributes?.['*'] || []), 'className', 'class'],
     // Nothing but a hex reaches `style`: see `toReact`.
     span: [...(defaultSchema.attributes?.span || []), ['dataColor', /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i] as [string, RegExp]],
+    // Nothing but a frame name reaches a CSS variable: see `toReact`.
+    a: [...(defaultRules.a ?? []), ['dataFrame', /^[a-z]+$/] as [string, RegExp]],
   },
 };
 
@@ -122,38 +128,61 @@ export const parseBio = (markdownText: string) => toHtml(markdownText, BIO_CLASS
  * The server rejects raw HTML and non-http(s) links on write; the sanitizer is the second wall.
  */
 const ARTICLE_CLASSES = {
-  // display-4 and display-5 share one size: H2 steps up to display-2 so the levels read apart.
   'h1': 'mt-9 mb-3.5 text-ink display-2 first:mt-0',
   'h2': 'mt-8 mb-3 text-ink display-2 first:mt-0',
-  'h3': 'mt-6 mb-2.5 text-ink display-4 first:mt-0',
+  'h3': 'mt-6 mb-2.5 text-ink display-3 first:mt-0',
   'h4': 'mt-5 mb-2 text-ink display-6 first:mt-0',
-  'p': 'mb-4 last:mb-0 text-ink-dim body',
+  'p': 'mb-5 last:mb-0 text-base/[27px] text-ink-dim max-sm:mb-4.5 max-sm:text-base/[26px]',
   'strong': 'font-bold text-ink',
   'em': 'italic',
   'del': 'text-ink-muted line-through',
-  'a': 'text-cyan underline underline-offset-2 hover:text-cyan',
-  'ul': 'mb-4 flow-root last:mb-0 list-none p-0',
+  'a': 'text-cyan hover:text-ink',
+  // Prose links underline. Card links carry a frame glyph instead, footnote links their brackets.
+  'a:not([href^="/wiki/card/"]):not([data-footnote-ref])': 'underline decoration-cyan/40 underline-offset-3',
+  'a[href^="/wiki/card/"]':
+    "inline-flex items-baseline gap-1.5 font-medium before:inline-block before:h-[11px] before:w-2 before:translate-y-px before:bg-(--frame,var(--color-line-mid)) before:content-['']",
+  // A passcode the lookup couldn't name.
+  '.card-raw': 'font-mono text-sm',
+  'ul': 'mb-4.5 flow-root last:mb-0 list-none p-0',
   'ol': 'mb-5 flow-root last:mb-0 list-none p-0',
-  'li': 'relative text-ink-dim body',
-  'ul > li': "pl-5.5 before:absolute before:left-0 before:top-[.62em] before:h-0.5 before:w-2.5 before:bg-cyan before:content-[''] [&+li]:mt-1.5",
-  // A numbered list reads as steps: notched number, rule down to the next one. `list-item` is the browser's own counter, so `start` still holds.
-  'ol > li':
-    "min-h-8 pt-1 pb-4 pl-11 last:pb-0 before:absolute before:top-0 before:left-0 before:flex before:size-8 before:items-center before:justify-center before:bg-ground-cyan before:font-mono before:text-sm before:text-cyan before:[clip-path:polygon(0_0,calc(100%-var(--cut-sm))_0,100%_var(--cut-sm),100%_100%,0_100%)] before:content-[counter(list-item)] after:absolute after:top-8 after:bottom-0 after:left-4 after:w-px after:bg-line-mid after:content-[''] last:after:hidden",
+  'li': 'relative text-base/[27px] text-ink-dim max-sm:text-base/[26px]',
+  'ul > li': "pl-5.5 before:absolute before:top-[13px] before:left-0.5 before:h-0.5 before:w-2.5 before:bg-cyan before:content-[''] max-sm:before:top-3",
+  'li ul': 'mt-1 mb-0 [&>li]:before:bg-line-mid',
+  // The box sits where the dash would.
+  'li.task-list-item': '[&.task-list-item]:pl-7.5 [&.task-list-item]:before:hidden',
+  'input[type=checkbox]': 'wiki-check',
+  // A numbered list reads as steps: chamfered number, rule down to the next one. Built in `rehypeArticle`.
+  '.step':
+    "grid grid-cols-[32px_minmax(0,1fr)] gap-4 pb-4.5 last:pb-0 max-sm:gap-3.5 max-sm:pb-4 after:absolute after:top-8.5 after:bottom-0.5 after:left-[15px] after:w-px after:bg-line-mid after:content-[''] last:after:hidden",
+  '.step-no': 'cut flex size-8 items-center justify-center font-display text-base text-gold [--cut:var(--cut-xs)] [--fill:var(--color-surface-200)]',
+  '.step-body': 'min-w-0',
   'hr': 'my-7 h-px w-full border-none bg-line',
-  'blockquote': 'my-4 border-l-2 border-cyan bg-ground-cyan py-2 pl-4 text-ink-dim italic',
-  'table': 'my-5 w-full border border-line',
-  'thead': 'border-b border-line bg-ground-soft text-ink-muted',
-  'th': 'px-3.5 py-2.5 text-left signal-sm',
-  'tbody': 'divide-y divide-line',
-  'td': 'px-3.5 py-3 text-ink-dim body-sm',
-  ':not(pre) > code': 'border border-line bg-surface-200 px-1.5 py-px text-cyan mono-note',
-  'pre': 'my-4 overflow-x-auto border border-line bg-surface-200 p-4',
-  'pre code': 'font-mono text-sm text-ink-dim',
+  'blockquote': 'my-5 bg-surface-100 px-4.5 py-3.5 italic max-sm:px-4 max-sm:py-3 [&_p]:leading-[26px] [&_p]:text-ink',
+  '.table-box': 'my-5',
+  '.table-scroll': 'overflow-x-auto max-sm:-mr-gutter max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden',
+  '.table-hint': 'mt-2 block text-ink-muted signal-sm sm:hidden',
+  // Under 640px a table with three columns or more keeps its width and scrolls.
+  '.table-wide': 'max-sm:min-w-[520px]',
+  'table': 'w-full border-collapse border border-line',
+  'th': 'border border-line bg-surface-200 px-3.5 py-[11px] text-ink-muted signal max-sm:px-3 max-sm:py-2.5 max-sm:text-[10px]',
+  // Only where the column sets no alignment: the class would beat `align`, and a bare <th> centres.
+  'th:not([align])': 'text-left',
+  'td': 'border border-line bg-surface-100 px-3.5 py-[11px] text-sm/5 text-ink-dim max-sm:px-3 max-sm:py-2.5',
+  ':not(pre) > code': 'bg-surface-200 px-1.5 py-px text-ink mono-data',
+  'pre': 'my-5 overflow-x-auto border border-line bg-[#0b0e1a] px-4 py-3.5',
+  'pre code': 'font-mono text-[13px]/[21px] text-ink-dim',
   '.hljs-keyword, .hljs-built_in, .hljs-literal, .hljs-type': 'text-cyan',
   '.hljs-string, .hljs-regexp': 'text-win',
   '.hljs-number, .hljs-variable, .hljs-template-variable, .hljs-attr': 'text-gold',
   '.hljs-comment, .hljs-meta': 'italic text-ink-muted',
-  'img': 'my-4 max-w-full border border-line',
+  'img': 'my-5 max-w-full',
+  '.footnotes': 'clear-both mt-5 border-t border-line pt-3',
+  // The browser's own counter, so the number needs no markup.
+  '.footnotes li':
+    'pl-5 text-[13px]/5 before:absolute before:left-0 before:font-mono before:text-[11px] before:font-bold before:text-cyan before:content-[counter(list-item)] [&_p]:text-[13px]/5',
+  'sup a': "ml-0.5 no-underline signal-strong before:content-['['] after:content-[']']",
+  // Where footnote links land: clear of the fixed header, like heading anchors.
+  '.footnotes li, sup a': 'scroll-mt-24',
 }
 
 type HastNode = {
@@ -169,8 +198,52 @@ const VOID = new Set(['br', 'hr', 'img', 'input'])
 /** remark-rehype puts newlines between table rows and cells; HTML allows no text there, so React flags it at hydration. */
 const NO_TEXT = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr'])
 
-/** hast names `ariaHidden` / `dataFootnoteRef`; React wants `aria-hidden` / `data-footnote-ref`. */
-const propName = (name: string) => (/^(aria|data)[A-Z]/.test(name) ? name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`) : name)
+const element = (tagName: string, className: string[], children: HastNode[]): HastNode => ({ type: 'element', tagName, properties: { className }, children })
+
+const CARD_HREF = /^\/wiki\/card\/(\d+)$/
+
+/**
+ * What the class map can't add, because it isn't a class: the number and body of a step, the scroller around a table,
+ * a card link's frame. `frames` holds the frames of the cards a doc links to; a passcode it doesn't know stays neutral.
+ */
+const rehypeArticle = (frames?: ReadonlyMap<number, string>) => (tree: HastNode) => {
+  const walk = (node: HastNode, inFootnotes: boolean) => {
+    if (!node.children) return
+    const footnotes = inFootnotes || 'dataFootnotes' in (node.properties ?? {})
+    node.children = node.children.map((child) => {
+      walk(child, footnotes)
+      if (child.tagName !== 'table') return child
+      const head = child.children?.find((part) => part.tagName === 'thead')?.children?.find((part) => part.tagName === 'tr')
+      const wide = (head?.children?.filter((cell) => cell.tagName === 'th').length ?? 0) >= 3
+      if (wide) child.properties = { ...child.properties, className: ['table-wide'] }
+      const hint = element('span', ['table-hint'], [{ type: 'text', value: 'Scroll for more →' }])
+      return element('div', ['table-box'], [element('div', ['table-scroll'], [child]), ...(wide ? [hint] : [])])
+    })
+
+    if (node.tagName === 'ol' && !footnotes) {
+      let step = Number(node.properties?.start ?? 1)
+      for (const item of node.children ?? []) {
+        if (item.tagName !== 'li') continue
+        item.properties = { ...item.properties, className: ['step'] }
+        item.children = [element('span', ['step-no'], [{ type: 'text', value: String(step++) }]), element('div', ['step-body'], item.children ?? [])]
+      }
+    }
+
+    const passcode = node.tagName === 'a' ? String(node.properties?.href ?? '').match(CARD_HREF)?.[1] : undefined
+    if (passcode) {
+      const frame = frames?.get(Number(passcode))
+      if (frame) node.properties = { ...node.properties, dataFrame: frame }
+      if (node.children?.[0]?.value === passcode) node.properties = { ...node.properties, className: ['card-raw'] }
+    }
+  }
+  walk(tree, false)
+}
+
+/** hast names `ariaDescribedBy` / `dataFootnoteRef`; React wants `aria-describedby` / `data-footnote-ref`. */
+const propName = (name: string) => {
+  if (/^aria[A-Z]/.test(name)) return `aria-${name.slice(4).toLowerCase()}`
+  return /^data[A-Z]/.test(name) ? name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`) : name
+}
 
 /**
  * Sanitized hast → React elements. Only what `rehype-sanitize` let through reaches here, and it becomes
@@ -183,10 +256,11 @@ const toReact = (node: HastNode, key?: number): ReactNode => {
   if (node.type === 'root') return createElement(Fragment, { key }, ...children)
   if (node.type !== 'element' || !node.tagName) return null
 
-  const { dataColor, ...properties } = node.properties ?? {}
+  const { dataColor, dataFrame, ...properties } = node.properties ?? {}
   const props: Record<string, unknown> = { key }
-  // The sanitizer let only a hex through (`customSanitizeSchema`), so this can't carry other CSS.
+  // The sanitizer let only a hex or a bare word through (`customSanitizeSchema`), so these can't carry other CSS.
   if (typeof dataColor === 'string') props.style = { color: dataColor }
+  if (typeof dataFrame === 'string') props.style = { '--frame': `var(--color-type-${dataFrame})` }
   for (const [name, value] of Object.entries(properties)) {
     if (value === null || value === undefined || value === false) continue
     props[propName(name)] = Array.isArray(value) ? value.join(' ') : value
@@ -214,7 +288,7 @@ const rehypeHighlight = () => async (tree: HastNode) => {
 }
 
 /** The same pipeline as `toHtml`, stopped at the sanitized tree and turned into React nodes. */
-const toNodes = async (markdownText: string, classes: Record<string, string>): Promise<ReactNode> => {
+const toNodes = async (markdownText: string, classes: Record<string, string>, frames?: ReadonlyMap<number, string>): Promise<ReactNode> => {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -222,14 +296,15 @@ const toNodes = async (markdownText: string, classes: Record<string, string>): P
     .use(remarkColor)
     .use(remarkRehype)
     .use(rehypeHighlight)
+    .use(rehypeArticle, frames)
     .use(rehypeClassNames, classes)
     .use(rehypeSanitize, customSanitizeSchema)
   const tree = await processor.run(processor.parse(markdownText))
   return toReact(tree as HastNode)
 }
 
-/** Wiki Markdown (text, callout, FAQ answers, legacy bodies) as React nodes. */
-export const renderArticle = (markdownText: string) => toNodes(markdownText, ARTICLE_CLASSES)
+/** Wiki Markdown (text, callout, FAQ answers, legacy bodies) as React nodes. `frames`: card frames by passcode, for card links. */
+export const renderArticle = (markdownText: string, frames?: ReadonlyMap<number, string>) => toNodes(markdownText, ARTICLE_CLASSES, frames)
 
 /** A wiki code block: literal text in a fence longer than any backtick run inside it, so nothing in it reads as Markdown. */
 export const renderCode = (code: string, language: string) => {

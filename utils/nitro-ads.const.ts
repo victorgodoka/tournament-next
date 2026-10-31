@@ -73,6 +73,15 @@ export const RAIL_RIGHT_DOCK_AD_OPTIONS = {
  */
 export const RAIL_WIDE_MIN_WIDTH = 1280 + 2 * 310
 
+/**
+ * A wiki article keeps 1280px at every width, so its rails wait for the 170px gutters that leaves. It takes a media
+ * query: Nitro's collision check is no help, it runs under `app/loading.tsx`, whose wrapper is allowlisted.
+ */
+export const RAIL_ARTICLE_QUERY = `(min-width: ${1280 + 2 * 170}px)`
+
+/** The signed-in right rail on an article: the same width, and the height that clears the messenger dock. */
+export const RAIL_ARTICLE_DOCK_QUERY = `${RAIL_ARTICLE_QUERY} and (min-height: 752px)`
+
 /** No close button: Nitro's advice for revenue. The background is the theme's #080a14. */
 export const ANCHOR_AD_OPTIONS = {
   format: 'anchor',
@@ -132,7 +141,7 @@ export const ASIDE_AD_OPTIONS = {
   report: AD_REPORT,
 } as const satisfies NitroDisplayAdOptions
 
-/** The article column is about 860px wide on desktop: 970s don't fit. */
+/** The article column is about 620px wide on desktop: `fitSizes` drops the 728 there, and keeps it for a wider column. */
 export const ARTICLE_AD_OPTIONS = {
   format: 'article',
   sizes: [[728, 90], [300, 250], [320, 100], [320, 50]],

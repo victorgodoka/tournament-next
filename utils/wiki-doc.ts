@@ -5,6 +5,7 @@
  */
 import type { ReactNode } from 'react'
 import { cardsByIds } from '@utils/cards'
+import { frameOf } from '@utils/deck/model'
 import { renderArticle, renderCode } from '@utils/remark'
 import type { WikiCard } from '@utils/wiki'
 
@@ -477,13 +478,20 @@ export type DocHtml = Record<string, ReactNode>
 /** `html` key of one FAQ answer. */
 export const faqKey = (blockId: string, index: number) => `${blockId}:${index}`
 
+/** `html` key of a card's frame (`spell`, `link`…), for the blocks that color by it. Absent when the lookup didn't name the card. */
+export const frameKey = (passcode: number) => `frame:${passcode}`
+
 /** `[card:ID]` in wiki Markdown: the card's name, linking to its wiki page. */
 const CARD_TAG = /\[card:(\d+)\]/g
+const CARD_LINK = /\]\(\/wiki\/card\/(\d+)\)/g
+
+const passcodes = (text: string, pattern: RegExp) => [...text.matchAll(pattern)].map((match) => Number(match[1]))
 
 /**
  * Markdown blocks rendered to sanitized HTML, by block id (FAQ answers by `faqKey`). Runs on the server for the page and in the
  * browser for the editor preview: the same pipeline, so the preview is the page.
- * Card names for `[card:ID]` come from one lookup per doc; an unknown passcode (or a failed lookup) shows the passcode.
+ * Card names for `[card:ID]` and every card's frame come from one lookup per doc; an unknown passcode (or a failed lookup)
+ * shows the passcode, in a neutral frame.
  */
 export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
   const sources = doc.blocks.flatMap((block) =>
@@ -493,14 +501,18 @@ export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
         ? block.items.map((item, i) => [faqKey(block.id, i), item.md] as const)
         : [],
   )
-  const ids = sources.flatMap(([, md]) => [...md.matchAll(CARD_TAG)].map((match) => Number(match[1])))
+  const ids = [
+    ...sources.flatMap(([, md]) => [...passcodes(md, CARD_TAG), ...passcodes(md, CARD_LINK)]),
+    ...doc.blocks.flatMap((block) => (block.type === 'cards' ? block.cards.map((card) => card.id) : [])),
+  ]
   const cards = ids.length ? await cardsByIds(ids).catch(() => new Map<number, WikiCard>()) : new Map<number, WikiCard>()
+  const frames = new Map([...cards].map(([id, card]) => [id, frameOf(card)]))
   const linkCards = (md: string) =>
     md.replace(CARD_TAG, (_, id: string) => `[${(cards.get(Number(id))?.name ?? id).replace(/[\\[\]*_`]/g, '\\$&')}](/wiki/card/${id})`)
 
   const entries = await Promise.all([
-    ...sources.map(([key, md]) => renderArticle(linkCards(md)).then((html) => [key, html] as const)),
+    ...sources.map(([key, md]) => renderArticle(linkCards(md), frames).then((html) => [key, html] as const)),
     ...doc.blocks.flatMap((block) => (block.type === 'code' ? [renderCode(block.code, block.lang).then((html) => [block.id, html] as const)] : [])),
   ])
-  return Object.fromEntries(entries)
+  return Object.fromEntries([...entries, ...[...frames].map(([id, frame]) => [frameKey(id), frame] as const)])
 }
