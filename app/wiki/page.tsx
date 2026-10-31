@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { twMerge } from 'tailwind-merge'
+import { AdBanner } from '@omega/ads/ad-banner'
 import { WIKI_CHIP, WIKI_SCROLL_ROW } from '@omega/wiki'
 import { userName } from '@omega/wiki/article'
 import { WikiSearch } from '@omega/wiki/wiki-search'
@@ -28,6 +29,7 @@ const TOOL_LINK = 'whitespace-nowrap text-cyan signal underline-offset-4 hover:t
 const FIELD = 'flex min-w-0 flex-col gap-1.5 text-ink-muted signal'
 const CONTROL = 'cut flex min-h-11 items-center px-3 text-sm text-ink [--edge:var(--color-line-strong)] [--fill:var(--color-surface-200)]'
 const INPUT = 'w-full bg-transparent outline-none [color-scheme:dark]'
+const AD_BAND = 'mx-auto w-full max-w-page px-gutter'
 
 /** `most-read` isn't an API sort (it answers 400): the page orders the whole list by views itself. */
 const SORTS = {
@@ -261,6 +263,8 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
           <StartHere />
         </div>
 
+        <AdBanner id="ad-top" placement="content" className={twMerge(AD_BAND, 'pt-10 sm:pt-14')} />
+
         {published.length ? <TopicsSection articles={published} /> : null}
         <MetaSection articles={published} />
 
@@ -286,6 +290,8 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
                 : { title: 'No articles yet', note: isEditor ? 'Start with New article above.' : 'Editors are writing the first ones.' }
           }
         />
+
+        <AdBanner id="ad-bottom" placement="content" className={twMerge(AD_BAND, 'pt-10 sm:pt-0 sm:pb-18')} />
       </main>
       <Footer className="mt-10 sm:mt-0" />
     </>

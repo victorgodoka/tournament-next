@@ -307,7 +307,6 @@ export const IndexAside = ({ articles }: { articles: ArticleSummary[] }) => {
       </NonVipOnly>
 
       <AdBanner id="ad-aside" placement="aside" className="p-0" />
-      <AdBanner id="ad-index-phone" placement="content" className="lg:hidden" />
     </aside>
   )
 }
