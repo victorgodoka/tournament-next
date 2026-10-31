@@ -46,6 +46,14 @@ export async function register() {
       const target = internal + url.slice(api.length)
       input = input instanceof Request ? new Request(target, input) : target
     }
-    return fetch(input, { ...init, signal: own ? AbortSignal.any([own, timeout]) : timeout })
+    return fetch(input, { ...init, signal: own ? AbortSignal.any([own, timeout]) : timeout }).catch((error: unknown) => {
+      // The TimeoutError that reaches the page says nothing about which call stalled: this does.
+      // Only the timeout's own abort, not the caller's.
+      if (timeout.aborted && !own?.aborted) {
+        const method = init?.method ?? (input instanceof Request ? input.method : 'GET')
+        log('error', 'API_TIMEOUT', { call: `${method} ${url.slice(api.length)}`, timeoutMs: API_TIMEOUT })
+      }
+      throw error
+    })
   }
 }
