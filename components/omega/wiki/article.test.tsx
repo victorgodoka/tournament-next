@@ -2,11 +2,12 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ArticleSummary } from '@utils/types'
-import { ArticleCard } from './article'
+import { ArticleCard, ArticleRow } from './article'
 
 vi.mock('next/image', () => ({ default: () => null }))
 // The real one needs next-intl's provider.
 vi.mock('@omega/profile/local-time', () => ({ LocalTime: ({ iso }: { iso: string }) => iso }))
+vi.mock('@omega/wiki/local-day', () => ({ LocalDay: ({ iso }: { iso: string }) => iso }))
 
 const article: ArticleSummary = {
   id: 1,
@@ -34,5 +35,22 @@ describe('ArticleCard', () => {
     render(<ArticleCard article={article} />)
 
     expect(screen.queryByText('views')).toBeNull()
+  })
+})
+
+describe('ArticleRow', () => {
+  afterEach(cleanup)
+
+  it('names a listed article\'s topic and counts its views', () => {
+    const { container } = render(<ArticleRow article={{ ...article, slug: 'ygo-omega-faq', views: 1 }} />)
+
+    expect(screen.getByText('Support')).toBeTruthy()
+    expect(container.textContent).toContain('1 view')
+  })
+
+  it('shows a draft as one', () => {
+    render(<ArticleRow article={{ ...article, publishedAt: null }} />)
+
+    expect(screen.getByText('Draft')).toBeTruthy()
   })
 })

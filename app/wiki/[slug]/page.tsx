@@ -5,11 +5,12 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
-import { AsideBlock, WIKI_ASIDE, WIKI_PAD, WikiBar } from '@omega/wiki'
-import { ARTICLE_DATE_TIME, ArticleBody, Byline, StatusChip, userName } from '@omega/wiki/article'
+import { WIKI_ASIDE, WIKI_CARD, WIKI_PAD } from '@omega/wiki'
+import { ARTICLE_DATE_TIME, ArticleBody, ArticleByline, Byline, StatusChip, userName } from '@omega/wiki/article'
 import { ArticleView } from '@omega/wiki/article-view'
 import { ArticleBar } from '@omega/wiki/article-bar'
 import { ArticleComments } from '@omega/wiki/comments'
+import { HeaderSearch } from '@omega/wiki/wiki-search'
 import { AdArticle } from '@omega/ads/ad-article'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
@@ -98,39 +99,32 @@ export async function generateMetadata({ params }: ArticleRouteProps): Promise<M
 
 /** Status, dates, history and the editing controls: shared by both article kinds. */
 const ArticleMeta = ({ article }: { article: Article }) => (
-  <>
-    <AsideBlock label="Status">
-      <p className="mt-2 text-ink body-strong">
-        {article.publishedAt ? (
-          <>
-            Live since <LocalTime iso={article.publishedAt} options={ARTICLE_DATE_TIME} />
-          </>
-        ) : (
-          'Draft — not listed, not indexed'
-        )}
-      </p>
-    </AsideBlock>
-
-    <AsideBlock label="Created">
-      <p className="mt-2 text-ink-dim mono-data">
-        <LocalTime iso={article.createdAt} options={ARTICLE_DATE_TIME} />
-      </p>
-    </AsideBlock>
-
-    <AsideBlock label="Revisions">
-      <p className="mt-2">
-        <Link href={`/wiki/${article.slug}/history`} className="text-cyan hover:text-cyan">
-          Read the history
-        </Link>
-      </p>
-    </AsideBlock>
-
-    <AsideBlock label="Editing">
-      <div className="mt-2.5">
-        <ArticleActions slug={article.slug} authorId={article.author.id} published={!!article.publishedAt} />
+  <div className={twMerge(WIKI_CARD, 'flex flex-col gap-3 p-5')}>
+    <dl className="flex flex-col gap-3">
+      <div>
+        <dt className="text-ink-muted signal">Status</dt>
+        <dd className="mt-1 text-sm/5 text-ink">
+          {article.publishedAt ? (
+            <>
+              Live since <LocalTime iso={article.publishedAt} options={ARTICLE_DATE_TIME} />
+            </>
+          ) : (
+            'Draft — not listed, not indexed'
+          )}
+        </dd>
       </div>
-    </AsideBlock>
-  </>
+      <div>
+        <dt className="text-ink-muted signal">Created</dt>
+        <dd className="mt-1 text-ink-dim mono-data">
+          <LocalTime iso={article.createdAt} options={ARTICLE_DATE_TIME} />
+        </dd>
+      </div>
+    </dl>
+    <Link href={`/wiki/${article.slug}/history`} className="self-start signal-strong hover:text-ink">
+      Read the history →
+    </Link>
+    <ArticleActions slug={article.slug} authorId={article.author.id} published={!!article.publishedAt} />
+  </div>
 )
 
 /** Legacy Markdown article: one body, rendered as it always was. */
@@ -194,18 +188,16 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
   // URL (two indexed URLs split the ranking). Build the target from the body, not the relative Location.
   if (article.slug !== slug) permanentRedirect(`/wiki/${article.slug}`)
   const published = !!article.publishedAt
+  // An article's `links` carry its own children only: a child reads the rest of its hub from the hub.
+  const hub = article.links?.hub && !article.links.children.length ? await loadArticle(article.links.hub.slug).catch(() => null) : null
+  const links = article.links && hub?.links ? { ...article.links, children: hub.links.children } : article.links
 
   return (
     <>
-      <Header />
-      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-16">
+      <Header extra={<HeaderSearch />} />
+      <main className="flex min-h-dvh flex-col overflow-x-clip bg-space-000 pt-15">
         {/* `jsonLd` escapes `<`: the server doesn't, and a `</script>` in an FAQ answer would close the tag. */}
         {article.publishedAt && article.seo ? <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(article.seo.jsonLd)} /> : null}
-        <WikiBar
-          section="Articles"
-          placeholder="Search cards by name or part of one"
-          link={{ label: 'All articles', to: '/wiki' }}
-        />
 
         {/* The doc is the whole page: same JSON, same component as the editor preview. */}
         {article.doc ? (
@@ -213,23 +205,16 @@ const ArticleRoute = async ({ params }: ArticleRouteProps) => {
             doc={article.doc}
             slug={article.slug}
             html={await renderDocHtml(article.doc)}
-            links={article.links}
+            links={links}
             bodyId={WIKI_BODY_ID}
-            lead={
-              <>
-                {published ? <Bar article={article} social={social} /> : null}
-                <AdVideo id="ad-video" className="mb-8" />
-              </>
+            meta={
+              <ArticleByline user={article.author} updatedAt={article.updatedAt}>
+                {published ? <Bar article={article} social={social} /> : <StatusChip publishedAt={null} />}
+              </ArticleByline>
             }
+            lead={<AdVideo id="ad-video" className="mb-5" />}
             footer={published ? <Conversation article={article} social={social} /> : null}
           >
-            {/* The Markdown page has a byline for this; the block page shows it here. */}
-            <AsideBlock label="Updated">
-              <p className="mt-2 text-ink-dim body-sm">
-                <LocalTime iso={article.updatedAt} options={ARTICLE_DATE_TIME} /> by{' '}
-                {userName(article.updatedBy ?? article.author)}
-              </p>
-            </AsideBlock>
             <ArticleMeta article={article} />
             <AdBanner id="ad-aside" placement="aside" />
             <AdArticle targetId={WIKI_BODY_ID} />
