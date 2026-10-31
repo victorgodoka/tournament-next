@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { WIKI_CHIP, WIKI_CHIP_ON, WIKI_SCROLL_ROW, WikiHead } from '@omega/wiki'
-import { ArticleRow } from '@omega/wiki/article'
+import { ARTICLE_LIST, ArticleRow } from '@omega/wiki/article'
 import { buttonClasses } from '@ui/button'
 import { Icon } from '@ui/icon'
 import { listArticles, type ArticleQuery } from '@utils/articles'
@@ -128,7 +128,7 @@ export const ArticleList = ({ first, query, empty, num, heading, total, sortLabe
 
           {articles.length ? (
             <>
-              <ul className="grid gap-px border border-line bg-line">
+              <ul className={ARTICLE_LIST}>
                 {articles.map((article, i) => {
                   const ad = adAfter(i, articles.length)
                   return (
