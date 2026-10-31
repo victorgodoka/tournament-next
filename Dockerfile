@@ -8,7 +8,8 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# pnpm's fetch timeout caps a whole tarball, not idle time, and `next` is 33 MB: the default 60 s fails on a slow runner.
+RUN pnpm install --frozen-lockfile --fetch-timeout=600000
 
 # --- build ---
 FROM base AS builder
