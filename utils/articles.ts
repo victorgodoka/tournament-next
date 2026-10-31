@@ -5,6 +5,7 @@
  * Writes need a session and the right `Origin`, so they only run in the browser.
  */
 import { API_URL, type AuthUser, type Permission } from '@utils/auth'
+import { log } from '@utils/log'
 import type {
   Article,
   ArticleDraft,
@@ -101,7 +102,7 @@ export const getLatestArticles = async (limit = 3): Promise<ArticleSummary[]> =>
     const res = await fetch(`${API_URL}/wiki?limit=${limit}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(3_000) })
     return res.ok ? ((await res.json()) as ArticleIndex).articles : []
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /wiki', limit, err: error })
     return []
   }
 }
@@ -217,7 +218,7 @@ export const getSocial = async (slug: string, cookie?: string | null): Promise<A
     return await request<ArticleSocial>(socialPath(slug, '/social'), withCookie(cookie))
   } catch (error) {
     // 404 is a draft or a missing article, read alongside the article itself: not worth a log line.
-    if (!(error instanceof WikiApiError && error.status === 404)) console.error(error)
+    if (!(error instanceof WikiApiError && error.status === 404)) log('error', 'API_ERROR', { call: 'GET /wiki/:slug/social', slug, err: error })
     return null
   }
 }

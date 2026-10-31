@@ -1,9 +1,21 @@
+import type { Instrumentation } from 'next'
+import { log } from '@utils/log'
+
 /**
  * Server-side calls to the API give up after `API_TIMEOUT`. Node's fetch otherwise waits up to
  * 300 s on a stalled API, and every render parked on it stays in the heap: one bad spell of the
  * API held enough of them to run the container out of memory.
  */
 const API_TIMEOUT = 8_000
+
+/**
+ * Every uncaught error of a render, route handler or server action, with where it happened: Next
+ * alone prints the stack and nothing else. An `error.tsx` boundary catches the render, not this
+ * line. `digest` is what the error page shows, so a reader's report finds the line.
+ */
+export const onRequestError: Instrumentation.onRequestError = (error, request, context) => {
+  log('error', 'REQUEST_ERROR', { method: request.method, path: request.path, ...context, digest: (error as { digest?: string }).digest, err: error })
+}
 
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return

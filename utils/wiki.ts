@@ -5,6 +5,7 @@
  */
 import { cache } from 'react'
 import { API_URL } from './auth'
+import { log } from '@utils/log'
 
 export type CardKind = 'monster' | 'spell' | 'trap'
 
@@ -84,10 +85,11 @@ export const getCard = cache(async (id: string): Promise<WikiCard | null> => {
 export const getBanlists = cache(async (): Promise<Banlist[]> => {
   try {
     const res = await fetch(`${API_URL}/banlists`, DAILY)
-    if (!res.ok) throw new Error(`GET /banlists failed with ${res.status}`)
-    return res.json()
+    if (res.ok) return res.json()
+    log('error', 'API_ERROR', { call: 'GET /banlists', status: res.status })
+    return []
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /banlists', err: error })
     return []
   }
 })

@@ -4,6 +4,7 @@
  */
 import type { Size } from '@omega/infographic/infographic'
 import { API_URL } from '@utils/auth'
+import { log } from '@utils/log'
 import type { RankedLadderId, Tier } from '@utils/types'
 
 /**
@@ -239,7 +240,7 @@ export const getStatistics = async ({ ladder, season, ranking, archetypes }: { l
     const res = await fetch(`${API_URL}/statistics?${params}`, archetypes ? { cache: 'no-store' } : { next: { revalidate: 300 } })
     return res.ok ? { ok: true, data: (await res.json()) as Statistics } : { ok: false, status: res.status }
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /statistics', query: params.toString(), err: error })
     return { ok: false, status: 0 }
   }
 }
@@ -292,7 +293,7 @@ export const getPlayerStatistics = async (
     })
     return res.ok ? { ok: true, data: await res.json() } : { ok: false, status: res.status }
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /statistics/players/:id', id, query: params.toString(), err: error })
     return { ok: false, status: 0 }
   }
 }
@@ -407,7 +408,7 @@ export const getOmegaActivity = async (): Promise<OmegaActivity | null> => {
     const res = await fetch(`${API_URL}/statistics/omega`, { next: { revalidate: 600 } })
     return res.ok ? ((await res.json()) as OmegaActivity) : null
   } catch (error) {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /statistics/omega', err: error })
     return null
   }
 }

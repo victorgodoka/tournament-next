@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { formatDuration } from '@omega/tournament/labels'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { log } from '@utils/log'
 import { pageMetadata } from '@utils/metadata'
 import { getTournament, listTournaments } from '@utils/tournaments'
 import type { TournamentPage, TournamentSummary } from '@utils/types'
@@ -17,7 +18,7 @@ const EMPTY: TournamentPage = { tournaments: [], nextCursor: null }
 /** The page still reads with the API down; the empty state says there is nothing to show. */
 const safe = (page: Promise<TournamentPage>) =>
   page.catch((error) => {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /tournaments', page: '/tournaments', err: error })
     return EMPTY
   })
 
@@ -25,7 +26,7 @@ const safe = (page: Promise<TournamentPage>) =>
 const snapshot = async (tournament: TournamentSummary | undefined): Promise<LiveSnapshot | null> => {
   if (!tournament) return null
   const detail = await getTournament(String(tournament.id)).catch((error) => {
-    console.error(error)
+    log('error', 'API_ERROR', { call: 'GET /tournaments/:id', id: tournament.id, page: '/tournaments', err: error })
     return null
   })
   const round = detail?.rounds.at(-1)
