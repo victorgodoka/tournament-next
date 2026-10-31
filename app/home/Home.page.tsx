@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
 import { CardArt } from "@omega/card-art";
-import { ArticleCard } from "@omega/wiki/article";
+import { ARTICLE_LIST, ArticleRow } from "@omega/wiki/article";
 import { Button } from "@ui/button";
 import { Chip } from "@ui/chip";
 import { Eyebrow } from "@ui/eyebrow";
@@ -552,8 +552,8 @@ const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
         <Icon name="right" />
       </Button>
     </div>
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+    <ul className={twMerge(ARTICLE_LIST, "lg:grid-cols-3")}>
+      {articles.map((article) => <ArticleRow key={article.id} article={article} />)}
     </ul>
   </Band>
 )

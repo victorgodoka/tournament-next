@@ -41,11 +41,13 @@ describe('ArticleCard', () => {
 describe('ArticleRow', () => {
   afterEach(cleanup)
 
-  it('names a listed article\'s topic and counts its views', () => {
-    const { container } = render(<ArticleRow article={{ ...article, slug: 'ygo-omega-faq', views: 1 }} />)
+  it('names a listed article\'s topic and counts its views, likes and comments', () => {
+    render(<ArticleRow article={{ ...article, slug: 'ygo-omega-faq', views: 1, likes: 2, commentCount: 3 }} />)
 
     expect(screen.getByText('Support')).toBeTruthy()
-    expect(container.textContent).toContain('1 view')
+    expect(screen.getByText('1').textContent).toBe('1views')
+    expect(screen.getByText('2').textContent).toBe('2likes')
+    expect(screen.getByText('3').textContent).toBe('3comments')
   })
 
   it('shows a draft as one', () => {

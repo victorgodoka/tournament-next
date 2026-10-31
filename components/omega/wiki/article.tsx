@@ -129,40 +129,46 @@ export const TopicIcon = ({ topic, size = 20 }: { topic: WikiTopic; size?: numbe
   </svg>
 )
 
+/** The hairline grid the index rows sit in. */
+export const ARTICLE_LIST = 'grid gap-px border border-line bg-line'
+
 /** Index row: cover or topic glyph, topic, title, summary, then who and when. A phone keeps the title and the stamp. */
 export const ArticleRow = ({ article }: { article: ArticleSummary }) => {
   const topic = topicOf(article.slug)
-  const views = article.views ?? 0
   return (
     <li>
       <Link
         href={`/wiki/${article.slug}`}
-        className="grid h-full grid-cols-[72px_minmax(0,1fr)] items-start gap-3.5 bg-surface-100 p-3.5 text-ink-dim transition-colors duration-120 ease-out hover:bg-surface-200 hover:text-ink-dim motion-reduce:transition-none sm:grid-cols-[136px_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-4"
+        className="grid h-full grid-cols-[88px_minmax(0,1fr)] bg-surface-100 text-ink-dim transition-colors duration-120 ease-out hover:bg-surface-200 hover:text-ink-dim motion-reduce:transition-none sm:grid-cols-[176px_minmax(0,1fr)]"
       >
-        <span className="dots relative flex size-18 items-center justify-center overflow-hidden bg-surface-200 text-line-mid sm:h-19 sm:w-34">
+        {/* Flush to the row's corner, the row's whole height, cropped never stretched. */}
+        <span className="dots relative flex min-h-22 items-center justify-center overflow-hidden bg-surface-200 text-line-mid">
           {article.cover ? (
-            <Image {...imageSource(article.cover, 320)} alt="" fill sizes="(min-width: 640px) 136px, 72px" className="object-cover" />
+            <Image {...imageSource(article.cover, 400)} alt="" fill sizes="(min-width: 640px) 176px, 88px" className="object-cover" />
           ) : topic ? (
             <TopicIcon topic={topic} size={28} />
           ) : null}
         </span>
-        <span className="flex min-w-0 flex-col gap-1">
+        <span className="flex min-w-0 flex-col justify-center gap-1 p-3.5 sm:p-4">
           <span className="flex items-center justify-between gap-3">
             {topic ? <span className="text-azure-lift signal-sm sm:text-[11px] sm:tracking-[0.14em]">{WIKI_TOPICS[topic].label}</span> : <span />}
             {article.publishedAt ? null : <StatusChip publishedAt={null} />}
           </span>
           <span className="text-[15px]/[21px] font-bold text-ink sm:text-base/[22px]">{article.title}</span>
           {article.summary ? <span className="line-clamp-2 text-[13px]/5 max-sm:hidden">{article.summary}</span> : null}
-          <span className="mt-0 flex items-center gap-2 text-ink-muted caption sm:mt-1">
+          <span className="mt-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-muted caption sm:mt-1">
             <Byline user={article.author} size={18} className="max-sm:hidden" />
             <span aria-hidden className="max-sm:hidden">
               ·
             </span>
             <LocalDay iso={article.publishedAt ?? article.updatedAt} />
+            {/* Absent until the API deploy that adds them: hide rather than show zeros. */}
             {article.views === undefined ? null : (
               <>
                 <span aria-hidden>·</span>
-                {COMPACT.format(views)} {views === 1 ? 'view' : 'views'}
+                <CardStat icon="eye" count={article.views} label="views" />
+                <CardStat icon="heartOutline" count={article.likes ?? 0} label="likes" />
+                <CardStat icon="comment" count={article.commentCount ?? 0} label="comments" />
               </>
             )}
           </span>
