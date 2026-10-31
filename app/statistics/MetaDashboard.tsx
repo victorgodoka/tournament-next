@@ -23,6 +23,7 @@ import { DashboardHeader, LISTED, sectionId, sectionNum, type Listed, type Secti
 import { DeckComparator } from './dashboard/DeckComparator'
 import { DeckRanking } from './dashboard/DeckRanking'
 import { MatchupMatrix, WhatBeatsIt } from './dashboard/MatchupMatrix'
+import { BusiestHours, PilotConcentration, RatingMeta, TierHistory, VsPrevious, type PreviousSeason } from './dashboard/MetaExtras'
 import { MetaShape, SeasonGlance } from './dashboard/MetaOverview'
 import { MetaTrendsCard } from './dashboard/MetaTrendsCard'
 import { SampleDecks } from './dashboard/SampleDecks'
@@ -35,6 +36,7 @@ type MetaDashboardProps = {
   omega: OmegaActivityData | null
   /** The open season's name, for the season select. */
   openLabel: string | null
+  previous: PreviousSeason | null
 }
 
 const Block = ({ id, end, children }: { id: Section; end?: React.ReactNode; children: React.ReactNode }) => {
@@ -47,7 +49,7 @@ const Block = ({ id, end, children }: { id: Section; end?: React.ReactNode; chil
   )
 }
 
-export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }: MetaDashboardProps) => {
+export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel, previous }: MetaDashboardProps) => {
   const t = useTranslations('Statistics')
   const locale = useLocale()
   const router = useRouter()
@@ -128,7 +130,11 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
       {/* Keyed by season: pickers and sorts start over with the new data. */}
       <div key={seasonData.code} className="mt-10 flex flex-col gap-14">
         <Block id="season"><SeasonGlance data={data} /></Block>
-        <Block id="meta-shape"><MetaShape data={data} scope={scope} /></Block>
+        <Block id="meta-shape">
+          <MetaShape data={data} scope={scope} />
+          <RatingMeta data={data} />
+          <PilotConcentration archetypes={archetypes} scope={scope} />
+        </Block>
         <Block id="deck-ranking" end={infographic('deck-ranking')}><DeckRanking data={data} scope={scope} /></Block>
 
         <AdBanner id="ad-mid" placement="content" />
@@ -142,13 +148,20 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel }
         </Block>
         <Block id="trends" end={infographic('trends')}>
           <MetaTrendsCard archetypes={archetypes} trends={trends} seasonStartsAt={seasonData.startsAt} />
+          <TierHistory trends={trends} seasonStartsAt={seasonData.startsAt} />
+          {previous ? <VsPrevious archetypes={archetypes} previous={previous} /> : null}
         </Block>
 
         <AdBanner id="ad-mid-2" placement="content" />
 
         <Block id="sample-decks"><SampleDecks decks={data.sampleDecks ?? []} closed={!!seasonData.endsAt} /></Block>
         <Block id="cards" end={infographic('cards')}><CardsSection data={data} scope={scope} /></Block>
-        {omega ? <Block id="activity"><OmegaActivity data={omega} ladder={ladder} /></Block> : null}
+        {omega ? (
+          <Block id="activity">
+            <OmegaActivity data={omega} ladder={ladder} />
+            <BusiestHours hours={omega.hours} />
+          </Block>
+        ) : null}
 
         <AdBanner id="ad-bottom" placement="content" />
       </div>

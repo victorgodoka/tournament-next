@@ -1,5 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { deckHref, getArchetypeIndex, getDeepDive, growthDays, matchupStatus, requestDeepDive } from '@utils/statistics'
+import { deckHref, getArchetypeIndex, getDeepDive, growthDays, localHours, matchupStatus, requestDeepDive } from '@utils/statistics'
+
+describe('localHours', () => {
+  it('moves UTC counts to the viewer clock, wrapping the day', () => {
+    const utc = Array.from({ length: 24 }, (_, hour) => hour)
+    // UTC−3: 00:00 local is 03:00 UTC, and 21:00 local is 00:00 UTC.
+    expect(localHours(utc, 3)[0]).toBe(3)
+    expect(localHours(utc, 3)[21]).toBe(0)
+    // UTC+9: 00:00 local is 15:00 UTC the day before.
+    expect(localHours(utc, -9)[0]).toBe(15)
+  })
+})
 
 afterEach(() => vi.unstubAllGlobals())
 

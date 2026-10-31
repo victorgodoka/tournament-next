@@ -62,6 +62,7 @@ const DeckRoute = async (props: DeckRouteProps) => {
         names={Object.fromEntries(data.archetypes.map((a) => [archKey(a.archetype), a.name]))}
         trend={mode === 'main' ? (data.trends.find((d) => archKey(d.archetype) === key) ?? null) : null}
         sampleDeck={data.sampleDecks?.find((d) => archKey(d.archetype) === key) ?? null}
+        ratingTiers={data.ratingTiers ?? []}
       />
     </StatsShell>
   )

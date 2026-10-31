@@ -3,6 +3,7 @@
 /** One card's page: why it wins, where it's played and what answers it. A card outside the list is calculated on request. */
 
 import { useCallback } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
@@ -10,8 +11,8 @@ import { Breadcrumbs } from '@ui/breadcrumbs'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { StatGrid } from '@ui/stat-grid'
-import { getCard, requestCard, statisticsHref, type CardState, type MostUsedCard, type Statistics, type StatisticsScope } from '@utils/statistics'
-import { Art, Bar, cardName, NOTE, num, pct } from './DeepDive'
+import { cardHref, deckHref, getCard, requestCard, statisticsHref, type CardState, type MostUsedCard, type Statistics, type StatisticsScope } from '@utils/statistics'
+import { Art, Bar, cardName, fixed, nameOf, NOTE, num, NUM, pct, ROW } from './DeepDive'
 import { JobPanel, useStatsJob } from './StatsJob'
 
 type Ready = Extract<CardState, { status: 'ready' }>
@@ -50,7 +51,9 @@ const RESPONDERS = [
 ] as const
 const COLORS = ['series-1', 'series-3', 'series-2', 'series-4', 'series-5', 'series-6', 'win', 'line-strong'] as const
 
-const CardReport = ({ card, totalGames }: { card: MostUsedCard; totalGames: number }) => {
+const DECK_COLS = 'minmax(200px, 2fr) repeat(4, minmax(80px, 0.8fr))'
+
+const CardReport = ({ card, totalGames, scope }: { card: MostUsedCard; totalGames: number; scope: StatisticsScope }) => {
   const t = useTranslations('Statistics.cardPage')
   const { decklists, usage, winRate, responded } = card.detail
   const delta = card.winRateWith != null && card.winRateWithout != null ? (card.winRateWith - card.winRateWithout) * 100 : null
@@ -114,6 +117,20 @@ const CardReport = ({ card, totalGames }: { card: MostUsedCard; totalGames: numb
                   </li>
                 ))}
               </ul>
+              {responded.exact?.length ? (
+                <div className="flex flex-col gap-2 border-t border-line pt-4">
+                  <span className="text-ink-muted signal">{t('exact')}</span>
+                  <ol className="grid grid-cols-1 gap-x-6 gap-y-1.5 min-[720px]:grid-cols-2">
+                    {responded.exact.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2 text-[13px] leading-5">
+                        <Link href={cardHref(c.id, scope)} className="truncate text-ink hover:text-cyan">{cardName(c)}</Link>
+                        <span className="ml-auto font-mono text-ink-dim tabular-nums">{pct(c.share)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className={NOTE}>{t('exactNote')}</p>
+                </div>
+              ) : null}
             </div>
           </Panel>
         )}
@@ -123,6 +140,24 @@ const CardReport = ({ card, totalGames }: { card: MostUsedCard; totalGames: numb
         <section className="flex flex-col gap-4">
           <SectionHead ruled num="03">{t('whoPlays')}</SectionHead>
           <p className="text-ink-dim body">{card.topArchetypes.join(' · ')}</p>
+          {card.byArchetype?.length ? (
+            <div className="overflow-x-auto">
+              <div role="table" aria-label={t('inEachDeck')} className="min-w-[620px] border border-line">
+                <div role="row" className="grid min-h-9 items-center gap-x-4 border-b border-line-mid bg-surface-200 px-4 text-ink-muted signal-sm" style={{ gridTemplateColumns: DECK_COLS }}>
+                  <span>{t('cols.deck')}</span><span className={NUM}>{t('cols.inLists')}</span><span className={NUM}>{t('cols.copies')}</span><span className={NUM}>{t('cols.usage')}</span><span className={NUM}>{t('cols.wrInDeck')}</span>
+                </div>
+                {card.byArchetype.map((d) => (
+                  <div key={d.archetype.join('-')} role="row" className={ROW} style={{ gridTemplateColumns: DECK_COLS }}>
+                    <span role="cell" className="truncate font-bold text-ink"><Link href={deckHref(d.archetype, scope)} className="hover:text-cyan">{nameOf(d)}</Link></span>
+                    <span role="cell" className={NUM}>{pct(d.inclusion)}</span>
+                    <span role="cell" className={NUM}>{fixed(d.copies, 2)}</span>
+                    <span role="cell" className={NUM}>{pct(d.usage)}</span>
+                    <span role="cell" className={NUM}>{pct(d.winRateInDeck)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -131,11 +166,11 @@ const CardReport = ({ card, totalGames }: { card: MostUsedCard; totalGames: numb
   )
 }
 
-const CardJob = ({ code, id, name, back, totalGames }: { code: string; id: number; name: string; back: string; totalGames: number }) => {
+const CardJob = ({ code, id, name, back, totalGames, scope }: { code: string; id: number; name: string; back: string; totalGames: number; scope: StatisticsScope }) => {
   const read = useCallback((signal: AbortSignal) => getCard(code, id, signal), [code, id])
   const request = useCallback(() => requestCard(code, id), [code, id])
   const { state, failed, retry, calculate } = useStatsJob<Ready>(read, request)
-  if (state?.status === 'ready' && failed === null) return <CardReport card={state.card} totalGames={totalGames} />
+  if (state?.status === 'ready' && failed === null) return <CardReport card={state.card} totalGames={totalGames} scope={scope} />
   return <JobPanel kind="card" name={name} state={state?.status === 'ready' ? null : state} failed={failed} onRetry={retry} onCalculate={calculate} back={back} />
 }
 
@@ -157,7 +192,7 @@ export const CardPage = ({ id, scope, listed, season, totalGames }: { id: number
           </div>
         </div>
       </Panel>
-      {listed ? <CardReport card={listed} totalGames={totalGames} /> : <CardJob key={`${season.code}:${id}`} code={season.code} id={id} name={title} back={back} totalGames={totalGames} />}
+      {listed ? <CardReport card={listed} totalGames={totalGames} scope={scope} /> : <CardJob key={`${season.code}:${id}`} code={season.code} id={id} name={title} back={back} totalGames={totalGames} scope={scope} />}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { pageMetadata } from '@utils/metadata'
 import { getPastSeasons } from '@utils/ranked'
-import { getOmegaActivity, getStatistics } from '@utils/statistics'
+import { archKey, getOmegaActivity, getStatistics } from '@utils/statistics'
 import { MetaDashboard } from './MetaDashboard'
 import { StatsShell } from './StatsShell'
 
@@ -24,12 +24,18 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
     // The season select names the open season; on a past one that takes the open report too (cached 5 minutes).
     season ? getStatistics({ ladder }) : null,
   ])
+  // The season before the one on screen: past seasons come newest first, and the open one sits above them.
+  const before = past[season ? past.findIndex((s) => s.code === season) + 1 : 0]
+  const earlier = before ? await getStatistics({ ladder, season: before.code }) : null
+  const previous = earlier?.ok
+    ? { label: before!.label, decks: Object.fromEntries(earlier.data.archetypes.map((a) => [archKey(a.archetype), { share: a.metaShare, winRate: a.winRate }])) }
+    : null
   const openReport = season ? open : result
   const openLabel = openReport?.ok ? openReport.data.season.label : null
 
   return (
     <StatsShell>
-      <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} />
+      <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} previous={previous} />
     </StatsShell>
   )
 }

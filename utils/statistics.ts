@@ -26,6 +26,8 @@ export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
 export const matchupStatus = (ci: WilsonInterval | undefined): MatchupStatus => (!ci ? 'neutral' : ci.lower > 0.5 ? 'favorable' : ci.upper < 0.5 ? 'unfavorable' : 'neutral')
 /** The window `growth` covers on the server: half the synced days, at most 7. */
 export const growthDays = (syncedDays: number) => Math.min(7, Math.max(1, Math.floor(syncedDays / 2)))
+/** Hourly counts by UTC hour, moved to a clock `offset` hours behind UTC (`getTimezoneOffset() / 60`). */
+export const localHours = (hours: readonly number[], offset: number) => hours.map((_, hour) => hours[Math.floor(((hour + offset) % 24 + 24) % 24)] ?? 0)
 export type RankingMode = 'mostPlayed' | 'highestWinRate' | 'rising' | 'sleeper' | 'consistent'
 export const RANKING_MODES: readonly RankingMode[] = ['mostPlayed', 'highestWinRate', 'rising', 'sleeper', 'consistent']
 
@@ -91,6 +93,9 @@ export type AgainstCard = { id: number; name: string | null; group?: number | nu
 /** `cards`: every card of the group seen in the archetype. Absent from a server older than the field. */
 export type CardGroup = { id: number; name: string; inclusion: number; winRate: number | null; cards?: StatCard[] }
 
+type Pace = { averageTurns: number | null; actionsPerTurn: number | null; turn1SpecialSummons: number | null; averageLongestChain: number | null }
+export type DeckListCard = { id: number; name: string | null; main: number; copies: number | null; side: number; sideCopies: number | null }
+
 export type StatArchetype = {
   archetype: ArchetypeKey
   name: string | null
@@ -110,11 +115,20 @@ export type StatArchetype = {
   ci?: WilsonInterval
   mirrorShare: number
   players: number
+  /** Share of its deck-games from its 5 busiest duelists. The fields down to `deckList` are absent from a season frozen before them. */
+  pilotShare?: number | null
+  /** Its share inside each `ratingTiers` band, same order. */
+  ratingShares?: (number | null)[] | null
+  unfinishedRate?: number | null
   turnOrder: TurnSplit
   sideboarding: { game1: Side; postSide: Side }
+  turnByGame?: { first: { game1: Side; postSide: Side }; second: { game1: Side; postSide: Side } }
+  paceByResult?: { win: Pace; loss: Pace }
+  /** Every card of the registered lists past 10%, tracked or not. `main` and `side`: share of `lists`. */
+  deckList?: { lists: number; cards: DeckListCard[] } | null
   byGame?: { g1: Side; g2: Side; g3: Side }
   matchupOthers?: MatchupOthers
-  pace: { averageTurns: number | null; actionsPerTurn: number | null; turn1SpecialSummons: number | null; averageLongestChain: number | null }
+  pace: Pace
   /** Its own (archetype / Series) most included card: the deck's art. Absent from an older server. */
   face?: { id: number; name: string | null }
   cards: StatCard[]
@@ -141,6 +155,9 @@ export type Matchup = {
   ci?: WilsonInterval
   turnOrder?: TurnSplit
   sideboarding?: { game1: Side; postSide: Side }
+  averageTurns?: number | null
+  /** The hand traps the opponent used most in the matchup; `rate`: of its deck-games. */
+  handTraps?: { id: number; name: string | null; rate: number | null }[]
 }
 
 /** Rates are 0–1; `null` is "not enough data" (days swept before the counters, or no denominator). */
@@ -156,6 +173,8 @@ export type MostUsedCard = {
   winRateWith?: number | null
   winRateWithout?: number | null
   topArchetypes?: string[]
+  /** The decks with the most games running it. */
+  byArchetype?: { archetype: ArchetypeKey; name: string | null; inclusion: number; copies: number | null; usage: number | null; winRateInDeck: number | null }[]
   detail: {
     decklists: { mainExtra: number | null; side: number | null }
     usage: { game1: number | null; postSide: number | null }
@@ -171,6 +190,8 @@ export type MostUsedCard = {
       mulcharmy: number | null
       solemn: number | null
       others: number | null
+      /** The cards that answered it most; `share`: of all responses. */
+      exact?: { id: number; name: string | null; share: number | null }[]
     }
   }
 }
@@ -181,6 +202,8 @@ export type Statistics = {
   minSamples: number
   totals: { games: number; matches: number; players: number; archetypes: number }
   tierDistribution?: TierDistribution
+  /** Lowest first; a band of few duelists joins the one below (`plus`). Their rating now, not at game time. */
+  ratingTiers?: { tier: string; plus: boolean; players: number; games: number }[]
   rankings?: RankingsSummary
   turnOrder: { all: TurnSplit; game1: TurnSplit; postSide: TurnSplit }
   archetypes: StatArchetype[]
@@ -191,7 +214,8 @@ export type Statistics = {
   sampleDecks?: SampleDeck[]
   metaEvents?: MetaEvent[]
   /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
-  trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][] }[]
+  /** `tiers`: one per point, the tier over the 7 days ending that day. */
+  trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][]; tiers?: (StatArchetype['tier'])[] }[]
   /**
    * Section 03 rows, by games. `general` `[A]`: pure A plus every mix A leads (`generalCount` before the cut);
    * `pure` `[A]`: a listed General key's pure decks, when the build has them; `combined` `[lead, second]`.
@@ -372,6 +396,8 @@ export type OmegaActivity = {
   cards: Record<'logins' | 'weekLogins' | 'duels' | 'weekDuels', OmegaCard>
   daily: { day: string; logins: number | null; duels: number; players: number }[]
   totals: Record<OmegaRange, TierCell>
+  /** Duels started in each UTC hour, average per day. Absent from an older server. */
+  hours?: number[]
   ladders: Record<RankedLadderId, OmegaLadder>
 }
 
