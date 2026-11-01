@@ -29,8 +29,8 @@ export type CardMenuProps = {
   onClose(): void
   /** The card's data, when it loaded: the head of the menu, and what it can be played as. An unknown card is offered as a monster. */
   data?: CardData
-  /** Brings the card into play: the board then asks for the zone. */
-  onPlace(card: number, how: Placing, stance?: Stance): void
+  /** Brings the card into play: the board then asks for the zone, and with `targets` for what a Spell or Trap activates on. */
+  onPlace(card: number, how: Placing, stance?: Stance, targets?: boolean): void
 }
 
 /** One item: it opens a submenu (`sub`), runs a callback, or performs actions; the last two close the menu. */
@@ -191,11 +191,20 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
       { key: 'activateTargets', label: t('menu.activateTargets'), run: () => onTargets(card) },
     ],
   }
+  /** A Spell or Trap played from off the field: on the field first, then activated at once or with its targets. */
+  const play: Entry = {
+    key: 'play',
+    label: t('menu.play'),
+    sub: [
+      { key: 'playNow', label: t('menu.activateNow'), run: () => onPlace(card, 'activate') },
+      { key: 'playTargets', label: t('menu.activateTargets'), run: () => onPlace(card, 'activate', undefined, true) },
+    ],
+  }
   const plays: Entry[] =
-    inHand ? (monsterCard ? [place('normal', t('menu.normal')), special, activate, place('set', t('menu.set'))] : [place('activate', t('menu.play')), place('set', t('menu.set'))])
+    inHand ? (monsterCard ? [place('normal', t('menu.normal')), special, activate, place('set', t('menu.set'))] : [play, place('set', t('menu.set'))])
     : !inPile ? [activate]
     : monsterCard ? [special, activate]
-    : [place('activate', t('menu.play')), place('set', t('menu.set')), activate] // the effect it has where it lies, as in the GY
+    : [play, place('set', t('menu.set')), activate] // the effect it has where it lies, as in the GY
 
   /** The plain counter first, then the kinds on offer and any the card already carries. */
   const every = [PLAIN, ...new Set([...kinds, ...Object.keys(state.counters)].filter((kind) => kind !== PLAIN))]

@@ -32,6 +32,8 @@ export type PilePanelProps = {
   onHover?(id: number | null): void
   /** A double-click on an Xyz material: it leaves for the GY. */
   onDetach(id: number): void
+  /** A double-click on any other card here. */
+  onActivate(id: number): void
   drag: Drag
   onClose(): void
 }
@@ -51,7 +53,7 @@ const SEARCH_FROM = 8
  * touch tap opens the menu instead of dragging, which would fight the list's scroll (in target mode it picks the card);
  * a mouse or pen drags a card out onto the board.
  */
-export const PilePanel = ({ board, zone, cards, activation, picking, index, onCard, onMenu, onHover, onDetach, drag, onClose }: PilePanelProps) => {
+export const PilePanel = ({ board, zone, cards, activation, picking, index, onCard, onMenu, onHover, onDetach, onActivate, drag, onClose }: PilePanelProps) => {
   const t = useTranslations('SimulatorNew')
   const touch = useRef(false)
   const stack = isMonsterSlot(zone)
@@ -129,7 +131,7 @@ export const PilePanel = ({ board, zone, cards, activation, picking, index, onCa
                       move.onPointerDown(e)
                     }}
                     onClick={(e) => (touch.current && e.detail > 0 && !picking ? onMenu(id, e) : onCard(id, e))}
-                    onDoubleClick={stack ? () => onDetach(id) : undefined}
+                    onDoubleClick={() => (stack ? onDetach(id) : onActivate(id))}
                     onContextMenu={(e) => onMenu(id, e)}
                   />
                   {card.face === 'down' ? (

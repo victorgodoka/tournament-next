@@ -702,7 +702,7 @@ describe('Simulator pile panel', () => {
     expect(materials.map((el) => el.dataset.card)).toEqual([under])
   })
 
-  it('a double-click on a material sends it to the GY; on any other pile it does nothing', async () => {
+  it('a double-click on a material sends it to the GY; on a card of any other pile it activates it there', async () => {
     await open(DECK)
     await click('toolbar.newHand')
     await play('zones.m0')
@@ -712,8 +712,7 @@ describe('Simulator pile panel', () => {
     expect(within(zone('gy')).getByText('1')).toBeTruthy()
     expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
     await act(async () => void fireEvent.doubleClick(within(await openPile('gy')).getAllByRole('button')[0]!))
-    expect(within(zone('gy')).getByText('1')).toBeTruthy()
-    expect(steps().at(-1)).toBe('history.move')
+    expect(steps().at(-1)).toBe('history.activate')
   })
 })
 
@@ -907,7 +906,13 @@ describe('Simulator gestures', () => {
     await play('zones.m0')
     // The strip lets the pointer through: what lies under it is the board, which no zone covers.
     vi.spyOn(zone('hand'), 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100))
-    await drag(cardsIn('m0')[0]!, document.body)
+    under(document.body)
+    const card = cardsIn('m0')[0]!
+    await ptr(card, 'pointerDown', 0, 0)
+    await ptr(card, 'pointerMove', 50, 50)
+    expect(zone('hand').hasAttribute('data-over')).toBe(true) // lit up while the card is over it
+    await ptr(card, 'pointerUp', 50, 50)
+    expect(zone('hand').hasAttribute('data-over')).toBe(false)
     expect(hand()).toHaveLength(5)
     expect(cardsIn('m0')).toHaveLength(0)
   })
@@ -1409,10 +1414,41 @@ describe('Simulator bringing a card into play', () => {
       await rightClick(hand()[0]!)
       expect(names()).toEqual(['menu.play', 'menu.set', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck'])
       await choose('menu.play')
+      expect(names()).toEqual(['menu.activateNow', 'menu.activateTargets'])
+      await choose('menu.activateNow')
       expect(picks()).toEqual(['zones.s0', 'zones.s1', 'zones.s2', 'zones.s3', 'zones.s4'])
       await click('zones.s0')
       expect(cardsIn('s0')).toHaveLength(1)
       expect(cardsIn('s0')[0]!.getAttribute('data-active')).not.toBeNull()
+    })
+
+    it('activating with targets lands it first, then picks them, and the activation points at them', async () => {
+      await start()
+      await rightClick(hand()[0]!)
+      await choose('menu.set')
+      await click('zones.s1')
+      const field = cardsIn('s1')[0]!
+      await rightClick(hand()[0]!)
+      await choose('menu.play')
+      await choose('menu.activateTargets')
+      await click('zones.s0')
+      const source = cardsIn('s0')[0]!
+      const before = steps().length // the card has landed; the activation waits for its targets
+      await mouseClick(field)
+      await click('targets.confirm')
+      expect(steps()).toHaveLength(before + 1)
+      expect(source.getAttribute('data-active')).not.toBeNull()
+      expect(field.getAttribute('data-targeted')).not.toBeNull()
+    })
+
+    it('a Spell from a pile offers Activate and Set besides the effect it has there', async () => {
+      await start()
+      await discard()
+      await rightClick(within(await openPile('gy')).getAllByRole('button')[0]!)
+      expect(names().slice(0, 3)).toEqual(['menu.play', 'menu.set', 'menu.activate'])
+      await choose('menu.play')
+      await choose('menu.activateNow')
+      expect(picks()).toHaveLength(5)
     })
 
     it('a double-click asks for the zone too, and never activates it in the hand', async () => {

@@ -157,7 +157,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** A card being brought into play, and where it can go: the board asks for the zone. Menus and drag are off until it answers. */
-  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions> } | null>(null)
+  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions>; targets: boolean } | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
   const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
@@ -387,9 +387,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return !data || data.kind === 'monster' ? 'monster' : data.humanReadableCardType === 'Field Spell' ? 'fieldSpell' : 'spell'
   }
   /** Asks for the zone of a card coming into play. With none free there is nothing to ask. */
-  const place = (card: number, how: Placing, stance?: Stance) => {
+  const place = (card: number, how: Placing, stance?: Stance, targets = false) => {
     const options = placeOptions(board, card, how, placeKind(card), stance)
-    if (options.length) setPlacing({ card, options })
+    if (options.length) setPlacing({ card, options, targets })
   }
   /** A double-click: a Spell or Trap in the hand activates on the field, as its menu does; anything else activates where it is. */
   const activateCard = (id: number) => {
@@ -398,7 +398,9 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   }
   const placeAt = (zone: ZoneId) => {
     const option = placing?.options.find((one) => one.zone === zone)
-    if (option) perform(option.actions)
+    // With targets to pick, the card lands now and its activation waits for them.
+    if (option) perform(placing?.targets ? option.actions.slice(0, 1) : option.actions)
+    if (option && placing?.targets) setTargeting({ source: placing.card, targets: [] })
     setPlacing(null)
   }
   const confirmTargets = () => {
@@ -672,6 +674,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onMenu={onMenu}
           onHover={setHovered}
           onDetach={(id) => dragOn && perform([{ t: 'move', card: id, to: 'gy' }])}
+          onActivate={(id) => dragOn && activateCard(id)}
           drag={drag}
           onClose={() => togglePile(zone)}
         />

@@ -546,6 +546,12 @@
   margin: 8px auto 0;
 }
 
+/* The hand has no plate to light up: a card coming over it raises a glow from the bottom edge. */
+.sim-hand[data-over] {
+  background: linear-gradient(to top, color-mix(in srgb, var(--color-cyan) 45%, transparent), transparent);
+  box-shadow: inset 0 calc(var(--stroke) * -1) 0 var(--color-cyan);
+}
+
 .sim-hand-slot {
   flex: 1;
   min-width: 0;
