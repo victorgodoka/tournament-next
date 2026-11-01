@@ -12,7 +12,7 @@ type CopyButtonProps = {
   label: string
   icon?: IconName
   variant?: 'secondary' | 'ghost'
-  size?: 'md' | 'sm'
+  size?: 'md' | 'sm' | 'mono' | 'mono-md'
   className?: string
 }
 

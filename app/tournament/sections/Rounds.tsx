@@ -2,221 +2,230 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { LocalTime } from '@omega/profile/local-time'
-import { TIME_ONLY, minutesBetween } from '@omega/tournament/labels'
+import { TIME_ONLY } from '@omega/tournament/labels'
 import { playerName } from '@omega/tournament/player'
 import { Avatar } from '@ui/avatar'
 import { Chip } from '@ui/chip/chip.component'
-import { ModeTabs } from '@ui/mode-tabs'
-import { Panel } from '@ui/panel'
-import { ResultPill, type Result } from '@ui/result'
-import type { Standing, TournamentMatch, TournamentPlayer, TournamentRound } from '@utils/types'
+import { RailHead } from '@ui/rail-head/rail-head.component'
+import type { Standing, TournamentMatch, TournamentPlayer, TournamentRound, TournamentSummary } from '@utils/types'
+import { META, Pill, type Roster, type RoundResult, rosterOf } from '../helpers'
 
-/** Winner, score and opponent on a phone; room, games and end time join from `lg`. */
-const COLS =
-  'grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-4 lg:grid-cols-[64px_minmax(0,1fr)_96px_minmax(0,1fr)_132px_120px] lg:px-5'
-
-const META = 'signal-sm text-ink-muted'
-
-type Side = 'player1' | 'player2'
-type Roster = Map<string, TournamentPlayer>
 type T = ReturnType<typeof useTranslations<'Tournaments'>>
+type Side = 'player1' | 'player2'
+
+/** Past this many entrants the cross table stops reading as a table. */
+const CROSS_MAX = 16
+const CARD = 'cut notch [--cut:var(--cut-md)]'
+const TH = 'border-r border-b border-line bg-surface-200 px-2.5 py-2 text-center font-normal whitespace-nowrap text-ink-muted signal-sm'
+const TD = 'border-r border-b border-line px-2.5 py-2 text-center'
 
 const other = (side: Side): Side => (side === 'player1' ? 'player2' : 'player1')
 
-const Duelist = ({ player, t, align, strong, notes }: {
-  player: TournamentPlayer | undefined
-  t: T
-  align: 'start' | 'end'
-  strong?: boolean
-  notes: React.ReactNode
-}) => {
-  const name = playerName(player, t('player.unknown'))
-  const end = align === 'end'
-  return (
-    <span className={twMerge('flex min-w-0 items-center gap-2.5', end && 'flex-row-reverse text-right')}>
-      <Avatar name={name} src={player?.avatar} cosmetics={player?.cosmetics} size="sm" />
-      <span className={twMerge('flex min-w-0 flex-col gap-0.5', end && 'items-end')}>
-        {player ? (
-          <Link
-            href={`/profile/${player.id}`}
-            className={twMerge('max-w-full truncate text-[15px] hover:text-cyan', strong ? 'font-bold text-ink' : 'text-ink-dim')}
-          >
-            {name}
-          </Link>
-        ) : (
-          <span className="truncate text-[15px] text-ink-muted">{name}</span>
-        )}
-        <span className="flex gap-2">{notes}</span>
-      </span>
-    </span>
-  )
-}
-
-const First = ({ t }: { t: T }) => (
-  <span title={t('rounds.firstTitle')} className="text-cyan signal-sm">
-    {t('rounds.first')}
+/** A game as a 10px square from `side`'s view: won, lost or drawn. */
+const Games = ({ match, side }: { match: TournamentMatch; side: Side }) => (
+  <span aria-hidden className="flex gap-0.75">
+    {match.games.map((game, i) => (
+      <span key={i} className={twMerge('size-2.5', game.winner === side ? 'bg-win' : game.winner === 'draw' ? 'bg-draw' : 'bg-surface-400')} />
+    ))}
   </span>
 )
 
-/** A decided or drawn match, read from the winner's side (player1 on a draw). */
-const MatchRow = ({ match, round, roster }: { match: TournamentMatch; round: TournamentRound; roster: Roster }) => {
-  const t = useTranslations('Tournaments')
-  const draw = match.outcome === 'draw'
-  const lead: Side = match.outcome === 'player2' ? 'player2' : 'player1'
-  const trail = other(lead)
-  const [a, b] = [match.score[lead], match.score[trail]]
-  const pills: Result[] = match.games.map((game) => (game.winner === 'draw' ? 'D' : game.winner === lead ? 'W' : 'L'))
-
+/** One duelist's line of a match card: portrait, name, who went first, their games and their score. */
+const SideLine = ({ match, side, player, won, t }: { match: TournamentMatch; side: Side; player: TournamentPlayer | undefined; won: boolean; t: T }) => {
+  const name = playerName(player, t('player.unknown'))
   return (
-    <li className={twMerge(COLS, 'bg-surface-100 py-3.5')}>
-      <span className="hidden font-mono text-xs leading-none text-ink-muted lg:block">{t('rounds.room', { room: match.room })}</span>
-
-      <Duelist
-        player={roster.get(match[lead])}
-        t={t}
-        align="start"
-        strong={!draw}
-        notes={
-          <>
-            <span className={twMerge('signal-sm', draw ? 'text-draw' : 'text-win')}>{t(draw ? 'rounds.draw' : 'rounds.winner')}</span>
-            {match.first === lead ? <First t={t} /> : null}
-          </>
-        }
-      />
-
-      <span className="text-center font-display text-[28px] leading-none">
-        {a} – {b}
-      </span>
-
-      <Duelist
-        player={roster.get(match[trail])}
-        t={t}
-        align="end"
-        notes={
-          <>
-            {match.first === trail ? <First t={t} /> : null}
-            {/* The outcome is official even when the games don't add up to it (concession, disconnect). */}
-            {!draw && a <= b ? <span className={META}>{t('rounds.scoreNote', { score: `${a}–${b}` })}</span> : null}
-          </>
-        }
-      />
-
-      <span aria-label={t('rounds.pillsLabel')} className="hidden justify-center gap-1 lg:flex">
-        {pills.map((result, index) => (
-          <ResultPill key={index} result={result} />
-        ))}
-      </span>
-
-      <span className="hidden flex-col items-end gap-0.5 lg:flex">
-        {match.endedAt ? (
-          <>
-            <span className="text-sm text-ink-dim">
-              <LocalTime iso={match.endedAt} options={TIME_ONLY} />
-            </span>
-            <span className={META}>{t('rounds.minutes', { count: minutesBetween(round.startedAt, match.endedAt) })}</span>
-          </>
+    <>
+      <span className="flex min-w-0 items-center gap-2">
+        <Avatar name={name} src={player?.avatar} cosmetics={player?.cosmetics} size="sm" className={twMerge('size-6 text-[10px]', !won && 'opacity-70')} />
+        {player ? (
+          <Link href={`/profile/${player.id}`} className={twMerge('truncate hover:text-cyan', won ? 'text-ink body-strong' : 'text-ink-dim body-sm')}>
+            {name}
+          </Link>
         ) : (
-          <span className={META}>—</span>
+          <span className="truncate text-ink-muted body-sm">{name}</span>
         )}
+        {match.first === side ? (
+          <span title={t('rounds.firstTitle')} className="shrink-0 text-azure-lift signal-sm">
+            {t('rounds.first')}
+          </span>
+        ) : null}
       </span>
-    </li>
+      <Games match={match} side={side} />
+      <span className={twMerge('min-w-3.5 text-right font-display text-xl leading-none', won ? 'text-win' : 'text-ink-muted')}>{match.score[side]}</span>
+    </>
   )
 }
 
-type RoundsProps = {
-  id: string | number
-  rounds: TournamentRound[]
-  standings: Standing[]
-  live: boolean
-  /** `?round=`; absent, a live tournament shows its latest round and a finished one its first. */
-  round?: number
+/** A decided or drawn match: the winner's line first, room and end time under a rule. */
+const MatchCard = ({ match, roster, t }: { match: TournamentMatch; roster: Roster; t: T }) => {
+  const draw = match.outcome === 'draw'
+  const lead: Side = match.outcome === 'player2' ? 'player2' : 'player1'
+  return (
+    <article className={CARD}>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2.5 gap-y-1 px-3.5 py-3">
+        <SideLine match={match} side={lead} player={roster.get(match[lead])} won={!draw} t={t} />
+        <SideLine match={match} side={other(lead)} player={roster.get(match[other(lead)])} won={false} t={t} />
+      </div>
+      <div className="flex justify-between gap-3 border-t border-line px-3.5 pt-1.5 pb-2.5">
+        <span className={META}>{t('rounds.room', { room: match.room })}</span>
+        <span className={META}>
+          {draw ? `${t('rounds.draw')} · ` : null}
+          {match.endedAt ? (
+            <>
+              {t('pairings.ended')} <LocalTime iso={match.endedAt} options={TIME_ONLY} />
+            </>
+          ) : (
+            '—'
+          )}
+        </span>
+      </div>
+    </article>
+  )
 }
 
-/** One round at a time: its played matches as a table, its bye, then any match that has no result. */
-export const Rounds = ({ id, rounds, standings, live, round: number }: RoundsProps) => {
-  const t = useTranslations('Tournaments')
-  const selected = number ?? (live ? rounds.at(-1)?.number : rounds[0]?.number)
+const Pending = ({ match, roster, live, t }: { match: TournamentMatch; roster: Roster; live: boolean; t: T }) => (
+  <article className={twMerge(CARD, '[--fill:var(--color-surface-200)] [--edge:var(--color-line)]')}>
+    <div className="flex flex-wrap items-center gap-2.5 px-3.5 py-3">
+      <Chip tone={live ? 'live' : 'neutral'}>{t(live ? 'rounds.inProgress' : 'rounds.unplayed')}</Chip>
+      <span className="min-w-0 truncate text-ink body-sm">
+        {playerName(roster.get(match.player1), t('player.unknown'))} <span className={META}>vs</span> {playerName(roster.get(match.player2), t('player.unknown'))}
+      </span>
+      <span className={twMerge(META, 'ml-auto')}>{t('rounds.room', { room: match.room })}</span>
+    </div>
+  </article>
+)
 
-  const round = rounds.find((r) => r.number === selected) ?? rounds[0]
-  if (!round) return <p className="text-sm text-ink-muted">{t('rounds.empty')}</p>
-
-  // Only `standings` carries full players; rounds reference them by id.
-  const roster: Roster = new Map(standings.map(({ player }) => [player.id, player]))
+/** A round as a column: its heading and stamp, then a card per match and the bye. */
+const Column = ({ round, last, roster, live, t }: { round: TournamentRound; last: boolean; roster: Roster; live: boolean; t: T }) => {
   const played = round.matches.filter((match) => match.outcome !== 'unplayed')
-  const pending = round.matches.filter((match) => match.outcome === 'unplayed')
-  const threeGames = played.filter((match) => match.games.length >= 3).length
+  const three = played.filter((match) => match.games.length >= 3).length
   const bye = round.bye ? roster.get(round.bye) : undefined
+  return (
+    <section aria-label={t('rounds.round', { number: round.number })} className="flex flex-col gap-3">
+      <div className={twMerge('flex flex-col gap-1.5 border-b-2 pb-2.5', last ? 'border-gold' : 'border-line-mid')}>
+        <span className="flex items-baseline justify-between gap-3">
+          <h2 className="text-ink display-2">{t('rounds.round', { number: round.number })}</h2>
+          {last ? <span className={META}>{t('pairings.finalRound')}</span> : null}
+        </span>
+        <span className="text-ink-dim signal-sm">
+          {t('rounds.paired')} <LocalTime iso={round.startedAt} options={TIME_ONLY} /> · {t('rounds.summary', { matches: round.matches.length, three })}
+        </span>
+      </div>
+      {round.matches.map((match) =>
+        match.outcome === 'unplayed' ? (
+          <Pending key={match.room} match={match} roster={roster} live={live} t={t} />
+        ) : (
+          <MatchCard key={match.room} match={match} roster={roster} t={t} />
+        ),
+      )}
+      {round.bye ? (
+        <div className={twMerge(CARD, 'flex items-center gap-2.5 px-3.5 py-3 [--fill:var(--color-surface-200)] [--edge:var(--color-line)]')}>
+          <Pill result="BYE" />
+          <span className="truncate text-ink body-strong">{playerName(bye, t('player.unknown'))}</span>
+          <span className={twMerge(META, 'ml-auto')}>{t('rounds.bye')}</span>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+/** Each duelist's result against each other, with the round it happened in. */
+const CrossTable = ({ rounds, standings, roster, t }: { rounds: TournamentRound[]; standings: Standing[]; roster: Roster; t: T }) => {
+  const short = (name: string) => (name.length > 9 ? `${name.slice(0, 8)}…` : name)
+  const against = (a: string, b: string): { result: RoundResult; round: number } | null => {
+    for (const round of rounds) {
+      const match = round.matches.find((m) => (m.player1 === a && m.player2 === b) || (m.player1 === b && m.player2 === a))
+      if (!match || match.outcome === 'unplayed') continue
+      const side: Side = match.player1 === a ? 'player1' : 'player2'
+      return { result: match.outcome === 'draw' ? 'D' : match.outcome === side ? 'W' : 'L', round: round.number }
+    }
+    return null
+  }
+  return (
+    <section aria-label={t('pairings.crossTitle')} className="flex flex-col gap-3.5">
+      <RailHead num="01" label={t('pairings.crossTitle')} stamp={t('pairings.crossStamp')} className="px-0" />
+      <div className="overflow-x-auto border-t border-l border-line">
+        <table className="w-full min-w-225 border-collapse bg-surface-100">
+          <thead>
+            <tr>
+              <th className={twMerge(TH, 'text-left')}>{t('standings.duelist')}</th>
+              {standings.map(({ player }) => (
+                <th key={player.id} className={TH} title={playerName(player, t('player.unknown'))}>
+                  {short(playerName(player, t('player.unknown')))}
+                </th>
+              ))}
+              <th className={TH}>{t('standings.points')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.map((row) => (
+              <tr key={row.player.id}>
+                <td className={twMerge(TD, 'text-left whitespace-nowrap')}>
+                  <span className="pr-2.5 font-display text-base leading-none text-ink-muted">{row.rank}</span>
+                  <span className="text-ink body-strong">{playerName(roster.get(row.player.id), t('player.unknown'))}</span>
+                </td>
+                {standings.map((col) => {
+                  if (col.player.id === row.player.id) {
+                    return <td key={col.player.id} className={twMerge(TD, 'bg-[repeating-linear-gradient(45deg,var(--color-surface-200)_0_4px,var(--color-surface-100)_4px_8px)]')} />
+                  }
+                  const cell = against(row.player.id, col.player.id)
+                  return (
+                    <td key={col.player.id} className={TD}>
+                      {cell ? (
+                        <>
+                          <Pill result={cell.result} />
+                          <span className={twMerge(META, 'block pt-0.75')}>R{cell.round}</span>
+                        </>
+                      ) : null}
+                    </td>
+                  )
+                })}
+                <td className={TD}>
+                  <span className="text-ink stat text-lg">{row.points}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+type RoundsProps = { tournament: TournamentSummary; rounds: TournamentRound[]; standings: Standing[] }
+
+/** Every round side by side, a card per match, then who played whom. */
+export const Rounds = ({ tournament, rounds, standings }: RoundsProps) => {
+  const t = useTranslations('Tournaments')
+  if (!rounds.length) return <p className="text-ink-muted body-sm">{t('rounds.empty')}</p>
+
+  const roster = rosterOf(standings)
+  const live = tournament.status === 'live'
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-5">
-        <ModeTabs
-          label={t('rounds.tabsLabel')}
-          value={String(round.number)}
-          items={rounds.map((r) => ({
-            id: String(r.number),
-            label: t('rounds.round', { number: r.number }),
-            href: `/tournament/${id}?tab=rounds&round=${r.number}`,
-          }))}
-          className="max-w-full overflow-x-auto"
-        />
-        <span className="text-sm text-ink-dim">
-          {t('rounds.paired')} <LocalTime iso={round.startedAt} options={TIME_ONLY} /> ·{' '}
-          {t('rounds.summary', { matches: round.matches.length, three: threeGames })}
-          {round.bye ? ` · ${t('rounds.byeSummary', { name: playerName(bye, t('player.unknown')) })}` : ''}
-        </span>
+      <div className="overflow-x-auto">
+        <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${rounds.length}, minmax(260px, 1fr))`, minWidth: `${rounds.length * 280}px` }}>
+          {rounds.map((round) => (
+            <Column key={round.number} round={round} last={round.number === tournament.rounds} roster={roster} live={live} t={t} />
+          ))}
+        </div>
       </div>
 
-      {played.length || round.bye ? (
-        <div className="flex flex-col gap-px border border-line bg-line">
-          <div aria-hidden className={twMerge(COLS, 'hidden bg-surface-200 py-2.5 lg:grid', META)}>
-            <span>{t('rounds.columns.room')}</span>
-            <span>{t('rounds.columns.winner')}</span>
-            <span className="text-center">{t('rounds.columns.games')}</span>
-            <span className="text-right">{t('rounds.columns.opponent')}</span>
-            <span className="text-center">{t('rounds.columns.gameByGame')}</span>
-            <span className="text-right">{t('rounds.columns.ended')}</span>
-          </div>
-          <ol aria-label={t('rounds.round', { number: round.number })} className="flex flex-col gap-px">
-            {played.map((match) => (
-              <MatchRow key={`${round.number}-${match.room}`} match={match} round={round} roster={roster} />
-            ))}
-            {round.bye ? (
-              <li className={twMerge(COLS, 'bg-surface-100 py-3.5')}>
-                <span className="hidden font-mono text-xs leading-none text-ink-muted lg:block">—</span>
-                <Duelist
-                  player={bye}
-                  t={t}
-                  align="start"
-                  strong
-                  notes={<span className="text-gold signal-sm">{t('rounds.bye')}</span>}
-                />
-              </li>
-            ) : null}
-          </ol>
-        </div>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-4.5">
+        <span className={twMerge(META, 'inline-flex items-center gap-1.5')}>
+          <span aria-hidden className="size-2.5 bg-win" /> {t('pairings.gameWon')}
+        </span>
+        <span className={twMerge(META, 'inline-flex items-center gap-1.5')}>
+          <span aria-hidden className="size-2.5 bg-surface-400" /> {t('pairings.gameLost')}
+        </span>
+        <span className={META}>
+          <span className="text-azure-lift">{t('rounds.first')}</span> {t('pairings.firstLegend')}
+        </span>
+        <span className={META}>{t('pairings.outcomeNote')}</span>
+      </div>
 
-      <p className={META}>{t('rounds.note')}</p>
-
-      {pending.length ? (
-        <Panel tone="sunken" label={t(live ? 'rounds.inProgress' : 'rounds.unplayed')} className="flex flex-col gap-3">
-          {pending.map((match) => (
-            <div key={match.room} className="flex flex-wrap items-center gap-3">
-              <Chip tone={live ? 'live' : 'neutral'}>{t(live ? 'rounds.inProgress' : 'rounds.unplayed')}</Chip>
-              <span className="font-bold">
-                {t('rounds.pendingLine', {
-                  round: round.number,
-                  room: match.room,
-                  a: playerName(roster.get(match.player1), t('player.unknown')),
-                  b: playerName(roster.get(match.player2), t('player.unknown')),
-                })}
-              </span>
-            </div>
-          ))}
-          <span className="text-sm text-ink-dim">{t(live ? 'rounds.inProgressText' : 'rounds.unplayedText')}</span>
-        </Panel>
-      ) : null}
+      {standings.length <= CROSS_MAX ? <CrossTable rounds={rounds} standings={standings} roster={roster} t={t} /> : null}
     </>
   )
 }

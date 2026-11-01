@@ -3,8 +3,9 @@ import { API_URL } from '@utils/auth'
 import type { CardArt } from '@utils/types'
 import type { CardKind, WikiCard } from '@utils/wiki'
 
+/** Card data is republished daily: a server render keeps a lookup for an hour. Ignored in the browser. */
 const get = async <T>(path: string, signal?: AbortSignal): Promise<T> => {
-  const res = await fetch(`${API_URL}${path}`, { signal })
+  const res = await fetch(`${API_URL}${path}`, { signal, next: { revalidate: 3600 } })
   if (!res.ok) throw new Error(`GET ${path} failed with ${res.status}`)
   return res.json()
 }
