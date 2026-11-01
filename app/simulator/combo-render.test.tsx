@@ -118,7 +118,7 @@ describe('ComboRender', () => {
     const root = screen.getByRole('group', { name: 'zones.hand' }).parentElement!
     expect(root.style.getPropertyValue('--card-w')).toBe('87px')
     expect(root.nextElementSibling).toBe(screen.getByText('Open')) // the caption, right under the board
-    expect(document.querySelector('img[src="/back.webp"]')!.getAttribute('sizes')).toBe('87px')
+    expect(document.querySelector('[data-zone="deck"] img[src="/back.webp"]')!.getAttribute('sizes')).toBe('87px')
   })
 
   it('the first slide starts where the card was at the fitted width, not the probe', async () => {
@@ -127,9 +127,9 @@ describe('ComboRender', () => {
     await open()
     await page().ready
     await seek(1000) // the move: card 0 slides from the hand to m0
-    // At 87px, from the hand's centre (43.5, 391.5) to m0's (130.5, 130.5); the probe's 100px would give -80.5px 319.5px.
-    const [keyframes] = vi.mocked(Element.prototype.animate).mock.calls[0]!
-    expect((keyframes as Keyframe[])[0]!.translate).toBe('-87px 261px')
+    // At 87px the hand's centre is (43.5, 391.5); the probe's 100px would put it at (50, 450).
+    const flights = vi.mocked(Element.prototype.animate).mock.calls.map(([keyframes]) => (keyframes as Keyframe[])[0]!.transform)
+    expect(flights).toContainEqual(expect.stringContaining('translate(43.5px, 391.5px)'))
   })
 
   it('ready gives the title and the length of the video at its speed', async () => {

@@ -159,5 +159,9 @@ describe('simulator drop', () => {
       expect(placeOptions(start, 0, 'set', 'spell')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 's0', face: 'down', how: 'set' }])
       expect(placeOptions(start, 0, 'activate', 'spell')[0]!.actions).toEqual([{ t: 'move', card: 0, to: 's0' }, { t: 'activate', card: 0, targets: [] }])
     })
+
+    it('brings a Special Summon in at the position asked for', () => {
+      expect(placeOptions(start, 0, 'special', 'monster', { face: 'down', pos: 'def' })[0]!.actions).toEqual([{ t: 'move', card: 0, to: 'm0', how: 'special', face: 'down', pos: 'def' }])
+    })
   })
 })

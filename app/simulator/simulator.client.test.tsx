@@ -7,7 +7,7 @@ import { ComboApiError, ComboConflictError, deleteCombo, getCombo, listMyCombos,
 import { toYdke } from '@utils/deck/codecs/ydke'
 import type { CardData } from '@utils/deck/types'
 import { listMyDecks } from '@utils/decks'
-import { DRAFT_KEY } from '@utils/simulator/draft'
+import { DRAFT_KEY as DRAFT } from '@utils/simulator/draft'
 import Simulator from './simulator.client'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }))
@@ -63,8 +63,6 @@ const tied = async () => {
   await click('toolbar.more')
   return yes
 }
-/** The history is a drawer: open once per test, then the rows are on the page. */
-const openHistory = () => click('toolbar.history')
 
 const menu = () => screen.getByRole('menu')
 const names = () => within(menu()).getAllByRole('menuitem').map((el) => el.textContent)
@@ -93,7 +91,7 @@ const counter = async (what: 'menu.counterUp' | 'menu.counterDown') => {
   await act(async () => fireEvent.click(within(menu()).getAllByRole('menuitem')[1]!))
   await choose(what)
 }
-const MAIN_HAND = ['menu.activate', 'menu.moveTo', 'menu.tag']
+const MAIN_HAND = ['menu.normal', 'menu.special', 'menu.activate', 'menu.set', 'menu.toGy', 'menu.banishUp', 'menu.banishDown', 'menu.moveTo', 'menu.tag']
 const MAIN_FIELD = ['menu.activate', 'menu.flipDown', 'menu.position', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag']
 
 /** The callbacks of every ResizeObserver the board made, so a test can fire the one that is watching. */
@@ -202,7 +200,7 @@ describe('Simulator', () => {
   })
 
   it('a step still on the debounce is written on pagehide and on unmount', async () => {
-    const cursor = () => JSON.parse(localStorage.getItem(DRAFT_KEY)!).cursor
+    const cursor = () => JSON.parse(localStorage.getItem(DRAFT)!).cursor
     await open(DECK)
     await click('toolbar.newHand')
     expect(cursor()).toBe(0) // the booted deck only: the hand waits on the debounce
@@ -215,12 +213,12 @@ describe('Simulator', () => {
 
   it('a damaged ?d= leaves the stored draft as it was, for the next reload', async () => {
     const saved = JSON.stringify({ v: 1, deck: { main: [1, 2, 3], extra: [], side: [] }, name: 'Saved', actions: [{ t: 'draw', n: 2 }], cursor: 1, start: 0 })
-    localStorage.setItem(DRAFT_KEY, saved)
+    localStorage.setItem(DRAFT, saved)
     await open('/simulator?d=garbage!!')
     expect(screen.getByText('damagedLink')).toBeTruthy()
     await wait(350)
     cleanup()
-    expect(localStorage.getItem(DRAFT_KEY)).toBe(saved)
+    expect(localStorage.getItem(DRAFT)).toBe(saved)
     await open(location.pathname + location.search)
     expect(hand()).toHaveLength(2)
   })
@@ -348,7 +346,6 @@ describe('Simulator card menu', () => {
     await choose('menu.moveTo')
     await choose('menu.shuffleDeck')
     expect(hand()).toHaveLength(4)
-    await openHistory()
     expect(steps().slice(-2)).toEqual(['history.move', 'history.shuffle'])
     // the extra card, from its pile: Hand sends it back to the Extra Deck, and there is no deck to shuffle it into
     const extra = within(await openPile('extra')).getAllByRole('button')[0]!
@@ -529,7 +526,7 @@ describe('Simulator card panel', () => {
     await click('toolbar.newHand')
     expect(screen.getByText('cardPanel.empty')).toBeTruthy()
     await mouseClick(hand()[0]!)
-    await click('toolbar.reset')
+    await more('toolbar.reset')
     await click('confirm.discard')
     expect(screen.getByText('cardPanel.empty')).toBeTruthy()
   })
@@ -571,6 +568,7 @@ describe('Simulator pile panel', () => {
 
   it('a mouse click in the panel selects and a touch tap opens the menu', async () => {
     await open(DECK)
+    await click('toolbar.newHand')
     const card = within(await openPile('deck')).getAllByRole('button')[0]!
     await mouseClick(card)
     expect(screen.queryByRole('menu')).toBeNull()
@@ -589,7 +587,7 @@ describe('Simulator pile panel', () => {
     expect(materials).toHaveLength(1)
     await rightClick(materials[0]!)
     // a material is not a field card: no flip, position, negate or counters
-    expect(names()).toEqual(MAIN_HAND)
+    expect(names()).toEqual(['menu.activate', 'menu.moveTo', 'menu.tag'])
     await choose('menu.moveTo')
     await choose('menu.moveZone')
     await choose('zones.gy')
@@ -954,9 +952,6 @@ describe('Simulator history and replay', () => {
   it('history lists steps and seeking shows that moment', async () => {
     await open(DECK)
     await click('toolbar.newHand')
-    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull() // a drawer, closed until asked
-    await openHistory()
-    expect(button('toolbar.history').getAttribute('aria-pressed')).toBe('true')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
     expect(rows().map((row) => row.querySelector('[data-step-number]')?.textContent ?? null)).toEqual([null, '#1', '#2'])
     expect(within(rows()[2]!).getAllByRole('button')[0]!.getAttribute('aria-current')).toBe('step')
@@ -964,14 +959,11 @@ describe('Simulator history and replay', () => {
     await click('history.shuffle')
     expect(hand()).toHaveLength(0)
     expect(button('history.shuffle').getAttribute('aria-current')).toBe('step')
-    await click('history.close')
-    expect(screen.queryByRole('list', { name: 'history.title' })).toBeNull()
   })
 
   it('acting after a seek drops the later steps', async () => {
     await open(DECK)
     await click('toolbar.newHand')
-    await openHistory()
     await click('history.shuffle')
     await click('toolbar.draw')
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.draw'])
@@ -982,7 +974,6 @@ describe('Simulator history and replay', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await click('toolbar.draw')
-    await openHistory()
     await replayFrom(1) // the shuffle
     await replayFrom(2) // back to the draw of 5
     expect(within(rows()[2]!).getByText('history.startMark')).toBeTruthy()
@@ -1048,7 +1039,7 @@ describe('Simulator history and replay', () => {
   it('Escape in an open dialog leaves target mode alone', async () => {
     await open(DECK)
     await targetMode()
-    await click('toolbar.reset') // the confirm dialog
+    await more('toolbar.reset') // the confirm dialog
     await key(document.body, { key: 'Escape' })
     expect(button('targets.confirm')).toBeTruthy()
   })
@@ -1058,7 +1049,6 @@ describe('Simulator history and replay', () => {
     await click('toolbar.newHand')
     const card = hand()[0]!
     await play('zones.m0')
-    await openHistory()
     expect(steps()[3]).toBe('history.move')
     const thumb = rows()[3]!.querySelector('[data-tile]')
     expect(thumb?.getAttribute('title')).toBe(card.title)
@@ -1066,7 +1056,7 @@ describe('Simulator history and replay', () => {
     expect(rows()[2]!.querySelector('[data-tile]')).toBeNull() // a draw names no card
   })
 
-  describe('FLIP', () => {
+  describe('flights', () => {
     let motion = true
     let animate = vi.fn()
     beforeEach(() => {
@@ -1075,7 +1065,7 @@ describe('Simulator history and replay', () => {
       animate = vi.fn()
       Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
       // The hand sits at y 300, each of its cards 50 px right of the one before; m0 at x 200, the deck at x 600;
-      // everything else at the origin.
+      // everything else at the origin. Every box is 10 px wide, so a centre is 5 px in.
       vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
         const at = this.closest('[data-zone]')?.getAttribute('data-zone')
         const slot = this.closest('[data-zone="hand"] > *')
@@ -1087,68 +1077,80 @@ describe('Simulator history and replay', () => {
       vi.restoreAllMocks()
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate
     })
-    const slide = (dx: number, dy: number) => [
-      [
-        { translate: `${dx}px ${dy}px`, scale: '1.08', zIndex: '20' },
-        { translate: '0 0', scale: '1', zIndex: '20' },
-      ],
-      { duration: 450, easing: 'ease-out' },
-    ]
+    /** Every copy that flew: where it left, where it landed, and what stayed hidden meanwhile (the next call to animate). */
+    const flights = (): { from: string; to: string; hidden: Element }[] =>
+      animate.mock.calls.flatMap((call, i) => {
+        if (!(animate.mock.contexts[i] as HTMLElement).classList.contains('sim-flight')) return []
+        const frames = call[0] as Keyframe[]
+        const place = (frame: Keyframe) => /translate\(([^)]*)\)/.exec(String(frame.transform))![1]!
+        return [{ from: place(frames[0]!), to: place(frames.at(-1)!), hidden: animate.mock.contexts[i + 1] as Element }]
+      })
 
-    it('a move slides the card from where it was, unless motion is reduced', async () => {
+    it('a move flies a copy from where the card was and hides the card until it lands, unless motion is reduced', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.m0')
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
-      expect(animate.mock.calls[0]).toEqual(slide(-200, 300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '205px, 5px' })
+      expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
+      expect(cardsIn('m0')[0]!.closest('.sim-fx')).toBeNull()
+      expect(document.querySelector('.sim-flight [data-card]')).toBeNull() // a copy is no card
       motion = false
       await play('zones.m1')
-      expect(animate).toHaveBeenCalledTimes(1)
+      expect(flights()).toHaveLength(1)
     })
 
-    it('a draw from the deck slides the new hand card from the deck pile', async () => {
+    it('a draw from the deck flies the new hand card from the deck pile', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await click('toolbar.draw')
-      expect(animate).toHaveBeenCalledTimes(1) // the cards already in the hand stay put
-      expect(animate.mock.contexts[0]).toBe(hand()[5]!.parentElement)
-      expect(animate.mock.calls[0]).toEqual(slide(350, -300))
+      expect(flights()).toHaveLength(1) // the cards already in the hand stay put
+      expect(flights()[0]).toMatchObject({ from: '605px, 5px', to: '255px, 305px' })
+      expect(flights()[0]!.hidden).toBe(hand()[5]!.parentElement)
     })
 
-    it('only the card of the step slides: the hand closing the gap it left does not', async () => {
+    it('only the card of the step flies: the hand closing the gap it left does not', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.m0') // the four cards after it each shift 50 px left
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(cardsIn('m0')[0]!.parentElement)
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement)
     })
 
-    it('a card sent to a pile slides in as the pile’s top card', async () => {
+    it('a card sent to a pile lands on the pile, whose top shows once it has', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
       await play('zones.gy') // from the hand at (0, 300) to the GY at the origin
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(zone('gy').firstElementChild)
-      expect(animate.mock.calls[0]).toEqual(slide(0, 300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '5px, 5px' })
+      expect(flights()[0]!.hidden).toBe(zone('gy').querySelector('[data-pile] > *'))
     })
 
-    it('a step back slides the card back to where it came from', async () => {
+    it('a step back flies the card back to where it came from', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       await play('zones.m0')
       animate.mockClear()
       await click('replay.prev')
-      expect(animate).toHaveBeenCalledTimes(1)
-      expect(animate.mock.contexts[0]).toBe(hand()[0]!.parentElement)
-      expect(animate.mock.calls[0]).toEqual(slide(200, -300))
+      expect(flights()).toHaveLength(1)
+      expect(flights()[0]).toMatchObject({ from: '205px, 5px', to: '5px, 305px' })
+      expect(flights()[0]!.hidden).toBe(hand()[0]!.parentElement)
     })
 
-    it('a card dropped by drag lands where it was dropped, with no slide', async () => {
+    it('the next step clears the copies of the last one', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
+      await play('zones.m1')
+      expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
+    })
+
+    it('a card dropped by drag lands where it was dropped, with no flight', async () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
@@ -1157,8 +1159,259 @@ describe('Simulator history and replay', () => {
       for (const [type, x] of [['pointerDown', 0], ['pointerMove', 50], ['pointerUp', 50]] as const)
         await act(async () => void fireEvent[type](card, { clientX: x, clientY: x, pointerId: 1, pointerType: 'mouse' }))
       expect(cardsIn('m0')).toHaveLength(1)
-      expect(animate).not.toHaveBeenCalled()
+      expect(flights()).toHaveLength(0)
+      expect(document.querySelectorAll('.sim-ripple').length).toBeGreaterThan(0) // it still touches down
     })
+
+    it('a new hand is dealt out of the deck, one card after the other, turning over', async () => {
+      await open(DECK)
+      animate.mockClear()
+      await click('toolbar.newHand')
+      expect(flights()).toHaveLength(5)
+      const delays = animate.mock.calls.filter((_, i) => (animate.mock.contexts[i] as HTMLElement).classList.contains('sim-flight')).map((call) => (call[1] as KeyframeAnimationOptions).delay as number)
+      expect(delays).toEqual([...delays].sort((a, b) => a - b))
+      expect(new Set(delays).size).toBe(5)
+      expect(document.querySelectorAll('.sim-face-under')).toHaveLength(5)
+      expect(flights().every(({ from }) => from === '605px, 5px')).toBe(true)
+    })
+
+    it('a destroyed card breaks where it stood instead of flying to the GY', async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      animate.mockClear()
+      await rightClick(cardsIn('m0')[0]!)
+      await choose('menu.moveTo')
+      await choose('menu.destroy')
+      expect(flights()).toHaveLength(6) // the pieces of the card
+      expect(flights().every(({ from }) => from === '205px, 5px')).toBe(true)
+    })
+
+    it('reduced motion leaves no effect behind', async () => {
+      motion = false
+      await open(DECK)
+      await click('toolbar.newHand')
+      await play('zones.m0')
+      await click('toolbar.shuffle')
+      await click('toolbar.endTurn')
+      expect(animate).not.toHaveBeenCalled()
+      expect(document.querySelector('.sim-fx')!.childElementCount).toBe(0)
+      expect(document.querySelector('.sim-ground')!.childElementCount).toBe(0)
+    })
+  })
+})
+
+describe('Simulator bringing a card into play', () => {
+  const picks = () => [...document.querySelectorAll('.sim-pick')].map((el) => el.getAttribute('aria-label'))
+
+  it('Special Summon asks for the zone, offers only the free ones, and logs how it came in', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m1')
+    await rightClick(hand()[0]!)
+    await choose('menu.special')
+    await choose('menu.specialAtk')
+    expect(picks()).toEqual(['zones.emz0', 'zones.emz1', 'zones.m0', 'zones.m2', 'zones.m3', 'zones.m4'])
+    await click('zones.m2')
+    expect(cardsIn('m2')).toHaveLength(1)
+    expect(picks()).toEqual([])
+    expect(steps().at(-1)).toBe('history.special')
+  })
+
+  it('a Normal Summon stays out of the Extra Monster Zones, and Set lands face-down in Defense', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.normal')
+    expect(picks()).toEqual(['zones.m0', 'zones.m1', 'zones.m2', 'zones.m3', 'zones.m4'])
+    await act(async () => void fireEvent.keyDown(document, { key: 'Escape' }))
+    expect(picks()).toEqual([])
+    await rightClick(hand()[0]!)
+    await choose('menu.set')
+    await click('zones.m0')
+    expect(cardsIn('m0')[0]!.getAttribute('data-pos')).toBe('def')
+    expect(steps().at(-1)).toBe('history.set')
+  })
+
+  it('a digit picks a menu item', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await act(async () => void fireEvent.keyDown(menu(), { key: '1' }))
+    expect(picks()).toHaveLength(5)
+  })
+
+  it('while a zone is asked for, the cards take no menu', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.special')
+    await choose('menu.specialAtk')
+    await rightClick(hand()[1]!)
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it.each([
+    ['menu.specialAtk', 'up', 'atk'],
+    ['menu.specialDef', 'up', 'def'],
+    ['menu.specialSet', 'down', 'def'],
+  ])('%s comes in where it says', async (position, face, pos) => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.special')
+    expect(names()).toEqual(['menu.back', 'menu.specialAtk', 'menu.specialDef', 'menu.specialSet'])
+    await choose(position)
+    await click('zones.m0')
+    expect(cardsIn('m0')[0]!.getAttribute('data-pos')).toBe(pos)
+    await act(async () => void window.dispatchEvent(new Event('pagehide')))
+    expect(JSON.parse(localStorage.getItem(DRAFT)!).actions.at(-1)).toMatchObject({ how: 'special', face, pos })
+  })
+
+  it('a card in the hand goes to the GY or is banished, face-up or face-down', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.toGy')
+    expect(within(zone('gy')).getByText('1')).toBeTruthy()
+    await rightClick(hand()[0]!)
+    // A card with no data prints its passcode; a back prints nothing.
+    const top = () => within(zone('banished')).getAllByRole('button')[0]!.textContent
+    await choose('menu.banishUp')
+    expect(top()).not.toBe('')
+    await rightClick(hand()[0]!)
+    await choose('menu.banishDown')
+    expect(top()).toBe('')
+    expect(within(zone('banished')).getByText('2')).toBeTruthy()
+  })
+
+  describe('a Spell in the hand', () => {
+    const SPELLS = new Map([1, 2, 3, 4, 5, 6].map((id) => [id, { ...UTOPIA, id, kind: 'spell', humanReadableCardType: 'Normal Spell', monsterTypes: [] }]))
+    beforeEach(() => void vi.mocked(cardsByIds).mockResolvedValue(SPELLS as never))
+    afterEach(() => void vi.mocked(cardsByIds).mockResolvedValue(new Map()))
+    const start = async () => {
+      await open(DECK)
+      await click('toolbar.newHand')
+      await wait(0)
+    }
+
+    it('offers Activate and Set, and activating puts it on the field', async () => {
+      await start()
+      await rightClick(hand()[0]!)
+      expect(names()).toEqual(['menu.play', 'menu.set', 'menu.toGy', 'menu.banishUp', 'menu.banishDown', 'menu.moveTo', 'menu.tag'])
+      await choose('menu.play')
+      expect(picks()).toEqual(['zones.s0', 'zones.s1', 'zones.s2', 'zones.s3', 'zones.s4'])
+      await click('zones.s0')
+      expect(cardsIn('s0')).toHaveLength(1)
+      expect(cardsIn('s0')[0]!.getAttribute('data-active')).not.toBeNull()
+    })
+
+    it('a double-click asks for the zone too, and never activates it in the hand', async () => {
+      await start()
+      await act(async () => void fireEvent.doubleClick(hand()[0]!))
+      expect(picks()).toHaveLength(5)
+      expect(hand()).toHaveLength(5)
+    })
+  })
+})
+
+describe('Simulator help and first steps', () => {
+  it('a deck with nothing played offers a hand on the table, and the first step takes it away', async () => {
+    await open(DECK)
+    await click('empty.deal')
+    expect(hand()).toHaveLength(5)
+    expect(screen.queryByRole('button', { name: 'empty.deal' })).toBeNull()
+  })
+
+  it('nothing on the table takes a touch until a hand is dealt', async () => {
+    await open(DECK)
+    const off = ['toolbar.draw', 'toolbar.shuffle', 'toolbar.endTurn', 'toolbar.save']
+    const inert = () => document.querySelector('.sim-board')!.hasAttribute('inert')
+    const rail = () => screen.getAllByRole<HTMLButtonElement>('button', { name: /^(life\.edit|rail\.open)$/ }).map((el) => el.disabled)
+    expect(inert()).toBe(true)
+    for (const name of off) expect(button(name).disabled).toBe(true)
+    expect(rail().every(Boolean)).toBe(true)
+    await act(async () => void fireEvent.keyDown(window, { key: 'e' }))
+    expect(steps()).toEqual(['history.start'])
+
+    await click('empty.deal')
+    expect(inert()).toBe(false)
+    for (const name of off) expect(button(name).disabled).toBe(false)
+    expect(rail().some(Boolean)).toBe(false)
+  })
+
+  it('? opens the list of shortcuts', async () => {
+    await open(DECK)
+    await act(async () => void fireEvent.keyDown(window, { key: '?', shiftKey: true }))
+    expect(screen.getByRole('heading', { name: 'help.title' })).toBeTruthy()
+  })
+
+  it('Choose hand can fill the rest at random', async () => {
+    await open(DECK)
+    await click('toolbar.chooseHand')
+    await act(async () => void fireEvent.click(button('2')))
+    await act(async () => void fireEvent.click(screen.getByRole('checkbox', { name: 'handPicker.fill' })))
+    await click('handPicker.confirm')
+    expect(hand()).toHaveLength(5)
+    expect(hand()[0]!.title).toBe('2')
+  })
+})
+
+describe('Simulator duel state', () => {
+  /** A Life Points plate, its menu opened: the rival's comes first on the page. */
+  const openLife = (index: number) => act(async () => void fireEvent.click(screen.getAllByRole('button', { name: 'life.edit' })[index]!))
+
+  it('the Life Points change by hand, go in the log and come back with Undo', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    expect(screen.getAllByText('8000')).toHaveLength(2)
+    await openLife(0)
+    await click('−1000')
+    expect(screen.getByText('7000')).toBeTruthy()
+    expect(screen.getAllByText('8000')).toHaveLength(1)
+    expect(steps().at(-1)).toBe('history.lp')
+    await click('toolbar.undo')
+    expect(screen.getAllByText('8000')).toHaveLength(2)
+  })
+
+  it('a typed amount is applied, and half takes what is left down by half', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await openLife(1)
+    await act(async () => void fireEvent.change(screen.getByRole('textbox', { name: 'life.amount' }), { target: { value: '-1500' } }))
+    await click('life.apply')
+    expect(screen.getByText('6500')).toBeTruthy()
+    await openLife(1)
+    await click('life.half')
+    expect(screen.getByText('3250')).toBeTruthy()
+  })
+
+  it('the core moves on to the next phase', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    expect(screen.getByText('phases.main1')).toBeTruthy()
+    await click('phaseNext')
+    expect(screen.getByText('phases.battle')).toBeTruthy()
+    expect(steps().at(-1)).toBe('history.phase')
+  })
+
+  it('E ends the turn, and the new one opens in Main 1', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await click('phaseNext')
+    await act(async () => void fireEvent.keyDown(window, { key: 'e' }))
+    expect(steps().at(-1)).toBe('history.endTurn')
+    expect(screen.getByText('phases.main1')).toBeTruthy()
+  })
+
+  it('activations in a row build the chain, and any other step closes it', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    for (const card of hand().slice(0, 2)) await act(async () => void fireEvent.doubleClick(card))
+    expect(within(screen.getByRole('list', { name: 'chain.title' })).getAllByRole('listitem')).toHaveLength(2)
+    expect([...document.querySelectorAll('.sim-link-card')].map((el) => el.textContent)).toEqual(['1', '2'])
+    await click('toolbar.draw')
+    expect(screen.queryByRole('list', { name: 'chain.title' })).toBeNull()
   })
 })
 
@@ -1192,7 +1445,6 @@ describe('Simulator replay bar', () => {
     await click('toolbar.newHand')
     await play('zones.m0')
     await play('zones.m1')
-    await openHistory()
     await replayFrom(3) // after the first move
     vi.useFakeTimers()
     await click('replay.play')
@@ -1301,7 +1553,6 @@ describe('Simulator board details', () => {
     await click('handPicker.confirm')
     expect(hand().map((card) => card.title)).toEqual(['2', '5'])
     expect(within(zone('deck')).getByText('4')).toBeTruthy()
-    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.shuffle', 'history.move', 'history.move'])
     expect(within(rows()[3]!).getByText('history.startMark')).toBeTruthy()
   })
@@ -1312,7 +1563,6 @@ describe('Simulator board details', () => {
     await play('zones.m0')
     const caption = () => screen.queryByRole<HTMLInputElement>('textbox', { name: 'caption.label' })
     await act(async () => void fireEvent.change(caption()!, { target: { value: 'Normal Summon' } }))
-    await openHistory()
     expect(rows()[3]!.textContent).toContain('Normal Summon')
     await click('toolbar.endTurn') // a step after it, so the replay is still playing when it shows the caption
     expect(caption()!.value).toBe('')
@@ -1782,7 +2032,6 @@ describe('Simulator my combos', () => {
     expect(getCombo).toHaveBeenCalledWith('c1')
     expect(listShown()).toBe(false)
     expect(hand()).toHaveLength(4)
-    await openHistory()
     expect(steps()).toEqual(['history.start', 'history.draw', 'history.draw'])
     expect(unsaved()).toBe(false) // the hash is of the session as parsed, not of the payload as the server ordered it
 
@@ -2002,7 +2251,6 @@ describe('Simulator my combos', () => {
     await click('Close')
     await act(async () => arrive(stored('c1')))
     expect(hand()).toHaveLength(0)
-    await openHistory()
     expect(steps()).toEqual(['history.start'])
   })
 

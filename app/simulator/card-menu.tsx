@@ -2,10 +2,12 @@
 
 import { useTranslations } from 'next-intl'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { CardTile } from '@app/deck-builder/card-tile'
+import type { CardData } from '@utils/deck/types'
 import { apply, isMonsterSlot, isSlot, isValid, locate, shuffleAction } from '@utils/simulator/board'
-import { moveOptions } from '@utils/simulator/drop'
+import { moveOptions, type Placing, type Stance } from '@utils/simulator/drop'
 import { LIMITS, PLAIN } from '@utils/simulator/types'
-import type { Action, Board, MonsterSlot, ZoneId } from '@utils/simulator/types'
+import type { Action, Board, Face, MonsterSlot, Pos, ZoneId } from '@utils/simulator/types'
 
 export type CardMenuProps = {
   board: Board
@@ -26,26 +28,35 @@ export type CardMenuProps = {
   onClose(): void
   /** The card is an Xyz monster: over an occupied monster zone it is offered the top first. */
   xyz?: boolean
+  /** The card's data, when it loaded: the head of the menu, and what it can be played as. An unknown card is offered as a monster. */
+  data?: CardData
+  /** Brings the card into play: the board then asks for the zone. */
+  onPlace(card: number, how: Placing, stance?: Stance): void
 }
 
 /** The list on screen: the main one, a submenu, or the counters of one kind. */
-type View = 'main' | 'activate' | 'counters' | 'move' | 'zones' | { kind: string }
+type View = 'main' | 'special' | 'activate' | 'counters' | 'move' | 'zones' | { kind: string }
 /** One item: it swaps the list (`go`), runs a callback, or performs actions; the last two close the menu. */
 type Entry = { key: string; label: string } & ({ go: View } | { run(): void } | { actions: Action[] })
 
 /** Space kept between the menu and the viewport edge. */
 const MARGIN = 8
 const ITEM =
-  'block w-full cursor-pointer border-b border-line px-4 py-3 text-left whitespace-nowrap text-ink-dim signal-strong last:border-b-0 hover:bg-surface-300 hover:text-ink focus-visible:bg-surface-300 focus-visible:text-ink focus-visible:-outline-offset-2 max-lg:min-h-11'
+  'sim-menu-item flex w-full cursor-pointer items-center justify-between gap-6 border-b border-line px-4 py-3 text-left whitespace-nowrap text-ink-dim signal-strong last:border-b-0 hover:bg-surface-300 hover:text-ink focus-visible:bg-surface-300 focus-visible:text-ink focus-visible:-outline-offset-2 max-lg:min-h-11'
+/** The items a digit key reaches. */
+const KEYED = 9
 
 /**
  * The keyboard path for every move, and for the rest of what a card can do. Opens at `at` with the first item
  * focused; arrows move between items; Escape, a pointer down outside or choosing an item closes it and the focus
- * goes back to the card. Submenus swap the list: Activate, Manage counters (one list per kind), Move card and its
- * "Move to a different zone" with every zone the card can go to.
+ * goes back to the card; a digit picks that item. Submenus swap the list: Special Summon (its position), Activate, Manage
+ * counters (one list per kind), Move card and its "Move to a different zone" with every zone the card can go to. The
+ * card's name heads the list, and what brings it into play comes first: from the hand a monster's Normal Summon, Set and
+ * Special Summon or a Spell or Trap's Activate and Set, each on the field; Special Summon from anywhere else off the field.
+ * A card in the hand then offers the GY and both ways of banishing it.
  */
-export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNewKind, onTag, onPile, onClose, xyz = false }: CardMenuProps) => {
-  const t = useTranslations('Simulator')
+export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNewKind, onTag, onPile, onClose, xyz = false, data, onPlace }: CardMenuProps) => {
+  const t = useTranslations('SimulatorNew')
   const [view, setView] = useState<View>('main')
   const root = useRef<HTMLDivElement>(null)
 
@@ -110,9 +121,33 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
   const monster = field && isMonsterSlot(where.zone)
   const slot = where.zone
   const back: Entry = { key: 'back', label: t('menu.back'), go: 'main' }
+  const monsterCard = !data || data.kind === 'monster'
+  const inHand = where.zone === 'hand'
+  const place = (key: Placing, label: string): Entry => ({ key, label, run: () => onPlace(card, key) })
+  const specialEntry: Entry = { key: 'special', label: t('menu.special'), go: 'special' }
+  const activateEntry: Entry = { key: 'activate', label: t('menu.activate'), go: 'activate' }
+  const plays: Entry[] =
+    inHand ? (monsterCard ? [place('normal', t('menu.normal')), specialEntry, activateEntry, place('set', t('menu.set'))] : [place('activate', t('menu.play')), place('set', t('menu.set'))])
+    : monsterCard && !isSlot(where.zone) ? [specialEntry, activateEntry]
+    : [activateEntry]
+
+  const stance = (key: string, label: string, face: Face, pos: Pos): Entry => ({ key, label, run: () => onPlace(card, 'special', { face, pos }) })
+  const special: Entry[] = [
+    back,
+    stance('specialAtk', t('menu.specialAtk'), 'up', 'atk'),
+    stance('specialDef', t('menu.specialDef'), 'up', 'def'),
+    stance('specialSet', t('menu.specialSet'), 'down', 'def'),
+  ]
 
   const main: Entry[] = [
-    { key: 'activate', label: t('menu.activate'), go: 'activate' },
+    ...plays,
+    ...(inHand
+      ? [
+          { key: 'handGy', label: t('menu.toGy'), actions: [{ t: 'move', card, to: 'gy' } as const] },
+          { key: 'banishUp', label: t('menu.banishUp'), actions: [{ t: 'move', card, to: 'banished' } as const] },
+          { key: 'banishDown', label: t('menu.banishDown'), actions: [{ t: 'move', card, to: 'banished', face: 'down' } as const] },
+        ]
+      : []),
     ...(field
       ? [
           { key: 'flip', label: t(state.face === 'up' ? 'menu.flipDown' : 'menu.flipUp'), actions: [{ t: 'flip', card, face: state.face === 'up' ? 'down' : 'up', pos: state.pos } as const] },
@@ -183,6 +218,7 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
 
   const list =
     view === 'main' ? main
+    : view === 'special' ? special
     : view === 'activate' ? activate
     : view === 'counters' ? counters
     : view === 'move' ? move
@@ -193,6 +229,11 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
     if (e.key === 'Tab') {
       e.preventDefault()
       return onClose()
+    }
+    const digit = Number(e.key)
+    if (digit >= 1 && digit <= Math.min(KEYED, list.length)) {
+      e.preventDefault()
+      return choose(list[digit - 1]!)
     }
     const items = Array.from(root.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
     const focused = items.indexOf(document.activeElement as HTMLElement)
@@ -214,10 +255,16 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
       aria-label={t('menu.label')}
       onKeyDown={onKeyDown}
       style={{ left: at.x, top: at.y }}
-      className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-52 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift"
+      className="fixed z-(--z-modal) max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] min-w-60 overflow-y-auto border border-line-mid bg-surface-100 shadow-lift motion-safe:animate-fade-in"
     >
-      {list.map((entry) => (
-        <button key={entry.key} type="button" role="menuitem" tabIndex={-1} onClick={() => choose(entry)} className={ITEM}>
+      <div aria-hidden className="flex items-center gap-2 border-b border-line bg-surface-200 px-3 py-2">
+        <span className="w-6 shrink-0">
+          <CardTile id={state.code} card={data} sizes="24px" disabled tabIndex={-1} className="cursor-default" />
+        </span>
+        <span className="min-w-0 truncate text-ink body-sm">{data?.name ?? state.code}</span>
+      </div>
+      {list.map((entry, i) => (
+        <button key={entry.key} type="button" role="menuitem" tabIndex={-1} data-key={i < KEYED ? i + 1 : undefined} onClick={() => choose(entry)} className={ITEM}>
           {entry.label}
         </button>
       ))}

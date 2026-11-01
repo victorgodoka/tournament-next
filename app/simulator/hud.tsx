@@ -156,12 +156,12 @@ export const ChainPlate = ({ names }: { names: string[] }) => {
 }
 
 /** Each pile's count, a button that opens it: the way in when a card's corner on the table is small to hit. */
-export const PileCounts = ({ board, onPile }: { board: Board; onPile(pile: Pile): void }) => {
+export const PileCounts = ({ board, disabled, onPile }: { board: Board; disabled: boolean; onPile(pile: Pile): void }) => {
   const t = useTranslations('SimulatorNew')
   return (
     <div className="sim-rail-section grid grid-cols-4 gap-1">
       {PILES.map((pile) => (
-        <Button key={pile} variant="secondary" size="mono" aria-label={t('rail.open', { zone: t(`zones.${pile}`) })} onClick={() => onPile(pile)} className="h-auto flex-col gap-1 px-1 py-2">
+        <Button key={pile} variant="secondary" size="mono" aria-label={t('rail.open', { zone: t(`zones.${pile}`) })} disabled={disabled} onClick={() => onPile(pile)} className="h-auto flex-col gap-1 px-1 py-2">
           <span className="text-ink stat">{board.zones[pile].length}</span>
           <span className="text-ink-muted signal-sm tracking-normal">{t(`rail.${pile}`)}</span>
         </Button>

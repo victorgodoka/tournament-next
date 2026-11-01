@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
+import { TextInput } from '@ui/field'
 import { Icon } from '@ui/icon'
 import { Panel } from '@ui/panel'
 import { CardTile } from '@app/deck-builder/card-tile'
@@ -12,6 +13,7 @@ import { isMonsterSlot } from '@utils/simulator/board'
 import type { Board, MonsterSlot, Pile } from '@utils/simulator/types'
 import { ActivationMarks, MARK } from './board'
 import type { Activation } from './board'
+import { TOUCH } from './toolbar'
 import type { Drag } from './use-drag'
 
 export type PilePanelProps = {
@@ -32,11 +34,14 @@ export type PilePanelProps = {
   onClose(): void
 }
 
-/** The window's width from `lg`, and the space kept from the viewport edges. */
+/** The window's width from `lg`, the rail it stays clear of, and the space kept from the viewport edges. */
 const WIDTH = 320
+const RAIL = 340
 const EDGE = 16
 /** Each window opens this far down and in from the one before. */
 const CASCADE = 28
+/** From how many cards a pile is worth searching. */
+const SEARCH_FROM = 8
 
 /**
  * A non-modal list of one pile (or of a monster's Xyz materials), the board still in view. From `lg` it is a floating
@@ -45,14 +50,17 @@ const CASCADE = 28
  * a mouse or pen drags a card out onto the board.
  */
 export const PilePanel = ({ board, zone, cards, activation, picking, index, onCard, onMenu, onHover, drag, onClose }: PilePanelProps) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const touch = useRef(false)
   const stack = isMonsterSlot(zone)
   const ids = stack ? board.zones[zone].slice(1) : board.zones[zone]
   const name = stack ? t('pile.materials', { count: ids.length }) : t(`zones.${zone}`)
+  const [query, setQuery] = useState('')
+  const wanted = query.trim().toLowerCase()
+  const shown = wanted ? ids.filter((id) => cards.get(board.cards[id]!.code)?.name.toLowerCase().includes(wanted)) : ids
 
-  // Where the window sits, from `lg`: opened over the side column, then wherever its header was dragged to.
-  const [pos, setPos] = useState(() => ({ x: Math.max(EDGE, window.innerWidth - WIDTH - EDGE - index * CASCADE), y: 120 + index * CASCADE }))
+  // Where the window sits, from `lg`: opened beside the rail, then wherever its header was dragged to.
+  const [pos, setPos] = useState(() => ({ x: Math.max(EDGE, window.innerWidth - RAIL - WIDTH - EDGE - index * CASCADE), y: 120 + index * CASCADE }))
   /** The pointer's offset from the window's corner while its header is held. */
   const held = useRef<{ dx: number; dy: number } | null>(null)
   const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
@@ -99,10 +107,11 @@ export const PilePanel = ({ board, zone, cards, activation, picking, index, onCa
         </Button>
       </header>
       {/* The list scrolls, not the panel: the chamfer is drawn on the panel and would scroll away with it. */}
-      <div className="min-h-0 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-col gap-3 overflow-y-auto p-4">
+        {ids.length >= SEARCH_FROM ? <TextInput aria-label={t('pile.search')} placeholder={t('pile.search')} value={query} onChange={(e) => setQuery(e.target.value)} plateClassName={TOUCH} /> : null}
         {ids.length ? (
           <ul aria-label={name} className="grid grid-cols-[repeat(auto-fill,64px)] gap-1">
-            {ids.map((id) => {
+            {shown.map((id) => {
               const card = board.cards[id]!
               const move = drag.bind(id, false) // not for a finger: it scrolls the list
               return (

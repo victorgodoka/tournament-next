@@ -924,8 +924,8 @@ export const MessengerDock = () => {
   const m = useMessengerView()
   const vw = useViewportWidth()
   const pathname = usePathname()
-  // The simulator's preview fills the window; the dock would sit on its End Turn.
-  if (pathname === "/" || pathname === "/simulator/new" || pathname.startsWith(pageHref)) return null
+  // The simulator fills the window; the dock would sit on its End Turn.
+  if (pathname === "/" || pathname === "/simulator" || pathname.startsWith(pageHref)) return null
   if (!m.panel || !m.S.me || vw < DOCK_MIN_WIDTH) return null
   return <Dock m={m} vw={vw} me={m.S.me} />
 }

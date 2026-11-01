@@ -1804,7 +1804,12 @@
     "menu": {
       "label": "Card actions",
       "normal": "Normal Summon",
-      "special": "Special Summon",
+      "special": "Special Summon…",
+      "specialAtk": "Attack",
+      "specialDef": "Defense",
+      "specialSet": "Defense, face-down",
+      "banishUp": "Banish face-up",
+      "banishDown": "Banish face-down",
       "set": "Set",
       "play": "Activate",
       "activate": "Activate effect…",

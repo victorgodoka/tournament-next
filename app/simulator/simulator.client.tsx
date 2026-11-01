@@ -6,34 +6,50 @@ import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { TextInput } from '@ui/field'
-import { PageHeader } from '@ui/page-header'
+import { Icon } from '@ui/icon'
+import { RailHead } from '@ui/rail-head'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import type { SharedCombo } from '@utils/combos'
-import { destroyedBy, initial, isMonsterSlot, kindsIn, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
+import { chainAt, destroyedBy, initial, isMonsterSlot, kindsIn, nextPhase, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
-import { dropAction } from '@utils/simulator/drop'
+import { dropAction, placeOptions, type PlaceKind, type Placing, type Stance } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
 import { LIMITS } from '@utils/simulator/types'
-import type { Action, MonsterSlot, Pile, Session } from '@utils/simulator/types'
+import type { Action, MonsterSlot, Pile, Session, ZoneId } from '@utils/simulator/types'
 import { BoardView, DragGhost, FLIP_MS } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
-import { History, HistoryDrawer } from './history'
+import { History } from './history'
+import { ChainPlate, LifePlate, PileCounts } from './hud'
 import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar } from './replay-bar'
+import { Room } from './room'
 import { SaveFlowView } from './save-dialog'
-import { Toolbar, TOUCH } from './toolbar'
+import { Commands, Dock, TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 import { useReplay } from './use-replay'
 import { useSave } from './use-save'
 import { VideoDialog } from './video-dialog'
 
 const DRAFT_DELAY_MS = 300
+const END_TURN: Action = { t: 'endTurn' }
+/** The opening hand. */
+const HAND_SIZE = 5
+/** Every shortcut, as the help lists them: `[keys, what it does]`. */
+const SHORTCUTS = [
+  ['← →', 'step'],
+  ['Space', 'play'],
+  ['Ctrl Z / Ctrl Y', 'undo'],
+  ['E', 'endTurn'],
+  ['1–9', 'menu'],
+  ['Shift', 'set'],
+  ['?', 'open'],
+] as const
 /** A key typed here is the field's, never a shortcut. */
 const TYPING = 'input, textarea, select, [contenteditable]'
 /** An open dialog owns the keyboard: its Escape, its fields, its buttons. */
@@ -70,7 +86,7 @@ const Simulator = () => {
 
 /** A short text asked in a small dialog: the name of a new counter kind, or a card's tag. */
 const TextDialog = ({ open, title, label, initial, maxLength, confirm, onConfirm, onClose }: { open: boolean; title: string; label: string; initial: string; maxLength: number; confirm: string; onConfirm(text: string): void; onClose(): void }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const [text, setText] = useState(initial)
   const field = useRef<HTMLDivElement>(null)
   // After `showModal`, which runs in the dialog's own effect and would otherwise leave the focus on its Close button.
@@ -121,7 +137,7 @@ const TextDialog = ({ open, title, label, initial, maxLength, confirm, onConfirm
 }
 
 const Loaded = ({ boot }: { boot: Boot }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const [session, dispatch] = useReducer(sessionReducer, boot.session)
   const [notice, setNotice] = useState(boot.notice)
   /** No deck yet: the picker opens by itself. */
@@ -140,9 +156,11 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
+  /** A card being brought into play, and where it can go: the board asks for the zone. Menus and drag are off until it answers. */
+  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions> } | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
   /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
   const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
-  const [historyOpen, setHistoryOpen] = useState(false)
   /** The card a new counter kind is being named for, and the card being tagged. */
   const [naming, setNaming] = useState<number | null>(null)
   const [tagging, setTagging] = useState<number | null>(null)
@@ -163,6 +181,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** The cards the step on screen played: the board marks them. */
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
   const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
+  /** The chain the steps on screen build. */
+  const chain = useMemo(() => chainAt(session.actions, session.cursor), [session.actions, session.cursor])
   /** The counter kinds the menu offers: those added by hand and those the log already uses. */
   const kinds = useMemo(() => [...new Set([...session.counterTypes, ...kindsIn(session.actions)])], [session.counterTypes, session.actions])
 
@@ -170,16 +190,22 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     ensure([...session.deck.main, ...session.deck.extra]).catch(() => {})
   }, [session.deck, ensure, lookupAttempt])
 
-  const targetMode = targeting !== null
+  const targetMode = targeting !== null || placing !== null
   useEffect(() => {
     if (!targetMode) return
-    const escape = (e: KeyboardEvent) => e.key === 'Escape' && !dialogOpen() && setTargeting(null)
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || dialogOpen()) return
+      setTargeting(null)
+      setPlacing(null)
+    }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [targetMode])
 
   const { cursor } = session
   const end = session.actions.length
+  /** The board before the hand: dealing one is the first step of every line, and nothing on the table can be touched until then. */
+  const blank = cursor === 0
   /** A replay is stepping from `start` to the end: menus, drag, target mode and the toolbar are off. */
   const { playing, speed, setSpeed, toggle, step } = useReplay({ session, boards, dispatch, onShow: setSelected })
 
@@ -208,7 +234,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
 
   /** Not while a replay plays: acting there would cut the steps it is about to show. */
   const perform = (actions: Action[]) => {
-    if (!playing && validRun(board, actions)) dispatch({ type: 'act', actions })
+    if (!playing && !blank && validRun(board, actions)) dispatch({ type: 'act', actions })
   }
 
   /** Runs `run` at once, or after the confirm dialog when it would throw away something worth asking about. */
@@ -220,6 +246,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     setLocked(null)
     setPiles([])
     setTargeting(null)
+    setPlacing(null)
     setVideoFor(null)
   }
   // A reload clears the save alert itself before it opens the combo.
@@ -253,6 +280,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Deleting the combo the session is tied to leaves its line as an unsaved one. The reducer judges the tie: the delete may land long after the click. */
   const comboDeleted = (id: string) => dispatch({ type: 'unlink', id })
 
+  /** A hand was just dealt: the board deals it from the deck. */
+  const dealtRef = useRef(false)
   /**
    * A fresh board dealt by `actions`, with the replay starting after them: dealing the hand is never part of the line.
    * Nothing played after the start so far: no question, so testing hands takes one click each.
@@ -264,15 +293,17 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       dispatch({ type: 'reset' })
       dispatch({ type: 'act', actions })
       dispatch({ type: 'setStart', start: actions.length })
+      dealtRef.current = true
       forget()
     })
   }
   /** Shuffle, draw 5. */
   const newHand = () => deal([shuffleAction(initial(session.deck)), { t: 'draw', n: 5 }])
-  /** Shuffle, then the picked cards into the hand in the order they were picked. */
-  const chooseHand = (ids: number[]) => {
+  /** Shuffle, then the picked cards into the hand in the order they were picked, and the rest of the hand at random if asked. */
+  const chooseHand = (ids: number[], fill: boolean) => {
     setChoosing(false)
-    deal([shuffleAction(initial(session.deck)), ...ids.map((card): Action => ({ t: 'move', card, to: 'hand' }))])
+    const rest: Action[] = fill && ids.length < HAND_SIZE ? [{ t: 'draw', n: HAND_SIZE - ids.length }] : []
+    deal([shuffleAction(initial(session.deck)), ...ids.map((card): Action => ({ t: 'move', card, to: 'hand' })), ...rest])
   }
 
   const reset = () =>
@@ -297,7 +328,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const droppedRef = useRef<number | null>(null)
   // Off while the menu is open (a drag would move a card the menu is about to act on), while picking targets and while a
   // replay plays. The ghost goes with it, so none is left over a replay that started mid-drag.
-  const dragOn = menu === null && !targeting && !playing
+  const dragOn = menu === null && !targetMode && !playing && !blank
   const drag = useDrag({
     enabled: dragOn,
     onDrop: (card, zone, shift) => {
@@ -315,20 +346,24 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   // key pauses it first, as the bar's buttons do.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     const target = e.target instanceof Element ? e.target : null
-    if (e.defaultPrevented || targeting || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
+    if (e.defaultPrevented || targetMode || menu || drag.dragging !== null || target?.matches(TYPING) || dialogOpen()) return
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     const run =
-      mod && !e.altKey && key === 'z' ? (e.shiftKey ? 'redo' : 'undo')
+      e.key === '?' ? 'help'
+      : mod && !e.altKey && key === 'z' ? (e.shiftKey ? 'redo' : 'undo')
       : mod && !e.altKey && !e.shiftKey && key === 'y' ? 'redo'
       : mod || e.altKey || e.shiftKey ? null
       : e.key === 'ArrowLeft' ? 'undo'
       : e.key === 'ArrowRight' ? 'redo'
       : e.key === ' ' && !target?.matches('button') ? 'play'
+      : key === 'e' ? 'endTurn'
       : null
     if (!run) return
     e.preventDefault()
     if (run === 'play') togglePlay()
+    else if (run === 'help') setHelpOpen(true)
+    else if (run === 'endTurn') perform([END_TURN])
     else step(cursor + (run === 'redo' ? 1 : -1))
   })
   useEffect(() => {
@@ -338,7 +373,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   }, [])
 
   const openMenu = (id: number, at: { x: number; y: number }) => {
-    if (playing) return
+    if (playing || placing || blank) return
     setSelected(id)
     setMenu({ card: id, at })
   }
@@ -348,15 +383,35 @@ const Loaded = ({ boot }: { boot: Boot }) => {
       if (!now || id === now.source) return now
       return { ...now, targets: now.targets.includes(id) ? now.targets.filter((other) => other !== id) : [...now.targets, id] }
     })
+  /** What decides where a card can stand; an unknown one is taken for a monster. */
+  const placeKind = (id: number): PlaceKind => {
+    const data = cards.get(board.cards[id]?.code ?? -1)
+    return !data || data.kind === 'monster' ? 'monster' : data.humanReadableCardType === 'Field Spell' ? 'fieldSpell' : 'spell'
+  }
+  /** Asks for the zone of a card coming into play. With none free there is nothing to ask. */
+  const place = (card: number, how: Placing, stance?: Stance) => {
+    const options = placeOptions(board, card, how, placeKind(card), stance)
+    if (options.length) setPlacing({ card, options })
+  }
+  /** A double-click: a Spell or Trap in the hand activates on the field, as its menu does; anything else activates where it is. */
+  const activateCard = (id: number) => {
+    if (board.zones.hand.includes(id) && placeKind(id) !== 'monster') place(id, 'activate')
+    else perform([{ t: 'activate', card: id, targets: [] }])
+  }
+  const placeAt = (zone: ZoneId) => {
+    const option = placing?.options.find((one) => one.zone === zone)
+    if (option) perform(option.actions)
+    setPlacing(null)
+  }
   const confirmTargets = () => {
     if (targeting) perform([{ t: 'activate', card: targeting.source, targets: targeting.targets }])
     setTargeting(null)
   }
   /** A mouse click selects; a keyboard click (no click count) opens the menu, which is how the keyboard moves a card. While picking targets, any click picks. */
-  const onCard = (id: number, e: React.MouseEvent) => (targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
+  const onCard = (id: number, e: React.MouseEvent) => (placing ? undefined : targeting ? pick(id) : e.detail === 0 ? openMenu(id, anchor(e)) : setSelected(id))
   const onMenu = (id: number, e: React.MouseEvent) => {
     e.preventDefault() // not the browser's own menu
-    if (!targeting) openMenu(id, anchor(e))
+    if (!targetMode) openMenu(id, anchor(e))
   }
   /** Opens a pile's window, or closes it when it is open. */
   const togglePile = (zone: Pile | MonsterSlot) => setPiles((open) => (open.includes(zone) ? open.filter((z) => z !== zone) : [...open, zone]))
@@ -392,8 +447,8 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const lookupFailed = [...session.deck.main, ...session.deck.extra].some((id) => failed.has(id))
 
   return (
-    <div className="mx-auto flex w-[min(var(--container-page),calc(100%-32px))] flex-col gap-6 pt-8 pb-24">
-      <PageHeader eyebrow={t('eyebrow')} eyebrowMeta={session.name || undefined} title={t('title')} />
+    <div className="sim-stage">
+      <h1 className="sr-only">{t('title')}</h1>
       <DeckPicker
         open={picker}
         onClose={() => setPicker(false)}
@@ -406,114 +461,175 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           })
         }
       />
-
-      {notice ? (
-        <Alert
-          tone="warn"
-          edged
-          title={t(notice)}
-          action={
-            <Button variant="ghost" size="sm" onClick={() => setNotice(null)} className={TOUCH}>
-              {t('dismiss')}
-            </Button>
-          }
-        />
-      ) : null}
-      {lookupFailed ? (
-        <Alert
-          tone="warn"
-          edged
-          title={t('lookupFailed')}
-          action={
-            <Button variant="secondary" size="sm" onClick={() => setLookupAttempt((n) => n + 1)} className={TOUCH}>
-              {t('retry')}
-            </Button>
-          }
-        />
-      ) : null}
-      <SaveFlowView flow={saves} playing={playing} />
-
-      {/* A save on its way holds the toolbar too: a deck or hand loaded before it lands would be tied to that combo. */}
-      <Toolbar
-        board={board}
-        session={session}
-        playing={playing || saves.busy}
-        picking={targetMode}
-        onDeck={() => setPicker(true)}
-        onNewHand={newHand}
-        onChooseHand={() => setChoosing(true)}
-        onAct={perform}
-        onUndo={() => step(cursor - 1)}
-        onRedo={() => step(cursor + 1)}
-        onReset={reset}
-        unsaved={saves.unsaved}
-        onSave={saves.save}
-        onSaveAs={saves.saveAs}
-        onMyCombos={() => saves.gate(() => setListing(true))}
-        onShare={saves.share}
-        onVideo={askVideo}
-        historyOpen={historyOpen}
-        onHistory={() => setHistoryOpen((o) => !o)}
-      />
       <MyCombos open={listing} onClose={() => setListing(false)} onOpen={openCombo} onDeleted={comboDeleted} />
       <VideoDialog open={videoOpen} onClose={() => setVideoFor(null)} comboId={session.combo?.id ?? ''} actions={session.actions} start={session.start} />
-      <ReplayBar
-        cursor={cursor}
-        end={end}
-        start={session.start}
-        playing={playing}
-        picking={targetMode}
-        speed={speed}
-        onStep={step}
-        onPlay={togglePlay}
-        onSpeed={setSpeed}
-      />
 
-      {targeting ? (
-        <Alert
-          tone="info"
-          edged
-          title={t('targets.prompt', { count: targeting.targets.length })}
-          action={
-            <div className="flex gap-2">
-              <Button size="sm" disabled={targeting.targets.length === 0} onClick={confirmTargets} className={TOUCH}>
-                {t('targets.confirm')}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setTargeting(null)} className={TOUCH}>
-                {t('targets.cancel')}
-              </Button>
-            </div>
-          }
+      <section aria-label={t('title')} className="sim-field">
+        <Room />
+        <div className="sim-bar">
+          <Button variant="secondary" size="icon" href="/" aria-label={t('home')} title={t('home')} className="shrink-0">
+            <Icon name="left" />
+          </Button>
+          <button
+            type="button"
+            aria-label={t('toolbar.deck')}
+            title={t('toolbar.deck')}
+            disabled={playing || saves.busy}
+            onClick={() => setPicker(true)}
+            className="min-w-0 cursor-pointer text-left disabled:cursor-not-allowed"
+          >
+            <span className="block text-ink-muted signal-sm">{t('eyebrow')}</span>
+            <span className="flex items-center gap-1 text-ink body-strong">
+              <span className="truncate">{session.name || t('toolbar.deck')}</span>
+              <Icon name="down" size={14} className="shrink-0" />
+            </span>
+          </button>
+        </div>
+
+        <div className="sim-notices">
+          {notice ? (
+            <Alert
+              tone="warn"
+              edged
+              title={t(notice)}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => setNotice(null)} className={TOUCH}>
+                  {t('dismiss')}
+                </Button>
+              }
+            />
+          ) : null}
+          {lookupFailed ? (
+            <Alert
+              tone="warn"
+              edged
+              title={t('lookupFailed')}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setLookupAttempt((n) => n + 1)} className={TOUCH}>
+                  {t('retry')}
+                </Button>
+              }
+            />
+          ) : null}
+          <SaveFlowView flow={saves} playing={playing} />
+          {placing ? (
+            <Alert
+              tone="info"
+              edged
+              title={t('place.prompt', { card: nameOf(placing.card) })}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setPlacing(null)} className={TOUCH}>
+                  {t('targets.cancel')}
+                </Button>
+              }
+            />
+          ) : null}
+          {targeting ? (
+            <Alert
+              tone="info"
+              edged
+              title={t('targets.prompt', { count: targeting.targets.length })}
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={targeting.targets.length === 0} onClick={confirmTargets} className={TOUCH}>
+                    {t('targets.confirm')}
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setTargeting(null)} className={TOUCH}>
+                    {t('targets.cancel')}
+                  </Button>
+                </div>
+              }
+            />
+          ) : null}
+        </div>
+
+        <LifePlate side="rival" lp={board.lp.rival} disabled={playing || targetMode || blank} onChange={(delta) => perform([{ t: 'lp', side: 'rival', delta }])} className="sim-life-rival" />
+        <LifePlate side="me" lp={board.lp.me} disabled={playing || targetMode || blank} onChange={(delta) => perform([{ t: 'lp', side: 'me', delta }])} className="sim-life-you" />
+        <ChainPlate names={chain.map(nameOf)} />
+        <BoardView
+          fill
+          inert={blank}
+          board={board}
+          cards={cards}
+          selected={selected}
+          activation={activation}
+          marked={marked}
+          destroyed={destroyed}
+          tags={cursor === end}
+          step={{ cursor, actions: session.actions }}
+          droppedRef={droppedRef}
+          dealtRef={dealtRef}
+          chain={chain}
+          pick={placing?.options.map((one) => one.zone)}
+          onPick={placeAt}
+          flipMs={FLIP_MS / Math.max(1, speed)}
+          onPhase={playing || targetMode ? undefined : () => perform([{ t: 'phase', to: nextPhase(board.phase) }])}
+          onCard={onCard}
+          onMenu={onMenu}
+          onLongPress={(id, at) => !targetMode && openMenu(id, at)}
+          onActivate={(id) => !targetMode && activateCard(id)}
+          onHover={setHovered}
+          locked={locked}
+          onLock={toggleLock}
+          drag={drag}
+          onPile={togglePile}
         />
-      ) : null}
+        {playing && shown?.note ? <p className="sim-caption text-ink body">{shown.note}</p> : null}
+        {/* Nothing to play yet: the next step, in the middle of the table. */}
+        {end === 0 && !picker ? (
+          <div className="sim-empty">
+            {session.deck.main.length === 0 ? (
+              <Button size="lg" onClick={() => setPicker(true)}>
+                {t('empty.deck')}
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" onClick={newHand}>
+                  {t('empty.deal')}
+                </Button>
+                <Button variant="secondary" onClick={() => setChoosing(true)} className={TOUCH}>
+                  {t('empty.choose')}
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
+        <Dock board={board} session={session} playing={playing || saves.busy} picking={targetMode} onAct={perform} onUndo={() => step(cursor - 1)} onRedo={() => step(cursor + 1)} />
+      </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-3">
-          <BoardView
-            board={board}
-            cards={cards}
-            selected={selected}
-            activation={activation}
-            marked={marked}
-            destroyed={destroyed}
-            tags={cursor === end}
-            step={{ cursor, actions: session.actions }}
-            droppedRef={droppedRef}
-            flipMs={FLIP_MS / Math.max(1, speed)}
-            onCard={onCard}
-            onMenu={onMenu}
-            onLongPress={(id, at) => !targeting && openMenu(id, at)}
-            onActivate={(id) => !targeting && perform([{ t: 'activate', card: id, targets: [] }])}
-            onHover={setHovered}
-            locked={locked}
-            onLock={toggleLock}
-            drag={drag}
-            onPile={togglePile}
-          />
-          {/* The caption of the step on screen: a field to write it in by hand, its text alone while a replay plays. */}
-          {cursor === 0 ? null : playing ? (
-            shown?.note ? <p className="text-center text-ink body">{shown.note}</p> : null
-          ) : (
+      <aside aria-label={t('rail.label')} className="sim-rail">
+        {/* A save on its way holds these too: a deck or hand loaded before it lands would be tied to that combo. */}
+        <Commands
+          session={session}
+          playing={playing || saves.busy}
+          onNewHand={newHand}
+          onChooseHand={() => setChoosing(true)}
+          onReset={reset}
+          unsaved={saves.unsaved}
+          onSave={saves.save}
+          onSaveAs={saves.saveAs}
+          onMyCombos={() => saves.gate(() => setListing(true))}
+          onShare={saves.share}
+          onVideo={askVideo}
+          onHelp={() => setHelpOpen(true)}
+        />
+        <RailHead num="01" label={t('rail.card')} />
+        {/* It follows the pointer over the board, or stays on the card it is locked on. */}
+        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="sim-rail-section sim-rail-card" />
+        <RailHead num="02" label={t('rail.log')} />
+        <History
+          session={session}
+          boards={boards}
+          cards={cards}
+          nameOf={nameOf}
+          disabled={playing || targetMode}
+          onSeek={step}
+          onSetStart={(start) => dispatch({ type: 'setStart', start })}
+          className="sim-rail-section sim-rail-log"
+        />
+        {/* The caption of the step on screen: a field to write it in by hand; while a replay plays, its text shows over the field. */}
+        {cursor === 0 || playing ? null : (
+          <div className="sim-rail-section border-t border-line">
             <TextInput
               aria-label={t('caption.label')}
               placeholder={t('caption.placeholder')}
@@ -522,11 +638,27 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               onChange={(e) => dispatch({ type: 'note', index: cursor - 1, note: e.target.value })}
               plateClassName={TOUCH}
             />
-          )}
+          </div>
+        )}
+        <RailHead num="03" label={t('rail.zones')} className="border-t" />
+        <PileCounts board={board} disabled={blank} onPile={togglePile} />
+        <div className="sim-rail-section flex flex-col gap-3 border-t border-line">
+          <ReplayBar
+            cursor={cursor}
+            end={end}
+            start={session.start}
+            playing={playing}
+            picking={targetMode}
+            speed={speed}
+            onStep={step}
+            onPlay={togglePlay}
+            onSpeed={setSpeed}
+          />
+          <Button size="lg" disabled={playing || saves.busy || blank} onClick={() => perform([END_TURN])} className="w-full">
+            {t('toolbar.endTurn')}
+          </Button>
         </div>
-        {/* The side column is the card panel alone: it follows the pointer over the board, or stays on the card it is locked on. */}
-        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="lg:sticky lg:top-24" />
-      </div>
+      </aside>
 
       {/* Each open pile in its own window, the last opened on top. */}
       {piles.map((zone, index) => (
@@ -546,19 +678,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
         />
       ))}
 
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)}>
-        <History
-          session={session}
-          boards={boards}
-          cards={cards}
-          nameOf={nameOf}
-          disabled={playing || targetMode}
-          onSeek={step}
-          onSetStart={(start) => dispatch({ type: 'setStart', start })}
-          className="max-h-none"
-        />
-      </HistoryDrawer>
-
       <DragGhost card={dragging === null ? undefined : board.cards[dragging]} cards={cards} ghostRef={drag.ghostRef} />
 
       {/* Outside the board: its container query box would be the containing block of anything fixed inside it. */}
@@ -577,10 +696,23 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onPile={togglePile}
           onClose={() => setMenu(null)}
           xyz={isXyz(menu.card)}
+          data={cards.get(board.cards[menu.card]?.code ?? -1)}
+          onPlace={place}
         />
       ) : null}
 
-      {choosing ? <HandPicker board={initial(session.deck)} cards={cards} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
+      {choosing ? <HandPicker board={initial(session.deck)} cards={cards} size={HAND_SIZE} onClose={() => setChoosing(false)} onPick={chooseHand} /> : null}
+
+      <Dialog size="sm" open={helpOpen} onClose={() => setHelpOpen(false)} title={t('help.title')}>
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-2">
+          {SHORTCUTS.map(([keys, what]) => (
+            <div key={what} className="contents">
+              <dt className="text-ink data">{keys}</dt>
+              <dd className="text-ink-dim body-sm">{t(`help.${what}`)}</dd>
+            </div>
+          ))}
+        </dl>
+      </Dialog>
 
       {/* Keyed by the card: each asks afresh, with that card's own tag filled in. */}
       {naming !== null ? (

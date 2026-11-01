@@ -15,4 +15,8 @@ const Loading = () => {
 // Client only: the simulator boots from `?d=` and the local draft, which the server can't see.
 const Simulator = dynamic(() => import('./simulator.client'), { ssr: false, loading: Loading })
 
-export const SimulatorLoader = () => <Simulator />
+export const SimulatorLoader = () => (
+  <main className="min-h-dvh overflow-x-clip">
+    <Simulator />
+  </main>
+)

@@ -12,6 +12,7 @@ export default function robots(): MetadataRoute.Robots {
           '/wiki/new',
           '/wiki/panel',
           '/simulator/new',
+          '/wiki/example',
         ],
       },
       {

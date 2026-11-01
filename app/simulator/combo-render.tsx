@@ -99,11 +99,11 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
   const video = useMemo(() => renderTimeline(opened.actions, opened.start, speed), [opened, speed])
 
   // Fitted before the first paint, so each image is asked for once, at the width it is drawn. The board's root fills the
-  // row, so its size is the span of its zones; nothing around it depends on the fonts (one line each, a fixed caption).
-  // The caption shares the room, under the board: the board gets the room less the caption and the gap above it.
+  // row, so its size is the span of its zones and the rival's cells; nothing around it depends on the fonts (one line each,
+  // a fixed caption). The caption shares the room, under the board: the board gets the room less the caption and the gap above it.
   useLayoutEffect(() => {
     const el = room.current!
-    const boxes = [...el.querySelectorAll('[data-zone]')].map((zone) => zone.getBoundingClientRect())
+    const boxes = [...el.querySelectorAll('[data-zone], .sim-rival')].map((zone) => zone.getBoundingClientRect())
     const bottom = Math.max(...boxes.map((b) => b.bottom))
     const measured = {
       width: Math.max(...boxes.map((b) => b.right)) - Math.min(...boxes.map((b) => b.left)),
@@ -160,6 +160,7 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
             arrows are taken at the fitted size, never at the probe's. */}
         <BoardView
           key={cardW ?? 'probe'}
+          still
           board={board}
           cards={cards}
           selected={null}

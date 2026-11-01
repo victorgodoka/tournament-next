@@ -247,7 +247,9 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             className="lg:hidden"
           />
           <div {...tabPanelProps('player-side', 'card')} className={tab === 'card' ? undefined : 'max-lg:hidden'}>
-            <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
+            <Panel tone="framed" label={t('cardPanel.title')}>
+              <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
+            </Panel>
           </div>
           <div {...tabPanelProps('player-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
             {/* "Replay starts here" moves this viewer's start only: the combo itself is never written from here. */}

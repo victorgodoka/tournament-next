@@ -1804,7 +1804,12 @@
     "menu": {
       "label": "Ações da carta",
       "normal": "Invocação-Normal",
-      "special": "Invocação-Especial",
+      "special": "Invocação-Especial…",
+      "specialAtk": "Ataque",
+      "specialDef": "Defesa",
+      "specialSet": "Defesa, com a face para baixo",
+      "banishUp": "Banir com a face para cima",
+      "banishDown": "Banir com a face para baixo",
       "set": "Baixar",
       "play": "Ativar",
       "activate": "Ativar efeito…",

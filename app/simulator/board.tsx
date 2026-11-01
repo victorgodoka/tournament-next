@@ -9,7 +9,8 @@ import { CardTile } from '@app/deck-builder/card-tile'
 import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot, isSlot, locate, stepCards } from '@utils/simulator/board'
-import type { Action, Board, Card, MonsterSlot, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import type { Action, Board, Card, MonsterSlot, Phase, Pile, Slot, ZoneId } from '@utils/simulator/types'
+import { backFace, banner, burst, fly, label, lookOf, pileGain, pillar, poseOf, riffle, ripple, scan, shatter, sink, sizeOf, strike, sweep, type Flight, type Pose, type Stage } from './fx'
 import type { Drag } from './use-drag'
 
 /** The card that was activated and the cards it targets. */
@@ -25,8 +26,10 @@ export type BoardViewProps = {
   marked: number[]
   /** Where the session stands: a move of one step slides the cards of that step, and only those. */
   step: { cursor: number; actions: readonly Action[] }
-  /** A card a drag just dropped: it is already where the pointer let go, so it does not slide. Read once, then cleared. */
+  /** A card a drag just dropped: it is already where the pointer let go, so it does not fly. Read once, then cleared. */
   droppedRef: React.RefObject<number | null>
+  /** A fresh hand was just dealt: the deck riffles and every card of the hand flies out of it, one after the other. Read once, then cleared. */
+  dealtRef?: React.RefObject<boolean>
   /** How long a card takes to slide into its new place. */
   flipMs: number
   onCard(id: number, e: React.MouseEvent): void
@@ -47,20 +50,50 @@ export type BoardViewProps = {
   destroyed?: { card: number; from: ZoneId } | null
   /** Show the tags: on the last frame, where the line ends. */
   tags?: boolean
-  /** A card width in px, in place of the one that fits the width (at most 84px): the render page sizes the board itself. */
+  /** A card width in px, in place of the one that fits the box: the render page sizes the board itself. */
   cardW?: number
-  /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 84px. */
+  /** What card faces and backs ask `next/image` for; by default the widest the board draws them, 150px. */
   imageSizes?: string
+  /** The board fills a box of known height, the stage's, its hand in a fan along the bottom edge; else it flows, the hand under it. */
+  fill?: boolean
+  /** The core was pressed: the next phase. Without it the core only shows. */
+  onPhase?(): void
+  /** The chain on screen, card ids, the first link first: each card carries its link number. */
+  chain?: number[]
+  /** The zones a card being brought into play can go to: the rest of the board steps back and each of these takes a click. */
+  pick?: ZoneId[]
+  onPick?(zone: ZoneId): void
+  /** No ambient motion: the recorder drives every animation by hand, and would restart what loops on each step. */
+  still?: boolean
+  /** Nothing on the board takes a click or the focus. */
+  inert?: boolean
 }
 
-/** `[zone, column, row]` on the 7 × 3 grid. Banished takes the EMZ row's last column, above the GY. */
+/** `[zone, column, row]` on the 7 × 5 grid. Banished takes the EMZ row's last column, above the GY. */
 const LAYOUT: [Exclude<ZoneId, 'hand'>, number, number][] = [
-  ['emz0', 3, 1], ['emz1', 5, 1], ['banished', 7, 1],
-  ['field', 1, 2], ['m0', 2, 2], ['m1', 3, 2], ['m2', 4, 2], ['m3', 5, 2], ['m4', 6, 2], ['gy', 7, 2],
-  ['extra', 1, 3], ['s0', 2, 3], ['s1', 3, 3], ['s2', 4, 3], ['s3', 5, 3], ['s4', 6, 3], ['deck', 7, 3],
+  ['emz0', 3, 3], ['emz1', 5, 3], ['banished', 7, 3],
+  ['field', 1, 4], ['m0', 2, 4], ['m1', 3, 4], ['m2', 4, 4], ['m3', 5, 4], ['m4', 6, 4], ['gy', 7, 4],
+  ['extra', 1, 5], ['s0', 2, 5], ['s1', 3, 5], ['s2', 4, 5], ['s3', 5, 5], ['s4', 6, 5], ['deck', 7, 5],
 ]
 
-const SIZES = '84px'
+/** The rival's cells, scenery with no `data-zone`: `[column, row, what stands there]`, the player's side turned round. */
+const RIVAL: [number, number, 'pile' | 'monster' | 'empty'][] = [
+  [1, 1, 'pile'], [2, 1, 'empty'], [3, 1, 'empty'], [4, 1, 'empty'], [5, 1, 'empty'], [6, 1, 'empty'], [7, 1, 'pile'],
+  [1, 2, 'empty'], [2, 2, 'monster'], [3, 2, 'monster'], [4, 2, 'monster'], [5, 2, 'monster'], [6, 2, 'monster'], [7, 2, 'empty'],
+  [1, 3, 'empty'],
+]
+
+/** The circuits under the player's half, in a 70 × 50 box of the mat; the rival's half mirrors them. */
+const VEINS = [
+  'M35 30V33L33 35V40L35 42V50',
+  'M31 27L28 30V34L25 37V43L22 46V50',
+  'M39 27L42 30V34L45 37V43L48 46V50',
+  'M28 25H14L11 28V38L8 41V50',
+  'M42 25H56L59 28V38L62 41V50',
+]
+
+const SIZES = '150px'
+const RIVAL_HAND = [0, 1, 2, 3, 4]
 const BADGE = 'pointer-events-none absolute px-1 font-mono text-[11px] leading-4 font-bold tabular-nums'
 /** A small marker over a card's corner (negated, face-down). */
 export const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
@@ -70,18 +103,13 @@ const Back = ({ sizes = SIZES }: { sizes?: string }) => (
 )
 
 /**
- * Over a card, never in the way of a click: the glow of the card that was activated (a gold halo that pulses three
- * times when motion is welcome, then stays lit, as it always is when motion is not) and a dashed ring on each of its targets.
+ * Over a card, never in the way of a click: the glow of the card that was activated (a cyan halo that pulses three
+ * times when motion is welcome, then stays lit, as it always is when motion is not) and a reticle on each of its targets.
  */
 export const ActivationMarks = ({ active, targeted }: { active: boolean; targeted: boolean }) => (
   <>
-    {active ? (
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-1 bg-ground-gold shadow-[0_0_18px_6px_var(--color-gold)] outline outline-2 outline-gold motion-safe:animate-pulse motion-safe:[animation-iteration-count:3]"
-      />
-    ) : null}
-    {targeted ? <span aria-hidden className="pointer-events-none absolute inset-0 outline outline-2 -outline-offset-2 outline-dashed outline-crimson-lift" /> : null}
+    {active ? <span aria-hidden className="sim-active" /> : null}
+    {targeted ? <span aria-hidden className="sim-reticle" /> : null}
   </>
 )
 
@@ -98,8 +126,39 @@ const ZoneMark = ({ zone }: { zone: ZoneId }) => {
     : zone === 's0' ? icon('gem', 'rotate-90 text-azure')
     : zone === 's4' ? icon('gem', '-rotate-90 text-crimson')
     : zone === 'field' ? <Image src="/icons/field.png" alt="" fill sizes="42px" className="object-contain p-[22%]" />
+    : /^m\d$/.test(zone) ? <span className="sim-arrow" />
     : null
   return mark ? <span aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center opacity-40">{mark}</span> : null
+}
+
+/** The circuits under the glass: the player's half, then the same turned over for the rival's. */
+const Veins = () => (
+  <svg aria-hidden className="sim-veins" viewBox="0 0 70 50" preserveAspectRatio="none">
+    {[undefined, 'matrix(1 0 0 -1 0 50)'].map((transform) => (
+      <g key={transform ?? 'near'} transform={transform}>
+        {VEINS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        {VEINS.map((d, i) => (
+          <path key={d} className="sim-vein-pulse" d={d} pathLength={100} style={{ '--d': `${-i * 1.7 - (transform ? 0.9 : 0)}s` } as React.CSSProperties} />
+        ))}
+      </g>
+    ))}
+  </svg>
+)
+
+/** The hexagon at the heart of the table: the turn, the phase under it. Pressing it moves on to the next phase. */
+const Core = ({ turn, phase, onPhase }: { turn: number; phase: Phase; onPhase?(): void }) => {
+  const t = useTranslations('SimulatorNew')
+  const label = t(`phases.${phase}`)
+  return (
+    <button type="button" disabled={!onPhase} aria-label={t('phaseNext', { phase: label })} title={onPhase ? t('phaseNext', { phase: label }) : undefined} onClick={onPhase} className="sim-core">
+      <span className="flex flex-col items-center gap-1">
+        <span className="sim-core-turn text-ink dock-title">{t('turn', { n: turn })}</span>
+        <span className="sim-core-phase text-cyan signal">{label}</span>
+      </span>
+    </button>
+  )
 }
 
 /** Cracks and a crimson glow: the card was destroyed in the step on screen. Over the cell it left and the pile it went to. */
@@ -133,6 +192,13 @@ const Counters = ({ counters, plain }: { counters: Record<string, number>; plain
   </span>
 )
 
+/** A card's place in the chain on screen, stamped on it. */
+const ChainLink = ({ n }: { n: number }) => (
+  <span aria-hidden className="sim-link sim-link-card">
+    {n}
+  </span>
+)
+
 /** Corner brackets around a card the step on screen played. */
 const StepMark = () => (
   <span aria-hidden className="pointer-events-none absolute -inset-1 z-1">
@@ -146,8 +212,15 @@ const StepMark = () => (
 /** An arrowhead's barbs, in px, and how far they spread from the line. */
 const HEAD = 10
 const SPREAD = 0.5
-/** How long a card takes to slide into its new place at 1x: slow enough to follow. */
+/** How long a card takes to fly to its new place at 1x: slow enough to follow. */
 export const FLIP_MS = 450
+/** What a flight is drawn through where the field lies flat and there is no camera to read: far enough to change nothing. */
+const NO_CAMERA = 4000
+/** How far apart the cards of a draw leave the deck, at 1x; a dealt hand waits this long for the riffle first. */
+const DRAW_GAP_MS = 90
+const RIFFLE_MS = 420
+/** Where in a flight the card touches down. */
+const TOUCHDOWN = 0.8
 
 type Point = { x: number; y: number }
 const centre = (r: DOMRect): Point => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
@@ -170,7 +243,18 @@ const boxOf = (root: HTMLElement, board: Board, id: number) => {
   return (root.querySelector(`[data-card="${id}"]`) ?? (at && root.querySelector(`[data-zone="${at.zone}"]`)))?.getBoundingClientRect()
 }
 
-/** One path per target: a line from the edge of the activated card to the edge of the target, and a head at the target. */
+/** From `start` to `end` as a circuit runs: straight along the longer side, one 45° bend, straight again. */
+const trace = (start: Point, end: Point): Point[] => {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const bend = Math.min(Math.abs(dx), Math.abs(dy))
+  if (bend < 1) return [start, end]
+  const run = (Math.max(Math.abs(dx), Math.abs(dy)) - bend) / 2
+  const first = Math.abs(dx) > Math.abs(dy) ? { x: start.x + Math.sign(dx) * run, y: start.y } : { x: start.x, y: start.y + Math.sign(dy) * run }
+  return [start, first, { x: first.x + Math.sign(dx) * bend, y: first.y + Math.sign(dy) * bend }, end]
+}
+
+/** One path per target: a trace from the edge of the activated card to the edge of the target, and a head at the target. */
 const arrowsFor = (root: HTMLElement, board: Board, activation: Activation | null): SVGPathElement[] => {
   if (!activation) return []
   const from = boxOf(root, board, activation.card)
@@ -185,10 +269,14 @@ const arrowsFor = (root: HTMLElement, board: Board, activation: Activation | nul
     const end = leave(box, centre(from))
     // Cards that overlap, or sit unmeasured (no layout), leave nothing to draw; NaN fails the comparison too.
     if (!(Math.hypot(end.x - start.x, end.y - start.y) > 1)) continue
-    const angle = Math.atan2(end.y - start.y, end.x - start.x)
+    const points = trace(start, end)
+    // Its last leg can be empty, on an exact diagonal: the head follows the last leg that has a length.
+    const last = points.slice(0, -1).findLast((p) => Math.hypot(end.x - p.x, end.y - p.y) > 1) ?? start
+    const angle = Math.atan2(end.y - last.y, end.x - last.x)
     const barb = (side: number) => pt({ x: end.x - HEAD * Math.cos(angle + side), y: end.y - HEAD * Math.sin(angle + side) })
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    path.setAttribute('d', `M${pt(start)}L${pt(end)}M${barb(SPREAD)}L${pt(end)}L${barb(-SPREAD)}`)
+    path.setAttribute('d', `M${pt(start)}${points.slice(1).map((p) => `L${pt(p)}`).join('')}M${barb(SPREAD)}L${pt(end)}L${barb(-SPREAD)}`)
+    path.setAttribute('pathLength', '1')
     paths.push(path)
   }
   return paths
@@ -199,11 +287,18 @@ const arrowsFor = (root: HTMLElement, board: Board, activation: Activation | nul
  * under them. Every zone is a `[data-zone]` group, every card on the field or in the hand a `[data-card]` button.
  */
 export const BoardView = (p: BoardViewProps) => {
-  const t = useTranslations('Simulator')
-  const { board, activation, droppedRef, flipMs } = p
+  const t = useTranslations('SimulatorNew')
+  const { board, activation, droppedRef, dealtRef, flipMs } = p
   const { cursor, actions } = p.step
   const root = useRef<HTMLDivElement>(null)
   const arrows = useRef<SVGSVGElement>(null)
+  const fx = useRef<HTMLDivElement>(null)
+  const ground = useRef<HTMLDivElement>(null)
+  /** The overlays cards carry for the step on screen. */
+  const marks = useRef<Element[]>([])
+  const turnWord = t('turn', { n: board.turn })
+  const summoned = actions.slice(0, cursor).findLast((a, i) => i >= cursor - 2 && a.t === 'move')
+  const summonWord = summoned?.t === 'move' && summoned.how ? t(`fx.${summoned.how}`) : ''
 
   // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
   // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
@@ -213,100 +308,181 @@ export const BoardView = (p: BoardViewProps) => {
     if (!el || !svg) return
     const draw = () => svg.replaceChildren(...arrowsFor(el, board, activation))
     draw()
+    // Traced from the source to the target, once: a resize redraws it whole.
+    if (matchMedia('(prefers-reduced-motion: no-preference)').matches) for (const path of svg.children) path.animate({ strokeDashoffset: [1, 0] }, { duration: flipMs })
     if (!activation?.targets.length) return
     const observer = new ResizeObserver(draw)
     observer.observe(el)
     return () => observer.disconnect()
-  }, [board, activation])
+  }, [board, activation, flipMs])
 
-  // FLIP, after the arrows so they measure where the cards land. Each card button's centre is kept, relative to the board
-  // (a scroll moves nothing); on the next board the cards of the step between the two slide from there, lifted over the
-  // rest: one step on, the step just played; one step back, the step undone. Everything else jumps to its place (the hand
-  // closing a gap, a seek, a new hand), so the eye has one card to follow. A card that was in a pile had no button there,
-  // so it slides from the pile's cell; one that goes into a pile has nothing left to slide; one a drag just dropped is
-  // already there. The button is measured, since in DEF its box is the turned card; its wrapper slides, since
-  // `translate` there is not turned by DEF.
-  // ponytail: positions are only taken on a board change, so a resize in between slides every card once on the next step; re-measure from the ResizeObserver if that shows.
-  const seen = useRef<{ board: Board; cursor: number; actions: readonly Action[]; at: Map<string, Point> } | null>(null)
+  // The flights, after the arrows so they measure where the cards land. Each card's pose and look are kept; on the next
+  // board the cards of the step between the two fly from there: one step on, the step just played; one step back, the step
+  // undone. Everything else jumps to its place (the hand closing a gap, a seek, a new hand), so the eye has one card to
+  // follow. A card that was in a pile had no button there, so it leaves from the pile's cell; one a drag just dropped is
+  // already there. The button is measured, since in DEF its box is the turned card; its wrapper is what hides.
+  // ponytail: poses are only taken on a board change, so a resize in between flies a card from the old spot; re-measure from the ResizeObserver if that shows.
+  const seen = useRef<{ board: Board; cursor: number; actions: readonly Action[]; at: Map<number, Pose>; looks: Map<number, HTMLElement> } | null>(null)
   useLayoutEffect(() => {
     const el = root.current
-    if (!el) return
+    const layer = fx.current
+    const under = ground.current
+    if (!el || !layer || !under) return
+    layer.replaceChildren()
+    under.replaceChildren()
+    for (const mark of marks.current) mark.remove()
+    marks.current = []
     const origin = el.getBoundingClientRect()
-    const local = (box: DOMRect): Point => {
-      const c = centre(box)
-      return { x: c.x - origin.left, y: c.y - origin.top }
-    }
     const before = seen.current
     const motion = matchMedia('(prefers-reduced-motion: no-preference)').matches
-    const played = before && cursor === before.cursor + 1 ? actions[cursor - 1] : undefined
+    // One step on, or the steps a single act just logged (a card played and activated, a card shuffled into the Deck); a seek shows nothing.
+    const acted = !!before && cursor === actions.length && cursor > before.cursor && actions.length > before.actions.length
+    const run = before && (acted || cursor === before.cursor + 1) ? actions.slice(before.cursor, cursor) : []
     const undone = before && cursor === before.cursor - 1 ? before.actions[cursor] : undefined
-    const moving = played ? stepCards(played, before!.board) : undone ? stepCards(undone, board) : []
     const landed = droppedRef.current
     droppedRef.current = null
-    const slide = (target: Element | null | undefined, was: Point | null | undefined, at: Point) => {
-      if (!target || !was || (was.x === at.x && was.y === at.y)) return
-      target.animate(
-        [
-          { translate: `${was.x - at.x}px ${was.y - at.y}px`, scale: '1.08', zIndex: '20' },
-          { translate: '0 0', scale: '1', zIndex: '20' },
-        ],
-        { duration: flipMs, easing: 'ease-out' },
-      )
+    const dealt = !!dealtRef?.current
+    if (dealtRef) dealtRef.current = false
+    const moving = dealt ? board.zones.hand : run.length ? [...new Set(run.flatMap((a) => stepCards(a, before!.board)))] : undone ? stepCards(undone, board) : []
+    const tilt = parseFloat(getComputedStyle(el).getPropertyValue('--tilt')) || 0
+    const camera = parseFloat(getComputedStyle(el.querySelector('.sim-tilt')!).perspective) || NO_CAMERA
+    const pose = (box: HTMLElement) => poseOf(box, origin, box.closest('[data-mat]') ? tilt : 0)
+    const cell = (zone: ZoneId) => el.querySelector<HTMLElement>(`[data-zone="${zone}"]`)!
+    const k = flipMs / FLIP_MS
+    const stage: Stage = { flat: layer, ground: under, k, marks: marks.current }
+    const destroying = run.some((a) => a.t === 'move' && a.destroy)
+    /** How a card of the step flies. Only a step played forward has more to it than the trip: undoing one is a plain way back. */
+    const flightOf = (id: number): Flight => {
+      const a = run.find((one) => one.t === 'draw' || ('card' in one && one.card === id && one.t !== 'activate'))
+      if (dealt || a?.t === 'draw') return { under: backFace(), delay: (moving.indexOf(id) * DRAW_GAP_MS + (dealt ? RIFFLE_MS : 0)) * k }
+      if (a?.t === 'flip' && before!.board.cards[id]?.face !== a.face) return { under: before!.looks.get(id) }
+      if (a?.t === 'move' && a.to === 'gy') return { dim: true }
+      if (a?.t === 'move' && a.to === 'banished') return { squash: true }
+      return {}
     }
-    const now = new Map<string, Point>()
+
+    const now = new Map<number, Pose>()
+    const looks = new Map<number, HTMLElement>()
     for (const card of el.querySelectorAll<HTMLElement>('[data-card]')) {
-      const id = card.dataset.card!
-      const at = local(card.getBoundingClientRect())
+      const id = Number(card.dataset.card)
+      const at = pose(card)
       now.set(id, at)
-      if (!motion || !before || !moving.includes(Number(id)) || Number(id) === landed) continue
-      const pile = before.at.has(id) ? null : locate(before.board, Number(id))?.zone
-      const cell = pile ? el.querySelector(`[data-zone="${pile}"]`) : null
-      slide(card.parentElement, before.at.get(id) ?? (cell ? local(cell.getBoundingClientRect()) : null), at)
+      looks.set(id, lookOf(card))
+      if (!motion || !before || !moving.includes(id) || id === landed) continue
+      const pile = dealt ? 'deck' : before.at.has(id) ? null : locate(before.board, id)?.zone
+      const from = pile ? pose(cell(pile)) : before.at.get(id)
+      if (!from) continue
+      const flight = flightOf(id)
+      if (from.x === at.x && from.y === at.y && from.turn === at.turn && !flight.under) continue
+      fly(layer, flight.under ? lookOf(card) : (before.looks.get(id) ?? lookOf(card)), from, at, sizeOf(card), camera, flipMs, flight)
+      sink(card.parentElement, flipMs, flight.delay)
     }
-    // A card that went into a pile has no button there: the pile's top slides in from where the card was, when it is that card.
+    // A card that went into a pile has no button there: its copy lands on the pile, whose top shows once it has, when that top is this card.
     for (const id of moving) {
-      if (!motion || !before || now.has(String(id)) || id === landed) continue
+      if (!motion || !before || now.has(id) || id === landed) continue
       const to = locate(board, id)
       if (!to || isSlot(to.zone) || to.index !== 0) continue
-      const top = el.querySelector(`[data-zone="${to.zone}"] > *`)
-      if (top) slide(top, before.at.get(String(id)), local(top.getBoundingClientRect()))
+      const from = before.at.get(id)
+      const look = before.looks.get(id)
+      if (!from || !look) continue
+      const top = cell(to.zone).querySelector('[data-pile] > *')
+      if (destroying) {
+        shatter(stage, look, from, sizeOf(cell(to.zone)), camera)
+        sink(top, flipMs, flipMs)
+      } else {
+        fly(layer, look, from, pose(cell(to.zone)), sizeOf(cell(to.zone)), camera, flipMs, flightOf(id))
+        sink(top, flipMs)
+      }
     }
-    seen.current = { board, cursor, actions, at: now }
-  }, [board, cursor, actions, flipMs, droppedRef])
+    seen.current = { board, cursor, actions, at: now, looks }
+
+    if (!motion || !before || !(run.length || dealt)) return
+    const host = (id: number) => el.querySelector<HTMLElement>(`[data-card="${id}"]`)?.parentElement ?? cell(locate(board, id)!.zone).querySelector<HTMLElement>('[data-pile]')
+    const touchdown = (id: number) => (id === landed ? 0 : flipMs * TOUCHDOWN)
+    if (dealt) riffle(stage, cell('deck'), 0)
+    else
+      run.forEach((played, i) => {
+        // The second of two acts waits for the first to land.
+        const after = i * flipMs
+        if (played.t === 'move') {
+          if (isSlot(played.to)) ripple(stage, cell(played.to), touchdown(played.card))
+          else pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
+          const card = el.querySelector<HTMLElement>(`[data-card="${played.card}"]`)
+          if (played.how && card) {
+            label(stage, pose(card), sizeOf(card), summonWord, touchdown(played.card))
+            if (played.how === 'special') {
+              pillar(stage, pose(card), sizeOf(card), touchdown(played.card))
+              burst(stage, pose(card), sizeOf(card), 'cyan', touchdown(played.card))
+            }
+          }
+        } else if (played.t === 'activate') {
+          const on = host(played.card)
+          if (on) scan(stage, on, after)
+          sweep(stage, el, after)
+        } else if (played.t === 'negate') {
+          const on = host(played.card)
+          if (played.on && on) strike(stage, on)
+        } else if (played.t === 'shuffle') riffle(stage, cell('deck'), after)
+        else if (played.t === 'endTurn') {
+          banner(stage, turnWord)
+          sweep(stage, el, 0)
+        }
+      })
+  }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord, summonWord])
 
   return (
     <div
       ref={root}
+      inert={p.inert}
+      data-fill={p.fill || undefined}
+      data-picking={p.pick ? '' : undefined}
+      data-still={p.still || undefined}
       style={p.cardW === undefined ? undefined : ({ '--card-w': `${p.cardW}px` } as React.CSSProperties)}
-      className="@container relative [--card-w:min(84px,calc((100cqw_-_24px)/7))]"
+      className="sim-board"
     >
-      <div className="mx-auto grid w-fit grid-cols-[repeat(7,var(--card-w))] gap-1">
-        {LAYOUT.map(([zone, column, row]) => (
-          <div
-            key={zone}
-            role="group"
-            aria-label={t(`zones.${zone}`)}
-            data-zone={zone}
-            style={{ gridColumn: column, gridRow: row }}
-            className="relative aspect-[59/86] bg-surface-100"
-          >
-            {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
-            {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
-            {p.destroyed?.from === zone ? <DestroyMark /> : null}
-          </div>
+      <div aria-hidden className="sim-rival-hand">
+        {RIVAL_HAND.map((n) => (
+          <span key={n}>
+            <Back sizes="96px" />
+          </span>
         ))}
       </div>
-      {/* Cards overlap as the hand grows: never a wrap or a scroll, which would fight the drag. Centred; when a card
-          leaves, the others jump to their new place (only the card of the step slides). */}
-      <div
-        role="group"
-        aria-label={t('zones.hand')}
-        data-zone="hand"
-        className="mx-auto mt-2 flex min-h-[calc(var(--card-w)*86/59)] w-[calc(var(--card-w)*7_+_24px)] max-w-full justify-center gap-1"
-      >
-        {p.board.zones.hand.map((id) => (
-          <div key={id} className="max-w-(--card-w) min-w-0 flex-1 last:flex-none">
-            <CardView id={id} p={p} className="w-(--card-w)" />
+      <div className="sim-tilt">
+        <div data-mat className="sim-mat">
+          <span aria-hidden className="sim-table cut notch" />
+          <span aria-hidden className="sim-table-front" />
+          <Veins />
+          <div className="sim-grid">
+            {RIVAL.map(([column, row, kind]) => (
+              <span key={`${column}:${row}`} aria-hidden style={{ gridColumn: column, gridRow: row }} className="sim-rival">
+                <span className="sim-plate cut notch" />
+                {kind === 'monster' ? <span className="sim-arrow" /> : null}
+                {kind === 'pile' ? <Back /> : null}
+              </span>
+            ))}
+            {LAYOUT.map(([zone, column, row]) => (
+              <div key={zone} role="group" aria-label={t(`zones.${zone}`)} data-zone={zone} style={{ gridColumn: column, gridRow: row }} className="sim-zone">
+                <span aria-hidden className="sim-plate cut notch" />
+                {p.board.zones[zone].length ? null : <ZoneMark zone={zone} />}
+                {isSlot(zone) ? <Stack zone={zone} p={p} /> : <PileView pile={zone} p={p} />}
+                {p.destroyed?.from === zone ? <DestroyMark /> : null}
+                {p.pick?.includes(zone) ? (
+                  <button type="button" aria-label={t(`zones.${zone}`)} onClick={() => p.onPick?.(zone)} className="sim-pick">
+                    <Icon name="plus" />
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            <Core turn={board.turn} phase={board.phase} onPhase={p.onPhase} />
+            <div ref={ground} aria-hidden className="sim-ground" />
+          </div>
+        </div>
+      </div>
+      {/* Centred; when a card leaves, the others jump to their new place (only the card of the step slides). */}
+      <div role="group" aria-label={t('zones.hand')} data-zone="hand" className="sim-hand">
+        {p.board.zones.hand.map((id, i, hand) => (
+          <div key={id} style={{ '--fan': i - (hand.length - 1) / 2 } as React.CSSProperties} className="sim-hand-slot">
+            <CardView id={id} p={p} className="sim-hand-card" />
           </div>
         ))}
       </div>
@@ -314,8 +490,9 @@ export const BoardView = (p: BoardViewProps) => {
         ref={arrows}
         aria-hidden
         data-arrows
-        className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible fill-none stroke-gold stroke-3 [stroke-linecap:round] [stroke-linejoin:round]"
+        className="sim-arrows pointer-events-none absolute inset-0 z-10 size-full overflow-visible fill-none stroke-cyan stroke-2 [stroke-linejoin:round]"
       />
+      <div ref={fx} aria-hidden className="sim-fx" />
     </div>
   )
 }
@@ -326,7 +503,7 @@ export const BoardView = (p: BoardViewProps) => {
  * materials. A focused material comes up over the top card.
  */
 const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const [top, ...materials] = p.board.zones[zone]
   if (top === undefined) return null
   return (
@@ -357,7 +534,7 @@ const Stack = ({ zone, p }: { zone: Slot; p: BoardViewProps }) => {
  * double-tap activates, long press opens the menu, a drag moves it (`touch-none`: the card, not the page, takes the swipe).
  */
 const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; className?: string }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const press = useLongPress()
   /** Move, up and cancel only drop the press; what a long press does is bound on pointer down, where the finger is known. */
   const hold = press.bind(() => {})
@@ -368,6 +545,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
   // Not in the hand: there the brackets of a draw would cover every card.
   const marked = p.marked.includes(id) && !p.board.zones.hand.includes(id)
   const locked = p.locked === id
+  const link = p.chain?.lastIndexOf(id) ?? -1
   const name = p.cards.get(card.code)?.name ?? String(card.code)
   return (
     <div className={twMerge('group relative', className)} onPointerEnter={() => p.onHover?.(id)} onPointerLeave={() => p.onHover?.(null)}>
@@ -378,6 +556,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           card={p.cards.get(card.code)}
           sizes={p.imageSizes ?? SIZES}
           data-card={id}
+          data-pos={card.pos}
           data-active={active || undefined}
           data-targeted={targeted || undefined}
           data-step={marked || undefined}
@@ -408,6 +587,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
         {card.face === 'down' ? <Back sizes={p.imageSizes} /> : null}
         <ActivationMarks active={active} targeted={targeted} />
         {marked ? <StepMark /> : null}
+        {link >= 0 ? <ChainLink n={link + 1} /> : null}
       </div>
       {card.negated ? (
         <span className={twMerge(MARK, 'top-0 right-0 text-crimson-lift')}>
@@ -439,21 +619,21 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
 }
 
 /**
- * Deck, Extra, GY or Banished: the count and the top card (the back for Deck and Extra). A click opens the pile. A card
+ * Deck, Extra, GY or Banished: the count and the top card (the back for Deck, Extra and a card banished face-down). A click opens the pile. A card
  * of the pile being activated shows on top, face-up and glowing, while its step is on screen; the pile's real order
  * stays as it is (a Deck card activated there is not the next draw).
  */
 const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps }) => {
-  const t = useTranslations('Simulator')
+  const t = useTranslations('SimulatorNew')
   const ids = p.board.zones[pile]
   const activated = p.activation && ids.includes(p.activation.card) ? p.activation.card : null
   const topId = activated ?? ids[0]
   const top = topId === undefined ? null : p.board.cards[topId]!
   const label = t(`zones.${pile}`)
   const open = () => p.onPile(pile)
-  const back = (pile === 'deck' || pile === 'extra') && activated === null
+  const back = (pile === 'deck' || pile === 'extra' || top?.face === 'down') && activated === null
   return (
-    <div className="absolute inset-0" onPointerEnter={() => top && p.onHover?.(top.id)} onPointerLeave={() => p.onHover?.(null)}>
+    <div data-pile className="absolute inset-0" onPointerEnter={() => top && p.onHover?.(top.id)} onPointerLeave={() => p.onHover?.(null)}>
       {!top ? null : back ? (
         <button type="button" aria-label={label} onClick={open} className="relative block aspect-[59/86] w-full cursor-pointer">
           <Back sizes={p.imageSizes} />
@@ -462,15 +642,11 @@ const PileView = ({ pile, p }: { pile: Exclude<Pile, 'hand'>; p: BoardViewProps 
         <CardTile id={top.code} card={p.cards.get(top.code)} sizes={p.imageSizes ?? SIZES} label={label} onClick={open} data-active={activated !== null || undefined} />
       )}
       {top ? <ActivationMarks active={activated !== null} targeted={!!p.activation?.targets.includes(top.id)} /> : null}
-      {top?.face === 'down' && !back && activated === null ? (
-        <span className={twMerge(MARK, 'top-0 right-0 text-ink')}>
-          <Icon name="down" size={14} label={t('faceDown')} />
-        </span>
-      ) : null}
-      <span className={twMerge(BADGE, 'right-0 bottom-0 bg-space-000 text-ink')}>{ids.length}</span>
+      <span data-count className={twMerge(BADGE, 'right-0 bottom-0 bg-space-000 text-ink')}>{ids.length}</span>
       {/* The card the step just put on top of the pile (a send to the GY, a banish). */}
       {top && p.marked.includes(top.id) ? <StepMark /> : null}
       {top && p.destroyed?.card === top.id ? <DestroyMark /> : null}
+      {top && p.chain?.includes(top.id) ? <ChainLink n={p.chain.lastIndexOf(top.id) + 1} /> : null}
       {top && p.tags && top.tag && !back ? <Tag text={top.tag} /> : null}
     </div>
   )
@@ -484,8 +660,8 @@ export const DragGhost = ({ card, cards, ghostRef }: { card: Card | undefined; c
   if (!card) return null
   return (
     <div ref={ghostRef} inert className="pointer-events-none fixed top-0 left-0 z-(--z-overlay)">
-      <div className="relative w-16 -translate-1/2 opacity-80 shadow-lift">
-        <CardTile id={card.code} card={cards.get(card.code)} sizes="64px" tabIndex={-1} />
+      <div className="relative w-24 -translate-1/2 shadow-lift">
+        <CardTile id={card.code} card={cards.get(card.code)} sizes="96px" tabIndex={-1} />
         {card.face === 'down' ? <Back /> : null}
       </div>
     </div>
