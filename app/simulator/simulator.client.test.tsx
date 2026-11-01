@@ -64,7 +64,8 @@ const tied = async () => {
   return yes
 }
 
-const menu = () => screen.getByRole('menu')
+/** The innermost list open: a submenu opens beside the one it hangs from. */
+const menu = () => screen.getAllByRole('menu').at(-1)!
 const names = () => within(menu()).getAllByRole('menuitem').map((el) => el.textContent)
 const choose = (name: string) => act(async () => fireEvent.click(within(menu()).getByRole('menuitem', { name })))
 const rightClick = (el: HTMLElement) => act(async () => void fireEvent.contextMenu(el))
@@ -78,21 +79,37 @@ const counters = (key: string) =>
     .filter((el) => !el.closest('button'))
     .map((el) => el.textContent)
 
-/** New hand, then the first card of the hand through Move card… › Move to a different zone… into `to`. */
-const play = async (to: string) => {
-  await rightClick(hand()[0]!)
-  await choose('menu.moveTo')
-  await choose('menu.moveZone')
-  await choose(to)
+/** A mouse drag of the card onto the zone: happy-dom has no layout, so `document.elementFromPoint` is told what lies under the pointer. */
+const dragOnto = async (card: HTMLElement, key: string) => {
+  const under = vi.spyOn(document, 'elementFromPoint').mockReturnValue(zone(key))
+  const pointer = (type: 'pointerDown' | 'pointerMove' | 'pointerUp', at: number) => act(async () => void fireEvent[type](card, { clientX: at, clientY: at, pointerId: 1, pointerType: 'mouse' }))
+  await pointer('pointerDown', 0)
+  await pointer('pointerMove', 50)
+  await pointer('pointerUp', 50)
+  under.mockRestore()
 }
-/** Manage counters… › the plain counter (right after Back; it says its count once it has one) › Add or Remove. */
+/** The first card of the hand, dragged into `to`. */
+const play = (to: string) => dragOnto(hand()[0]!, to.replace('zones.', ''))
+/** The first card of the hand, Normal Summoned from its menu: unlike a drop it flies there, and the click after it counts. */
+const summon = async (to: string) => {
+  await rightClick(hand()[0]!)
+  await choose('menu.normal')
+  await click(to)
+}
+/** The first card of the hand, sent to the GY from its menu. */
+const discard = async () => {
+  await rightClick(hand()[0]!)
+  await choose('menu.sendTo')
+  await choose('menu.toGy')
+}
+/** Manage counters › the plain counter (the first one; it says its count once it has one) › Add or Remove. */
 const counter = async (what: 'menu.counterUp' | 'menu.counterDown') => {
   await choose('menu.counters')
-  await act(async () => fireEvent.click(within(menu()).getAllByRole('menuitem')[1]!))
+  await act(async () => fireEvent.click(within(menu()).getAllByRole('menuitem')[0]!))
   await choose(what)
 }
-const MAIN_HAND = ['menu.normal', 'menu.special', 'menu.activate', 'menu.set', 'menu.toGy', 'menu.banishUp', 'menu.banishDown', 'menu.moveTo', 'menu.tag']
-const MAIN_FIELD = ['menu.activate', 'menu.flipDown', 'menu.position', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag']
+const MAIN_HAND = ['menu.normal', 'menu.special', 'menu.activate', 'menu.set', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck']
+const MAIN_FIELD = ['menu.activate', 'menu.flipDown', 'menu.position', 'menu.negate', 'menu.counters', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck', 'menu.tag']
 
 /** The callbacks of every ResizeObserver the board made, so a test can fire the one that is watching. */
 let resized: (() => void)[] = []
@@ -305,15 +322,14 @@ describe('Simulator card menu', () => {
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
     expect(names()).toEqual(MAIN_HAND)
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    await choose('zones.m0')
+    await act(async () => void fireEvent.keyDown(document, { key: 'Escape' }))
+    await play('zones.m0')
     await rightClick(cardsIn('m0')[0]!)
     expect(names()).toEqual(MAIN_FIELD)
     await choose('menu.counters')
-    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'menu.newKind'])
+    expect(names()).toEqual(['menu.counterPlain', 'menu.newKind'])
     await choose('menu.counterPlain')
-    expect(names()).toEqual(['menu.back', 'menu.counterUp']) // no counters yet: no Remove
+    expect(names()).toEqual(['menu.counterUp']) // no counters yet: no Remove
     await choose('menu.counterUp')
     await rightClick(cardsIn('m0')[0]!)
     await choose('menu.counters')
@@ -322,42 +338,78 @@ describe('Simulator card menu', () => {
     expect(names()).toContain('menu.counterDown')
   })
 
+  it('a monster flips face-down into Defense and comes face-up in the position asked for', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    const pos = () => cardsIn('m0')[0]!.getAttribute('data-pos')
+    expect(pos()).toBe('atk')
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.flipDown')
+    expect(pos()).toBe('def')
+    await rightClick(cardsIn('m0')[0]!)
+    await choose('menu.flipUp')
+    expect(names()).toEqual(['menu.flipAtk', 'menu.flipDef'])
+    await choose('menu.flipAtk')
+    expect(pos()).toBe('atk')
+    await rightClick(cardsIn('m0')[0]!)
+    expect(names()).toContain('menu.flipDown')
+  })
+
+  it('a banished card turns over from Send to', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    await choose('menu.sendTo')
+    await choose('menu.banishDown')
+    await rightClick(within(await openPile('banished')).getAllByRole('button')[0]!)
+    await choose('menu.sendTo')
+    expect(names()).toEqual(['menu.toGy', 'menu.banish', 'menu.toHand'])
+    await choose('menu.banish')
+    await rightClick(within(screen.getByRole('list', { name: 'zones.banished' })).getAllByRole('button')[0]!) // the pile stays open
+    await choose('menu.sendTo')
+    expect(names()).toEqual(['menu.toGy', 'menu.banishDown', 'menu.toHand'])
+  })
+
   it('a spell or trap slot card gets flip but no ATK/DEF position', async () => {
     await open(DECK)
     await click('toolbar.newHand')
     await play('zones.s0')
     await rightClick(cardsIn('s0')[0]!)
-    expect(names()).toEqual(['menu.activate', 'menu.flipDown', 'menu.negate', 'menu.counters', 'menu.moveTo', 'menu.tag'])
+    expect(names()).toEqual(['menu.activate', 'menu.flipDown', 'menu.negate', 'menu.counters', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck', 'menu.tag'])
   })
 
-  it('Move card offers GY, banish, destroy, hand and a shuffle into the deck; an Extra Deck card goes back to the Extra Deck instead', async () => {
+  it('Send to, Destroy and Shuffle take the card off; an Extra Deck card goes back to the Extra Deck instead', async () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
-    await choose('menu.moveTo')
-    expect(names()).toEqual(['menu.back', 'menu.moveZone', 'menu.toGy', 'menu.banish', 'menu.destroy', 'menu.destroyBanish', 'menu.shuffleDeck']) // in hand: no "Hand"
+    await choose('menu.sendTo')
+    expect(names()).toEqual(['menu.toGy', 'menu.banish', 'menu.banishDown']) // in hand: no "Hand"
+    await act(async () => void fireEvent.keyDown(document, { key: 'Escape' }))
+    await rightClick(hand()[0]!)
     await choose('menu.destroy')
+    expect(names()).toEqual(['menu.destroyGy', 'menu.destroyBanish'])
+    await choose('menu.destroyGy')
     expect(hand()).toHaveLength(4)
     expect(within(zone('gy')).getByText('1')).toBeTruthy()
     expect(document.querySelectorAll('[data-destroyed]').length).toBeGreaterThan(0) // the step on screen: cracks on the GY
     await click('toolbar.undo')
     expect(document.querySelector('[data-destroyed]')).toBeNull()
     await rightClick(hand()[0]!)
-    await choose('menu.moveTo')
     await choose('menu.shuffleDeck')
     expect(hand()).toHaveLength(4)
     expect(steps().slice(-2)).toEqual(['history.move', 'history.shuffle'])
-    // the extra card, from its pile: Hand sends it back to the Extra Deck, and there is no deck to shuffle it into
+    // the extra card, from its pile: there is no deck to shuffle it into, and it comes back to the Extra Deck, not the hand
     const extra = within(await openPile('extra')).getAllByRole('button')[0]!
     await rightClick(extra)
-    await choose('menu.moveTo')
-    expect(names()).toEqual(['menu.back', 'menu.moveZone', 'menu.toGy', 'menu.banish', 'menu.destroy', 'menu.destroyBanish'])
+    expect(names()).not.toContain('menu.shuffleDeck')
+    await choose('menu.sendTo')
+    expect(names()).toEqual(['menu.toGy', 'menu.banish', 'menu.banishDown'])
     await choose('menu.toGy')
     await rightClick(within(await openPile('gy')).getAllByRole('button')[0]!)
-    await choose('menu.moveTo')
+    await choose('menu.sendTo')
     expect(names()).toContain('menu.toExtra')
     expect(names()).not.toContain('menu.toHand')
-    expect(names()).not.toContain('menu.shuffleDeck')
     await choose('menu.toExtra')
     expect(within(zone('extra')).getByText('1')).toBeTruthy()
   })
@@ -375,14 +427,15 @@ describe('Simulator card menu', () => {
     expect(within(zone('m0')).getByText('SPE 1')).toBeTruthy()
     await rightClick(cardsIn('m0')[0]!)
     await choose('menu.counters')
-    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'menu.counterKind', 'menu.newKind'])
+    expect(names()).toEqual(['menu.counterPlain', 'menu.counterKind', 'menu.newKind'])
+    await act(async () => void fireEvent.keyDown(document, { key: 'Escape' }))
     // the kind is offered on another card too, and stays through a reload (the draft keeps it)
     await play('zones.m1')
     cleanup()
     await open('/simulator')
     await rightClick(cardsIn('m1')[0]!)
     await choose('menu.counters')
-    expect(names()).toEqual(['menu.back', 'menu.counterPlain', 'Spell', 'menu.newKind']) // none on this card yet: the kind's name alone
+    expect(names()).toEqual(['menu.counterPlain', 'Spell', 'menu.newKind']) // none on this card yet: the kind's name alone
   })
 
   it('a tag shows over the card on the last step, and an empty one clears it', async () => {
@@ -399,7 +452,7 @@ describe('Simulator card menu', () => {
     expect(screen.queryByText('Negates once')).toBeNull()
     await click('toolbar.redo')
     await rightClick(cardsIn('m0')[0]!)
-    await choose('menu.moveTo')
+    await choose('menu.sendTo')
     await choose('menu.toGy') // the tag goes with the card: the GY shows it on its top
     expect(within(zone('gy')).getByText('Negates once')).toBeTruthy()
     await click('toolbar.undo')
@@ -415,12 +468,11 @@ describe('Simulator card menu', () => {
     await open(DECK)
     await click('toolbar.newHand')
     // Pile cards have no [data-card] on the board, so the card itself is not there to take the focus back.
-    for (const [item, pile] of [['zones.gy', 'gy'], ['zones.banished', 'banished'], ['zones.deck — move.top', 'deck'], ['zones.extra', 'extra']] as const) {
+    for (const [item, pile] of [['menu.toGy', 'gy'], ['menu.banish', 'banished']] as const) {
       const card = hand()[0]!
       card.focus()
       await act(async () => void fireEvent.click(card)) // detail 0: Enter on the focused card
-      await choose('menu.moveTo')
-      await choose('menu.moveZone')
+      await choose('menu.sendTo')
       await choose(item)
       expect(screen.queryByRole('menu')).toBeNull()
       expect(document.activeElement).toBe(within(zone(pile)).getByRole('button', { name: `zones.${pile}` }))
@@ -463,20 +515,39 @@ describe('Simulator card menu', () => {
     expect(counters('m2')).toEqual(['1'])
   })
 
-  it('Move to leaves out the card’s own pile but keeps the deck top and bottom', async () => {
+  it('a submenu opens as the pointer rests on its item, closes on a plain item, and a finger does neither', async () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    const moves = names()
-    expect(moves[0]).toBe('menu.back')
-    expect(moves).not.toContain('zones.hand')
-    expect(moves).toEqual(expect.arrayContaining(['zones.deck — move.top', 'zones.deck — move.bottom', 'zones.gy', 'zones.m0', 'zones.m0 — move.set', 'zones.s0 — move.set']))
-    await choose('menu.back')
-    expect(names()).toContain('menu.moveZone')
-    await choose('menu.back')
-    expect(names()).toContain('menu.moveTo')
+    const item = (name: string) => within(screen.getAllByRole('menu')[0]!).getByRole('menuitem', { name })
+    const hover = async (name: string, pointerType: string) => {
+      await act(async () => void fireEvent.pointerEnter(item(name), { pointerType }))
+      await act(() => wait(150))
+    }
+    await hover('menu.sendTo', 'touch')
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+    await hover('menu.sendTo', 'mouse')
+    expect(names()).toEqual(['menu.toGy', 'menu.banish', 'menu.banishDown'])
+    expect(item('menu.sendTo').getAttribute('aria-expanded')).toBe('true')
+    expect(document.activeElement).toBe(within(screen.getAllByRole('menu')[0]!).getAllByRole('menuitem')[0]) // the focus stays where it was
+    await hover('menu.destroy', 'mouse')
+    expect(names()).toEqual(['menu.destroyGy', 'menu.destroyBanish'])
+    await hover('menu.set', 'mouse')
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+  })
+
+  it('the right arrow enters a submenu and the left arrow comes back to its item', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await rightClick(hand()[0]!)
+    const opener = within(menu()).getByRole('menuitem', { name: 'menu.special' })
+    await act(async () => void opener.focus())
+    await act(async () => void fireEvent.keyDown(opener, { key: 'ArrowRight' }))
+    expect(names()).toEqual(['menu.specialAtk', 'menu.specialDef', 'menu.specialDownAtk', 'menu.specialSet'])
+    expect(document.activeElement).toBe(within(menu()).getAllByRole('menuitem')[0])
+    await act(async () => void fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' }))
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+    expect(document.activeElement).toBe(opener)
   })
 
   it('Activate opens its own list: now, or with targets', async () => {
@@ -485,7 +556,7 @@ describe('Simulator card menu', () => {
     const card = hand()[1]!
     await rightClick(card)
     await choose('menu.activate')
-    expect(names()).toEqual(['menu.back', 'menu.activateNow', 'menu.activateTargets'])
+    expect(names()).toEqual(['menu.activateNow', 'menu.activateTargets'])
     await choose('menu.activateNow')
     expect(card.dataset.active).toBe('true')
   })
@@ -549,9 +620,8 @@ describe('Simulator pile panel', () => {
     const cards = within(list).getAllByRole('button')
     expect(cards).toHaveLength(1)
     await rightClick(cards[0]!)
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    await choose('zones.hand')
+    await choose('menu.sendTo')
+    await choose('menu.toHand')
     expect(hand()).toHaveLength(6)
     expect(screen.getByText('pile.empty')).toBeTruthy()
     await click('pile.close')
@@ -575,22 +645,21 @@ describe('Simulator pile panel', () => {
     expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
     await act(async () => void fireEvent.pointerDown(card, { pointerType: 'touch' }))
     await mouseClick(card)
-    expect(names()).toContain('menu.moveTo')
+    expect(names()).toContain('menu.sendTo')
   })
 
   it('the x N badge opens the materials, and the menu works on each of them', async () => {
     await open(DECK)
     await click('toolbar.newHand')
     await play('zones.m0')
-    await play('zones.m0') // an occupied monster zone: the second card goes under as a material
+    await play('zones.m0') // an occupied monster zone: the second card goes on top, the first becomes its material
     const materials = within(await openMaterials('m0')).getAllByRole('button')
     expect(materials).toHaveLength(1)
     await rightClick(materials[0]!)
     // a material is not a field card: no flip, position, negate or counters
-    expect(names()).toEqual(['menu.activate', 'menu.moveTo', 'menu.tag'])
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    await choose('zones.gy')
+    expect(names()).toEqual(['menu.activate', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck', 'menu.tag'])
+    await choose('menu.sendTo')
+    await choose('menu.toGy')
     expect(within(zone('gy')).getAllByRole('button').length).toBeGreaterThan(0)
     expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
   })
@@ -612,21 +681,46 @@ describe('Simulator pile panel', () => {
     await play('zones.m0')
     await play('zones.m0')
     await rightClick(within(await openMaterials('m0')).getAllByRole('button')[0]!)
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    await choose('zones.gy') // the last material leaves: the slot is a lone monster again
+    await choose('menu.sendTo')
+    await choose('menu.toGy') // the last material leaves: the slot is a lone monster again
     expect(screen.queryByRole('list', { name: 'pile.materials' })).toBeNull()
     expect(screen.queryByText('pile.empty')).toBeNull()
     await play('zones.m0') // a new material in the same slot does not bring the closed panel back
     expect(within(zone('m0')).getByRole('button', { name: 'pile.materials' })).toBeTruthy()
     expect(screen.queryByRole('list', { name: 'pile.materials' })).toBeNull()
   })
+
+  it('a card moved over a monster stays on top, and the one under it is its material', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    const under = cardsIn('m0')[0]!.dataset.card
+    const moved = hand()[0]!.dataset.card
+    await play('zones.m0')
+    expect(cardsIn('m0')[0]!.dataset.card).toBe(moved)
+    const materials = within(await openMaterials('m0')).getAllByRole('button')
+    expect(materials.map((el) => el.dataset.card)).toEqual([under])
+  })
+
+  it('a double-click on a material sends it to the GY; on any other pile it does nothing', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    await play('zones.m0')
+    const material = within(await openMaterials('m0')).getAllByRole('button')[0]!
+    await act(async () => void fireEvent.doubleClick(material))
+    expect(within(zone('gy')).getByText('1')).toBeTruthy()
+    expect(within(zone('m0')).queryByRole('button', { name: 'pile.materials' })).toBeNull()
+    await act(async () => void fireEvent.doubleClick(within(await openPile('gy')).getAllByRole('button')[0]!))
+    expect(within(zone('gy')).getByText('1')).toBeTruthy()
+    expect(steps().at(-1)).toBe('history.move')
+  })
 })
 
 /** New hand, the first card to m0, then the next card of the hand in target mode: the activating card and the one on the field. */
 const targetMode = async () => {
   await click('toolbar.newHand')
-  await play('zones.m0')
+  await summon('zones.m0')
   const source = hand()[0]!
   await rightClick(source)
   await choose('menu.activate')
@@ -775,7 +869,7 @@ describe('Simulator targets', () => {
     it('a target in a pile gets its arrow from the pile’s zone', async () => {
       await open(DECK)
       await click('toolbar.newHand')
-      await play('zones.gy') // the first card of the hand goes to the graveyard
+      await discard()
       const source = hand()[0]!
       await rightClick(source)
       await choose('menu.activate')
@@ -806,6 +900,17 @@ describe('Simulator gestures', () => {
   const touch = { pointerType: 'touch' }
 
   afterEach(() => void vi.restoreAllMocks())
+
+  it('a card dropped on the strip of the hand, away from its cards, goes back to the hand', async () => {
+    await open(DECK)
+    await click('toolbar.newHand')
+    await play('zones.m0')
+    // The strip lets the pointer through: what lies under it is the board, which no zone covers.
+    vi.spyOn(zone('hand'), 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100))
+    await drag(cardsIn('m0')[0]!, document.body)
+    expect(hand()).toHaveLength(5)
+    expect(cardsIn('m0')).toHaveLength(0)
+  })
 
   it('dragging a hand card onto an empty monster zone moves it', async () => {
     await open(DECK)
@@ -895,7 +1000,7 @@ describe('Simulator gestures', () => {
     await ptr(card, 'pointerDown', 20, 30, touch)
     expect(screen.queryByRole('menu')).toBeNull()
     await wait(500)
-    expect(names()).toContain('menu.moveTo')
+    expect(names()).toContain('menu.sendTo')
     expect([menu().style.left, menu().style.top]).toEqual(['20px', '30px'])
     expect(screen.getByRole('heading', { name: card.title })).toBeTruthy()
   })
@@ -1090,14 +1195,14 @@ describe('Simulator history and replay', () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
-      await play('zones.m0')
+      await summon('zones.m0')
       expect(flights()).toHaveLength(1)
       expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '205px, 5px' })
       expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement) // the wrapper DEF turns, not the button inside it
       expect(cardsIn('m0')[0]!.closest('.sim-fx')).toBeNull()
       expect(document.querySelector('.sim-flight [data-card]')).toBeNull() // a copy is no card
       motion = false
-      await play('zones.m1')
+      await summon('zones.m1')
       expect(flights()).toHaveLength(1)
     })
 
@@ -1115,7 +1220,7 @@ describe('Simulator history and replay', () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
-      await play('zones.m0') // the four cards after it each shift 50 px left
+      await summon('zones.m0') // the four cards after it each shift 50 px left
       expect(flights()).toHaveLength(1)
       expect(flights()[0]!.hidden).toBe(cardsIn('m0')[0]!.parentElement)
     })
@@ -1124,7 +1229,7 @@ describe('Simulator history and replay', () => {
       await open(DECK)
       await click('toolbar.newHand')
       animate.mockClear()
-      await play('zones.gy') // from the hand at (0, 300) to the GY at the origin
+      await discard() // from the hand at (0, 300) to the GY at the origin
       expect(flights()).toHaveLength(1)
       expect(flights()[0]).toMatchObject({ from: '5px, 305px', to: '5px, 5px' })
       expect(flights()[0]!.hidden).toBe(zone('gy').querySelector('[data-pile] > *'))
@@ -1144,9 +1249,9 @@ describe('Simulator history and replay', () => {
     it('the next step clears the copies of the last one', async () => {
       await open(DECK)
       await click('toolbar.newHand')
-      await play('zones.m0')
+      await summon('zones.m0')
       expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
-      await play('zones.m1')
+      await summon('zones.m1')
       expect(document.querySelectorAll('.sim-flight')).toHaveLength(1)
     })
 
@@ -1181,8 +1286,8 @@ describe('Simulator history and replay', () => {
       await play('zones.m0')
       animate.mockClear()
       await rightClick(cardsIn('m0')[0]!)
-      await choose('menu.moveTo')
       await choose('menu.destroy')
+      await choose('menu.destroyGy')
       expect(flights()).toHaveLength(6) // the pieces of the card
       expect(flights().every(({ from }) => from === '205px, 5px')).toBe(true)
     })
@@ -1254,13 +1359,14 @@ describe('Simulator bringing a card into play', () => {
   it.each([
     ['menu.specialAtk', 'up', 'atk'],
     ['menu.specialDef', 'up', 'def'],
+    ['menu.specialDownAtk', 'down', 'atk'],
     ['menu.specialSet', 'down', 'def'],
   ])('%s comes in where it says', async (position, face, pos) => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
     await choose('menu.special')
-    expect(names()).toEqual(['menu.back', 'menu.specialAtk', 'menu.specialDef', 'menu.specialSet'])
+    expect(names()).toEqual(['menu.specialAtk', 'menu.specialDef', 'menu.specialDownAtk', 'menu.specialSet'])
     await choose(position)
     await click('zones.m0')
     expect(cardsIn('m0')[0]!.getAttribute('data-pos')).toBe(pos)
@@ -1272,14 +1378,17 @@ describe('Simulator bringing a card into play', () => {
     await open(DECK)
     await click('toolbar.newHand')
     await rightClick(hand()[0]!)
+    await choose('menu.sendTo')
     await choose('menu.toGy')
     expect(within(zone('gy')).getByText('1')).toBeTruthy()
     await rightClick(hand()[0]!)
     // A card with no data prints its passcode; a back prints nothing.
     const top = () => within(zone('banished')).getAllByRole('button')[0]!.textContent
-    await choose('menu.banishUp')
+    await choose('menu.sendTo')
+    await choose('menu.banish')
     expect(top()).not.toBe('')
     await rightClick(hand()[0]!)
+    await choose('menu.sendTo')
     await choose('menu.banishDown')
     expect(top()).toBe('')
     expect(within(zone('banished')).getByText('2')).toBeTruthy()
@@ -1298,7 +1407,7 @@ describe('Simulator bringing a card into play', () => {
     it('offers Activate and Set, and activating puts it on the field', async () => {
       await start()
       await rightClick(hand()[0]!)
-      expect(names()).toEqual(['menu.play', 'menu.set', 'menu.toGy', 'menu.banishUp', 'menu.banishDown', 'menu.moveTo', 'menu.tag'])
+      expect(names()).toEqual(['menu.play', 'menu.set', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck'])
       await choose('menu.play')
       expect(picks()).toEqual(['zones.s0', 'zones.s1', 'zones.s2', 'zones.s3', 'zones.s4'])
       await click('zones.s0')
@@ -1466,10 +1575,7 @@ describe('Simulator replay bar', () => {
     await open(DECK)
     await click('toolbar.newHand')
     const moved = hand()[1]!
-    await rightClick(moved)
-    await choose('menu.moveTo')
-    await choose('menu.moveZone')
-    await choose('zones.m0')
+    await dragOnto(moved, 'm0')
     await click('replay.prev') // the draw of 5: the panel shows the first of its cards; cards in the hand carry no brackets
     expect(hand().some((card) => card.dataset.step)).toBe(false)
     expect(screen.getByRole('heading', { name: hand()[0]!.title })).toBeTruthy()

@@ -320,8 +320,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     toggle()
   }
 
-  /** An Xyz monster, by its looked-up card: summoned over cards, it comes in on top of them. */
-  const isXyz = (id: number) => !!cards.get(board.cards[id]?.code ?? -1)?.monsterTypes.includes('xyz')
   /** One of the Extra Deck's cards: it never goes to the hand or into the Main Deck. */
   const isExtra = (id: number) => id >= session.deck.main.length
   /** The card a drag just dropped: it is already where the pointer let go, so the board does not slide it there. */
@@ -332,7 +330,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const drag = useDrag({
     enabled: dragOn,
     onDrop: (card, zone, shift) => {
-      const action = dropAction(board, card, zone, shift, isXyz(card))
+      const action = dropAction(board, card, zone, shift)
       if (!action) return
       droppedRef.current = card
       perform([action])
@@ -673,6 +671,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onCard={onCard}
           onMenu={onMenu}
           onHover={setHovered}
+          onDetach={(id) => dragOn && perform([{ t: 'move', card: id, to: 'gy' }])}
           drag={drag}
           onClose={() => togglePile(zone)}
         />
@@ -695,7 +694,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onTag={setTagging}
           onPile={togglePile}
           onClose={() => setMenu(null)}
-          xyz={isXyz(menu.card)}
           data={cards.get(board.cards[menu.card]?.code ?? -1)}
           onPlace={place}
         />

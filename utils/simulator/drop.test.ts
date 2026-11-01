@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Deck } from '@utils/deck/types'
 import { apply, initial, isValid } from './board'
-import { dropAction, moveOptions, placeOptions, type PlaceKind, type Placing } from './drop'
+import { dropAction, placeOptions, type PlaceKind, type Placing } from './drop'
 import type { Action, Board, ZoneId } from './types'
 import { ZONES } from './types'
 
@@ -33,22 +33,10 @@ describe('simulator drop', () => {
     expect(dropAction(base, 2, 'emz0', true)).toEqual(move(2, 'emz0', { face: 'down', pos: 'def' }))
   })
 
-  it('occupied monster slot: material, Shift goes on top', () => {
-    expect(dropAction(base, 2, 'm0', false)).toEqual(move(2, 'm0'))
-    expect(dropAction(base, 2, 'm0', true)).toEqual(move(2, 'm0', { at: 'top' }))
-  })
-
-  it('an Xyz always comes in over an occupied monster slot; Shift attaches it as a material', () => {
-    expect(dropAction(base, 10, 'm0', false, true)).toEqual(move(10, 'm0', { at: 'top' }))
-    expect(dropAction(base, 10, 'm0', true, true)).toEqual(move(10, 'm0'))
-    expect(dropAction(base, 10, 'm1', false, true)).toEqual(move(10, 'm1')) // an empty slot is a plain summon
-  })
-
-  it('moveOptions offers an Xyz the top of an occupied monster slot first, then as a material', () => {
-    const m0 = moveOptions(base, 10, true).filter((o) => o.zone === 'm0')
-    expect(m0.map((o) => o.variant)).toEqual(['top', 'material'])
-    expect(m0.map((o) => o.action)).toEqual([move(10, 'm0', { at: 'top' }), move(10, 'm0')])
-    expect(moveOptions(base, 2).filter((o) => o.zone === 'm0').map((o) => o.variant)).toEqual(['plain', 'top'])
+  it('occupied monster slot: the card goes on top, Shift attaches it as a material', () => {
+    expect(dropAction(base, 2, 'm0', false)).toEqual(move(2, 'm0', { at: 'top' }))
+    expect(dropAction(base, 2, 'm0', true)).toEqual(move(2, 'm0'))
+    expect(apply(base, dropAction(base, 2, 'm0', false)!).zones.m0).toEqual([2, 0])
   })
 
   it('empty spell or field slot: plain, Shift sets face-down; occupied gives null', () => {
@@ -95,44 +83,6 @@ describe('simulator drop', () => {
         }
       }
     }
-  })
-
-  it('moveOptions lists only valid actions and never the own slot', () => {
-    const opts = moveOptions(base, 2)
-    expect(opts.length).toBeGreaterThan(0)
-    for (const o of opts) expect(isValid(base, o.action)).toBe(true)
-    expect(opts.some((o) => o.zone === 's0')).toBe(false)
-    expect(opts.filter((o) => o.zone === 'm0').map((o) => o.variant)).toEqual(['plain', 'top'])
-    expect(moveOptions(base, 0).some((o) => o.zone === 'm0')).toBe(false)
-    expect(moveOptions(withStack, 2).some((o) => o.zone === 'm0')).toBe(false)
-  })
-
-  it('moveOptions follows ZONES order and offers each zone its variants', () => {
-    const opts = moveOptions(base, 2)
-    const order = opts.map((o) => ZONES.indexOf(o.zone))
-    expect(order).toEqual([...order].sort((x, y) => x - y))
-    const variants = (zone: ZoneId) => opts.filter((o) => o.zone === zone).map((o) => o.variant)
-    expect(variants('deck')).toEqual(['top', 'bottom'])
-    expect(variants('extra')).toEqual(['plain', 'faceUp'])
-    expect(variants('gy')).toEqual(['plain'])
-    expect(variants('banished')).toEqual(['plain', 'faceDown'])
-    expect(variants('m1')).toEqual(['plain', 'set'])
-    expect(variants('emz1')).toEqual(['plain', 'set'])
-    expect(variants('s1')).toEqual(['plain', 'set'])
-    expect(variants('field')).toEqual(['plain', 'set'])
-    expect(variants('s0')).toEqual([])
-  })
-
-  it('moveOptions actions match what dropAction builds for the same variant', () => {
-    const opts = moveOptions(base, 2)
-    const action = (zone: ZoneId, variant: string) => opts.find((o) => o.zone === zone && o.variant === variant)?.action
-    expect(action('m1', 'set')).toEqual(dropAction(base, 2, 'm1', true))
-    expect(action('m0', 'top')).toEqual(dropAction(base, 2, 'm0', true))
-    expect(action('s1', 'set')).toEqual(dropAction(base, 2, 's1', true))
-    expect(action('deck', 'bottom')).toEqual(dropAction(base, 2, 'deck', true))
-    expect(action('banished', 'faceDown')).toEqual(dropAction(base, 2, 'banished', true))
-    expect(action('extra', 'faceUp')).toEqual(dropAction(base, 2, 'extra', true))
-    expect(action('gy', 'plain')).toEqual(dropAction(base, 2, 'gy', false))
   })
 
   describe('placeOptions', () => {

@@ -19,9 +19,18 @@ const follow = (el: HTMLElement | null, { x, y }: Point) => {
   if (el) el.style.translate = `${x}px ${y}px`
 }
 
+/** The zone under the point. The hand's strip lets the pointer through to the field, so `elementFromPoint` only finds its cards: anywhere else on the strip that no zone covers is the hand too. */
+const zoneAt = ({ x, y }: Point) => {
+  const zone = document.elementFromPoint(x, y)?.closest('[data-zone]')
+  if (zone) return zone
+  const hand = document.querySelector('[data-zone="hand"]')
+  const box = hand?.getBoundingClientRect()
+  return hand && box && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom ? hand : null
+}
+
 /** The zone under the point takes `data-over`, written to the DOM for the same reason: its edge lights up as a card comes over it. */
 const hover = (over: { current: Element | null }, at: Point | null) => {
-  const zone = at && (document.elementFromPoint(at.x, at.y)?.closest('[data-zone]') ?? null)
+  const zone = at && zoneAt(at)
   if (zone === over.current) return
   over.current?.removeAttribute('data-over')
   zone?.setAttribute('data-over', '')
@@ -81,7 +90,7 @@ export const useDrag = ({ enabled, onDrop }: DragOptions) => {
         cancel()
         if (!p.moved) return
         swallow.current = true
-        const zone = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-zone]')?.getAttribute('data-zone')
+        const zone = zoneAt({ x: e.clientX, y: e.clientY })?.getAttribute('data-zone')
         onDrop(p.card, ZONES.find((z) => z === zone) ?? null, e.shiftKey)
       },
       onPointerCancel: (e: React.PointerEvent<HTMLElement>) => {
