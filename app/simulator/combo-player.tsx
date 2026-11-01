@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from 'react'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'

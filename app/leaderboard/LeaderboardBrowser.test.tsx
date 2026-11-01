@@ -5,7 +5,7 @@ import type { LeaderboardEntry, LeaderboardPage, PastSeason } from '@utils/types
 import { LeaderboardBrowser } from './LeaderboardBrowser'
 
 vi.mock('next-intl', () => ({ useLocale: () => 'en' }))
-vi.mock('@hooks/index', () => ({ useAuth: () => ({ user: { id: 'admin', permissions: ['system.manage'] } }) }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => ({ user: { id: 'admin', permissions: ['system.manage'] } }) }))
 
 const entry = (rank: number, name: string): LeaderboardEntry => ({
   rank, id: String(rank), name, handle: null, avatar: null, cosmetics: {}, elo: 2000 - rank, tier: 'Omega', wins: 10, loses: 5, draws: 0,

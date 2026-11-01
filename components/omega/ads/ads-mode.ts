@@ -1,5 +1,5 @@
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import type { AuthUser } from '@utils/auth'
 
 /** `rail`: tool pages, which have fixed bottom panels of their own. `all`: every other format too. */
@@ -15,7 +15,7 @@ const NO_ADS = [
   /^\/profile\/edit(\/|$)/,
   /^\/simulator\/new\/?$/,
   /^\/simulator\/c\/[^/]+\/render(\/|$)/,
-  /^\/wiki\/(new|panel|example)(\/|$)/,
+  /^\/wiki\/(new|panel)(\/|$)/,
   /^\/wiki\/[^/]+\/(edit|history)(\/|$)/,
 ]
 

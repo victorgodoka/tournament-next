@@ -1,12 +1,11 @@
 /**
- * Duelist analytics explorer (ANALYTICS_API.md §6): a GA4-style pivot cut on the client from
- * `GET /analytics/players/:id/seasons/:season`, one response per compared season.
+ * Analytics explorer (ANALYTICS_API.md §6): the exploration config, the catalog and the builder
+ * rules. The pivot itself is in utils/global-explorer.ts.
  *
- * The catalog (`GET /analytics/variables`) says which metric splits by which dimension; this file
- * knows how to compute each id it lists. An id the client can't compute yet is left out of the
- * builder instead of guessed. Rates always sum the parts, then divide.
+ * The catalog (`GET /analytics/variables`) says which metric splits by which dimension. An id the
+ * client can't compute is left out of the builder instead of guessed.
  */
-import { archetypeName, duelistName, type Duelist, type PlayerSeason } from './analytics'
+import type { PlayerSeason } from './analytics'
 
 /* ---------------------------------------------------------------- *
  * API shapes (§6.1, §6.2)
@@ -95,268 +94,25 @@ export const pickColumns = <C extends { sk: number | string; n: number; label: s
   return sorted.slice(0, cfg.columnLimit ?? COLUMN_LIMIT)
 }
 
-
-/* ---------------------------------------------------------------- *
- * Facts: one row per game, per card used in a game, per hand-trap activation
- * ---------------------------------------------------------------- */
-
-type SeasonGame = PlayerSeason['games'][number]
-
-/**
- * `game: null` marks a row that only exists in the season aggregates (`cardUsage`, `responses`):
- * it names a group for deck inclusion and responses, and is never counted.
- */
-type Fact = {
-  game: SeasonGame | null
-  /** 1-based day of the season. */
-  day: number | null
-  archetype?: string | null
-  cardId?: number
-  uses?: number
-  handTrap?: number
-  by?: 'player' | 'opponent'
-  /** A rating row (`eloHistory[]`): its `day` is the ready-made `seasonDay`. */
-  elo?: number
-}
-
 /** A season the Segments panel offers. `code` resolves `current:*`; `null` when that ladder has no open season. */
 export type SegmentOption = { id: string; label: string; sub: string; code: string | null }
 
 /** A staff period (`GET /analytics/periods`): any window, compared like a season. Ends exclusive, UTC days. */
 export type AnalyticsPeriod = PlayerSeason['season'] & { endsAt: string }
 
-/** First and last day of a period, inclusive, `YYYY-MM-DD`. */
-export const periodDays = (p: Pick<AnalyticsPeriod, 'startsAt' | 'endsAt'>) =>
-  [p.startsAt.slice(0, 10), new Date(Date.parse(p.endsAt) - 1).toISOString().slice(0, 10)] as const
-
 /** The primary segment's note. */
 export const seasonState = (s: PlayerSeason['season']) => (s.analyticsOnly ? 'Period' : s.endsAt ? 'Ended' : 'Open')
-
-/** One compared season, ready to cut. */
-export type Segment = {
-  /** As saved: a code or `current:*`. */
-  id: string
-  label: string
-  season: PlayerSeason
-  days: number
-  games: Fact[]
-  cards: Fact[]
-  handTraps: Fact[]
-  rating: Fact[]
-  /** Group names for the aggregate-only metrics. */
-  aggregate: { cards: Fact[]; handTraps: Fact[] }
-}
-
-const DAY = 86_400_000
 
 /** `TCG · 09.2026`, or `Current TCG · 09.2026` for a segment that follows the open season. */
 export const segmentLabel = (id: string, season: PlayerSeason['season']) =>
   `${id.startsWith('current:') ? 'Current ' : ''}${season.ladder === 'genesys' ? 'Genesys' : 'TCG'} · ${season.label}`
 
-export const buildSegment = (id: string, season: PlayerSeason): Segment => {
-  const start = Date.parse(season.season.startsAt)
-  const games: Fact[] = season.games.map((game) => ({
-    game,
-    archetype: game.archetype,
-    day: game.start ? Math.floor((Date.parse(game.start) - start) / DAY) + 1 : null,
-  }))
-  const rating: Fact[] = (season.eloHistory ?? []).map((p) => ({ game: null, day: p.seasonDay, elo: p.elo }))
-  const lastDay = season.season.endsAt ? Math.floor((Date.parse(season.season.endsAt) - start) / DAY) + 1 : 0
-  return {
-    id, season,
-    label: segmentLabel(id, season.season),
-    days: Math.max(1, lastDay, ...[...games, ...rating].map((f) => f.day ?? 1)),
-    games,
-    rating,
-    cards: games.flatMap((f) =>
-      (f.game!.cards?.used ?? []).map((u) => ({ ...f, cardId: u.cardId, uses: u.uses })),
-    ),
-    handTraps: games.flatMap((f) => [
-      ...(f.game!.handTraps?.player ?? []).map((handTrap) => ({ ...f, handTrap, by: 'player' as const })),
-      ...(f.game!.handTraps?.opponent ?? []).map((handTrap) => ({ ...f, handTrap, by: 'opponent' as const })),
-    ]),
-    aggregate: {
-      cards: season.cardUsage.flatMap((c) => [
-        { game: null, day: null, cardId: c.cardId },
-        ...c.byArchetype.map((a) => ({ game: null, day: null, cardId: c.cardId, archetype: a.archetype })),
-      ]),
-      handTraps: season.responses.flatMap((r) =>
-        (['player', 'opponent'] as const)
-          .filter((by) => (by === 'player' ? r.byPlayer : r.byOpponent).activations)
-          .map((by) => ({ game: null, day: null, handTrap: r.cardId, by })),
-      ),
-    },
-  }
-}
+/** Dimensions with an order of their own: rows keep it instead of sorting by metric. */
+const NATURAL: Record<string, 'asc' | 'desc'> = { turnOrder: 'asc', gameNumber: 'asc', result: 'asc', match: 'desc', seasonDay: 'asc', activatedBy: 'asc' }
+export const dimNatural = (d: string) => NATURAL[d]
 
-/** Names the season responses carry, merged over every compared season. */
-export type Names = { opponents: Record<string, Duelist>; cards: Map<number, string | null> }
-
-export const namesOf = (segments: Segment[]): Names => ({
-  opponents: Object.assign({}, ...segments.map((s) => s.season.opponents)),
-  cards: new Map(segments.flatMap((s) => [...s.season.cardUsage, ...s.season.responses].map((c) => [c.cardId, c.name] as const))),
-})
-
-/* ---------------------------------------------------------------- *
- * Dimensions: the value a fact takes, its label, its order
- * ---------------------------------------------------------------- */
-
-type DimImpl = {
-  /** `undefined`: the dimension doesn't apply to this fact. */
-  value: (f: Fact) => FilterValue | undefined
-  label: (v: FilterValue, names: Names) => string
-  /** Rows keep this order instead of sorting by metric. */
-  natural?: 'asc' | 'desc'
-  key?: (f: Fact) => number | string
-}
-
-const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', draw: 'Draw', none: 'No result' }
-const RESULT_ORDER: Record<string, number> = { win: 0, loss: 1, draw: 2, none: 3 }
-const pad2 = (n: number) => String(n).padStart(2, '0')
-const onGame = <T,>(f: Fact, get: (g: SeasonGame) => T) => (f.game ? get(f.game) : undefined)
-
-const DIM_IMPL: Record<string, DimImpl> = {
-  archetype: { value: (f) => f.archetype, label: (v) => archetypeName(v as string | null) },
-  opponentArchetype: { value: (f) => onGame(f, (g) => g.opponentArchetype), label: (v) => archetypeName(v as string | null) },
-  opponent: { value: (f) => onGame(f, (g) => g.opponentId), label: (v, n) => (v === null ? 'Unknown duelist' : duelistName(n.opponents[v as string])) },
-  turnOrder: {
-    value: (f) => onGame(f, (g) => (g.wentFirst === null ? null : g.wentFirst ? 'first' : 'second')),
-    label: (v) => (v === 'first' ? 'Going first' : v === 'second' ? 'Going second' : 'Unknown'),
-    natural: 'asc',
-    key: (f) => (f.game?.wentFirst ? 0 : f.game?.wentFirst === false ? 1 : 2),
-  },
-  gameNumber: { value: (f) => onGame(f, (g) => g.gameNumber), label: (v) => `Game ${v}`, natural: 'asc' },
-  result: {
-    value: (f) => onGame(f, (g) => g.result ?? 'none'),
-    label: (v) => RESULT_LABEL[v as string] ?? String(v),
-    natural: 'asc',
-    key: (f) => RESULT_ORDER[f.game?.result ?? 'none'] ?? 3,
-  },
-  match: { value: (f) => onGame(f, (g) => g.matchId), label: (v) => `#${v}`, natural: 'desc', key: (f) => f.game?.start ?? '' },
-  seasonDay: { value: (f) => (f.game || f.elo !== undefined ? f.day : undefined), label: (v) => (v === null ? 'No date' : `Day ${pad2(v as number)}`), natural: 'asc' },
-  card: { value: (f) => f.cardId, label: (v, n) => n.cards.get(v as number) ?? `#${v}` },
-  handTrap: { value: (f) => f.handTrap, label: (v, n) => n.cards.get(v as number) ?? `#${v}` },
-  activatedBy: { value: (f) => f.by, label: (v) => (v === 'player' ? 'You' : 'Opponents'), natural: 'asc', key: (f) => (f.by === 'player' ? 0 : 1) },
-}
-
-/** Dimensions a `games[]` row carries: they also narrow the games a per-game rate divides by. */
-const GAME_DIMS = new Set(['archetype', 'opponentArchetype', 'opponent', 'turnOrder', 'gameNumber', 'result', 'match', 'seasonDay'])
-
-const dimValue = (d: string, f: Fact) => DIM_IMPL[d]?.value(f)
-/** Duelist values are never lists: those are global archetypes. */
-const dimKey = (d: string, f: Fact) => DIM_IMPL[d]?.key?.(f) ?? (dimValue(d, f) as string | number | null | undefined) ?? ''
-export const dimNatural = (d: string) => DIM_IMPL[d]?.natural
-const dimLabel = (d: string, v: FilterValue, names: Names) => DIM_IMPL[d]?.label(v, names) ?? String(v)
-
-/* ---------------------------------------------------------------- *
- * Metrics
- * ---------------------------------------------------------------- */
-
-/** Dimension id → required value. */
-type Cut = Record<string, FilterValue>
-type Ctx = {
-  /** Source rows in the cut (real ones only). */
-  facts: Fact[]
-  /** Games in the cut: the denominator of per-game rates. */
-  games: Fact[]
-  cut: Cut
-  seg: Segment
-}
-
-const ratio = (a: number, b: number) => (b ? a / b : null)
-const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((n, r) => n + f(r), 0)
-const count = <T,>(rows: T[], f: (r: T) => boolean) => rows.filter(f).length
-const distinctGames = (rows: Fact[]) => new Set(rows.map((f) => `${f.game!.matchId}-${f.game!.gameNumber}`)).size
-const mean = (values: (number | null | undefined)[]) => {
-  const known = values.filter((v): v is number => typeof v === 'number')
-  return known.length ? sum(known, (v) => v) / known.length : null
-}
-/** Wins ÷ games with a result. A draw is a non-win. */
-const winRate = (rows: Fact[]) => ratio(count(rows, (f) => f.game!.result === 'win'), count(rows, (f) => f.game!.result !== null))
-const onePerGame = (rows: Fact[]) => [...new Map(rows.map((f) => [`${f.game!.matchId}-${f.game!.gameNumber}`, f])).values()]
-
-/** `cardUsage` of the card in the cut, narrowed to its archetype when the cut fixes one. */
-const inclusion = ({ cut, seg }: Ctx) => {
-  if (!('card' in cut)) return null
-  const card = seg.season.cardUsage.find((c) => c.cardId === cut.card)
-  const row = card && ('archetype' in cut ? card.byArchetype.find((a) => a.archetype === cut.archetype) : card)
-  return row ? { ...row.deckInclusion, whenInDeck: row.whenInDeck } : { games: 0, rate: 0, whenInDeck: null }
-}
-
-/** `responses` summed over the hand traps and sides in the cut. */
-const responses = ({ cut, seg }: Ctx) => {
-  const sides = 'activatedBy' in cut ? [cut.activatedBy as 'player' | 'opponent'] : (['player', 'opponent'] as const)
-  const splits = seg.season.responses
-    .filter((r) => !('handTrap' in cut) || r.cardId === cut.handTrap)
-    .flatMap((r) => sides.map((by) => (by === 'player' ? r.byPlayer : r.byOpponent)))
-  return {
-    activations: sum(splits, (s) => s.activations),
-    responded: sum(splits, (s) => s.responded),
-    called: sum(splits, (s) => s.calledByTheGrave),
-    crossout: sum(splits, (s) => s.crossoutDesignator),
-    ashed: sum(splits, (s) => s.ashedOrPurged),
-    /** A split with responses recorded before Ash'd or Purged existed has no rate: none for the cut, never a blend. */
-    ashCovered: splits.every((s) => !s.responded || s.ashedOrPurgedRate !== null),
-  }
-}
-
-const COMPUTE: Record<string, (ctx: Ctx) => number | null> = {
-  games: ({ facts }) => facts.length,
-  matches: ({ facts }) => new Set(facts.map((f) => f.game!.matchId)).size,
-  wins: ({ facts }) => count(facts, (f) => f.game!.result === 'win'),
-  losses: ({ facts }) => count(facts, (f) => f.game!.result === 'loss'),
-  draws: ({ facts }) => count(facts, (f) => f.game!.result === 'draw'),
-  winRate: ({ facts }) => winRate(facts),
-  averageTurns: ({ facts }) => mean(facts.map((f) => f.game!.turns)),
-  averageActions: ({ facts }) => mean(facts.map((f) => f.game!.actions)),
-  comboLength: ({ facts }) => ratio(sum(facts, (f) => f.game!.combo?.actions ?? 0), sum(facts, (f) => f.game!.combo?.turns ?? 0)),
-  deckCoverageMain: ({ facts }) => mean(facts.map((f) => f.game!.deckCoverage?.main)),
-  deckCoverageExtra: ({ facts }) => mean(facts.map((f) => f.game!.deckCoverage?.extra)),
-  turn1SpecialSummons: ({ facts }) => mean(facts.map((f) => f.game!.turn1SpecialSummons)),
-  longestChain: ({ facts }) => mean(facts.map((f) => f.game!.longestChain)),
-
-  usage: ({ facts, games }) => ratio(distinctGames(facts), games.length),
-  usageGames: ({ facts }) => distinctGames(facts),
-  totalUses: ({ facts }) => sum(facts, (f) => f.uses ?? 0),
-  winRateWhenUsed: ({ facts }) => winRate(onePerGame(facts)),
-  deckInclusion: (ctx) => inclusion(ctx)?.rate ?? null,
-  inclusionGames: (ctx) => inclusion(ctx)?.games ?? null,
-  winRateInDeck: (ctx) => inclusion(ctx)?.whenInDeck?.winRate ?? null,
-
-  activations: ({ facts }) => facts.length,
-  gamesWithActivation: ({ facts }) => distinctGames(facts),
-  activationsPerGame: ({ facts, games }) => ratio(facts.length, games.length),
-  responded: (ctx) => responses(ctx).responded,
-  respondedRate: (ctx) => {
-    const r = responses(ctx)
-    return ratio(r.responded, r.activations)
-  },
-  calledByTheGrave: (ctx) => responses(ctx).called,
-  calledByTheGraveRate: (ctx) => {
-    const r = responses(ctx)
-    return ratio(r.called, r.responded)
-  },
-  crossoutDesignator: (ctx) => responses(ctx).crossout,
-  crossoutDesignatorRate: (ctx) => {
-    const r = responses(ctx)
-    return ratio(r.crossout, r.responded)
-  },
-  ashedOrPurged: (ctx) => responses(ctx).ashed,
-  ashedOrPurgedRate: (ctx) => {
-    const r = responses(ctx)
-    return r.ashCovered ? ratio(r.ashed, r.responded) : null
-  },
-
-  /** The latest recorded day in the cut. */
-  elo: ({ facts }) => facts.reduce<Fact | null>((last, f) => (!last || (f.day ?? 0) > (last.day ?? 0) ? f : last), null)?.elo ?? null,
-}
-
-/** Metrics read from the season aggregates: they name their own groups and never count facts. */
-const AGGREGATE = new Set(['deckInclusion', 'inclusionGames', 'winRateInDeck', 'responded', 'respondedRate', 'calledByTheGrave', 'calledByTheGraveRate', 'crossoutDesignator', 'crossoutDesignatorRate', 'ashedOrPurged', 'ashedOrPurgedRate'])
 /** Win/loss rates: 50% is the line that matters. */
 export const WIN_LOSS = new Set(['winRate', 'winRateWhenUsed', 'winRateInDeck', 'dailyWinRate', 'winRateWithGroup'])
-/** Read from the per-game detail (§3.4): undercounts while `gamesWithoutDetail` > 0. */
-const NEEDS_DETAIL = (m: Metric) => /combo|deckCoverage|turn1|longestChain|cards\.|handTraps/.test(m.from)
 
 /* ---------------------------------------------------------------- *
  * The catalog, narrowed to what this client computes
@@ -368,13 +124,6 @@ export type Catalog = {
   dimensions: Map<string, Dimension>
   metrics: Map<string, Metric>
 }
-
-export const catalogOf = (vars: Variables): Catalog => ({
-  limits: vars.limits,
-  techniques: vars.techniques,
-  dimensions: new Map(vars.dimensions.filter((d) => d.id in DIM_IMPL).map((d) => [d.id, d])),
-  metrics: new Map(vars.metrics.filter((m) => m.id in COMPUTE).map((m) => [m.id, { ...m, splitBy: m.splitBy.filter((d) => d in DIM_IMPL) }])),
-})
 
 export const fmt = (v: number | null | undefined, format: Metric['format']) => {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
@@ -425,25 +174,11 @@ export const dimReason = (cat: Catalog, id: string, cfg: ExplorationConfig) => {
  * Pivot
  * ---------------------------------------------------------------- */
 
-const matches = (f: Fact, cut: Cut) => Object.entries(cut).every(([d, v]) => dimValue(d, f) === v)
-const gameCut = (cut: Cut) => Object.fromEntries(Object.entries(cut).filter(([d]) => GAME_DIMS.has(d)))
-const factsOf = (seg: Segment, source: Source): Fact[] => ({ games: seg.games, cards: seg.cards, handTraps: seg.handTraps, rating: seg.rating } as Partial<Record<Source, Fact[]>>)[source] ?? []
-/** What a row counts: games, or distinct games for card and hand-trap rows, or recorded days. */
-const sampleOf = (source: Source, rows: Fact[]) => (source === 'cards' || source === 'handTraps' ? distinctGames(rows) : rows.length)
-const UNIT: Partial<Record<Source, string>> = { games: 'games', cards: 'games', handTraps: 'activations', rating: 'days' }
-
-const measure = (cat: Catalog, id: string, seg: Segment, source: Source, cut: Cut, rows?: Fact[], extra?: (f: Fact) => boolean) => {
-  const keep = (f: Fact) => matches(f, cut) && (!extra || extra(f))
-  const gc = gameCut(cut)
-  const games = seg.games.filter((f) => matches(f, gc) && (!extra || extra(f)))
-  return COMPUTE[id]!({ facts: rows ?? factsOf(seg, source).filter(keep), games, cut, seg })
-}
-
 type Cell = { value: number | null; n: number }
 export type GroupSegment = { vals: (number | null)[]; n: number; cells: Cell[] }
 export type Group = { key: string; labels: string[]; values: FilterValue[]; matchId: string | null; sub: string; seg: GroupSegment[] }
 
-/** What the output draws. Both engines (this file and utils/global-explorer.ts) produce it. */
+/** What the output draws. utils/global-explorer.ts produces it. */
 export type PivotResult = {
   source: Source
   values: string[]
@@ -476,122 +211,6 @@ export const sortGroups = <G extends { sk: (number | string)[]; seg: GroupSegmen
     const dir = cfg.sort?.direction === 'asc' ? 1 : -1
     const lead = (g: G) => g.seg[0]!
     order.sort((a, b) => ((lead(a).vals[i] ?? -Infinity) - (lead(b).vals[i] ?? -Infinity)) * dir || lead(b).n - lead(a).n)
-  }
-}
-
-export const run = (cat: Catalog, segs: Segment[], cfg: ExplorationConfig, names: Names): PivotResult => {
-  const values = cfg.values.filter((m) => cat.metrics.has(m))
-  const source = sourceOf(cat, cfg)
-  const rowDims = cfg.rows.filter((d) => d in DIM_IMPL)
-  const colDim = cfg.columns && cfg.columns in DIM_IMPL ? cfg.columns : null
-  const filterCut: Cut = Object.fromEntries(cfg.filters.filter((f) => f.dimension in DIM_IMPL).map((f) => [f.dimension, f.value]))
-  const aggregate = values.some((m) => AGGREGATE.has(m))
-  const sample = (rows: Fact[]) => sampleOf(source, rows)
-
-  type Building = { key: string; values: FilterValue[]; sk: (number | string)[]; matchId: string | null; sub: string; rows: Fact[][]; cols: Map<string, Fact[]>[] }
-  const groups = new Map<string, Building>()
-  const colVals = new Map<string, { v: FilterValue; sk: number | string; n: number }>()
-
-  segs.forEach((seg, si) => {
-    const rows = factsOf(seg, source).filter((f) => matches(f, filterCut))
-    const named = aggregate ? (source === 'cards' ? seg.aggregate.cards : seg.aggregate.handTraps).filter((f) => rowDims.every((d) => dimValue(d, f) !== undefined) && matches(f, filterCut)) : []
-    for (const f of [...rows, ...named]) {
-      const vals = rowDims.map((d) => dimValue(d, f) ?? null)
-      const key = JSON.stringify(vals)
-      let g = groups.get(key)
-      if (!g) {
-        const isMatch = rowDims[0] === 'match' && f.game
-        g = {
-          key, values: vals, sk: rowDims.map((d) => dimKey(d, f)),
-          matchId: isMatch ? f.game!.matchId : null,
-          sub: isMatch ? `${f.game!.start ? new Date(f.game!.start).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) : '—'} · vs ${dimLabel('opponent', f.game!.opponentId, names)}` : '',
-          rows: segs.map(() => []), cols: segs.map(() => new Map()),
-        }
-        groups.set(key, g)
-      }
-      if (!f.game) continue
-      g.rows[si]!.push(f)
-      if (colDim) {
-        const cv = dimValue(colDim, f) ?? null
-        const ck = JSON.stringify(cv)
-        const c = colVals.get(ck) ?? { v: cv, sk: dimKey(colDim, f), n: 0 }
-        c.n++
-        colVals.set(ck, c)
-        g.cols[si]!.set(ck, [...(g.cols[si]!.get(ck) ?? []), f])
-      }
-    }
-  })
-
-  const colAll = [...colVals.values()].map((c) => ({ ...c, label: dimLabel(colDim!, c.v, names) }))
-  const colList = pickColumns(colAll, cfg, !!colDim && !!dimNatural(colDim), (c) =>
-    values[0] && segs[0] ? measure(cat, values[0], segs[0], source, { ...filterCut, [colDim!]: c.v }) : null)
-
-  const order = [...groups.values()].map((g) => {
-    const cut: Cut = { ...filterCut, ...Object.fromEntries(rowDims.map((d, i) => [d, g.values[i] ?? null])) }
-    return {
-      key: g.key, values: g.values, sk: g.sk, matchId: g.matchId, sub: g.sub,
-      labels: rowDims.length ? rowDims.map((d, i) => dimLabel(d, g.values[i] ?? null, names)) : [`All ${source === 'handTraps' ? 'hand traps' : source === 'rating' ? 'days' : source}`],
-      seg: segs.map((seg, si) => {
-        const rows = g.rows[si]!
-        return {
-          vals: values.map((m) => measure(cat, m, seg, source, cut, AGGREGATE.has(m) ? [] : rows)),
-          n: sample(rows),
-          cells: colDim
-            ? colList.map((c) => {
-              const ck = JSON.stringify(c.v)
-              const cellRows = g.cols[si]!.get(ck) ?? []
-              return { value: values[0] ? measure(cat, values[0], seg, source, { ...cut, [colDim]: c.v }, cellRows) : null, n: sample(cellRows) }
-            })
-            : [],
-        }
-      }),
-    }
-  })
-    // A name from the aggregates with nothing behind it in any season is noise.
-    .filter((g) => g.seg.some((s) => s.n || s.vals.some((v) => v)))
-  const kept = applyThresholds(order, cfg)
-
-  sortGroups(kept, rowDims, cfg)
-  /** Games whose per-game detail is missing, when a value needs it. */
-  const withoutDetail = values.some((m) => NEEDS_DETAIL(cat.metrics.get(m)!)) ? sum(segs, (s) => s.season.gamesWithoutDetail ?? 0) : 0
-
-  return {
-    source, values, rowDims, colDim,
-    segs: segs.map((s, i) => ({ id: s.id, label: s.label, color: segColor(i) })),
-    groups: kept.slice(0, cfg.limit || 12) as Group[],
-    totalGroups: kept.length,
-    colList,
-    hiddenCols: colAll.length - colList.length,
-    totals: source === 'cards' ? null : segs.map((seg) => ({
-      count: factsOf(seg, source).filter((f) => matches(f, filterCut)).length,
-      vals: values.map((m) => measure(cat, m, seg, source, filterCut)),
-    })),
-    unit: UNIT[source] ?? source,
-    note: withoutDetail ? `${withoutDetail} older games have no per-game detail and are left out` : '',
-  }
-}
-
-/** One series per season, or per column value when a single season is split by Columns. */
-export const lineSeries = (cat: Catalog, segs: Segment[], res: PivotResult, cfg: ExplorationConfig): LineData => {
-  const metric = res.values[0]!
-  const filterCut: Cut = Object.fromEntries(cfg.filters.map((f) => [f.dimension, f.value]))
-  const colDim = res.colDim
-  const series =
-    segs.length === 1 && colDim
-      ? res.colList.slice(0, 4).map((c, i) => ({ label: c.label, color: segColor(i), seg: segs[0]!, cut: { ...filterCut, [colDim]: c.v } }))
-      : segs.map((s, i) => ({ label: s.label, color: segColor(i), seg: s, cut: filterCut }))
-  return {
-    maxDay: Math.max(1, ...series.map((s) => s.seg.days)),
-    series: series.map((se) => ({
-      label: se.label,
-      color: se.color,
-      points: Array.from({ length: se.seg.days }, (_, i) => {
-        const day = i + 1
-        const inDay = (f: Fact) => f.day !== null && (cfg.runningTotal ? f.day <= day : f.day === day)
-        const any = factsOf(se.seg, res.source === 'rating' ? 'rating' : 'games').some((f) => inDay(f) && matches(f, gameCut(se.cut)))
-        return { day, value: any ? measure(cat, metric, se.seg, res.source, se.cut, undefined, inDay) : null }
-      }),
-    })),
   }
 }
 

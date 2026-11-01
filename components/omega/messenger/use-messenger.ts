@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@hooks/index";
+import { useAuth } from "@contexts/auth/auth.context";
 import { messenger, MessengerApiError, msSinceLastRequest, sortRoster } from "@utils/messenger";
 import type {
   BlockedDuelist,

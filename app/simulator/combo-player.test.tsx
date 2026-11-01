@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { getCombo, type SharedCombo } from '@utils/combos'
 import { DRAFT_KEY } from '@utils/simulator/draft'
 import { ComboPlayer } from './combo-player'
@@ -13,7 +13,7 @@ vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
 vi.mock('@utils/combos', async (original) => ({ ...(await original<typeof import('@utils/combos')>()), getCombo: vi.fn() }))
 

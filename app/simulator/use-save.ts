@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { ComboApiError, ComboConflictError, comboUrl, getCombo, saveCombo, updateCombo } from '@utils/combos'
 import { comboSession, hashPayload, payloadOf } from '@utils/simulator/combo'
 import type { SessionEvent } from '@utils/simulator/session'

@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Icon } from '@ui/icon'
 import { twMerge } from 'tailwind-merge'
-import Button from '@ui/button'
+import { Button } from '@ui/button'
 import { NAVBAR_ITEMS, type NavbarItem } from '@utils/const'
 import { CELL, CELL_IDLE, CELL_ON, MOBILE_ITEM, PANEL, PANEL_ITEM } from './bar'
 

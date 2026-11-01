@@ -10,7 +10,7 @@
 
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { Avatar, Button, cx, Eyebrow, Icon } from '@omega/messenger/messenger-ui'
 import { LocalTime } from '@omega/profile/local-time'
 import { Select } from '@ui/field'

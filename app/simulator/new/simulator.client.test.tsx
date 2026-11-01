@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { cardsByIds } from '@utils/cards'
 import { ComboApiError, ComboConflictError, deleteCombo, getCombo, listMyCombos, saveCombo, updateCombo, type ComboSummary, type SharedCombo } from '@utils/combos'
 import { toYdke } from '@utils/deck/codecs/ydke'
@@ -18,7 +18,7 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: vi.fn() }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: vi.fn() }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), listMyDecks: vi.fn() }))
 // The errors and `comboUrl` stay real: the client tells them apart and builds the link with them.

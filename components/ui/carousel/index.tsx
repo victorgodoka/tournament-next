@@ -1,7 +1,7 @@
 "use client";
 import { Children, useRef } from "react"
 import { twMerge } from "tailwind-merge"
-import { Button } from "../button/button.component"
+import { Button } from "@ui/button"
 import { Icon } from "../icon"
 
 /** Snap-scrolling strip; each child becomes a slide and the arrows move it by one slide. */

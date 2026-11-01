@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { useReturnTo } from '@utils/return-to'
 
 /**

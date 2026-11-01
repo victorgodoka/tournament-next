@@ -1,6 +1,6 @@
 'use client'
 
-import ErrorView from '@omega/error'
+import { Error as ErrorView } from '@omega/error'
 import { Header } from '@ui/header'
 
 /** The API or the session lookup failed. Distinct from 404, so an editor isn't told their page is gone. */

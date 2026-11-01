@@ -7,11 +7,11 @@ import { twMerge } from "tailwind-merge";
 import { CELL, Navbar, PANEL, PANEL_ITEM, PANEL_RULE } from "@ui/navbar";
 import { LanguageSwitcher } from "@ui/navbar/language-switcher.component";
 import { Avatar } from "@ui/avatar";
-import { useAuth } from "@hooks/index";
+import { useAuth } from "@contexts/auth/auth.context";
 import { signIn, type AuthUser } from "@utils/auth";
 import { can } from "@utils/articles";
 import { DOWNLOAD_URL, NAVBAR_ITEMS, NavbarItem } from "@utils/const";
-import Button from "@ui/button";
+import { Button } from "@ui/button";
 import { MessengerMailbox } from "@omega/messenger";
 
 type HeaderProps = {

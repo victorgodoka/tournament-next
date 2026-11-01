@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl'
-import { Button } from '@ui/button/button.component'
+import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
 
 const VIP_PERKS = ['rarities', 'mat', 'sleeves', 'ads'] as const

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { can } from '@utils/articles'
 import { download } from '@utils/download'
 import type { Size } from './infographic'
