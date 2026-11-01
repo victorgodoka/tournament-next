@@ -17,6 +17,11 @@ build:
     - runner
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    # Builds run on the runner host's daemon, which keeps every image and layer until its disk fills.
+    # ponytail: the 3 GB cap is a guess at one build's cache (recent layers survive); adjust from the df output below.
+    - docker images "$CI_REGISTRY_IMAGE" --format '{{.Repository}}:{{.Tag}}' | xargs -r docker rmi || true
+    - docker builder prune -af --keep-storage 3GB
+    - df -h / && df -i / && docker system df
   script:
     - |
       docker build \
