@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react";
-import { useAuth } from "@hooks/index";
+import { useAuth } from "@contexts/auth/auth.context";
 import { Button } from "@ui/button";
 import { Icon } from "@ui/icon";
 import { signIn } from "@utils/auth";

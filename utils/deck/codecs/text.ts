@@ -10,22 +10,3 @@ export const toText = (deck: Deck, cards: CardMap): string =>
       return [title, ...[...counts].map(([id, qty]) => `${qty} ${cards.get(id)?.name ?? id}`)].join('\n') + '\n'
     })
     .join('\n')
-
-const HEADER = /^(main|extra|side)( deck)?:?$/i
-const QTY = /^(\d+)\s*x?\s+(.+)$/i
-
-export const fromText = (text: string): { zone: Zone; qty: number; name: string }[] => {
-  let zone: Zone = 'main'
-  const out: { zone: Zone; qty: number; name: string }[] = []
-  for (const line of text.split(/\r?\n/).map((l) => l.trim())) {
-    if (!line) continue
-    const header = HEADER.exec(line)
-    if (header) {
-      zone = header[1]!.toLowerCase() as Zone
-      continue
-    }
-    const m = QTY.exec(line)
-    out.push({ zone, qty: m ? Number(m[1]) : 1, name: (m ? m[2]! : line).trim() })
-  }
-  return out
-}

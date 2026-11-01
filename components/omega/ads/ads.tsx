@@ -2,7 +2,7 @@
 
 import Script from 'next/script'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { track } from '@utils/gtm'
 import { removeNitroHost } from '@utils/nitro-ads'
 import {

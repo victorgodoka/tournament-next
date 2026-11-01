@@ -28,7 +28,7 @@ There is no `test` script in `package.json`, and no coverage provider is install
 
 Prefer `tsc` and `eslint` over `next build` for verification.
 
-**Baseline on 2026-11-01:** `tsc --noEmit` is clean. `eslint` has 1 error, and `vitest run` passes 1,067 of 1,069 tests in about 80 s. Both failures pass when their files run alone. See "Known Bugs" in `CONCERNS.md`.
+**Baseline on 2026-11-01:** `tsc --noEmit` is clean and `eslint` has 1 error. `vitest run` takes 50-80 s. Under load, 2 of its 1,069 tests can fail and then pass when their files run alone. See "Known Bugs" in `CONCERNS.md`.
 
 ## Test File Organization
 

@@ -18,7 +18,7 @@ let pathname = '/decks'
 
 vi.mock('next/script', () => ({ default: ({ id }: { id: string }) => <script data-testid={id} /> }))
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 vi.mock('@utils/nitro-ads', () => ({
   createNitroPlacement: vi.fn(async () => ({})),
   removeNitroPlacement: vi.fn(),

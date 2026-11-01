@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { Locked } from '@app/admin/AdminShell'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { Button } from '@ui/button'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'

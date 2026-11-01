@@ -6,7 +6,7 @@ import { InfographicLinks } from './infographic-links'
 const download = vi.hoisted(() => vi.fn())
 vi.mock('@utils/download', () => ({ download }))
 const useAuth = vi.hoisted(() => vi.fn())
-vi.mock('@hooks/index', () => ({ useAuth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth }))
 
 const props = {
   label: 'Infographic',

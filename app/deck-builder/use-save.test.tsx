@@ -11,7 +11,7 @@ const auth: { user: { id: string } | null | undefined; refresh: () => Promise<vo
 
 vi.mock('next/navigation', () => ({ useRouter: () => router }))
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string, values?: object) => (values ? `${key} ${JSON.stringify(values)}` : key) }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), createDeck: vi.fn(), updateDeck: vi.fn() }))
 
 const deck = { main: [1, 2, 3], extra: [], side: [] }

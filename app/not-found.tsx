@@ -1,4 +1,4 @@
-import Error from "@omega/error"
+import { Error } from "@omega/error"
 
 const NotFound = () => <Error errorCode={404} />
 

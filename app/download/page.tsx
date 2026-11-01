@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-import { Button } from '@ui/button/button.component'
+import { Button } from '@ui/button'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'

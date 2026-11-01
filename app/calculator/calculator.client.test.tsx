@@ -20,7 +20,7 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ number: (n: number, o?: { style?: string }) => (o?.style === 'percent' ? `${Math.round(n * 100)}%` : String(n)), relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 vi.mock('@utils/wiki', () => ({ getBanlists: () => Promise.resolve([]) }))
 vi.mock('@utils/cards', () => ({ cardsByIds: vi.fn(async () => new Map()) }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), getDeck: vi.fn(), updateDeck: vi.fn(), listMyDecks: vi.fn() }))

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { adsMode } from '@omega/ads/ads-mode'
 import { LOGIN_PENDING_KEY, consentFromTcf, track, updateConsent } from '@utils/gtm'
 

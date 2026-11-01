@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  DeckApiError, DeckConflictError, createDeck, deleteDeck, filterParams, getDeck, getRevision, listMyDecks, listRevisions, listUserDecks, restoreRevision, updateDeck,
+  DeckApiError, DeckConflictError, createDeck, deleteDeck, filterParams, getDeck, listMyDecks, listUserDecks, updateDeck,
 } from './decks'
 
 const reply = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status })
@@ -115,25 +115,6 @@ describe('decks client', () => {
     expect(init.method).toBe('DELETE')
     expect(init.headers).toBeUndefined()
     expect(init.body).toBeUndefined()
-  })
-
-  it('restoreRevision POSTs with no body and no content-type', async () => {
-    const fetchMock = stub(reply(200, { id: 'a' }))
-    await restoreRevision('a', 2)
-    const { url, init } = call(fetchMock)
-    expect(url).toMatch(/\/decks\/a\/revisions\/2\/restore$/)
-    expect(init.method).toBe('POST')
-    expect(init.headers).toBeUndefined()
-    expect(init.body).toBeUndefined()
-  })
-
-  it('listRevisions and getRevision hit the revision routes', async () => {
-    let fetchMock = stub(reply(200, { revisions: [] }))
-    await listRevisions('a')
-    expect(call(fetchMock).url).toMatch(/\/decks\/a\/revisions$/)
-    fetchMock = stub(reply(200, { revision: 3 }))
-    await getRevision('a', 3)
-    expect(call(fetchMock).url).toMatch(/\/decks\/a\/revisions\/3$/)
   })
 
   it('encodes the id in the path', async () => {

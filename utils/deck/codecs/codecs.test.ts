@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DeckCodeError, type CardData, type Deck } from '../types'
 import { detectFormat } from './detect'
 import { fromOmega, toOmega } from './omega'
-import { fromText, toText } from './text'
+import { toText } from './text'
 import { fromYdk, toYdk } from './ydk'
 import { fromYdke, toYdke } from './ydke'
 
@@ -44,14 +44,9 @@ describe('codecs', () => {
     await expect(toOmega({ main: Array(60).fill(1), extra: Array(16).fill(2), side: [] }).then(fromOmega)).rejects.toThrow(DeckCodeError)
     await expect(toOmega({ main: [0], extra: [], side: [] }).then(fromOmega)).rejects.toThrow(DeckCodeError)
   })
-  it('writes and reads the text list', () => {
+  it('writes the text list', () => {
     const names = new Map<number, CardData>([[14558127, 'Ash Blossom & Joyous Spring'], [46986414, 'Dark Magician'], [84013237, 'Number 39: Utopia'], [24224830, 'Called by the Grave']].map(([id, name]) => [id as number, { id, name } as CardData]))
     expect(toText(deck, names)).toBe('Main Deck\n2 Ash Blossom & Joyous Spring\n1 Dark Magician\n\nExtra Deck\n1 Number 39: Utopia\n\nSide Deck\n1 Called by the Grave\n')
-    expect(fromText('Main:\n3x Ash Blossom & Joyous Spring\nPot of Greed\nExtra Deck\n1 Number 39: Utopia')).toEqual([
-      { zone: 'main', qty: 3, name: 'Ash Blossom & Joyous Spring' },
-      { zone: 'main', qty: 1, name: 'Pot of Greed' },
-      { zone: 'extra', qty: 1, name: 'Number 39: Utopia' },
-    ])
   })
   it('text: unknown cards print their passcode, empty zones print no header', () => {
     expect(toText({ main: [5, 5], extra: [], side: [] }, new Map())).toBe('Main Deck\n2 5\n')

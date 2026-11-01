@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useRef, useState, useSyncExternalStore } from 'react'
 import { useLocale, useNow, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
+import { buttonClasses } from '@ui/button'
 import { Switch } from '@ui/choice'
 import { Select } from '@ui/field'
-import { Modal } from '@ui/modal/modal.component'
 import { LocalTime } from '@omega/profile/local-time'
 import { CalendarRow, calendarKey, isPast } from '@omega/tournament/calendar-row'
 import { TIME_ONLY, formatTone } from '@omega/tournament/labels'
@@ -52,6 +52,7 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
   const local = useSyncExternalStore(subscribe, () => true, () => false)
   const today = useSyncExternalStore(subscribe, todayKey, () => null)
   const now = useNow()
+  const drawer = useRef<HTMLDialogElement>(null)
   const [picked, setPicked] = useState<string | null>(null)
   const [format, setFormat] = useState('')
   const [slot, setSlot] = useState<Slot | ''>('')
@@ -124,7 +125,10 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
               aria-selected={key === picked}
               aria-haspopup="dialog"
               aria-label={t('dayLabel', { day: longDay(key), count: list.length })}
-              onClick={() => setPicked(key)}
+              onClick={() => {
+                setPicked(key)
+                drawer.current?.showModal()
+              }}
               className={twMerge(
                 'flex min-h-16 min-w-0 cursor-pointer flex-col gap-1.5 bg-surface-100 p-1.5 text-left transition-colors hover:bg-surface-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyan min-[720px]:min-h-28 min-[720px]:p-2',
                 outside && 'bg-space-000 text-ink-muted',
@@ -177,8 +181,21 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
         })}
       </div>
 
-      <Modal isOpen={!!picked} onClose={() => setPicked(null)} aria-label={picked ? longDay(picked) : undefined} className="items-stretch justify-end p-0">
-        <section className="flex h-full w-full max-w-[520px] flex-col gap-4 overflow-y-auto border-l border-line-strong bg-space-000 px-5 pt-14 pb-8">
+      <dialog
+        ref={drawer}
+        aria-label={picked ? longDay(picked) : undefined}
+        onClose={() => setPicked(null)}
+        onClick={(event) => event.target === event.currentTarget && event.currentTarget.close()}
+        className="ml-auto h-dvh max-h-none w-full max-w-[520px] overflow-hidden border-l border-line-strong bg-space-000 text-ink backdrop:bg-scrim"
+      >
+        <button
+          type="button"
+          onClick={() => drawer.current?.close()}
+          className={twMerge(buttonClasses({ variant: 'secondary', size: 'mono' }), 'absolute top-3 right-3')}
+        >
+          Close <span aria-hidden className="text-sm leading-none font-bold">×</span>
+        </button>
+        <section className="flex h-full flex-col gap-4 overflow-y-auto px-5 pt-14 pb-8">
           <h2 className="text-ink-muted signal">{picked ? longDay(picked) : null}</h2>
           {dayEntries.length ? (
             <ol className="flex flex-col gap-px border border-line bg-line">
@@ -188,7 +205,7 @@ export const CalendarMonth = ({ month, entries }: { month: string; entries: Cale
             <p className="text-sm text-ink-muted">{t('dayEmpty')}</p>
           )}
         </section>
-      </Modal>
+      </dialog>
     </div>
   )
 }
