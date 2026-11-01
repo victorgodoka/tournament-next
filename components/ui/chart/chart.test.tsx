@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { LineChart } from './chart.component'
+import { LineChart } from '.'
 
 const paths = (html: string) => [...html.matchAll(/<path d="([^"]*)" fill="none"/g)].map((m) => m[1]!)
 

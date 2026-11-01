@@ -7,7 +7,7 @@ import { ReturnAfterSignIn } from './return-to'
 const router = { replace: vi.fn() }
 const auth: { user: { id: string } | null | undefined } = { user: undefined }
 vi.mock('next/navigation', () => ({ useRouter: () => router }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 
 const store = new Map<string, string>()
 beforeEach(() => {

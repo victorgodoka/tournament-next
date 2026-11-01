@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '@ui/button/button.component'
+import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
 import { useAdsLayout, usePromoLayout } from './ads-mode'
 

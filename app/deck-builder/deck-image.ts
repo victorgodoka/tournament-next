@@ -1,4 +1,4 @@
-import { TYPE_LABEL } from '@ui/type-counts'
+import { LABEL as TYPE_LABEL } from '@ui/type-counts'
 import { frameOf, imageOf, type CardFrame } from '@utils/deck/model'
 import type { CardMap, Deck, Zone } from '@utils/deck/types'
 

@@ -1,4 +1,3 @@
-export { useAuth } from "@contexts/auth/auth.context"
 import { useCallback, useEffect, useState, useRef } from 'react';
 
 /** Debounced lookup: fires 250 ms after typing stops, from two characters on. `search` must be stable. */

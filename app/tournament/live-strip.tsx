@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { TIME_ONLY } from '@omega/tournament/labels'
-import { Button } from '@ui/button/button.component'
+import { Button } from '@ui/button'
 
 /** The API's own advice for a running tournament: re-read it every 30 s until it finishes. */
 const POLL_S = 30

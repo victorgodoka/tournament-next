@@ -131,11 +131,6 @@ export type DeckInput = {
   seasonId?: number | null
 }
 
-export type RevisionSummary = { revision: number; createdAt: string; counts: DeckCounts }
-
-/** `visibility` and `coverCardId` are not part of a revision. */
-export type DeckRevision = Pick<SavedDeck, 'name' | 'notes' | 'format' | 'main' | 'extra' | 'side' | 'tags'> & { revision: number; createdAt: string }
-
 export class DeckApiError extends Error {
   constructor(
     public status: number,
@@ -235,15 +230,6 @@ export const updateDeck = (id: string, input: Partial<DeckInput>, baseRevision: 
 
 /** `DELETE /decks/:id`: the history goes with it. */
 export const deleteDeck = (id: string) => request<void>(path(id), { method: 'DELETE' })
-
-/** `GET /decks/:id/revisions`: newest first. */
-export const listRevisions = (id: string) => request<{ revisions: RevisionSummary[] }>(`${path(id)}/revisions`)
-
-/** `GET /decks/:id/revisions/:rev` */
-export const getRevision = (id: string, rev: number) => request<DeckRevision>(`${path(id)}/revisions/${rev}`)
-
-/** `POST /decks/:id/revisions/:rev/restore`: writes that content as a new revision; never conflicts. */
-export const restoreRevision = (id: string, rev: number) => request<SavedDeck>(`${path(id)}/revisions/${rev}/restore`, { method: 'POST' })
 
 /**
  * `GET /decks/:id/social`: likes and comments (DECKS_API.md §5.11), read beside the deck. `null` on any

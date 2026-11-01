@@ -13,7 +13,7 @@ import {
 } from '@utils/config'
 import { FONTS_VARIABLES } from '@utils/fonts'
 import './styles.css'
-import { AuthProvider } from '../contexts'
+import { AuthProvider } from '@contexts/auth/auth.context'
 import { MessengerDock, MessengerProvider } from '@omega/messenger'
 import { Ads } from '@omega/ads/ads'
 import { Tracking } from '@omega/tracking/tracking'

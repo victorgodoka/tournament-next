@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { useFormatter, useNow, useTranslations } from 'next-intl'
 import { LocalTime } from '@omega/profile/local-time'
 import { TIME_ONLY, banlistLabel, formatTone } from '@omega/tournament/labels'
-import { Chip } from '@ui/chip/chip.component'
+import { Chip } from '@ui/chip'
 import { calendarHref } from '@utils/tournaments'
 import type { CalendarEntry } from '@utils/types'
 

@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icon } from '@ui/icon'
 import { Button } from '@ui/button'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { signIn } from '@utils/auth'
 import { useReturnTo } from '@utils/return-to'
 

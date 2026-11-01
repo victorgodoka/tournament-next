@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@ui/button'
-import { TabBar } from '@ui/tab-bar/tab-bar.component'
+import { TabBar } from '@ui/tab-bar'
 import { LIMITS, type Build } from '@utils/combo/types'
 
 const TOUCH = 'max-lg:min-h-11'

@@ -71,7 +71,7 @@ export const initialState = (calc: Calculation, saved: Saved | null = null): Cal
 
 const DEFAULT_HAND: Hand = { name: '', rules: [{ subject: { kind: 'role', role: 'Starter' }, min: 1, max: null }] }
 
-const clamp = (n: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, Math.round(n)))
+export const clamp = (n: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, Math.round(n)))
 
 const clampRule = (rule: Rule): Rule => {
   const min = clamp(rule.min, LIMITS.rule)

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
-import { useAuth } from '@hooks/index'
+import { useAuth } from '@contexts/auth/auth.context'
 import { createDeck, DeckApiError, DeckConflictError, updateDeck, type DeckMeta, type SavedDeck } from '@utils/decks'
 import { track } from '@utils/gtm'
 import { setReturnTo } from '@utils/return-to'

@@ -20,6 +20,7 @@ import { DRAW_EFFECTS, LIMITS, type Analysis, type Banish, type Draw, type Effec
 import { CARD_ART_URL } from '@utils/const'
 import { imageOf } from '@utils/deck/model'
 import { cardLoader } from '@utils/image-loader'
+import { clamp } from './calculator.reducer'
 import { percent } from './results'
 
 const TOUCH = 'max-lg:min-h-11'
@@ -27,7 +28,6 @@ const TOUCH = 'max-lg:min-h-11'
 const CHUNK = 5_000
 const DEFAULT_RUNS = 10_000
 const BANISH: readonly Banish[] = [3, 6]
-const clamp = (n: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, Math.round(n)))
 
 type SimulatorProps = {
   /** The active build's distinct main-deck cards. */

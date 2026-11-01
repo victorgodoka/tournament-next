@@ -14,7 +14,7 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', () => ({ listMyDecks: vi.fn(), deleteDeck: vi.fn() }))
 
 const summary = (id: string, name: string): DeckSummary => ({

@@ -13,7 +13,7 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ relativeTime: () => 'now' }),
   useNow: () => new Date(),
 }))
-vi.mock('@hooks/index', () => ({ useAuth: () => auth }))
+vi.mock('@contexts/auth/auth.context', () => ({ useAuth: () => auth }))
 vi.mock('@utils/decks', async (original) => ({ ...(await original<typeof import('@utils/decks')>()), getDeck: vi.fn(), listMyDecks: vi.fn() }))
 
 const ID = 'abcdefabcdefabcd'

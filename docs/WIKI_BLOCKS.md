@@ -2,7 +2,6 @@
 
 > **Para quem é:** quem vai adaptar o `omega-server-v3` (módulo `wiki`) para aceitar artigos em blocos.
 > **Fonte da verdade no front:** `utils/wiki-doc.ts` (tipos, limites, validação). Este documento descreve o mesmo contrato em prosa; se os dois divergirem, o código ganha e este arquivo está desatualizado.
-> **Referência viva:** `/wiki/example` renderiza um documento completo e mostra, no rodapé, o JSON exato que o gerou.
 
 ---
 
@@ -130,7 +129,7 @@ type WikiDoc = {
 
 **Por que `slug` não está no doc:** o slug é o *endereço* do artigo, não conteúdo. Fica na linha do artigo, como hoje. Isso deixa um doc ser copiado para outro artigo sem carregar a URL junto.
 
-**Por que `assets` vai dentro do doc:** para que o doc seja autossuficiente. Uma revisão restaurada traz suas imagens exatamente como estavam (alt, crédito, ponto focal), e `/wiki/example` renderiza sem nenhuma chamada extra. Blocos só referenciam imagens por **id**; editar o alt de uma imagem muda todas as aparições dela.
+**Por que `assets` vai dentro do doc:** para que o doc seja autossuficiente. Uma revisão restaurada traz suas imagens exatamente como estavam (alt, crédito, ponto focal), sem nenhuma chamada extra. Blocos só referenciam imagens por **id**; editar o alt de uma imagem muda todas as aparições dela.
 
 ### 3.1 `WikiAsset`
 
@@ -287,7 +286,7 @@ Exemplo de cada um:
 ]
 ```
 
-O documento completo de exemplo está em `app/wiki/example/doc.ts`, e `scripts/check-wiki-doc.ts` tem as asserções que o validador do back deve reproduzir (doc de exemplo válido; âncora repetida, imagem inexistente, host estranho, alt vazio e vídeo sem id/título recusados; conversão de Markdown gera um doc válido).
+`scripts/check-wiki-doc.ts` tem as asserções que o validador do back deve reproduzir (âncora repetida, imagem inexistente, host estranho, alt vazio e vídeo sem id/título recusados; conversão de Markdown gera um doc válido).
 
 ### 5.5 O que **não** é validado
 
@@ -399,7 +398,7 @@ Isso protege contra aba fechada, crash e sessão expirada, mas não sincroniza e
 - [ ] Migração SQL (§7).
 - [ ] `POST /wiki/assets/sign` e `POST /wiki/assets` (§4), reaproveitando `sign`/`admin` de `profile.cloudinary.ts` com pasta `wiki_assets/`.
 - [ ] Bloco `video` no validador (§5.4): id de 11 caracteres, `title` obrigatório, `start` inteiro ≥ 0.
-- [ ] Testes: o doc de `app/wiki/example/doc.ts` passa; os casos recusados de `scripts/check-wiki-doc.ts` dão `400`.
+- [ ] Testes: os casos recusados de `scripts/check-wiki-doc.ts` dão `400`.
 - [ ] (Opcional) Backfill ou restore convertendo Markdown com as regras de §10.1.
 - [ ] Atualizar `docs/front/WIKI_API.md` (§4.2, §4.6, §4.7 e seção nova de assets).
 
@@ -420,7 +419,6 @@ Isso protege contra aba fechada, crash e sessão expirada, mas não sincroniza e
 | `app/wiki/editor/LegacyEditor.tsx` | Formulário Markdown antigo + botão "Convert to blocks" |
 | `app/wiki/editor/fields.tsx` | Campos de cada bloco |
 | `app/wiki/editor/AssetLibrary.tsx` | Biblioteca: upload, arte por passcode, caminho local, alt, crédito, ponto focal |
-| `app/wiki/example/` | Documento de referência renderizado |
 | `scripts/check-wiki-doc.ts` | Auto-checagem do contrato (`npx tsx --tsconfig tsconfig.json scripts/check-wiki-doc.ts`) |
 
 ### Adicionar um bloco novo (receita)
