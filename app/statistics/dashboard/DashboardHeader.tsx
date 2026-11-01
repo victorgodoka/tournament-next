@@ -6,11 +6,6 @@ import { Select } from '@ui/field'
 import { ModeTabs } from '@ui/mode-tabs'
 import type { RankedLadderId, PastSeason } from '@utils/types'
 
-/** Every section of the page, in order: the jump bar and the headings both read it. */
-export const SECTIONS = ['season', 'meta-shape', 'deck-ranking', 'matchups', 'compare', 'trends', 'sample-decks', 'cards', 'activity'] as const
-export type Section = (typeof SECTIONS)[number]
-export const sectionId = (s: Section) => `stat-section-${s}`
-export const sectionNum = (s: Section) => String(SECTIONS.indexOf(s) + 1).padStart(2, '0')
 export const LISTED = [30, 50] as const
 export type Listed = (typeof LISTED)[number]
 
@@ -68,15 +63,6 @@ export const DashboardHeader = ({ ladder, season, pastSeasons, openLabel, synced
         </div>
         <span className="ml-auto font-mono text-xs text-ink-muted max-md:ml-0">{syncedLabel}</span>
       </div>
-
-      <nav aria-label={t('nav.aria')} className="flex items-center gap-1 overflow-x-auto pb-1">
-        {SECTIONS.map((id) => (
-          <a key={id} href={`#${sectionId(id)}`} className="flex items-center gap-1.5 whitespace-nowrap border border-line bg-surface-100 px-3 py-1.5 text-xs font-medium text-ink-dim transition-colors hover:bg-surface-200 hover:text-ink">
-            <span className="font-mono text-gold">{sectionNum(id)}</span>
-            {t(`nav.${id}`)}
-          </a>
-        ))}
-      </nav>
     </header>
   )
 }

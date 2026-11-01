@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Select } from '@ui/field'
+import { Lookup, type LookupOption } from '@ui/lookup'
 import { Panel } from '@ui/panel'
-import { archKey, deckHref, matchupStatus } from '@utils/statistics'
+import { archKey, deckHref, intervalOf, matchupStatus, strengthOf } from '@utils/statistics'
 import type { Matchup, MatchupOthers, StatArchetype, MatchupStatus, StatisticsScope } from '@utils/statistics'
 import { pct, num, nameOf, faceOf, Art, NOTE } from '../DeepDive'
 import { DeckPicker, FilterField, matches } from './controls'
@@ -20,7 +21,7 @@ type MatchupMatrixProps = {
 }
 
 /** A matchup cell, or the row's record against every deck outside the page's list. */
-export type Cell = Pick<Matchup, 'games' | 'winRate' | 'wilsonLower' | 'ci' | 'turnOrder'> | MatchupOthers
+export type Cell = Pick<Matchup, 'games' | 'winRate' | 'wilsonLower' | 'ci' | 'adjusted' | 'turnOrder'> | MatchupOthers
 
 /** Past this 95% margin the rate is too loose to call: the cell is drawn neutral and flagged. */
 export const LOOSE_MARGIN = 0.06
@@ -29,13 +30,19 @@ const DEFAULT_COLUMNS = 10
 const MAX_COLUMNS = 12
 const FOLD = 10
 const MIN_GAMES = [1, 50, 100, 250] as const
+/** Under 100 games a cell is mostly noise (90% of the TCG matrix in 2026-11): the reader opts into those. */
+const DEFAULT_MIN_GAMES = 100
 
-const statusOf = (c: Cell): MatchupStatus => (c.winRate == null ? 'neutral' : matchupStatus(c.ci))
-const marginOf = (c: Cell) => c.ci?.margin ?? (c.winRate != null && c.wilsonLower != null ? c.winRate - c.wilsonLower : null)
+/** The call reads the adjusted interval (shrunk toward the deck's win rate); raw Wilson from an older server. */
+export const statusOf = (c: Cell): MatchupStatus => (c.winRate == null ? 'neutral' : matchupStatus(intervalOf(c)))
+const marginOf = (c: Cell) => intervalOf(c)?.margin ?? (c.winRate != null && c.wilsonLower != null ? c.winRate - c.wilsonLower : null)
 export const isLoose = (c: Cell) => (marginOf(c) ?? 1) > LOOSE_MARGIN
 
-const TONE = { favorable: 'bg-win/20 text-win', neutral: 'bg-surface-200 text-ink-dim', unfavorable: 'bg-loss/20 text-loss' } as const
-const TEXT = { favorable: 'text-win', neutral: 'text-ink-dim', unfavorable: 'text-loss' } as const
+export const TONE = { favorable: 'bg-win/20 text-win', neutral: 'bg-surface-200 text-ink-dim', unfavorable: 'bg-loss/20 text-loss' } as const
+export const TEXT = { favorable: 'text-win', neutral: 'text-ink-dim', unfavorable: 'text-loss' } as const
+const BAR = { favorable: 'bg-win', neutral: 'bg-series-3', unfavorable: 'bg-loss' } as const
+/** A rate's position on the 40–70% bar scale. */
+export const at = (rate: number) => `${Math.min(100, Math.max(0, ((rate - 0.4) / 0.3) * 100))}%`
 
 type Hover = { row: string; col: string; cell: Cell | undefined; x: number; y: number }
 
@@ -81,7 +88,6 @@ export const MatchupRow = ({ archetypes, matchups, scope, className }: MatchupMa
     .sort((a, b) => b.games - a.games)
     .slice(0, 12)
   const names = new Map(archetypes.map((a) => [archKey(a.archetype), nameOf(a)]))
-  const at = (rate: number) => `${Math.min(100, Math.max(0, ((rate - 0.4) / 0.3) * 100))}%`
   return (
     <div className={twMerge('flex flex-col gap-3', className)}>
       <Select label={t('pickDeck')} value={key} onChange={(e) => setKey(e.target.value)} options={archetypes.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))} />
@@ -89,6 +95,7 @@ export const MatchupRow = ({ archetypes, matchups, scope, className }: MatchupMa
         {rows.map((m) => {
           const opponent = archKey(m.opponent)
           const status = statusOf(m)
+          const ci = intervalOf(m)
           return (
             <li key={opponent} className="flex flex-col gap-2 bg-surface-100 p-3">
               <div className="flex items-baseline justify-between gap-2">
@@ -97,10 +104,10 @@ export const MatchupRow = ({ archetypes, matchups, scope, className }: MatchupMa
               </div>
               <div className="relative h-3.5 bg-surface-200" aria-hidden>
                 <span className="absolute top-0 bottom-0 w-px bg-line-strong" style={{ left: at(0.5) }} />
-                {m.ci ? <span className={twMerge('absolute top-1 h-1.5', status === 'favorable' ? 'bg-win' : status === 'unfavorable' ? 'bg-loss' : 'bg-series-3')} style={{ left: at(m.ci.lower), right: `calc(100% - ${at(m.ci.upper)})` }} /> : null}
+                {ci ? <span className={twMerge('absolute top-1 h-1.5', BAR[status])} style={{ left: at(ci.lower), right: `calc(100% - ${at(ci.upper)})` }} /> : null}
                 <span className="absolute top-0 h-3.5 w-0.5 bg-ink" style={{ left: at(m.winRate ?? 0.5) }} />
               </div>
-              <span className="text-ink-muted signal-sm">{m.ci ? `±${(m.ci.margin * 100).toFixed(1)} · ` : ''}{t('games', { count: num(m.games) })}</span>
+              <span className="text-ink-muted signal-sm">{ci ? `±${(ci.margin * 100).toFixed(1)} · ` : ''}{t('games', { count: num(m.games) })}</span>
             </li>
           )
         })}
@@ -121,7 +128,7 @@ export const MatchupMatrix = ({ archetypes, matchups, scope }: MatchupMatrixProp
   // Rows ordered by their win rate against one column: "who beats X" / "who loses to X". Columns stay put.
   const [sortCol, setSortCol] = useState<{ key: string; desc: boolean } | null>(null)
   // Cells under this many games read "—": the noise of a handful of games out of the way.
-  const [minGames, setMinGames] = useState<(typeof MIN_GAMES)[number]>(1)
+  const [minGames, setMinGames] = useState<(typeof MIN_GAMES)[number]>(DEFAULT_MIN_GAMES)
   const [order, setOrder] = useState<'popularity' | 'name'>('popularity')
 
   const byKey = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
@@ -318,35 +325,101 @@ export const MatchupMatrix = ({ archetypes, matchups, scope }: MatchupMatrixProp
 }
 
 const BEATS_ROWS = 8
+const BEATS_TILES = 10
 
 /** Who wins most against one deck, from the same matrix: no extra data, only the rows that have a sample. */
 export const WhatBeatsIt = ({ archetypes, matchups, scope }: MatchupMatrixProps) => {
   const t = useTranslations('Statistics.matrix')
   const [target, setTarget] = useState(archetypes[0] ? archKey(archetypes[0].archetype) : '')
   const names = new Map(archetypes.map((a) => [archKey(a.archetype), a]))
+  // Lookup wants a stable search: it changes only with the data.
+  const search = useCallback(
+    async (text: string): Promise<LookupOption[]> =>
+      archetypes
+        .filter((a) => matches(nameOf(a), text))
+        .slice(0, 12)
+        .map((a) => ({
+          key: archKey(a.archetype),
+          label: <span className="flex min-w-0 items-center gap-2"><Art card={faceOf(a)} size={20} className="size-5" /><span className="truncate">{nameOf(a)}</span></span>,
+          meta: num(a.games),
+        })),
+    [archetypes],
+  )
   const rows = matchups
     .filter((m) => archKey(m.opponent) === target && m.winRate != null)
-    .sort((a, b) => (b.wilsonLower ?? 0) - (a.wilsonLower ?? 0))
+    .filter((m) => m.games >= DEFAULT_MIN_GAMES)
+    .sort((a, b) => (strengthOf(b) ?? 0) - (strengthOf(a) ?? 0))
     .slice(0, BEATS_ROWS)
+  const picked = names.get(target)
   return (
-    <Panel title={t('beatsTitle')} actions={<div className="ml-auto w-full max-w-64"><Select label={t('beatsPick')} value={target} onChange={(e) => setTarget(e.target.value)} options={archetypes.map((a) => ({ value: archKey(a.archetype), label: nameOf(a) }))} /></div>}>
+    <Panel title={t('beatsTitle')}>
+      {/* The deck to beat: its art and season line beside the picker, so the pick reads as a target, not a form. */}
+      <div className="mb-5 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border border-line bg-surface-200 p-3 min-[720px]:grid-cols-[auto_minmax(0,1fr)_16rem]">
+        <Art card={picked ? faceOf(picked) : undefined} size={56} className="size-14" />
+        <div className="min-w-0">
+          <p className="text-ink-muted signal-sm">{t('beatsPick')}</p>
+          {picked ? (
+            <>
+              <Link href={deckHref(picked.archetype, scope)} className="block truncate text-lg font-bold text-ink hover:text-cyan">{nameOf(picked)}</Link>
+              <p className="font-mono text-xs text-ink-muted tabular-nums">{t('beatsStats', { share: pct(picked.metaShare), winRate: pct(picked.winRate), games: num(picked.games) })}</p>
+            </>
+          ) : null}
+        </div>
+        <div className="min-w-0 max-[719px]:col-span-2">
+          <Lookup label={t('beatsSearch')} placeholder={t('beatsSearch')} search={search} onPick={({ key }) => setTarget(String(key))} />
+        </div>
+        {/* The top 10 by meta share as art tiles: the usual targets one tap away, the search for the rest. */}
+        <ul className="col-span-full flex flex-wrap gap-1.5">
+          {archetypes.slice(0, BEATS_TILES).map((a) => {
+            const key = archKey(a.archetype)
+            const pressed = key === target
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  aria-pressed={pressed}
+                  title={nameOf(a)}
+                  onClick={() => setTarget(key)}
+                  className={twMerge('block cursor-pointer transition-opacity', pressed ? 'opacity-100' : 'opacity-50 hover:opacity-100')}
+                >
+                  <Art card={faceOf(a)} size={56} className={twMerge('size-12 min-[720px]:size-14', pressed && 'border-2 border-cyan')} />
+                  <span className="sr-only">{nameOf(a)}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
       <ol className="flex flex-col divide-y divide-line">
         {rows.map((m, i) => {
           const deck = names.get(archKey(m.archetype))
+          const status = statusOf(m)
+          const ci = intervalOf(m)
           return (
-            <li key={archKey(m.archetype)} className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+            <li key={archKey(m.archetype)} className="grid grid-cols-[20px_32px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
               <span className="font-mono text-xs text-ink-muted">{i + 1}</span>
-              <Link href={deckHref(m.archetype, scope)} className="truncate font-bold text-ink hover:text-cyan">{deck ? nameOf(deck) : archKey(m.archetype)}</Link>
-              <span className="flex items-baseline gap-2 font-mono text-xs tabular-nums">
-                <span className={twMerge('text-sm font-bold', TEXT[statusOf(m)])}>{pct(m.winRate)}</span>
-                <span className="text-ink-muted">{t('games', { count: num(m.games) })}</span>
+              <Art card={deck ? faceOf(deck) : undefined} size={32} className="size-8" />
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Link href={deckHref(m.archetype, scope)} className="truncate font-bold text-ink hover:text-cyan">{deck ? nameOf(deck) : archKey(m.archetype)}</Link>
+                <div className="relative h-2 bg-surface-200" aria-hidden>
+                  <span className="absolute inset-y-0 w-px bg-line-strong" style={{ left: at(0.5) }} />
+                  {ci ? <span className={twMerge('absolute inset-y-0', BAR[status])} style={{ left: at(ci.lower), right: `calc(100% - ${at(ci.upper)})` }} /> : null}
+                  <span className="absolute -inset-y-0.5 w-0.5 bg-ink" style={{ left: at(m.winRate ?? 0.5) }} />
+                </div>
+              </div>
+              <span className="flex flex-col items-end font-mono text-xs tabular-nums">
+                <span className={twMerge('text-sm font-bold', TEXT[status])}>{pct(m.winRate)}</span>
+                <span className="text-ink-muted">
+                  {ci ? <span className="max-[719px]:hidden">±{(ci.margin * 100).toFixed(1)} · </span> : null}
+                  {t('games', { count: num(m.games) })}
+                </span>
               </span>
             </li>
           )
         })}
       </ol>
       {!rows.length ? <p className={NOTE}>{t('beatsEmpty')}</p> : null}
-      <p className={twMerge(NOTE, 'mt-3')}>{t('beatsNote')}</p>
+      <p className={twMerge(NOTE, 'mt-3')}>{t('beatsNote')} {t('barNote')}</p>
     </Panel>
   )
 }

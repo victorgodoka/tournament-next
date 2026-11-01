@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * MetaDashboard — the /statistics overview: nine numbered sections, top to bottom. A deck and a card each have
- * their own page (`/statistics/archetypes/[key]`, `/statistics/cards/[id]`).
+ * MetaDashboard — the /statistics overview: nine numbered sections as tabs, one on screen at a time (`?section=`).
+ * A deck and a card each have their own page (`/statistics/archetypes/[key]`, `/statistics/cards/[id]`).
  */
 
 import { useState, useTransition } from 'react'
@@ -11,15 +11,16 @@ import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { Panel } from '@ui/panel'
 import { Button } from '@ui/button'
-import { SectionHead } from '@ui/section-head'
+import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
 import { InfographicLinks } from '@omega/infographic/infographic-links'
-import { getStatistics, infographicHrefs, type OmegaActivity as OmegaActivityData, type Statistics, type StatisticsResult, type StatisticsScope } from '@utils/statistics'
+import { archKey, getStatistics, infographicHrefs, type OmegaActivity as OmegaActivityData, type Statistics, type StatisticsResult, type StatisticsScope } from '@utils/statistics'
 import type { PastSeason, RankedLadderId } from '@utils/types'
 import { OmegaActivity } from './OmegaActivity'
 import { CardsSection } from './dashboard/CardsSection'
-import { DashboardHeader, LISTED, sectionId, sectionNum, type Listed, type Section } from './dashboard/DashboardHeader'
+import { DashboardHeader, LISTED, type Listed } from './dashboard/DashboardHeader'
+import { SECTIONS, sectionNum, type Section } from './dashboard/sections'
 import { DeckComparator } from './dashboard/DeckComparator'
 import { DeckRanking } from './dashboard/DeckRanking'
 import { MatchupMatrix, WhatBeatsIt } from './dashboard/MatchupMatrix'
@@ -31,6 +32,10 @@ import { SampleDecks } from './dashboard/SampleDecks'
 type MetaDashboardProps = {
   ladder: RankedLadderId
   season?: string
+  /** The tab open on arrival (`?section=`); the first without one. */
+  section?: Section
+  /** Archetype keys the comparator opens with (`?decks=`); the top 3 without them. */
+  decks?: string[]
   past: PastSeason[]
   result: StatisticsResult
   omega: OmegaActivityData | null
@@ -39,17 +44,17 @@ type MetaDashboardProps = {
   previous: PreviousSeason | null
 }
 
-const Block = ({ id, end, children }: { id: Section; end?: React.ReactNode; children: React.ReactNode }) => {
-  const t = useTranslations('Statistics')
-  return (
-    <section id={sectionId(id)} aria-label={t(`nav.${id}`)} className="flex scroll-mt-24 flex-col gap-4">
-      <SectionHead ruled num={sectionNum(id)} end={end}>{t(`nav.${id}`)}</SectionHead>
-      {children}
-    </section>
-  )
-}
+const TABS = 'stat'
 
-export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel, previous }: MetaDashboardProps) => {
+/** The open tab's panel: the tab names it, so only the section's share links sit above the content. */
+const Block = ({ id, end, children }: { id: Section; end?: React.ReactNode; children: React.ReactNode }) => (
+  <section {...tabPanelProps(TABS, id)} className="flex flex-col gap-4">
+    {end ? <div className="flex justify-end">{end}</div> : null}
+    {children}
+  </section>
+)
+
+export const MetaDashboard = ({ ladder, season, section, decks, past, result, omega, openLabel, previous }: MetaDashboardProps) => {
   const t = useTranslations('Statistics')
   const locale = useLocale()
   const router = useRouter()
@@ -58,13 +63,21 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel, 
   const [longer, setLonger] = useState<Statistics | null>(null)
   const [listed, setListed] = useState<Listed>(LISTED[0])
   const [listFailed, setListFailed] = useState(false)
+  const [active, setActive] = useState<Section>(section && (section !== 'activity' || omega) ? section : SECTIONS[0])
 
   const base = result.ok ? result.data : null
   const data = base && longer?.season.code === base.season.code ? longer : base
 
+  const query = (l: RankedLadderId, s: string | undefined, tab: Section) =>
+    `/statistics?${new URLSearchParams({ ...(s ? { ladder: l, season: s } : { ladder: l }), ...(tab === SECTIONS[0] ? {} : { section: tab }) })}`
   const go = (l: RankedLadderId, s?: string) => {
     setListed(LISTED[0])
-    start(() => router.push(`/statistics?${new URLSearchParams(s ? { ladder: l, season: s } : { ladder: l })}`, { scroll: false }))
+    start(() => router.push(query(l, s, active), { scroll: false }))
+  }
+  // A tab is a URL (`?section=`) without a server round trip: the data on screen stays.
+  const pickTab = (tab: Section) => {
+    setActive(tab)
+    window.history.replaceState(null, '', query(ladder, season, tab))
   }
 
   const pickListed = (next: Listed) => {
@@ -128,35 +141,48 @@ export const MetaDashboard = ({ ladder, season, past, result, omega, openLabel, 
       <AdVideo id="ad-video" className="mt-8" />
 
       {/* Keyed by season: pickers and sorts start over with the new data. */}
-      <div key={seasonData.code} className="mt-10 flex flex-col gap-14">
-        <Block id="season"><SeasonGlance data={data} /></Block>
-        <Block id="meta-shape">
-          <MetaShape data={data} scope={scope} />
-          <RatingMeta data={data} />
-          <PilotConcentration archetypes={archetypes} scope={scope} />
-        </Block>
-        <Block id="deck-ranking" end={infographic('deck-ranking')}><DeckRanking data={data} scope={scope} /></Block>
-
-        <AdBanner id="ad-mid" placement="content" />
-
-        <Block id="matchups" end={infographic('matchup-matrix')}>
-          <MatchupMatrix archetypes={archetypes} matchups={matchups} scope={scope} />
-          <WhatBeatsIt archetypes={archetypes} matchups={matchups} scope={scope} />
-        </Block>
-        <Block id="compare">
-          <DeckComparator archetypes={archetypes} preselected={archetypes.slice(0, 3)} infographic={(keys) => (keys.length > 1 ? infographic('comparator', { key: keys.join(',') }) : null)} />
-        </Block>
-        <Block id="trends" end={infographic('trends')}>
-          <MetaTrendsCard archetypes={archetypes} trends={trends} seasonStartsAt={seasonData.startsAt} />
-          <TierHistory trends={trends} seasonStartsAt={seasonData.startsAt} />
-          {previous ? <VsPrevious archetypes={archetypes} previous={previous} /> : null}
-        </Block>
-
-        <AdBanner id="ad-mid-2" placement="content" />
-
-        <Block id="sample-decks"><SampleDecks decks={data.sampleDecks ?? []} closed={!!seasonData.endsAt} /></Block>
-        <Block id="cards" end={infographic('cards')}><CardsSection data={data} scope={scope} /></Block>
-        {omega ? (
+      <div key={seasonData.code} className="mt-10 flex flex-col gap-8">
+        <TabBar
+          fit
+          idPrefix={TABS}
+          label={t('nav.aria')}
+          active={active}
+          onSelect={pickTab}
+          tabs={SECTIONS.filter((id) => id !== 'activity' || omega).map((id) => ({
+            id,
+            label: <><span className="mr-1.5 font-mono text-gold">{sectionNum(id)}</span>{t(`nav.${id}`)}</>,
+          }))}
+        />
+        {active === 'season' ? <Block id="season"><SeasonGlance data={data} /></Block> : null}
+        {active === 'meta-shape' ? (
+          <Block id="meta-shape">
+            <MetaShape data={data} scope={scope} />
+            <RatingMeta data={data} />
+            <PilotConcentration archetypes={archetypes} scope={scope} />
+          </Block>
+        ) : null}
+        {active === 'deck-ranking' ? <Block id="deck-ranking" end={infographic('deck-ranking')}><DeckRanking data={data} scope={scope} /></Block> : null}
+        {active === 'matchups' ? (
+          <Block id="matchups" end={infographic('matchup-matrix')}>
+            <MatchupMatrix archetypes={archetypes} matchups={matchups} scope={scope} />
+            <WhatBeatsIt archetypes={archetypes} matchups={matchups} scope={scope} />
+          </Block>
+        ) : null}
+        {active === 'compare' ? (
+          <Block id="compare">
+            <DeckComparator archetypes={archetypes} matchups={matchups} scope={scope} preselected={decks ? archetypes.filter((a) => decks.includes(archKey(a.archetype))) : archetypes.slice(0, 3)} infographic={(keys) => (keys.length > 1 ? infographic('comparator', { key: keys.join(',') }) : null)} />
+          </Block>
+        ) : null}
+        {active === 'trends' ? (
+          <Block id="trends" end={infographic('trends')}>
+            <MetaTrendsCard archetypes={archetypes} trends={trends} seasonStartsAt={seasonData.startsAt} />
+            <TierHistory trends={trends} seasonStartsAt={seasonData.startsAt} />
+            {previous ? <VsPrevious archetypes={archetypes} previous={previous} /> : null}
+          </Block>
+        ) : null}
+        {active === 'sample-decks' ? <Block id="sample-decks"><SampleDecks decks={data.sampleDecks ?? []} closed={!!seasonData.endsAt} /></Block> : null}
+        {active === 'cards' ? <Block id="cards" end={infographic('cards')}><CardsSection data={data} scope={scope} /></Block> : null}
+        {active === 'activity' && omega ? (
           <Block id="activity">
             <OmegaActivity data={omega} ladder={ladder} />
             <BusiestHours hours={omega.hours} />

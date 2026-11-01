@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { deckHref, getArchetypeIndex, getDeepDive, growthDays, localHours, matchupStatus, requestDeepDive } from '@utils/statistics'
+import { deckHref, getArchetypeIndex, getDeepDive, growthDays, intervalOf, localHours, matchupStatus, requestDeepDive, strengthOf } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -53,6 +53,16 @@ describe('matchupStatus', () => {
     expect(matchupStatus(ci(0.46, 0.49))).toBe('unfavorable')
     expect(matchupStatus(ci(0.49, 0.58))).toBe('neutral')
     expect(matchupStatus(undefined)).toBe('neutral')
+  })
+})
+
+describe('intervalOf and strengthOf', () => {
+  it('read the adjusted figures and fall back to Wilson from an older server', () => {
+    const adjusted = { mean: 0.53, lower: 0.5, upper: 0.56, margin: 0.03 }
+    expect(intervalOf({ adjusted, ci: ci(0.51, 0.55) })).toBe(adjusted)
+    expect(intervalOf({ ci: ci(0.51, 0.55) })).toEqual(ci(0.51, 0.55))
+    expect(strengthOf({ adjusted, wilsonLower: 0.51 })).toBe(0.53)
+    expect(strengthOf({ wilsonLower: 0.51 })).toBe(0.51)
   })
 })
 

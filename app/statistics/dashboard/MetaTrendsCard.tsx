@@ -35,7 +35,8 @@ export const MetaTrendsCard = ({ archetypes, trends, seasonStartsAt }: MetaTrend
   const periods = PERIODS.filter((p) => p < days)
   const from = period ? Math.max(0, days - period) : 0
   const labels = (trends[0]?.points ?? []).slice(from).map(([d]) => dayLabel(locale, seasonStartsAt, d - 1))
-  const series = shown.map((d) => ({ name: nameOf(d), data: d.points.slice(from).map(([, share, wr]) => (metric === 'share' ? share : (wr ?? 0))) }))
+  // A day without a win rate is a gap in the line, not a 0%.
+  const series = shown.map((d) => ({ name: nameOf(d), data: d.points.slice(from).map(([, share, wr]) => (metric === 'share' ? share : wr)) }))
 
   const toggle = (on: boolean, label: string, onClick: () => void) => (
     <button

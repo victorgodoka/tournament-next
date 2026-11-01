@@ -45,7 +45,8 @@ const useWidth = (initial: number) => {
   return [ref, width] as const
 }
 
-export type Series = { name: string; data: number[]; /** Color token name; defaults to series-N. */ color?: string }
+/** A `null` point is a gap: the line breaks there instead of bridging it or dropping to zero. */
+export type Series = { name: string; data: (number | null)[]; /** Color token name; defaults to series-N. */ color?: string }
 
 type LineChartProps = {
   labels: string[]
@@ -69,7 +70,7 @@ export const LineChart = ({ labels, series, title, subtitle, height = 220, forma
   const [ref, W] = useWidth(640)
   const [hover, setHover] = useState<number | null>(null)
   const H = height, L = 44, R = 12, T = 24, B = 28
-  const all = series.flatMap((s) => s.data)
+  const all = series.flatMap((s) => s.data.filter((v): v is number => v != null))
   const ticks = niceTicks(Math.min(...all), Math.max(...all), 4)
   const y0 = ticks[0] ?? 0, y1 = ticks.at(-1) ?? 1, n = labels.length
   const x = (i: number) => L + (W - L - R) * (n <= 1 ? 0.5 : i / (n - 1))
@@ -96,19 +97,21 @@ export const LineChart = ({ labels, series, title, subtitle, height = 220, forma
           )}
           {hover != null ? <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} strokeDasharray="2 3" className="stroke-line-strong" /> : null}
           {series.map((s, si) => {
-            const d = s.data.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
-            const last = s.data.length - 1
+            // A point after a gap starts a new segment.
+            const d = s.data.map((v, i) => (v == null ? '' : `${i && s.data[i - 1] != null ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)).filter(Boolean).join(' ')
+            const last = s.data.findLastIndex((v) => v != null)
+            const at = (i: number) => y(s.data[i] ?? 0)
             return (
               <g key={s.name}>
                 {si === 0 && area ? (
                   <path d={`${d} L${x(n - 1).toFixed(1)} ${H - B} L${x(0).toFixed(1)} ${H - B} Z`} style={{ fill: col(s, si) }} opacity={0.12} />
                 ) : null}
                 <path d={d} fill="none" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" style={{ stroke: col(s, si) }} />
-                <circle cx={x(last)} cy={y(s.data[last] ?? 0)} r={4.5} strokeWidth={2} className="stroke-surface-100" style={{ fill: col(s, si) }} />
-                {series.length <= 4 && directLabels ? (
-                  <text x={x(last) - 8} y={y(s.data[last] ?? 0) - 10} textAnchor="end" className="fill-ink-dim font-sans text-xs font-bold">{s.name}</text>
+                {last >= 0 ? <circle cx={x(last)} cy={at(last)} r={4.5} strokeWidth={2} className="stroke-surface-100" style={{ fill: col(s, si) }} /> : null}
+                {last >= 0 && series.length <= 4 && directLabels ? (
+                  <text x={x(last) - 8} y={at(last) - 10} textAnchor="end" className="fill-ink-dim font-sans text-xs font-bold">{s.name}</text>
                 ) : null}
-                {hover != null ? <circle cx={x(hover)} cy={y(s.data[hover] ?? 0)} r={5} strokeWidth={2} className="stroke-surface-100" style={{ fill: col(s, si) }} /> : null}
+                {hover != null && s.data[hover] != null ? <circle cx={x(hover)} cy={at(hover)} r={5} strokeWidth={2} className="stroke-surface-100" style={{ fill: col(s, si) }} /> : null}
               </g>
             )
           })}
@@ -126,7 +129,7 @@ export const LineChart = ({ labels, series, title, subtitle, height = 220, forma
             {series.map((s, si) => (
               <div key={s.name}>
                 <i className="mr-1.5 inline-block size-2" style={{ background: col(s, si) }} />
-                {s.name} <b className="tabular-nums">{format(s.data[hover] ?? 0)}</b>
+                {s.name} <b className="tabular-nums">{s.data[hover] == null ? '—' : format(s.data[hover])}</b>
               </div>
             ))}
           </div>

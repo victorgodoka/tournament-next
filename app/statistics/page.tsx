@@ -2,10 +2,11 @@ import { getTranslations } from 'next-intl/server'
 import { pageMetadata } from '@utils/metadata'
 import { getPastSeasons } from '@utils/ranked'
 import { archKey, getOmegaActivity, getStatistics } from '@utils/statistics'
+import { SECTIONS, type Section } from './dashboard/sections'
 import { MetaDashboard } from './MetaDashboard'
 import { StatsShell } from './StatsShell'
 
-type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }> }
+type StatisticsPageProps = { searchParams: Promise<{ ladder?: string | string[]; season?: string | string[]; section?: string | string[]; decks?: string | string[] }> }
 
 export async function generateMetadata() {
   const t = await getTranslations('Statistics.meta')
@@ -17,6 +18,10 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
   const q = await searchParams
   const ladder = q.ladder === 'genesys' ? 'genesys' : 'tcg'
   const season = typeof q.season === 'string' && q.season ? q.season : undefined
+  // `?section=` opens the page on that tab; unknown or missing falls back to the first.
+  const section = (SECTIONS as readonly string[]).includes(q.section as string) ? (q.section as Section) : undefined
+  // `?decks=1-2,3`: archetype keys the comparator opens with (the ranking's Compare buttons).
+  const decks = typeof q.decks === 'string' && q.decks ? q.decks.split(',').filter(Boolean) : undefined
   const [result, past, omega, open] = await Promise.all([
     getStatistics({ ladder, season }),
     getPastSeasons(ladder).then((p) => p.seasons, () => []),
@@ -35,7 +40,7 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
 
   return (
     <StatsShell>
-      <MetaDashboard ladder={ladder} season={season} past={past} result={result} omega={omega} openLabel={openLabel} previous={previous} />
+      <MetaDashboard ladder={ladder} season={season} section={section} decks={decks} past={past} result={result} omega={omega} openLabel={openLabel} previous={previous} />
     </StatsShell>
   )
 }

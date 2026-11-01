@@ -16,7 +16,7 @@ import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { StatGrid } from '@ui/stat-grid'
 import { TabBar } from '@ui/tab-bar'
-import { archKey, cardHref, deckHref, getArchetypeIndex, getDeepDive, growthDays, matchupStatus, requestDeepDive, statisticsHref, type ArchetypeKey, type DeepDiveMode, type DeckListCard, type DeepDiveState, type Matchup, type MatchupOthers, type SampleDeck, type StatArchetype, type Statistics, type StatisticsScope } from '@utils/statistics'
+import { archKey, cardHref, deckHref, getArchetypeIndex, getDeepDive, growthDays, intervalOf, matchupStatus, requestDeepDive, statisticsHref, strengthOf, type ArchetypeKey, type DeepDiveMode, type DeckListCard, type DeepDiveState, type Matchup, type MatchupOthers, type SampleDeck, type StatArchetype, type Statistics, type StatisticsScope } from '@utils/statistics'
 import { AgainstTable, Art, cardName, CardsTable, faceOf, fixed, GroupsTable, nameOf, NOTE, num, NUM, pct, ROW } from './DeepDive'
 import { JobPanel, useStatsJob } from './StatsJob'
 import { Zone } from './dashboard/SampleDecks'
@@ -54,7 +54,8 @@ const TRAP_COLS = `${MATCH_COLS} minmax(150px, 1.4fr)`
 
 /** One opponent: the win rate, then its 95% interval on a 40–70% scale with a line at 50%. */
 const MatchupLine = ({ name, cell, href, cols }: { name: string; cell: Matchup | MatchupOthers; href?: string; cols: string }) => {
-  const status = matchupStatus(cell.ci)
+  const ci = intervalOf(cell)
+  const status = matchupStatus(ci)
   const tone = status === 'favorable' ? 'text-win' : status === 'unfavorable' ? 'text-loss' : 'text-ink'
   const at = (rate: number) => `${Math.min(100, Math.max(0, ((rate - 0.4) / 0.3) * 100))}%`
   const traps = 'handTraps' in cell ? cell.handTraps?.map((h) => `${h.name ?? h.id} ${pct(h.rate)}`).join(', ') : ''
@@ -64,7 +65,7 @@ const MatchupLine = ({ name, cell, href, cols }: { name: string; cell: Matchup |
       <span role="cell" className={twMerge(NUM, 'font-bold', tone)}>{pct(cell.winRate)}</span>
       <span role="cell" className="relative block h-3.5 bg-surface-200" aria-hidden>
         <span className="absolute top-0 bottom-0 w-px bg-line-strong" style={{ left: at(0.5) }} />
-        {cell.ci ? <span className={twMerge('absolute top-1 h-1.5', status === 'favorable' ? 'bg-win' : status === 'unfavorable' ? 'bg-loss' : 'bg-series-3')} style={{ left: at(cell.ci.lower), right: `calc(100% - ${at(cell.ci.upper)})` }} /> : null}
+        {ci ? <span className={twMerge('absolute top-1 h-1.5', status === 'favorable' ? 'bg-win' : status === 'unfavorable' ? 'bg-loss' : 'bg-series-3')} style={{ left: at(ci.lower), right: `calc(100% - ${at(ci.upper)})` }} /> : null}
       </span>
       <span role="cell" className={twMerge(NUM, 'text-xs')}>{num(cell.games)}</span>
       <span role="cell" className={twMerge(NUM, 'text-xs')}>{pct(cell.turnOrder?.first.winRate)}</span>
@@ -339,7 +340,7 @@ const KpiHeader = ({ row, days }: { row: StatArchetype & { rank?: number }; days
         items={[
           { label: t('metaShare'), value: pct(row.metaShare), hint: t('metaShareHint') },
           { label: t('winRate'), value: pct(row.winRate), hint: row.ci ? t('winRateHint', { margin: (row.ci.margin * 100).toFixed(1) }) : undefined },
-          { label: t('wilson'), value: pct(row.wilsonLower), hint: t('wilsonHint') },
+          { label: t('adjusted'), value: pct(strengthOf(row)), hint: row.overdispersion != null ? t('adjustedHint', { phi: row.overdispersion.toFixed(1) }) : t('wilsonHint') },
           { label: t('deckGamesLabel'), value: num(row.games), hint: t('record', { w: num(row.wins), l: num(row.losses), d: num(row.draws) }) },
           { label: t('duelists'), value: num(row.players), hint: t('duelistsHint') },
           { label: t('mirrors'), value: pct(row.mirrorShare), hint: t('mirrorsHint') },
@@ -401,7 +402,7 @@ export const DeckPage = ({ archetype, mode, scope, listed, season, syncedDays, f
 
   return (
     <div className="flex flex-col gap-10">
-      <Breadcrumbs items={[{ label: tRoot('header.title'), href: back }, { label: t('crumb'), href: `${back}#stat-section-deck-ranking` }, { label: title }]} />
+      <Breadcrumbs items={[{ label: tRoot('header.title'), href: back }, { label: t('crumb'), href: `${back}&section=deck-ranking` }, { label: title }]} />
 
       <Panel tone="steel" label={title}>
         <div className="flex flex-wrap items-start gap-6">

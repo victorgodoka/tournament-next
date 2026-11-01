@@ -29,4 +29,9 @@ describe('powerRanked', () => {
   it('leaves out a deck without a score and survives an empty ladder', () => {
     expect(scores([deck(null)])).toEqual([])
   })
+
+  it('ranks by the adjusted win rate when the server sends it', () => {
+    const adjusted = { ...deck(0.5), adjusted: { mean: 0.56, lower: 0.54, upper: 0.58, margin: 0.02 } }
+    expect(powerRanked([deck(0.55), adjusted]).map((d) => d.wilsonLower)).toEqual([0.5, 0.55])
+  })
 })

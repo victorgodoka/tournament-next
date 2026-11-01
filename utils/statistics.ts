@@ -22,9 +22,15 @@ export type Side = { games: number; winRate: number | null }
 export type TurnSplit = { first: Side; second: Side }
 
 type WilsonInterval = { lower: number; upper: number; margin: number }
+/** The win rate shrunk toward a prior and widened by the deck's overdispersion: what tiers, rankings and the matchup call read (STATISTICS_API.md). */
+export type Estimate = { mean: number; lower: number; upper: number; margin: number }
 export type MatchupStatus = 'favorable' | 'neutral' | 'unfavorable'
 /** Favorable when the whole 95% interval is above 50%, unfavorable when it is all below. The API sends no status; this is the page's reading. */
 export const matchupStatus = (ci: WilsonInterval | undefined): MatchupStatus => (!ci ? 'neutral' : ci.lower > 0.5 ? 'favorable' : ci.upper < 0.5 ? 'unfavorable' : 'neutral')
+/** The interval a call reads: the adjusted one; the raw Wilson one from a server or snapshot without it. */
+export const intervalOf = (x: { adjusted?: Estimate; ci?: WilsonInterval }): WilsonInterval | undefined => x.adjusted ?? x.ci
+/** A deck's (or matchup's) score: the adjusted win rate; the Wilson lower bound from a server without it. */
+export const strengthOf = (x: { adjusted?: Estimate; wilsonLower: number | null }) => x.adjusted?.mean ?? x.wilsonLower
 /** The window `growth` covers on the server: half the synced days, at most 7. */
 export const growthDays = (syncedDays: number) => Math.min(7, Math.max(1, Math.floor(syncedDays / 2)))
 /** Hourly counts by UTC hour, moved to a clock `offset` hours behind UTC (`getTimezoneOffset() / 60`). */
@@ -53,6 +59,9 @@ type TierDistribution = {
   tier4: { share: number; archetypes: number }
   others: { share: number; archetypes: number }
 }
+
+/** One day of a deck's trend: `[seasonDay, metaShare, winRate | null, games?]`. */
+export type TrendPoint = [number, number, number | null, number?]
 
 export type RankingsSummary = {
   mostPlayed: ArchetypeKey[]
@@ -114,6 +123,10 @@ export type StatArchetype = {
   winRate: number | null
   wilsonLower: number | null
   ci?: WilsonInterval
+  /** Shrunk toward the ladder's mean, widened by `overdispersion`; absent from an older server or snapshot. */
+  adjusted?: Estimate
+  /** φ: how much its daily win rate varied beyond a binomial (1 = independent games). */
+  overdispersion?: number
   mirrorShare: number
   players: number
   /** Share of its deck-games from its 5 busiest duelists. The fields down to `deckList` are absent from a season frozen before them. */
@@ -154,6 +167,8 @@ export type Matchup = {
   winRate: number | null
   wilsonLower: number | null
   ci?: WilsonInterval
+  /** Shrunk toward the deck's own adjusted win rate; absent from an older server or snapshot. */
+  adjusted?: Estimate
   turnOrder?: TurnSplit
   sideboarding?: { game1: Side; postSide: Side }
   averageTurns?: number | null
@@ -206,6 +221,8 @@ export type Statistics = {
   /** Lowest first; a band of few duelists joins the one below (`plus`). Their rating now, not at game time. */
   ratingTiers?: { tier: string; plus: boolean; players: number; games: number }[]
   rankings?: RankingsSummary
+  /** The fitted priors: a deck with `strength` games sits halfway between its sample and `mean`. `null` on an old snapshot, absent from an older server. */
+  inference?: { prior: { mean: number; strength: number }; matchupStrength: number } | null
   turnOrder: { all: TurnSplit; game1: TurnSplit; postSide: TurnSplit }
   archetypes: StatArchetype[]
   matchups: Matchup[]
@@ -214,9 +231,9 @@ export type Statistics = {
   /** Open season only, in the listed archetypes' order. Absent from an older server. */
   sampleDecks?: SampleDeck[]
   metaEvents?: MetaEvent[]
-  /** Points are `[seasonDay, metaShare, winRate | null]`, day 1 = opening day. */
+  /** Points are `[seasonDay, metaShare, winRate | null, games]`, day 1 = opening day; `games` is absent from an older server. */
   /** `tiers`: one per point, the tier over the 7 days ending that day. */
-  trends: { archetype: ArchetypeKey; name: string | null; points: [number, number, number | null][]; tiers?: (StatArchetype['tier'])[] }[]
+  trends: { archetype: ArchetypeKey; name: string | null; points: TrendPoint[]; tiers?: (StatArchetype['tier'])[] }[]
   /**
    * Section 03 rows, by games. `general` `[A]`: pure A plus every mix A leads (`generalCount` before the cut);
    * `pure` `[A]`: a listed General key's pure decks, when the build has them; `combined` `[lead, second]`.

@@ -26,7 +26,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
-import { growthDays as growthWindow, type MetaEvent, type StatArchetype, type Statistics } from '@utils/statistics'
+import { growthDays as growthWindow, intervalOf, strengthOf, type MetaEvent, type StatArchetype, type Statistics } from '@utils/statistics'
 import { deckFaces, POWER_BANDS, POWER_MIN_PLAYERS, POWER_MIN_SHARE, POWER_T1_CAP, powerRanked } from '@utils/power-tier'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
@@ -87,7 +87,7 @@ const tier = (ladder: Ladder, t: Tier) => ladder.decks.filter((deck) => deck.tie
 const tiered = (ladder: Ladder) => ladder.decks.filter((deck) => deck.tier)
 const byShare = (ladder: Ladder) => [...ladder.decks].sort((a, b) => b.metaShare - a.metaShare)
 const share = (decks: StatArchetype[]) => decks.reduce((total, deck) => total + deck.metaShare, 0)
-const score = (deck: StatArchetype) => pct(deck.wilsonLower)
+const score = (deck: StatArchetype) => pct(strengthOf(deck))
 const goingFirst = (ladder: Ladder) => pct(ladder.stats.turnOrder.all.first.winRate)
 /** The window `growth` covers on the server: half the season, at most 7 days. */
 const growthDays = (ladder: Ladder) => growthWindow(ladder.stats.syncedDays.count)
@@ -230,14 +230,14 @@ const bestAndWorst = (ladder: Ladder, deck: StatArchetype) => {
   const seen = ladder.stats.matchups
     .filter((m) => {
       const opponent = byKey.get(key(m.opponent))
-      return key(m.archetype) === key(deck.archetype) && !!opponent?.tier && opponent.tier <= 3 && m.games >= MIN_MATCHUP_GAMES[ladder.label] && m.winRate != null && !!m.ci
+      return key(m.archetype) === key(deck.archetype) && !!opponent?.tier && opponent.tier <= 3 && m.games >= MIN_MATCHUP_GAMES[ladder.label] && m.winRate != null && !!intervalOf(m)
     })
     .sort((a, b) => (b.winRate ?? 0) - (a.winRate ?? 0))
   const cell = (m?: (typeof seen)[number]) => {
     const opponent = m && byKey.get(key(m.opponent))
     return m && opponent ? `${name(opponent)}, ${pct(m.winRate)} (${num(m.games)} games)` : null
   }
-  return { best: cell(seen.find((m) => (m.ci?.lower ?? 0) > 0.5)), worst: cell([...seen].reverse().find((m) => (m.ci?.upper ?? 1) < 0.5)) }
+  return { best: cell(seen.find((m) => (intervalOf(m)?.lower ?? 0) > 0.5)), worst: cell([...seen].reverse().find((m) => (intervalOf(m)?.upper ?? 1) < 0.5)) }
 }
 
 const matchupTable = (ladder: Ladder, decks: StatArchetype[]) => {

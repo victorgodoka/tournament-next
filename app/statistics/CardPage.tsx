@@ -181,7 +181,7 @@ export const CardPage = ({ id, scope, listed, season, totalGames }: { id: number
   const title = listed ? cardName(listed) : `#${id}`
   return (
     <div className="flex flex-col gap-10">
-      <Breadcrumbs items={[{ label: tRoot('header.title'), href: back }, { label: t('crumb'), href: `${back}#stat-section-cards` }, { label: title }]} />
+      <Breadcrumbs items={[{ label: tRoot('header.title'), href: back }, { label: t('crumb'), href: `${back}&section=cards` }, { label: title }]} />
       <Panel tone="steel" label={title}>
         <div className="flex flex-wrap items-center gap-6">
           <Art card={{ id, name: listed?.name ?? null }} size={148} className="size-37" />
