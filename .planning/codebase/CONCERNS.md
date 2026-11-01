@@ -84,23 +84,11 @@ last_mapped_at: 2026-11-01
 
 ## Security Considerations
 
-**Production dependencies have critical advisories (highest priority):**
-- Risk: `pnpm audit --prod` on 2026-11-01 reports 33 advisories: 5 critical, 16 high, 11 moderate, 1 low. All 5 critical ones are remote code execution in `next` 16.2.10.
-- Files: `package.json`, `pnpm-lock.yaml`, `next.config.ts`, `components/omega/infographic/infographic.tsx`, `proxy.ts`
-
-| Advisory | Patched in | Relevance here |
-|----------|------------|----------------|
-| GHSA-vcvr-r3jv-pc5j, RCE in `next/og` ImageResponse | `next` >=16.3.6 | Used: `components/omega/infographic/infographic.tsx`, public routes |
-| GHSA-2xp9-vwfh-vxw4, RCE in Image Optimization with AVIF | `next` >=16.3.3 | Optimiser is enabled; hosts are narrow (`next.config.ts`). Not assessed. |
-| GHSA-2464-fhr4-w9xw, RCE in Image Optimization with SVG | `next` >=16.4.1 | Optimiser is enabled; hosts are narrow (`next.config.ts`). Not assessed. |
-| GHSA-673q-mjm6-r5xr, RCE in `use cache` | `next` >=16.4.1 | `use cache` is not used |
-| GHSA-p293-qw3h-jr36, RCE on Windows hosts | `next` >=16.3.3 | Production is a Linux container |
-
-- Also relevant: a middleware/proxy bypass (patched in `next` >=16.2.11), which could affect `proxy.ts`, and an SSRF in Image Optimization (>=16.3.8).
-- `sharp` 0.34.5 has 3 high advisories in libvips, libheif and librsvg (patched by >=0.35.5). `postcss`, `nanoid`, `browserslist`, `source-map-js` and `baseline-browser-mapping` account for the rest.
-- Exploitability on this deployment has not been tested. The table only matches advisories to features in use.
-- Current mitigation: Narrow image hosts, Cloudflare in front, non-root container user.
-- Recommendations: Upgrade `next` and `eslint-config-next` to 16.4.x and `sharp` to >=0.35.5, then re-run `pnpm audit --prod`. Retest `instrumentation.ts` (see Fragile Areas) and the infographic routes before pushing, since a push to `main` builds the production image.
+**Dev dependencies have advisories:**
+- Risk: `pnpm audit` on 2026-11-01 reports 31 advisories in dev tooling, 2 of them critical in `tinypool` through `vitest` 3. `pnpm audit --prod` reports none.
+- Files: `package.json`, `pnpm-lock.yaml`
+- Current mitigation: These packages never reach the runtime image, which copies only the standalone output. They do run on developer machines and in the Docker build stage.
+- Recommendations: Upgrade `vitest` and `happy-dom` in their own change. Keep `pnpm audit --prod` at zero; nothing in CI checks it.
 
 **No security headers set by the app:**
 - Risk: No CSP, HSTS or `X-Frame-Options` in `next.config.ts` or `proxy.ts`. Markdown HTML and third-party ad and tag scripts run with no CSP behind them.
@@ -151,8 +139,14 @@ last_mapped_at: 2026-11-01
 **`fetch` wrapper in `instrumentation.ts`:**
 - Files: `instrumentation.ts`
 - Why fragile: It relies on being installed before Next patches `fetch`, and on Next's behaviour for background revalidation.
-- Safe modification: After any Next upgrade, confirm timeouts and `API_INTERNAL_URL` rerouting on a production build, not only in dev.
+- Safe modification: After any Next upgrade, check it on a production image. Point `API_INTERNAL_URL` at a socket that never answers, and confirm `API_TIMEOUT` logs after 8 s.
 - Test coverage: None.
+
+**Lockfile changes in CI:**
+- Files: `Dockerfile`, `.gitlab-ci.yml`, `pnpm-lock.yaml`
+- Why fragile: A lockfile change busts the cached `pnpm install` layer, and the CI runner has failed to finish cold downloads (see the `ponytail:` comment in the `Dockerfile`). The build can fail with the old image still live, so a dependency fix may never ship.
+- Safe modification: Watch the pipeline after each lockfile change, and confirm the new image reached production.
+- Test coverage: Not applicable.
 
 **Sign-in state depends on cookie visibility:**
 - Files: `app/layout.tsx`, `contexts/auth/auth.context.tsx`, `utils/auth.ts`
@@ -203,10 +197,10 @@ last_mapped_at: 2026-11-01
 
 ## Dependencies at Risk
 
-**`next` 16.2.10 and `sharp` 0.34.5:**
-- Risk: See Security Considerations.
-- Impact: Remote code execution advisories.
-- Migration plan: Upgrade within 16.x.
+**`vitest` 3 and `happy-dom` 20:**
+- Risk: Dev-only advisories, see Security Considerations. `vitest` is two majors behind.
+- Impact: Test tooling on developer machines. Not shipped.
+- Migration plan: A major upgrade in its own change, with the 1,069 tests as the check.
 
 **`pdf-lib` 1.17.1:**
 - Risk: Last published on npm in 2022.

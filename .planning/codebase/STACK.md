@@ -29,7 +29,7 @@ last_mapped_at: 2026-11-01
 ## Frameworks
 
 **Core:**
-- Next.js 16.2.10 - App Router, `output: "standalone"` (`next.config.ts`). Pages live in `app/`; the middleware file is `proxy.ts`.
+- Next.js 16.4.3 - App Router, `output: "standalone"` (`next.config.ts`). Pages live in `app/`; the middleware file is `proxy.ts`.
 - React 19.2.4 / React DOM 19.2.4 - App Router renders with Next's vendored React, not the one in `package.json`.
 - next-intl 4.14.5 - Cookie-based locale (`en`, `pt`) with no URL prefix (`i18n/request.ts`).
 - Tailwind CSS 4.3.2 through `@tailwindcss/postcss` (`postcss.config.mjs`). There is no `tailwind.config`; tokens live in `app/styles.css`.
@@ -49,7 +49,7 @@ last_mapped_at: 2026-11-01
 - `next-intl` 4.14.5 - All user-facing strings. Server and client share the catalogues in `messages/`.
 - `ygopro-deck-encode` 1.0.16 - Deck formats, used by `utils/deck/codecs/ydk.ts` and `utils/deck/codecs/ydke.ts`.
 - `tailwind-merge` 3.6.0 - Class merging across `components/ui/` and `app/`.
-- `sharp` 0.34.5 - Backs the `next/image` optimiser and `next/og` rasterising. Its cache is turned off in `instrumentation.ts` to stop a libvips leak.
+- `sharp` 0.35.5 - Backs the `next/image` optimiser and `next/og` rasterising. Its cache is turned off in `instrumentation.ts` to stop a libvips leak.
 
 **Infrastructure:**
 - `unified` 11.0.5, `remark-parse`, `remark-gfm`, `remark-rehype`, `rehype-sanitize`, `rehype-class-names`, `rehype-stringify` - Markdown pipeline in `utils/remark.ts`.

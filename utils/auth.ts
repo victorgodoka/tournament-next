@@ -50,6 +50,8 @@ export const signIn = () => {
   try {
     sessionStorage.setItem(LOGIN_PENDING_KEY, '1')
   } catch {}
+  // The API's host, not a page of this app: the rule can't see through `API_URL`.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.assign(`${API_URL}/auth/discord`)
 }
 
