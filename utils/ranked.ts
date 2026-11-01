@@ -4,7 +4,7 @@
  * `system.manage`; seasons, sync and rollover belong to the admin panel, not to this page.
  */
 import { API_URL } from '@utils/auth'
-import type { LeaderboardPage, PastSeasons, RankedFormat, RankedLadderId } from '@utils/types'
+import type { LeaderboardPage, PastSeasons, RankedFormat, RankedLadderId, SeasonStandingsPage } from '@utils/types'
 
 export class RankedApiError extends Error {
   status: number
@@ -42,7 +42,7 @@ const get = async <T>(path: string, revalidate: number, { signal, reload }: { si
   return res.json() as Promise<T>
 }
 
-type PageQuery = { cursor?: string; limit?: number; reload?: boolean }
+export type PageQuery = { cursor?: string; limit?: number; reload?: boolean }
 
 const pageParams = (cursor: string | undefined, limit: number, extra: Record<string, string> = {}) => {
   const params = new URLSearchParams({ ...extra, limit: String(limit) })
@@ -65,6 +65,10 @@ export const getLeaderboard = (
 /** Closed seasons of one ladder, newest first. Empty until the ladder closes its first season. */
 export const getPastSeasons = (ladder: RankedLadderId) =>
   get<PastSeasons>(`/ranked/seasons/past?ladder=${ladder}`, 300)
+
+/** Final results of a closed season; the open season's `code` is a 404. They never change, so paging is stable. */
+export const getSeasonStandings = (code: string, { cursor, limit = LEADERBOARD_PAGE_SIZE, reload }: PageQuery = {}) =>
+  get<SeasonStandingsPage>(`/ranked/seasons/${encodeURIComponent(code)}/standings?${pageParams(cursor, limit)}`, 3600, { reload })
 
 /** `system.manage`. Re-reads both ladders now; re-fetch them with `reload` afterwards. */
 export const refreshLeaderboard = async () => {

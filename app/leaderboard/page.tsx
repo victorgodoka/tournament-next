@@ -2,7 +2,7 @@ import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { pageMetadata } from '@utils/metadata'
-import { getLeaderboard } from '@utils/ranked'
+import { getLeaderboard, getPastSeasons } from '@utils/ranked'
 import type { LeaderboardPage, RankedFormat, RankedLadderId } from '@utils/types'
 import { LeaderboardBrowser, PageHeader } from './LeaderboardBrowser'
 
@@ -20,9 +20,12 @@ const safe = (ladder: RankedLadderId, format: RankedFormat): Promise<Leaderboard
     return { ladder, format, season: null, syncedAt: null, entries: [], nextCursor: null }
   })
 
+/** Without the archive the page is just the live ladders, so a failed read costs only the season select. */
+const pastOf = (ladder: RankedLadderId) => getPastSeasons(ladder).then((p) => p.seasons, () => [])
+
 const LeaderboardPageRoute = async () => {
   // One ladder per request, so the two boards are two calls — independent, hence parallel.
-  const [tcg, genesys] = await Promise.all([safe('tcg', 'TCG'), safe('genesys', 'Genesys')])
+  const [tcg, genesys, pastTcg, pastGenesys] = await Promise.all([safe('tcg', 'TCG'), safe('genesys', 'Genesys'), pastOf('tcg'), pastOf('genesys')])
 
   return (
     <>
@@ -36,7 +39,7 @@ const LeaderboardPageRoute = async () => {
             lead="The top duelists of each ranked ladder, by Elo. TCG and Genesys rank separately, each from its own number one."
           />
           <AdBanner id="ad-top" placement="content" />
-          <LeaderboardBrowser initial={{ tcg, genesys }} />
+          <LeaderboardBrowser initial={{ tcg, genesys }} past={{ tcg: pastTcg, genesys: pastGenesys }} />
           <AdBanner id="ad-bottom" placement="content" />
         </main>
       </div>

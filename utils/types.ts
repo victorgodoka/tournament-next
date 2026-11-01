@@ -837,6 +837,16 @@ export type PastSeason = {
 
 export type PastSeasons = { ladder: RankedLadderId; format: RankedFormat; seasons: PastSeason[] }
 
+export type SeasonStandingsPage = {
+  ladder: RankedLadderId
+  format: RankedFormat
+  season: Omit<PastSeason, 'standings'>
+  /** `elo`, `tier` and `rank` are frozen at the close; `name`, `handle` and `avatar` are read now. */
+  entries: LeaderboardEntry[]
+  /** `null` on the last page. Pass it back as `cursor`; never build an offset. */
+  nextCursor: string | null
+}
+
 /** An equipped cosmetic as the profile, messenger and auth APIs embed it. */
 export type Cosmetic = { itemId: string; name: string; assetUrl: string | null; ext: string | null; data: Record<string, unknown> }
 

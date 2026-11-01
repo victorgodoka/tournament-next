@@ -3,8 +3,9 @@
 /**
  * The public ranked leaderboard, ported from the Omega Hub design bundle
  * (https://claude.ai/artifact/Bi3WkghqHpeZpvNdDwiFh1, RankedLeaderboard / LeaderboardPodium /
- * Leaderboard / LadderSwitch) and wired to GET /ranked/leaderboard. Class names and markup follow
- * the bundle one to one; the styles live in ./leaderboard.css.
+ * Leaderboard / LadderSwitch) and wired to GET /ranked/leaderboard, or to
+ * GET /ranked/seasons/:code/standings for a closed season. Class names and markup follow the bundle
+ * one to one; the styles live in ./leaderboard.css.
  */
 
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from 'react'
@@ -12,9 +13,10 @@ import Link from 'next/link'
 import { useAuth } from '@hooks/index'
 import { Avatar, Button, cx, Eyebrow, Icon } from '@omega/messenger/messenger-ui'
 import { LocalTime } from '@omega/profile/local-time'
+import { Select } from '@ui/field'
 import { can } from '@utils/articles'
-import { LEADERBOARD_PAGE_SIZE, RankedApiError, getLeaderboard, refreshLeaderboard } from '@utils/ranked'
-import type { Cosmetics, LeaderboardEntry, LeaderboardPage, RankedLadderId, RankedSeason, Tier } from '@utils/types'
+import { LEADERBOARD_PAGE_SIZE, RankedApiError, getLeaderboard, getSeasonStandings, refreshLeaderboard, type PageQuery } from '@utils/ranked'
+import type { Cosmetics, LeaderboardEntry, LeaderboardPage, PastSeason, RankedLadderId, RankedSeason, Tier } from '@utils/types'
 import './leaderboard.css'
 
 const LADDERS: Record<RankedLadderId, { format: string; tone: string }> = {
@@ -36,7 +38,9 @@ const hm = (iso: string) => {
   return pad2(d.getHours()) + ':' + pad2(d.getMinutes())
 }
 const HM: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
+const DAY: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
 const profileHref = (id: string) => `/profile/${id}`
+const seasonTitle = (s: Pick<RankedSeason, 'label' | 'ordinal'>) => s.label || `Season ${s.ordinal}`
 
 type Row = {
   rank: number
@@ -255,12 +259,19 @@ const LadderSwitch = ({
 /* ---------- RankedLeaderboard: the whole public list ---------- */
 type Board = {
   status: 'idle' | 'loading' | 'ready' | 'more' | 'error'
-  season: RankedSeason | null
+  season: Pick<RankedSeason, 'label' | 'ordinal'> | null
   syncedAt: string | null
   entries: LeaderboardEntry[]
   nextCursor: string | null
 }
 type Notice = { tone: 'cyan' | 'live'; title: string; body: string }
+
+/** Boards are kept per ladder and season. No `code` is the open season, live; `/` never appears in a code. */
+const boardKey = (ladder: RankedLadderId, code?: string) => (code ? `${ladder}/${code}` : ladder)
+
+/** A closed season never changes, so its `null` `syncedAt` also means a walk has no refresh to cross. */
+const readPage = (ladder: RankedLadderId, code: string | undefined, query: PageQuery): Promise<Omit<Board, 'status'>> =>
+  code ? getSeasonStandings(code, query).then((pg) => ({ ...pg, syncedAt: null })) : getLeaderboard(ladder, query)
 
 /** A fallback page (API unreachable at render) has no `syncedAt`: show it as the error it is. */
 const fromPage = (pg: LeaderboardPage): Board => ({
@@ -273,41 +284,56 @@ const fromPage = (pg: LeaderboardPage): Board => ({
 
 const IDLE: Board = { status: 'idle', season: null, syncedAt: null, entries: [], nextCursor: null }
 
-export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId, LeaderboardPage> }) => {
+export const LeaderboardBrowser = ({
+  initial,
+  past,
+}: {
+  initial: Record<RankedLadderId, LeaderboardPage>
+  past: Record<RankedLadderId, PastSeason[]>
+}) => {
   const { user } = useAuth()
   const meId = user?.id
   const limit = LEADERBOARD_PAGE_SIZE
   const [ladder, setLadder] = useState<RankedLadderId>('tcg')
-  const [boards, setBoards] = useState<Partial<Record<RankedLadderId, Board>>>(() => ({
-    tcg: fromPage(initial.tcg),
-    genesys: fromPage(initial.genesys),
+  const [picked, setPicked] = useState<Partial<Record<RankedLadderId, string>>>({})
+  const [boards, setBoards] = useState<Partial<Record<string, Board>>>(() => ({
+    [boardKey('tcg')]: fromPage(initial.tcg),
+    [boardKey('genesys')]: fromPage(initial.genesys),
   }))
   const [notice, setNotice] = useState<Notice | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const st = boards[ladder] ?? IDLE
+  const code = picked[ladder]
+  const st = boards[boardKey(ladder, code)] ?? IDLE
 
-  const setL = (id: RankedLadderId, v: Partial<Board>) =>
-    setBoards((o) => ({ ...o, [id]: { ...(o[id] ?? IDLE), ...v } }))
+  const setL = (key: string, v: Partial<Board>) =>
+    setBoards((o) => ({ ...o, [key]: { ...(o[key] ?? IDLE), ...v } }))
 
-  const loadTop = (id: RankedLadderId, reload?: boolean) => {
-    setL(id, { status: 'loading', entries: [], nextCursor: null })
-    return getLeaderboard(id, { limit, reload }).then(
-      (pg) => setL(id, { status: 'ready', season: pg.season, syncedAt: pg.syncedAt, entries: pg.entries, nextCursor: pg.nextCursor }),
-      () => setL(id, { status: 'error' }),
+  const loadTop = (id: RankedLadderId, seasonCode?: string, reload?: boolean) => {
+    const key = boardKey(id, seasonCode)
+    setL(key, { status: 'loading', entries: [], nextCursor: null })
+    return readPage(id, seasonCode, { limit, reload }).then(
+      (pg) => setL(key, { status: 'ready', season: pg.season, syncedAt: pg.syncedAt, entries: pg.entries, nextCursor: pg.nextCursor }),
+      () => setL(key, { status: 'error' }),
     )
   }
 
   const choose = (id: RankedLadderId) => {
     setLadder(id)
-    if (!boards[id]) loadTop(id)
+    if (!boards[boardKey(id, picked[id])]) loadTop(id, picked[id])
+  }
+
+  const pick = (seasonCode?: string) => {
+    setPicked((o) => ({ ...o, [ladder]: seasonCode }))
+    if (!boards[boardKey(ladder, seasonCode)]) loadTop(ladder, seasonCode)
   }
 
   const more = () => {
     const id = ladder
+    const key = boardKey(id, code)
     const cur = st
     if (!cur.nextCursor) return
-    setL(id, { status: 'more' })
-    getLeaderboard(id, { cursor: cur.nextCursor, limit }).then(
+    setL(key, { status: 'more' })
+    readPage(id, code, { cursor: cur.nextCursor, limit }).then(
       (pg) => {
         /* `rank` is recomputed by every read, so a walk that crosses one can skip or repeat a duelist. */
         if (pg.syncedAt !== cur.syncedAt) {
@@ -316,12 +342,12 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
             title: 'The ladder was re-read',
             body: `The list refreshed at ${hm(pg.syncedAt ?? new Date().toISOString())} while you were paging, so ranks may have moved. You're back at the top of the new read.`,
           })
-          return loadTop(id)
+          return loadTop(id, code)
         }
-        setL(id, { status: 'ready', entries: cur.entries.concat(pg.entries), nextCursor: pg.nextCursor })
+        setL(key, { status: 'ready', entries: cur.entries.concat(pg.entries), nextCursor: pg.nextCursor })
       },
       () => {
-        setL(id, { status: 'ready' })
+        setL(key, { status: 'ready' })
         setNotice({ tone: 'live', title: "Couldn't load more", body: "The next page didn't arrive. Try again in a moment." })
       },
     )
@@ -338,7 +364,7 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
           body: `TCG ${fmtCount(r.tcg)} duelists · Genesys ${fmtCount(r.genesys)} duelists. The 30-minute cache now starts from this read.`,
         })
         setBoards({})
-        loadTop(ladder, true)
+        loadTop(ladder, undefined, true)
       },
       (e) => {
         setRefreshing(false)
@@ -353,9 +379,11 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
   }
 
   const L = LADDERS[ladder]
-  const season = st.season
+  const closed = past[ladder].find((s) => s.code === code)
+  const open = boards[boardKey(ladder)]?.season
+  const season = closed ?? st.season
   const entries = st.entries
-  const seasonName = season ? season.label || `Season ${season.ordinal}` : null
+  const seasonName = season ? seasonTitle(season) : null
   const rows = entries.map((e) => entryRow(e, meId))
   const loading = st.status === 'loading' || st.status === 'idle'
   const panelId = 'ladder-panel'
@@ -363,19 +391,41 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
   return (
     <div className={cx('oh-rl', `is-${L.tone}`)}>
       <div className="oh-rl-bar">
-        <LadderSwitch value={ladder} onChange={choose} controls={panelId} />
+        <div className="oh-rl-pick">
+          <LadderSwitch value={ladder} onChange={choose} controls={panelId} />
+          {past[ladder].length ? (
+            <Select
+              prefix="Season"
+              aria-label="Season"
+              value={code ?? ''}
+              onChange={(e) => pick(e.target.value || undefined)}
+              options={[
+                { value: '', label: open ? `${seasonTitle(open)} · open` : 'Open season' },
+                ...past[ladder].map((s) => ({ value: s.code, label: seasonTitle(s) })),
+              ]}
+            />
+          ) : null}
+        </div>
         <div className="oh-rl-meta">
           <span className="oh-rl-stamp" aria-live="polite">
-            <span className="oh-livedot" aria-hidden="true" />
-            {st.syncedAt ? (
+            {closed ? (
               <>
-                Read <LocalTime iso={st.syncedAt} options={HM} /> · refreshes every 30 min
+                Ended <LocalTime iso={closed.endsAt} options={DAY} />
               </>
             ) : (
-              'Reading the ladder…'
+              <>
+                <span className="oh-livedot" aria-hidden="true" />
+                {st.syncedAt ? (
+                  <>
+                    Read <LocalTime iso={st.syncedAt} options={HM} /> · refreshes every 30 min
+                  </>
+                ) : (
+                  'Reading the ladder…'
+                )}
+              </>
             )}
           </span>
-          {can(user, 'system.manage') ? (
+          {!closed && can(user, 'system.manage') ? (
             <Button size="sm" icon="refresh" disabled={refreshing} onClick={refresh}>
               {refreshing ? 'Refreshing…' : 'Refresh leaderboard'}
             </Button>
@@ -397,13 +447,13 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
         <RailHead
           num="01"
           label={L.format + (seasonName ? ' · ' + seasonName : '')}
-          stamp={season ? "Season W–L–D counts from the season's start" : null}
+          stamp={closed ? 'Final results' : season ? "Season W–L–D counts from the season's start" : null}
         />
         {st.status === 'error' ? (
           <div className="oh-rl-empty">
             <h3>Couldn&apos;t read the ladder</h3>
             <p>The leaderboard didn&apos;t load. The game server may be busy.</p>
-            <Button variant="primary" onClick={() => loadTop(ladder)}>
+            <Button variant="primary" onClick={() => loadTop(ladder, code)}>
               Try again
             </Button>
           </div>
@@ -452,8 +502,9 @@ export const LeaderboardBrowser = ({ initial }: { initial: Record<RankedLadderId
       </section>
 
       <p className="oh-rl-note">
-        Elo and tier are read from the game server and cached for 30 minutes, so a profile can be a little ahead of this
-        list. W–L–D counts only games in the open season. Only duelists who have played it are listed.
+        {closed
+          ? `Elo, tier and rank are frozen as ${seasonName} closed. W–L–D counts only games in that season, and names and avatars are current.`
+          : 'Elo and tier are read from the game server and cached for 30 minutes, so a profile can be a little ahead of this list. W–L–D counts only games in the open season. Only duelists who have played it are listed.'}
       </p>
     </div>
   )
