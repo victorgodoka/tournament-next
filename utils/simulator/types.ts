@@ -1,4 +1,5 @@
 import type { Deck } from '@utils/deck/types'
+import type { DeckTag } from '@utils/decks'
 
 const PILES = ['deck', 'hand', 'extra', 'gy', 'banished'] as const
 export const MONSTER_SLOTS = ['m0', 'm1', 'm2', 'm3', 'm4', 'emz0', 'emz1'] as const
@@ -59,9 +60,13 @@ export type ComboPayload = { deck: Deck; name: string; actions: Action[]; start:
 /** Who opens a saved combo: everyone, on the list of published combos; whoever has its link; its owner alone. */
 export const VISIBILITIES = ['public', 'link', 'private'] as const
 export type ComboVisibility = (typeof VISIBILITIES)[number]
+/** How many cards stand for a combo on the list of published ones. */
+export const COVER_CARDS = 3
+/** What a combo shows besides its title: who opens it, the cards on its cover and its tags, the decks' own. */
+export type ComboMeta = { visibility: ComboVisibility; coverCards: number[]; tags: DeckTag[] }
 
 /** The saved combo a session is tied to; `saved` is `hashPayload` of the payload as last saved, so the page can tell a changed session from a saved one. */
-export type SavedRef = { id: string; title: string; revision: number; saved: string; visibility?: ComboVisibility }
+export type SavedRef = { id: string; title: string; revision: number; saved: string } & Partial<ComboMeta>
 
 /**
  * `cursor` is the step shown on the board; a replay plays from `start` to the end. `deckId` is the saved deck the session

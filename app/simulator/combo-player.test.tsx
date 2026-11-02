@@ -24,6 +24,9 @@ const combo = (over: Partial<SharedCombo> = {}): SharedCombo => ({
   deckId: null,
   owner: { id: 'u1', name: 'Ana' },
   visibility: 'link',
+  coverCards: [1],
+  tags: [],
+  archetype: null,
   revision: 3,
   updatedAt: '2026-10-19T00:00:00Z',
   payload: {

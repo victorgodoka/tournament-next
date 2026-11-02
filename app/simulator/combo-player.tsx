@@ -169,7 +169,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
       <div className={WIDTH}>
         <PageHeader
           eyebrow={t('eyebrow')}
-          eyebrowMeta={session.name || undefined}
+          eyebrowMeta={combo.archetype ?? (session.name || undefined)}
           title={combo.title}
           lead={combo.owner.name === null ? undefined : t('player.by', { name: combo.owner.name })}
           end={

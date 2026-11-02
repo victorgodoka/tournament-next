@@ -2,25 +2,26 @@
  * Saved combos of the simulator and their share links. Same shape as `decks.ts`: one `request`, one `json`.
  */
 import { API_URL } from '@utils/auth'
-import type { ComboPayload, ComboVisibility } from '@utils/simulator/types'
+import { filterParams, type DeckFilters } from '@utils/decks'
+import type { ComboMeta, ComboPayload } from '@utils/simulator/types'
 
-/** What a save writes. `PATCH` replaces the whole combo, so an update sends all three again. Without `visibility` it keeps its own. */
-export type ComboInput = { title: string; deckId: string | null; payload: ComboPayload; visibility?: ComboVisibility }
+/** What a save writes. `PATCH` replaces the whole combo, so an update sends all three again; the `ComboMeta` left out it keeps as it is. */
+export type ComboInput = { title: string; deckId: string | null; payload: ComboPayload } & Partial<ComboMeta>
 
-/** A row of `GET /combos/mine`: no payload. `steps` is the number of actions. */
-export type ComboSummary = { id: string; title: string; deckName: string; steps: number; visibility: ComboVisibility; updatedAt: string }
+/** A row of `GET /combos/mine`: no payload. `steps` is the number of actions. `archetype` is what the server detected from the deck. */
+export type ComboSummary = ComboMeta & { id: string; title: string; deckName: string; steps: number; archetype: string | null; updatedAt: string }
 
 /** A row of `GET /combos/public`. */
 export type PublicCombo = ComboSummary & { owner: { id: string; name: string | null } }
 
 /** `GET /combos/:id`: what a share link opens. `revision` is the `baseRevision` of the next update. */
-export type SharedCombo = {
+export type SharedCombo = ComboMeta & {
   id: string
   title: string
   deckId: string | null
   owner: { id: string; name: string | null }
   payload: ComboPayload
-  visibility: ComboVisibility
+  archetype: string | null
   revision: number
   updatedAt: string
 }
@@ -71,7 +72,7 @@ const json = (method: string, body: unknown): RequestInit => ({ method, headers:
 const path = (id: string) => `/combos/${encodeURIComponent(id)}`
 
 /** The server rejects a body without `deckId`, and `JSON.stringify` drops `undefined`: it always goes, as `null` at worst. */
-const fields = ({ title, deckId, payload, visibility }: ComboInput) => ({ title, deckId: deckId ?? null, payload, visibility })
+const fields = ({ title, deckId, payload, ...meta }: ComboInput) => ({ title, deckId: deckId ?? null, payload, ...meta })
 
 /** `POST /combos` */
 export const saveCombo = (input: ComboInput) => request<{ id: string; revision: number }>('/combos', json('POST', fields(input)))
@@ -86,8 +87,11 @@ export const deleteCombo = (id: string) => request<void>(path(id), { method: 'DE
 /** `GET /combos/mine`: newest first, 24 a page. Pass `nextCursor` back as `cursor`. */
 export const listMyCombos = (cursor?: string) => request<ComboPage>(`/combos/mine${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
 
-/** `GET /combos/public`: every published combo, newest first, 24 a page. */
-export const listPublicCombos = (cursor?: string) => request<ComboPage<PublicCombo>>(`/combos/public${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
+/** What the published combos filter by: `q` is the title, `archetype` the detected one, `cards` those the line plays. */
+export type ComboFilters = Pick<DeckFilters, 'q' | 'archetype' | 'tag' | 'cards'>
+
+/** `GET /combos/public`: every published combo that matches, newest first, 24 a page. */
+export const listPublicCombos = (filters: ComboFilters, cursor?: string) => request<ComboPage<PublicCombo>>(`/combos/public${filterParams(filters, cursor)}`)
 
 /** `GET /combos/:id`: anyone with the id may read it, a private combo only its owner. `null` for 404 (unknown, malformed, deleted or someone else's private one). */
 export const getCombo = async (id: string): Promise<SharedCombo | null> => {
