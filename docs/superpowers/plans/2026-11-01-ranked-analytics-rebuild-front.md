@@ -1,5 +1,7 @@
 # Ranked Analytics Rebuild (front) Implementation Plan
 
+> **Executed:** merged into `main` at `daf6cd2` (`feat/ranked-analytics-front`) and `1f8491c` (`feat/admin-panel-rebuild`, the panel pages for decks, ignored setcodes and staples). The follow-up for the rebuilt classification is `2026-11-02-deck-classification-front.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild `/statistics`, the deck and card pages, the profile statistics, the infographics and the wiki tier list on the five new routes, organised around the four questions.
