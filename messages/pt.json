@@ -1412,6 +1412,7 @@
       "save": "Salvar",
       "saveAs": "Salvar como…",
       "myCombos": "Meus combos",
+      "browse": "Combos publicados",
       "share": "Compartilhar",
       "unsaved": "Alterações não salvas",
       "more": "Mais",
@@ -1425,6 +1426,13 @@
     },
     "combos": {
       "dialogTitle": "Salvar combo",
+      "visibilityLabel": "Quem pode abrir",
+      "visibility": { "public": "Público", "link": "Só com o link", "private": "Privado" },
+      "visibilityHint": {
+        "public": "Aparece na página de combos publicados, para todo mundo encontrar.",
+        "link": "Quem tem o link abre. Não aparece em lista nenhuma.",
+        "private": "Só você abre, mesmo com o link."
+      },
       "titleLabel": "Título",
       "save": "Salvar",
       "saveAsNew": "Salvar como novo",
@@ -1435,6 +1443,7 @@
       "failed": "Não foi possível falar com o servidor. Nada foi alterado.",
       "damaged": "O combo salvo está corrompido, então não foi carregado.",
       "copied": "Link copiado.",
+      "copiedPrivate": "Link copiado, mas este combo é privado: só você abre. Mude isso em Salvar como.",
       "copyFailed": "Copie este link para compartilhar o combo:",
       "link": "Link do combo",
       "conflict": {
@@ -1442,6 +1451,13 @@
         "body": "Ele foi salvo em outra aba ou dispositivo depois que você o carregou. Recarregue o salvo, descartando suas mudanças aqui, ou salve o seu como um combo novo.",
         "reload": "Recarregar o salvo"
       }
+    },
+    "browse": {
+      "title": "Combos publicados",
+      "meta": "Linhas de combo de Yu-Gi-Oh! publicadas pela comunidade: assista passo a passo e treine no Simulador de Combos.",
+      "open": "Abrir o simulador",
+      "empty": "Nenhum combo publicado ainda.",
+      "failed": "Não foi possível carregar os combos."
     },
     "myCombos": {
       "title": "Meus combos",
@@ -1648,6 +1664,7 @@
       "save": "Salvar",
       "saveAs": "Salvar como…",
       "myCombos": "Meus combos",
+      "browse": "Combos publicados",
       "share": "Compartilhar",
       "unsaved": "Alterações não salvas",
       "more": "Mais"
@@ -1676,18 +1693,12 @@
     "phases": { "draw": "Compra", "standby": "Apoio", "main1": "Principal 1", "battle": "Batalha", "main2": "Principal 2", "end": "Final" },
     "phaseNext": "{phase}: ir para a próxima fase",
     "chain": { "title": "Corrente" },
-    "fx": { "normal": "Invocação-Normal", "special": "Invocação-Especial", "set": "Baixada" },
+    "fx": { "normal": "Invocação-Normal", "special": "Invocação-Especial", "set": "Baixada", "toHand": "Adicionada à mão" },
     "rail": {
-      "label": "Carta, registro do duelo e zonas",
+      "label": "Carta e registro do duelo",
       "card": "Carta",
       "log": "Registro do duelo",
-      "zones": "Zonas",
-      "dock": "Deck e passos",
-      "open": "Abrir {zone}",
-      "deck": "Deck",
-      "extra": "Extra",
-      "gy": "Cemitério",
-      "banished": "Banidas"
+      "dock": "Deck e passos"
     },
     "confirm": {
       "title": "Descartar esta linha?",
@@ -1697,6 +1708,13 @@
     },
     "combos": {
       "dialogTitle": "Salvar combo",
+      "visibilityLabel": "Quem pode abrir",
+      "visibility": { "public": "Público", "link": "Só com o link", "private": "Privado" },
+      "visibilityHint": {
+        "public": "Aparece na página de combos publicados, para todo mundo encontrar.",
+        "link": "Quem tem o link abre. Não aparece em lista nenhuma.",
+        "private": "Só você abre, mesmo com o link."
+      },
       "titleLabel": "Título",
       "save": "Salvar",
       "saveAsNew": "Salvar como novo",
@@ -1707,6 +1725,7 @@
       "failed": "Não foi possível falar com o servidor. Nada foi alterado.",
       "damaged": "O combo salvo está corrompido, então não foi carregado.",
       "copied": "Link copiado.",
+      "copiedPrivate": "Link copiado, mas este combo é privado: só você abre. Mude isso em Salvar como.",
       "copyFailed": "Copie este link para compartilhar o combo:",
       "link": "Link do combo",
       "conflict": {
@@ -1714,6 +1733,13 @@
         "body": "Ele foi salvo em outra aba ou dispositivo depois que você o carregou. Recarregue o salvo, descartando suas mudanças aqui, ou salve o seu como um combo novo.",
         "reload": "Recarregar o salvo"
       }
+    },
+    "browse": {
+      "title": "Combos publicados",
+      "meta": "Linhas de combo de Yu-Gi-Oh! publicadas pela comunidade: assista passo a passo e treine no Simulador de Combos.",
+      "open": "Abrir o simulador",
+      "empty": "Nenhum combo publicado ainda.",
+      "failed": "Não foi possível carregar os combos."
     },
     "myCombos": {
       "title": "Meus combos",

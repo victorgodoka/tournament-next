@@ -23,6 +23,7 @@ const combo = (over: Partial<SharedCombo> = {}): SharedCombo => ({
   title: 'Opening line',
   deckId: null,
   owner: { id: 'u1', name: 'Ana' },
+  visibility: 'link',
   revision: 3,
   updatedAt: '2026-10-19T00:00:00Z',
   payload: { deck: { main: [1, 2, 3, 4, 5, 6], extra: [7], side: [] }, name: 'Test deck', actions: [...actions], start: 2 },

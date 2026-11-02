@@ -6,10 +6,11 @@ import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button, buttonClasses } from '@ui/button'
+import { Segmented } from '@ui/choice'
 import { Dialog } from '@ui/dialog'
 import { Field, TextInput } from '@ui/field'
 import { setReturnTo } from '@utils/return-to'
-import { LIMITS } from '@utils/simulator/types'
+import { LIMITS, VISIBILITIES, type ComboVisibility } from '@utils/simulator/types'
 import { TOUCH } from './toolbar'
 import type { SaveFlow } from './use-save'
 
@@ -17,27 +18,33 @@ type SaveDialogProps = {
   open: boolean
   /** Where the title starts each time the dialog opens: the deck name for a first save, the combo's title for a tied one. */
   initialTitle: string
+  /** Who opens the combo: the one it has, or for a first save whoever has the link, as Share expects. */
+  initialVisibility: ComboVisibility
   /** A save is on its way: both buttons wait. */
   busy: boolean
   onClose(): void
   /** `title` trimmed, 1–80 characters. */
-  onSave(title: string, asNew: boolean): void
+  onSave(title: string, asNew: boolean, visibility: ComboVisibility): void
 }
 
-/** The title of a combo, then Save or Save as new. Enter in the field is Save. */
-const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDialogProps) => {
+/** The title of a combo and who opens it, then Save or Save as new. Enter in the field is Save. */
+const SaveDialog = ({ open, initialTitle, initialVisibility, busy, onClose, onSave }: SaveDialogProps) => {
   const t = useTranslations('Simulator')
   const id = useId()
   const [title, setTitle] = useState(initialTitle)
+  const [visibility, setVisibility] = useState(initialVisibility)
   // Each opening starts from `initialTitle`, set here in render: an effect would show the last title for a frame.
   const [shown, setShown] = useState(open)
   if (shown !== open) {
     setShown(open)
-    if (open) setTitle(initialTitle)
+    if (open) {
+      setTitle(initialTitle)
+      setVisibility(initialVisibility)
+    }
   }
   const trimmed = title.trim()
   const off = busy || trimmed.length === 0
-  const send = (asNew: boolean) => !off && onSave(trimmed, asNew)
+  const send = (asNew: boolean) => !off && onSave(trimmed, asNew, visibility)
 
   return (
     <Dialog
@@ -57,6 +64,7 @@ const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDialogPro
       }
     >
       <form
+        className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
           send(false)
@@ -65,12 +73,21 @@ const SaveDialog = ({ open, initialTitle, busy, onClose, onSave }: SaveDialogPro
         <Field label={t('combos.titleLabel')} htmlFor={id}>
           <TextInput id={id} value={title} maxLength={LIMITS.title} onChange={(e) => setTitle(e.target.value)} plateClassName={TOUCH} />
         </Field>
+        <div className="flex flex-col gap-2">
+          <Segmented
+            label={t('combos.visibilityLabel')}
+            options={VISIBILITIES.map((value) => ({ value, label: t(`combos.visibility.${value}`) }))}
+            value={visibility}
+            onChange={setVisibility}
+          />
+          <p className="text-ink-muted body-sm">{t(`combos.visibilityHint.${visibility}`)}</p>
+        </div>
       </form>
     </Dialog>
   )
 }
 
-const TONE = { signIn: 'info', limit: 'warn', saveFailed: 'negative', damaged: 'negative', failed: 'negative', copied: 'positive', copyFailed: 'info' } as const
+const TONE = { signIn: 'info', limit: 'warn', saveFailed: 'negative', damaged: 'negative', failed: 'negative', copied: 'positive', copiedPrivate: 'warn', copyFailed: 'info' } as const
 
 /** What `useSave` shows: the outcome of the last save or share, the title dialog and the conflict dialog. Retry waits out a replay, as Save does. */
 export const SaveFlowView = ({ flow, playing }: { flow: SaveFlow; playing: boolean }) => {
@@ -112,7 +129,14 @@ export const SaveFlowView = ({ flow, playing }: { flow: SaveFlow; playing: boole
         </Alert>
       ) : null}
 
-      <SaveDialog open={flow.asking !== null} initialTitle={flow.asking?.title ?? ''} busy={flow.busy} onClose={flow.cancel} onSave={flow.submit} />
+      <SaveDialog
+        open={flow.asking !== null}
+        initialTitle={flow.asking?.title ?? ''}
+        initialVisibility={flow.asking?.visibility ?? 'link'}
+        busy={flow.busy}
+        onClose={flow.cancel}
+        onSave={flow.submit}
+      />
 
       <Dialog
         size="sm"

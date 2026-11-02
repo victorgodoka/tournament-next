@@ -97,6 +97,22 @@
   padding: 12px 16px;
 }
 
+.sim-rail-tabs {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.sim-rail-tab {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sim-rail-tab[data-off] {
+  display: none;
+}
+
 /* Flights take their copies over the whole board, above the hand. */
 .sim-fx {
   position: absolute;
@@ -573,6 +589,13 @@
 /* ---- Fills the stage, tilted: from `lg` ---- */
 
 @media (width >= 1024px) {
+  /* The stage as a window in a page, the replay's: it fits under the page's own head without a scroll. */
+  .sim-stage[data-framed] {
+    height: clamp(600px, calc(100dvh - 252px), 860px);
+    min-height: 0;
+    border: var(--hairline) solid var(--color-line);
+  }
+
   .sim-stage {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--rail-w);
@@ -662,11 +685,18 @@
     border-left: var(--hairline) solid var(--color-line);
   }
 
-  .sim-rail-card {
-    max-height: 38dvh;
-    overflow-y: auto;
+  .sim-rail-tabs {
+    flex: 1;
+    min-height: 0;
   }
 
+  /* Laid out out of sight, not removed: the log still scrolls to the step on screen. */
+  .sim-rail-tab[data-off] {
+    display: flex;
+    visibility: hidden;
+  }
+
+  .sim-rail-card,
   .sim-rail-log {
     flex: 1;
     min-height: 0;

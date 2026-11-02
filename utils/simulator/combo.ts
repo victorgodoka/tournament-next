@@ -24,7 +24,7 @@ export function sessionOf(p: ComboPayload, combo: SavedRef | null, deckId: strin
  */
 export function comboSession(c: SharedCombo): Session | null {
   const opened = sessionOf(c.payload, null, c.deckId)
-  return opened && { ...opened, combo: { id: c.id, title: c.title, revision: c.revision, saved: hashPayload(payloadOf(opened)) } }
+  return opened && { ...opened, combo: { id: c.id, title: c.title, revision: c.revision, saved: hashPayload(payloadOf(opened)), visibility: c.visibility } }
 }
 
 /** "Operate from here": a new session of the first `k` steps (`k` in 0..actions.length), tied to nothing. */

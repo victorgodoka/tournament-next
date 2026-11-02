@@ -1412,6 +1412,7 @@
       "save": "Save",
       "saveAs": "Save as…",
       "myCombos": "My combos",
+      "browse": "Published combos",
       "share": "Share",
       "unsaved": "Unsaved changes",
       "more": "More",
@@ -1426,6 +1427,13 @@
     "combos": {
       "dialogTitle": "Save combo",
       "titleLabel": "Title",
+      "visibilityLabel": "Who can open it",
+      "visibility": { "public": "Public", "link": "Link only", "private": "Private" },
+      "visibilityHint": {
+        "public": "Listed on the published combos page, for everyone to find.",
+        "link": "Anyone with the link can open it. It is not listed anywhere.",
+        "private": "Only you can open it, even with the link."
+      },
       "save": "Save",
       "saveAsNew": "Save as new",
       "signIn": "Sign in to save your combos. Your line stays here.",
@@ -1435,6 +1443,7 @@
       "failed": "Could not reach the server. Nothing was changed.",
       "damaged": "The saved combo is damaged, so it was not loaded.",
       "copied": "Link copied.",
+      "copiedPrivate": "Link copied, but this combo is private: only you can open it. Change that in Save as.",
       "copyFailed": "Copy this link to share the combo:",
       "link": "Combo link",
       "conflict": {
@@ -1442,6 +1451,13 @@
         "body": "It was saved from another tab or device after you loaded it. Reload the saved one, which discards your changes here, or save yours as a new combo.",
         "reload": "Reload the saved one"
       }
+    },
+    "browse": {
+      "title": "Published combos",
+      "meta": "Yu-Gi-Oh! combo lines published by the community: watch each one step by step, then practise it in the Combo Simulator.",
+      "open": "Open the simulator",
+      "empty": "No combos published yet.",
+      "failed": "Couldn't load the combos."
     },
     "myCombos": {
       "title": "My combos",
@@ -1648,6 +1664,7 @@
       "save": "Save",
       "saveAs": "Save as…",
       "myCombos": "My combos",
+      "browse": "Published combos",
       "share": "Share",
       "unsaved": "Unsaved changes",
       "more": "More"
@@ -1676,18 +1693,12 @@
     "phases": { "draw": "Draw", "standby": "Standby", "main1": "Main 1", "battle": "Battle", "main2": "Main 2", "end": "End" },
     "phaseNext": "{phase}: go to the next phase",
     "chain": { "title": "Chain" },
-    "fx": { "normal": "Normal Summon", "special": "Special Summon", "set": "Set" },
+    "fx": { "normal": "Normal Summon", "special": "Special Summon", "set": "Set", "toHand": "Added to Hand" },
     "rail": {
-      "label": "Card, duel log and zones",
+      "label": "Card and duel log",
       "card": "Card",
       "log": "Duel log",
-      "zones": "Zones",
-      "dock": "Deck and steps",
-      "open": "Open {zone}",
-      "deck": "Deck",
-      "extra": "Extra",
-      "gy": "GY",
-      "banished": "Banished"
+      "dock": "Deck and steps"
     },
     "confirm": {
       "title": "Discard this line?",
@@ -1698,6 +1709,13 @@
     "combos": {
       "dialogTitle": "Save combo",
       "titleLabel": "Title",
+      "visibilityLabel": "Who can open it",
+      "visibility": { "public": "Public", "link": "Link only", "private": "Private" },
+      "visibilityHint": {
+        "public": "Listed on the published combos page, for everyone to find.",
+        "link": "Anyone with the link can open it. It is not listed anywhere.",
+        "private": "Only you can open it, even with the link."
+      },
       "save": "Save",
       "saveAsNew": "Save as new",
       "signIn": "Sign in to save your combos. Your line stays here.",
@@ -1707,6 +1725,7 @@
       "failed": "Could not reach the server. Nothing was changed.",
       "damaged": "The saved combo is damaged, so it was not loaded.",
       "copied": "Link copied.",
+      "copiedPrivate": "Link copied, but this combo is private: only you can open it. Change that in Save as.",
       "copyFailed": "Copy this link to share the combo:",
       "link": "Combo link",
       "conflict": {
@@ -1714,6 +1733,13 @@
         "body": "It was saved from another tab or device after you loaded it. Reload the saved one, which discards your changes here, or save yours as a new combo.",
         "reload": "Reload the saved one"
       }
+    },
+    "browse": {
+      "title": "Published combos",
+      "meta": "Yu-Gi-Oh! combo lines published by the community: watch each one step by step, then practise it in the Combo Simulator.",
+      "open": "Open the simulator",
+      "empty": "No combos published yet.",
+      "failed": "Couldn't load the combos."
     },
     "myCombos": {
       "title": "My combos",

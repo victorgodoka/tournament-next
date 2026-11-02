@@ -56,8 +56,12 @@ export type Action = (
 /** What a saved combo holds: the session minus its cursor and ties. `start` is where the replay starts, 0..actions.length. */
 export type ComboPayload = { deck: Deck; name: string; actions: Action[]; start: number }
 
+/** Who opens a saved combo: everyone, on the list of published combos; whoever has its link; its owner alone. */
+export const VISIBILITIES = ['public', 'link', 'private'] as const
+export type ComboVisibility = (typeof VISIBILITIES)[number]
+
 /** The saved combo a session is tied to; `saved` is `hashPayload` of the payload as last saved, so the page can tell a changed session from a saved one. */
-export type SavedRef = { id: string; title: string; revision: number; saved: string }
+export type SavedRef = { id: string; title: string; revision: number; saved: string; visibility?: ComboVisibility }
 
 /**
  * `cursor` is the step shown on the board; a replay plays from `start` to the end. `deckId` is the saved deck the session

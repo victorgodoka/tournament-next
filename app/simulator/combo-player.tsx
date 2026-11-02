@@ -8,11 +8,10 @@ import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { PageHeader } from '@ui/page-header'
-import { Panel } from '@ui/panel'
 import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import { getCombo, type SharedCombo } from '@utils/combos'
-import { destroyedBy, stepCards, timeline } from '@utils/simulator/board'
+import { chainAt, destroyedBy, stepCards, timeline } from '@utils/simulator/board'
 import { comboSession, operateFrom, payloadOf, sessionOf } from '@utils/simulator/combo'
 import { draftStorage, readDraft, writeDraft } from '@utils/simulator/draft'
 import { sessionReducer } from '@utils/simulator/session'
@@ -20,7 +19,9 @@ import type { Session } from '@utils/simulator/types'
 import { BoardView, FLIP_MS } from './board'
 import { CardPanel } from './card-panel'
 import { History } from './history'
+import { ChainPlate, LifePlate } from './hud'
 import { ReplayBar } from './replay-bar'
+import { Room } from './room'
 import { TOUCH } from './toolbar'
 import { useDrag } from './use-drag'
 import { useReplay } from './use-replay'
@@ -28,6 +29,8 @@ import { VideoDialog } from './video-dialog'
 
 const COUNTDOWN_S = 3
 const WIDTH = 'mx-auto w-[min(var(--container-page),calc(100%-32px))]'
+/** Wider than the page's text: the table wants the room, short of filling the window. */
+const STAGE_WIDTH = 'mx-auto w-[min(1600px,calc(100%-32px))]'
 
 type Load = { kind: 'loading' | 'notFound' | 'damaged' | 'failed' } | { kind: 'ready'; combo: SharedCombo; session: Session }
 
@@ -95,7 +98,9 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
   const { user } = useAuth()
   const [session, dispatch] = useReducer(sessionReducer, opened)
   const [selected, setSelected] = useState<number | null>(null)
-  /** Below `lg` the card panel and the history share the space under the board as two tabs. */
+  /** The card under the pointer: the panel shows it, else the selected one, as on the table. */
+  const [hovered, setHovered] = useState<number | null>(null)
+  /** The card panel and the history share the rail as two tabs. */
   const [tab, setTab] = useState<'card' | 'history'>('card')
   /** Seconds before the replay starts by itself; null once it started or was cancelled. Nothing to play, nothing to count. */
   const [countdown, setCountdown] = useState<number | null>(opened.start < opened.actions.length ? COUNTDOWN_S : null)
@@ -109,6 +114,7 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
   const shown = session.actions[session.cursor - 1]
   const marked = useMemo(() => (shown ? stepCards(shown, boards[session.cursor - 1]!) : []), [shown, boards, session.cursor])
   const destroyed = useMemo(() => (shown ? destroyedBy(shown, boards[session.cursor - 1]!) : null), [shown, boards, session.cursor])
+  const chain = useMemo(() => chainAt(session.actions, session.cursor), [session.actions, session.cursor])
   const replay = useReplay({ session, boards, dispatch, onShow: setSelected })
   // Read-only: nothing drags and nothing drops.
   const drag = useDrag({ enabled: false, onDrop: () => {} })
@@ -155,66 +161,67 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
     const code = board.cards[id]!.code
     return cards.get(code)?.name ?? String(code)
   }
-  const code = selected === null ? null : (board.cards[selected]?.code ?? null)
+  const inPanel = hovered ?? selected
+  const code = inPanel === null ? null : (board.cards[inPanel]?.code ?? null)
 
   return (
-    <div className={`${WIDTH} flex flex-col gap-6 pt-8 pb-24`}>
-      <PageHeader
-        eyebrow={t('eyebrow')}
-        eyebrowMeta={session.name || undefined}
-        title={combo.title}
-        lead={combo.owner.name === null ? undefined : t('player.by', { name: combo.owner.name })}
-        end={
-          <>
-            {user?.id === combo.owner.id ? (
-              <Button variant="secondary" onClick={edit} className={TOUCH}>
-                {t('player.edit')}
+    <div className="flex flex-col gap-6 pb-12">
+      <div className={WIDTH}>
+        <PageHeader
+          eyebrow={t('eyebrow')}
+          eyebrowMeta={session.name || undefined}
+          title={combo.title}
+          lead={combo.owner.name === null ? undefined : t('player.by', { name: combo.owner.name })}
+          end={
+            <>
+              <Button variant="ghost" href="/simulator/combos" className={TOUCH}>
+                {t('browse.title')}
               </Button>
-            ) : null}
-            <Button variant="secondary" onClick={() => setVideoOpen(true)} className={TOUCH}>
-              {t('video.open')}
-            </Button>
-            <Button onClick={operate} className={TOUCH}>
-              {t('player.operate')}
-            </Button>
-          </>
-        }
-      />
-
-      {countdown === null ? null : (
-        <Alert
-          tone="info"
-          edged
-          title={t('player.autoplay', { n: countdown })}
-          action={
-            <div className="flex gap-2">
-              <Button size="sm" onClick={toggle} className={TOUCH}>
-                {t('player.playNow')}
+              {user?.id === combo.owner.id ? (
+                <Button variant="secondary" onClick={edit} className={TOUCH}>
+                  {t('player.edit')}
+                </Button>
+              ) : null}
+              <Button variant="secondary" onClick={() => setVideoOpen(true)} className={TOUCH}>
+                {t('video.open')}
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setCountdown(null)} className={TOUCH}>
-                {t('player.cancel')}
+              <Button onClick={operate} className={TOUCH}>
+                {t('player.operate')}
               </Button>
-            </div>
+            </>
           }
         />
-      )}
+      </div>
 
-      <ReplayBar
-        cursor={session.cursor}
-        end={session.actions.length}
-        start={session.start}
-        playing={replay.playing}
-        picking={false}
-        speed={replay.speed}
-        onStep={step}
-        onPlay={toggle}
-        onSpeed={replay.setSpeed}
-      />
-
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="flex min-w-0 flex-col gap-3">
+      {/* The simulator's own stage, inside the page: its window, not the whole one. */}
+      <div data-framed className={`sim-stage ${STAGE_WIDTH}`}>
+        <section aria-label={combo.title} className="sim-field">
+          <Room />
+          {countdown === null ? null : (
+            <div className="sim-notices">
+              <Alert
+                tone="info"
+                edged
+                title={t('player.autoplay', { n: countdown })}
+                action={
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={toggle} className={TOUCH}>
+                      {t('player.playNow')}
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => setCountdown(null)} className={TOUCH}>
+                      {t('player.cancel')}
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
+          )}
+          <LifePlate side="rival" lp={board.lp.rival} disabled onChange={() => {}} className="sim-life-rival" />
+          <LifePlate side="me" lp={board.lp.me} disabled onChange={() => {}} className="sim-life-you" />
+          <ChainPlate names={chain.map(nameOf)} />
           {/* Read-only: a click shows the card, and no menu, drag, activation or pile panel answers. */}
           <BoardView
+            fill
             board={board}
             cards={cards}
             selected={selected}
@@ -224,17 +231,19 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             tags={session.cursor === session.actions.length}
             step={{ cursor: session.cursor, actions: session.actions }}
             droppedRef={droppedRef}
+            chain={chain}
             flipMs={FLIP_MS / Math.max(1, replay.speed)}
             onCard={show}
             onMenu={() => {}}
             onLongPress={() => {}}
             onActivate={() => {}}
+            onHover={setHovered}
             drag={drag}
             onPile={() => {}}
           />
-          {shown?.note ? <p className="text-center text-ink body">{shown.note}</p> : null}
-        </div>
-        <div className="flex flex-col gap-4">
+          {shown?.note ? <p className="sim-caption text-center text-ink body">{shown.note}</p> : null}
+        </section>
+        <aside aria-label={t('tabs.label')} className="sim-rail">
           <TabBar
             tabs={[
               { id: 'card', label: t('tabs.card') },
@@ -244,16 +253,13 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
             onSelect={setTab}
             label={t('tabs.label')}
             idPrefix="player-side"
-            className="lg:hidden"
           />
-          <div {...tabPanelProps('player-side', 'card')} className={tab === 'card' ? undefined : 'max-lg:hidden'}>
-            <Panel tone="framed" label={t('cardPanel.title')}>
-              <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} />
-            </Panel>
-          </div>
-          <div {...tabPanelProps('player-side', 'history')} className={tab === 'history' ? undefined : 'max-lg:hidden'}>
-            {/* "Replay starts here" moves this viewer's start only: the combo itself is never written from here. */}
-            <Panel tone="framed" title={t('history.title')} className="p-4 min-[720px]:p-4">
+          <div className="sim-rail-tabs">
+            <div {...tabPanelProps('player-side', 'card')} data-off={tab === 'card' ? undefined : ''} className="sim-rail-tab">
+              <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} className="sim-rail-section sim-rail-card" />
+            </div>
+            <div {...tabPanelProps('player-side', 'history')} data-off={tab === 'history' ? undefined : ''} className="sim-rail-tab">
+              {/* "Replay starts here" moves this viewer's start only: the combo itself is never written from here. */}
               <History
                 session={session}
                 boards={boards}
@@ -262,10 +268,24 @@ const Player = ({ combo, opened }: { combo: SharedCombo; opened: Session }) => {
                 disabled={replay.playing}
                 onSeek={step}
                 onSetStart={(start) => dispatch({ type: 'setStart', start })}
+                className="sim-rail-section sim-rail-log"
               />
-            </Panel>
+            </div>
           </div>
-        </div>
+          <div className="sim-rail-section border-t border-line">
+            <ReplayBar
+              cursor={session.cursor}
+              end={session.actions.length}
+              start={session.start}
+              playing={replay.playing}
+              picking={false}
+              speed={replay.speed}
+              onStep={step}
+              onPlay={toggle}
+              onSpeed={replay.setSpeed}
+            />
+          </div>
+        </aside>
       </div>
 
       {/* The video is cut from the combo as it opened, like the render page does: this viewer's own "Replay starts here" never reaches it. */}

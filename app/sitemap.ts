@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/decks`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${SITE_URL}/deck-builder`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${SITE_URL}/simulator`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${SITE_URL}/simulator/combos`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${SITE_URL}/banlist`, lastModified: currentBanlist().date, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/banlist-timeline`, lastModified: BANLISTS.at(-1)!.date, changeFrequency: 'weekly', priority: 0.8 },
     // The current list's dated page canonicalises to /banlist.

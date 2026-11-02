@@ -6,10 +6,9 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { TextInput } from '@ui/field'
 import { LIMITS, START_LP } from '@utils/simulator/types'
-import type { Board, Pile, Side } from '@utils/simulator/types'
+import type { Side } from '@utils/simulator/types'
 import { TOUCH } from './toolbar'
 
-const PILES: Exclude<Pile, 'hand'>[] = ['deck', 'extra', 'gy', 'banished']
 /** What a tap changes the Life Points by. */
 const QUICK = [-1000, -500, 500, 1000]
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)'
@@ -151,21 +150,6 @@ export const ChainPlate = ({ names }: { names: string[] }) => {
           </li>
         ))}
       </ol>
-    </div>
-  )
-}
-
-/** Each pile's count, a button that opens it: the way in when a card's corner on the table is small to hit. */
-export const PileCounts = ({ board, disabled, onPile }: { board: Board; disabled: boolean; onPile(pile: Pile): void }) => {
-  const t = useTranslations('SimulatorNew')
-  return (
-    <div className="sim-rail-section grid grid-cols-4 gap-1">
-      {PILES.map((pile) => (
-        <Button key={pile} variant="secondary" size="mono" aria-label={t('rail.open', { zone: t(`zones.${pile}`) })} disabled={disabled} onClick={() => onPile(pile)} className="h-auto flex-col gap-1 px-1 py-2">
-          <span className="text-ink stat">{board.zones[pile].length}</span>
-          <span className="text-ink-muted signal-sm tracking-normal">{t(`rail.${pile}`)}</span>
-        </Button>
-      ))}
     </div>
   )
 }

@@ -2,13 +2,16 @@
  * Saved combos of the simulator and their share links. Same shape as `decks.ts`: one `request`, one `json`.
  */
 import { API_URL } from '@utils/auth'
-import type { ComboPayload } from '@utils/simulator/types'
+import type { ComboPayload, ComboVisibility } from '@utils/simulator/types'
 
-/** What a save writes. `PATCH` replaces the whole combo, so an update sends all three again. */
-export type ComboInput = { title: string; deckId: string | null; payload: ComboPayload }
+/** What a save writes. `PATCH` replaces the whole combo, so an update sends all three again. Without `visibility` it keeps its own. */
+export type ComboInput = { title: string; deckId: string | null; payload: ComboPayload; visibility?: ComboVisibility }
 
 /** A row of `GET /combos/mine`: no payload. `steps` is the number of actions. */
-export type ComboSummary = { id: string; title: string; deckName: string; steps: number; updatedAt: string }
+export type ComboSummary = { id: string; title: string; deckName: string; steps: number; visibility: ComboVisibility; updatedAt: string }
+
+/** A row of `GET /combos/public`. */
+export type PublicCombo = ComboSummary & { owner: { id: string; name: string | null } }
 
 /** `GET /combos/:id`: what a share link opens. `revision` is the `baseRevision` of the next update. */
 export type SharedCombo = {
@@ -17,11 +20,12 @@ export type SharedCombo = {
   deckId: string | null
   owner: { id: string; name: string | null }
   payload: ComboPayload
+  visibility: ComboVisibility
   revision: number
   updatedAt: string
 }
 
-export type ComboPage = { combos: ComboSummary[]; nextCursor: string | null }
+export type ComboPage<T = ComboSummary> = { combos: T[]; nextCursor: string | null }
 
 /** `409 LIMIT` (500 combos) has `code: 'LIMIT'`; `413` is `PAYLOAD_TOO_LARGE`; `401` is signed out. */
 export class ComboApiError extends Error {
@@ -67,7 +71,7 @@ const json = (method: string, body: unknown): RequestInit => ({ method, headers:
 const path = (id: string) => `/combos/${encodeURIComponent(id)}`
 
 /** The server rejects a body without `deckId`, and `JSON.stringify` drops `undefined`: it always goes, as `null` at worst. */
-const fields = ({ title, deckId, payload }: ComboInput) => ({ title, deckId: deckId ?? null, payload })
+const fields = ({ title, deckId, payload, visibility }: ComboInput) => ({ title, deckId: deckId ?? null, payload, visibility })
 
 /** `POST /combos` */
 export const saveCombo = (input: ComboInput) => request<{ id: string; revision: number }>('/combos', json('POST', fields(input)))
@@ -82,7 +86,10 @@ export const deleteCombo = (id: string) => request<void>(path(id), { method: 'DE
 /** `GET /combos/mine`: newest first, 24 a page. Pass `nextCursor` back as `cursor`. */
 export const listMyCombos = (cursor?: string) => request<ComboPage>(`/combos/mine${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
 
-/** `GET /combos/:id`: anyone with the id may read it. `null` for 404 (unknown, malformed or deleted). */
+/** `GET /combos/public`: every published combo, newest first, 24 a page. */
+export const listPublicCombos = (cursor?: string) => request<ComboPage<PublicCombo>>(`/combos/public${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
+
+/** `GET /combos/:id`: anyone with the id may read it, a private combo only its owner. `null` for 404 (unknown, malformed, deleted or someone else's private one). */
 export const getCombo = async (id: string): Promise<SharedCombo | null> => {
   try {
     return await request<SharedCombo>(path(id))

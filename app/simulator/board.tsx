@@ -10,7 +10,7 @@ import { useLongPress } from '@app/deck-builder/gestures'
 import type { CardMap } from '@utils/deck/types'
 import { isMonsterSlot, isSlot, locate, stepCards } from '@utils/simulator/board'
 import type { Action, Board, Card, MonsterSlot, Phase, Pile, Slot, ZoneId } from '@utils/simulator/types'
-import { backFace, banner, burst, fly, label, lookOf, pileGain, pillar, poseOf, riffle, ripple, scan, shatter, sink, sizeOf, strike, sweep, type Flight, type Pose, type Stage } from './fx'
+import { backFace, banner, burst, fly, handGain, label, lookOf, pileGain, pillar, poseOf, riffle, ripple, scan, shatter, sink, sizeOf, strike, sweep, type Flight, type Pose, type Stage } from './fx'
 import type { Drag } from './use-drag'
 
 /** The card that was activated and the cards it targets. */
@@ -98,8 +98,9 @@ const BADGE = 'pointer-events-none absolute px-1 font-mono text-[11px] leading-4
 /** A small marker over a card's corner (negated, face-down). */
 export const MARK = 'pointer-events-none absolute grid size-4 place-items-center bg-space-000'
 
-const Back = ({ sizes = SIZES }: { sizes?: string }) => (
-  <Image src="/back.webp" alt="" fill sizes={sizes} draggable={false} className="pointer-events-none object-cover" />
+/** `sheer`: a Set card's back, the card's own art showing through so a line can be read. */
+const Back = ({ sizes = SIZES, sheer = false }: { sizes?: string; sheer?: boolean }) => (
+  <Image src="/back.webp" alt="" fill sizes={sizes} draggable={false} className={twMerge('pointer-events-none object-cover', sheer && 'opacity-45')} />
 )
 
 /**
@@ -299,6 +300,7 @@ export const BoardView = (p: BoardViewProps) => {
   const turnWord = t('turn', { n: board.turn })
   const summoned = actions.slice(0, cursor).findLast((a, i) => i >= cursor - 2 && a.t === 'move')
   const summonWord = summoned?.t === 'move' && summoned.how ? t(`fx.${summoned.how}`) : ''
+  const handWord = t('fx.toHand')
 
   // Measured after layout and written straight to the DOM, as the menu is: the arrows follow the cards, and a state update
   // per resize would render the whole board. They are redrawn whenever the board resizes, which moves every card.
@@ -406,8 +408,13 @@ export const BoardView = (p: BoardViewProps) => {
         const after = i * flipMs
         if (played.t === 'move') {
           if (isSlot(played.to)) ripple(stage, cell(played.to), touchdown(played.card))
-          else pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
+          else if (played.to !== 'hand') pileGain(stage, cell(played.to), destroying ? flipMs : touchdown(played.card))
           const card = el.querySelector<HTMLElement>(`[data-card="${played.card}"]`)
+          if (played.to === 'hand' && card) {
+            handGain(stage, card.parentElement, touchdown(played.card))
+            label(stage, pose(card), sizeOf(card), handWord, touchdown(played.card))
+            burst(stage, pose(card), sizeOf(card), 'cyan', touchdown(played.card))
+          }
           if (played.how && card) {
             label(stage, pose(card), sizeOf(card), summonWord, touchdown(played.card))
             if (played.how === 'special') {
@@ -428,7 +435,7 @@ export const BoardView = (p: BoardViewProps) => {
           sweep(stage, el, 0)
         }
       })
-  }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord, summonWord])
+  }, [board, cursor, actions, flipMs, droppedRef, dealtRef, turnWord, summonWord, handWord])
 
   return (
     <div
@@ -584,7 +591,7 @@ const CardView = ({ id, p, className }: { id: number; p: BoardViewProps; classNa
           onContextMenu={(e) => (press.kind(e) === 'long' ? e.preventDefault() : p.onMenu(id, e))}
           className={twMerge('touch-none', card.negated && 'grayscale', p.selected === id && 'outline outline-2 outline-cyan')}
         />
-        {card.face === 'down' ? <Back sizes={p.imageSizes} /> : null}
+        {card.face === 'down' ? <Back sizes={p.imageSizes} sheer /> : null}
         <ActivationMarks active={active} targeted={targeted} />
         {marked ? <StepMark /> : null}
         {link >= 0 ? <ChainLink n={link + 1} /> : null}
@@ -662,7 +669,7 @@ export const DragGhost = ({ card, cards, ghostRef }: { card: Card | undefined; c
     <div ref={ghostRef} inert className="pointer-events-none fixed top-0 left-0 z-(--z-overlay)">
       <div className="relative w-24 -translate-1/2 shadow-lift">
         <CardTile id={card.code} card={cards.get(card.code)} sizes="96px" tabIndex={-1} />
-        {card.face === 'down' ? <Back /> : null}
+        {card.face === 'down' ? <Back sheer /> : null}
       </div>
     </div>
   )

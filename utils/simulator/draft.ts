@@ -2,7 +2,7 @@ import { assertDeck } from '@utils/deck/codecs/ydk'
 import { DeckCodeError } from '@utils/deck/types'
 import type { Deck } from '@utils/deck/types'
 import { apply, initial, isValid } from './board'
-import { HOWS, ID, LIMITS, PHASES, SIDES, ZONES } from './types'
+import { HOWS, ID, LIMITS, PHASES, SIDES, VISIBILITIES, ZONES } from './types'
 import type { Action, Session } from './types'
 
 export const DRAFT_KEY = 'simulator:draft'
@@ -91,10 +91,12 @@ function parseTie(x: Obj): Pick<Session, 'deckId' | 'combo'> | null {
   if (deckId !== null && !isId(deckId)) return null
   if (combo === null) return { deckId, combo }
   if (!isObj(combo)) return null
-  const { id, title, revision, saved } = combo
+  const { id, title, revision, saved, visibility } = combo
   if (!isId(id) || typeof title !== 'string' || title.length < 1 || title.length > LIMITS.title) return null
   if (!int(revision, 1, Number.MAX_SAFE_INTEGER) || typeof saved !== 'string' || !HASH.test(saved)) return null
-  return { deckId, combo: { id, title, revision, saved } }
+  // Absent before combos had one. An unknown value only loses the hint: the server keeps the real one.
+  const known = VISIBILITIES.find((v) => v === visibility)
+  return { deckId, combo: { id, title, revision, saved, ...(known && { visibility: known }) } }
 }
 
 /** Checks an untrusted `{ v: 2, deck, name, actions, cursor, start, deckId, combo, counterTypes? }` (or a v1 without the last three), then replays the log and refuses it if any action is invalid at its step. */

@@ -134,7 +134,7 @@ const ComboList = ({ onOpen, onDeleted }: Pick<MyCombosProps, 'onOpen' | 'onDele
                 <span className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
                   <span className="truncate text-ink body-strong">{c.title}</span>
                   <span className="truncate text-ink-muted signal-sm">
-                    {[c.deckName, t('myCombos.steps', { count: c.steps }), format.relativeTime(new Date(c.updatedAt), now)].filter(Boolean).join(' · ')}
+                    {[t(`combos.visibility.${c.visibility}`), c.deckName, t('myCombos.steps', { count: c.steps }), format.relativeTime(new Date(c.updatedAt), now)].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <Button

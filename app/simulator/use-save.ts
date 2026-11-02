@@ -5,9 +5,12 @@ import { useAuth } from '@contexts/auth/auth.context'
 import { ComboApiError, ComboConflictError, comboUrl, getCombo, saveCombo, updateCombo } from '@utils/combos'
 import { comboSession, hashPayload, payloadOf } from '@utils/simulator/combo'
 import type { SessionEvent } from '@utils/simulator/session'
-import type { Session } from '@utils/simulator/types'
+import type { ComboVisibility, Session } from '@utils/simulator/types'
 
-type Write = { title: string; asNew: boolean; share: boolean }
+/** `visibility`: absent, an update keeps what the combo has. */
+type Write = { title: string; asNew: boolean; share: boolean; visibility?: ComboVisibility }
+/** What the title dialog and the conflict dialog carry over to the save they lead to. */
+type Pending = { title: string; share: boolean; visibility?: ComboVisibility }
 
 /**
  * What the last save, reload or share came to, shown as one alert. `failed` got no answer: Retry runs `again` (a reload
@@ -15,7 +18,7 @@ type Write = { title: string; asNew: boolean; share: boolean }
  * dismisses the outcome whenever a new board replaces it (a deck, a hand, Reset, a reload).
  */
 export type Outcome =
-  | { kind: 'signIn' | 'limit' | 'saveFailed' | 'damaged' | 'copied' }
+  | { kind: 'signIn' | 'limit' | 'saveFailed' | 'damaged' | 'copied' | 'copiedPrivate' }
   | { kind: 'failed'; again: Write | null }
   | { kind: 'copyFailed'; link: string }
 
@@ -37,43 +40,45 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
   /** Nothing saved yet, or changed since: Save shows a dot, Share saves first. */
   const unsaved = hash !== session.combo?.saved
   /** The title dialog is open: the title it starts from, and whether the link is copied once it saves. */
-  const [asking, setAsking] = useState<{ title: string; share: boolean } | null>(null)
+  const [asking, setAsking] = useState<Pending | null>(null)
   /** An update answered 409: the conflict dialog is open, with the title that update carried (a rename included). */
-  const [conflict, setConflict] = useState<{ title: string; share: boolean } | null>(null)
+  const [conflict, setConflict] = useState<Pending | null>(null)
   const [busy, setBusy] = useState(false)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
 
-  const copy = async (id: string) => {
+  const copy = async (id: string, visibility?: ComboVisibility) => {
     const link = comboUrl(id)
     try {
       await navigator.clipboard.writeText(link)
-      setOutcome({ kind: 'copied' })
+      setOutcome({ kind: visibility === 'private' ? 'copiedPrivate' : 'copied' })
     } catch {
       setOutcome({ kind: 'copyFailed', link })
     }
   }
 
   /** `POST`, or `PATCH` the tied combo unless `asNew`. */
-  const write = async ({ title, asNew, share }: Write) => {
+  const write = async ({ title, asNew, share, visibility }: Write) => {
     const payload = payloadOf(session)
-    const input = { title, deckId: session.deckId, payload }
+    const input = { title, deckId: session.deckId, payload, visibility }
     const tied = asNew ? null : session.combo
+    // Known here, or the one it has; a new copy of a combo must not come out more open than the original.
+    const shown = visibility ?? session.combo?.visibility
     setConflict(null)
     setOutcome(null)
     setBusy(true)
     try {
-      const { id, revision } = tied ? await updateCombo(tied.id, input, tied.revision) : await saveCombo(input)
+      const { id, revision } = tied ? await updateCombo(tied.id, input, tied.revision) : await saveCombo({ ...input, visibility: shown })
       setAsking(null)
-      dispatch({ type: 'saved', combo: { id, title, revision, saved: hashPayload(payload) } })
-      if (share) await copy(id)
+      dispatch({ type: 'saved', combo: { id, title, revision, saved: hashPayload(payload), visibility: shown } })
+      if (share) await copy(id, shown)
     } catch (error) {
       setAsking(null)
-      if (error instanceof ComboConflictError) setConflict({ title, share })
+      if (error instanceof ComboConflictError) setConflict({ title, share, visibility })
       else if (tied && error instanceof ComboApiError && error.status === 404) {
         // Deleted elsewhere: the session lets go of it, and the title dialog saves it as a new one.
         dispatch({ type: 'saved', combo: null })
-        setAsking({ title, share })
-      } else setOutcome(failure(error, { title, asNew, share }))
+        setAsking({ title, share, visibility: shown })
+      } else setOutcome(failure(error, { title, asNew, share, visibility }))
     } finally {
       setBusy(false)
     }
@@ -90,7 +95,7 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
       const combo = await getCombo(tied.id)
       if (!combo) {
         dispatch({ type: 'saved', combo: null })
-        setAsking({ title: tied.title, share: false })
+        setAsking({ title: tied.title, share: false, visibility: tied.visibility })
         return
       }
       const opened = comboSession(combo)
@@ -110,7 +115,7 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
    */
   const save = (share: boolean) => {
     if (session.combo && !unsaved) {
-      if (share) void copy(session.combo.id)
+      if (share) void copy(session.combo.id, session.combo.visibility)
       return
     }
     if (user === null) return setOutcome({ kind: 'signIn' })
@@ -130,15 +135,15 @@ export function useSave(session: Session, dispatch: (event: SessionEvent) => voi
     save: () => save(false),
     /** A tied session only: the title dialog from the combo's title, to rename it or save it as a new one. */
     saveAs: () => {
-      if (session.combo) setAsking({ title: session.combo.title, share: false })
+      if (session.combo) setAsking({ title: session.combo.title, share: false, visibility: session.combo.visibility })
     },
     share: () => save(true),
-    submit: (title: string, asNew: boolean) => void write({ title, asNew, share: asking?.share ?? false }),
+    submit: (title: string, asNew: boolean, visibility: ComboVisibility) => void write({ title, asNew, share: asking?.share ?? false, visibility }),
     cancel: () => setAsking(null),
     reload: () => void reload(),
     /** The conflict's way out that keeps the line here. */
     saveAsNew: () => {
-      if (session.combo) void write({ title: conflict?.title ?? session.combo.title, asNew: true, share: conflict?.share ?? false })
+      if (session.combo) void write({ title: conflict?.title ?? session.combo.title, asNew: true, share: conflict?.share ?? false, visibility: conflict?.visibility })
     },
     closeConflict: () => setConflict(null),
     retry: () => {

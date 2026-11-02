@@ -7,7 +7,7 @@ import { Button } from '@ui/button'
 import { Dialog } from '@ui/dialog'
 import { TextInput } from '@ui/field'
 import { Icon } from '@ui/icon'
-import { RailHead } from '@ui/rail-head'
+import { TabBar, tabPanelProps } from '@ui/tab-bar'
 import { DeckPicker } from '@app/calculator/deck-picker'
 import { useCardCache } from '@app/deck-builder/use-card-cache'
 import type { SharedCombo } from '@utils/combos'
@@ -24,7 +24,7 @@ import { CardMenu } from './card-menu'
 import { CardPanel } from './card-panel'
 import { HandPicker } from './hand-picker'
 import { History } from './history'
-import { ChainPlate, LifePlate, PileCounts } from './hud'
+import { ChainPlate, LifePlate } from './hud'
 import { MyCombos } from './my-combos'
 import { PilePanel } from './pile-panel'
 import { ReplayBar } from './replay-bar'
@@ -155,6 +155,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   const [locked, setLocked] = useState<number | null>(null)
   const [menu, setMenu] = useState<{ card: number; at: { x: number; y: number } } | null>(null)
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
+  const [railTab, setRailTab] = useState<'card' | 'log'>('card')
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** A card being brought into play, and where it can go: the board asks for the zone. Menus and drag are off until it answers. */
   const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions> } | null>(null)
@@ -608,20 +609,35 @@ const Loaded = ({ boot }: { boot: Boot }) => {
           onVideo={askVideo}
           onHelp={() => setHelpOpen(true)}
         />
-        <RailHead num="01" label={t('rail.card')} />
-        {/* It follows the pointer over the board, or stays on the card it is locked on. */}
-        <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="sim-rail-section sim-rail-card" />
-        <RailHead num="02" label={t('rail.log')} />
-        <History
-          session={session}
-          boards={boards}
-          cards={cards}
-          nameOf={nameOf}
-          disabled={playing || targetMode}
-          onSeek={step}
-          onSetStart={(start) => dispatch({ type: 'setStart', start })}
-          className="sim-rail-section sim-rail-log"
+        <TabBar
+          tabs={[
+            { id: 'card', label: t('rail.card') },
+            { id: 'log', label: t('rail.log') },
+          ]}
+          active={railTab}
+          onSelect={setRailTab}
+          label={t('rail.label')}
+          idPrefix="sim-rail"
         />
+        {/* One space, the two stacked in it: the log keeps its scroll on the step on screen while the card is up. */}
+        <div className="sim-rail-tabs">
+          <div {...tabPanelProps('sim-rail', 'card')} data-off={railTab === 'card' ? undefined : ''} className="sim-rail-tab">
+            {/* It follows the pointer over the board, or stays on the card it is locked on. */}
+            <CardPanel code={code} card={code === null ? null : (cards.get(code) ?? null)} locked={locked !== null} onUnlock={() => setLocked(null)} className="sim-rail-section sim-rail-card" />
+          </div>
+          <div {...tabPanelProps('sim-rail', 'log')} data-off={railTab === 'log' ? undefined : ''} className="sim-rail-tab">
+            <History
+              session={session}
+              boards={boards}
+              cards={cards}
+              nameOf={nameOf}
+              disabled={playing || targetMode}
+              onSeek={step}
+              onSetStart={(start) => dispatch({ type: 'setStart', start })}
+              className="sim-rail-section sim-rail-log"
+            />
+          </div>
+        </div>
         {/* The caption of the step on screen: a field to write it in by hand; while a replay plays, its text shows over the field. */}
         {cursor === 0 || playing ? null : (
           <div className="sim-rail-section border-t border-line">
@@ -635,8 +651,6 @@ const Loaded = ({ boot }: { boot: Boot }) => {
             />
           </div>
         )}
-        <RailHead num="03" label={t('rail.zones')} className="border-t" />
-        <PileCounts board={board} disabled={blank} onPile={togglePile} />
         <div className="sim-rail-section flex flex-col gap-3 border-t border-line">
           <ReplayBar
             cursor={cursor}

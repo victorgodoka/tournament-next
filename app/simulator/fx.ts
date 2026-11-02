@@ -148,6 +148,20 @@ export const pileGain = ({ k }: Stage, cell: HTMLElement, delay: number) => {
   cell.querySelector('[data-count]')?.animate([{ scale: '1.7' }, { scale: '1' }], { duration: 340 * k, delay, easing: EASE })
 }
 
+/** A card reaching the hand: it stands out of the fan, lit up, then settles back in. */
+export const handGain = ({ k }: Stage, host: HTMLElement | null, delay: number) => {
+  const lit = { translate: '0 -24%', filter: 'brightness(1.35) drop-shadow(0 0 12px var(--color-cyan))' }
+  host?.animate(
+    [
+      { offset: 0, translate: '0 0', filter: 'brightness(1)', easing: EASE },
+      { offset: 0.2, ...lit },
+      { offset: 0.78, ...lit, easing: EASE },
+      { offset: 1, translate: '0 0', filter: 'brightness(1)' },
+    ],
+    { duration: 1000 * k, delay },
+  )
+}
+
 /** A shaft of light rising from a card, in the hero's rays. */
 export const pillar = ({ flat, k }: Stage, at: Pose, size: Size, delay: number) => {
   const w = size.w * at.scale * 1.3

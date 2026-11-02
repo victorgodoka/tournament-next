@@ -1240,6 +1240,23 @@ describe('Simulator history and replay', () => {
       expect(flights()[0]!.hidden).toBe(zone('gy').querySelector('[data-pile] > *'))
     })
 
+    it('a card added to the hand, by the menu or a drag, says so and stands out of the fan', async () => {
+      const word = () => document.querySelector('.sim-label')?.textContent
+      await open(DECK)
+      await click('toolbar.newHand')
+      await discard()
+      await rightClick(within(await openPile('gy')).getAllByRole('button')[0]!)
+      await choose('menu.sendTo')
+      await choose('menu.toHand')
+      expect(word()).toBe('fx.toHand')
+      expect(animate.mock.calls.some(([frames]) => (frames as Keyframe[])[1]?.translate === '0 -24%')).toBe(true)
+      await click('pile.close')
+      await play('zones.m0')
+      expect(word()).toBeUndefined()
+      await dragOnto(cardsIn('m0')[0]!, 'hand')
+      expect(word()).toBe('fx.toHand')
+    })
+
     it('a step back flies the card back to where it came from', async () => {
       await open(DECK)
       await click('toolbar.newHand')
@@ -1460,6 +1477,18 @@ describe('Simulator bringing a card into play', () => {
       expect(hand()).toHaveLength(5)
       expect(steps().at(-1)).toBe('history.activate')
     })
+  })
+})
+
+describe('Simulator rail', () => {
+  it('the card and the duel log take turns in one space, and the zones are gone', async () => {
+    await open(DECK)
+    const off = (name: string) => screen.getByRole('tabpanel', { name, hidden: true }).hasAttribute('data-off')
+    expect(screen.getByRole('tab', { name: 'rail.card' }).getAttribute('aria-selected')).toBe('true')
+    expect([off('rail.card'), off('rail.log')]).toEqual([false, true])
+    await act(async () => void fireEvent.click(screen.getByRole('tab', { name: 'rail.log' })))
+    expect([off('rail.card'), off('rail.log')]).toEqual([true, false])
+    expect(screen.queryByRole('button', { name: 'rail.open' })).toBeNull()
   })
 })
 
@@ -1768,7 +1797,7 @@ describe('Simulator save and share', () => {
     expect(titleField().value).toBe('Line')
     await retitle('  Opening  ')
     await click('combos.save')
-    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }) })
+    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }), visibility: 'link' })
     expect(saveDialog()).toBeNull()
     expect(unsaved()).toBe(false)
 
@@ -1814,6 +1843,31 @@ describe('Simulator save and share', () => {
     expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Line, again' }), 1)
   })
 
+  it('the dialog says who opens the combo; a later Save keeps it, and Share warns when it is private', async () => {
+    await saved()
+    await more('toolbar.saveAs')
+    await click('combos.visibility.private')
+    await click('combos.save')
+    expect(updateCombo).toHaveBeenLastCalledWith('c1', expect.objectContaining({ visibility: 'private' }), 1)
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    expect(vi.mocked(updateCombo).mock.lastCall![1].visibility).toBeUndefined() // absent: the server keeps it
+    await more('toolbar.share')
+    expect(screen.getByText('combos.copiedPrivate')).toBeTruthy()
+  })
+
+  it('a copy saved as new is never more open than the combo it came from', async () => {
+    await saved()
+    await more('toolbar.saveAs')
+    await click('combos.visibility.private')
+    await click('combos.save')
+    vi.mocked(updateCombo).mockRejectedValueOnce(new ComboConflictError(9))
+    await click('toolbar.draw')
+    await click('toolbar.save')
+    await click('combos.saveAsNew')
+    expect(vi.mocked(saveCombo).mock.lastCall![0].visibility).toBe('private')
+  })
+
   it('Save in the Save as dialog renames the tied combo', async () => {
     await saved()
     await more('toolbar.saveAs')
@@ -1833,6 +1887,7 @@ describe('Simulator save and share', () => {
       title: 'Line',
       deckId: DECK_ID,
       owner: { id: 'u1', name: 'Me' },
+      visibility: 'link',
       revision: 2,
       updatedAt: '2026-10-19T00:00:00Z',
       payload: { start: 0, name: 'Line', actions: [{ n: 2, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,
@@ -2115,13 +2170,14 @@ describe('Simulator save and share', () => {
 describe('Simulator my combos', () => {
   const DECK_ID = '0123456789abcdef'
   const NAMED = `${DECK}&name=Line&deck=${DECK_ID}`
-  const summary = (id: string, title: string): ComboSummary => ({ id, title, deckName: 'Line', steps: 3, updatedAt: '2026-10-19T00:00:00Z' })
+  const summary = (id: string, title: string): ComboSummary => ({ id, title, deckName: 'Line', steps: 3, visibility: 'link', updatedAt: '2026-10-19T00:00:00Z' })
   /** As the server sends it: jsonb reorders the keys, so the hash of this payload is not the session's. */
   const stored = (id: string): SharedCombo => ({
     id,
     title: `Combo ${id}`,
     deckId: DECK_ID,
     owner: { id: 'u1', name: 'Me' },
+    visibility: 'link',
     revision: 3,
     updatedAt: '2026-10-19T00:00:00Z',
     payload: { start: 1, name: 'Line', actions: [{ n: 3, t: 'draw' }, { n: 1, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,

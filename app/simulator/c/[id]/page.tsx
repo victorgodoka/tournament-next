@@ -1,24 +1,25 @@
 import { getTranslations } from 'next-intl/server'
+import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { API_URL } from '@utils/auth'
 import type { SharedCombo } from '@utils/combos'
 import { metaDescription, pageMetadata } from '@utils/metadata'
 import { ComboPlayerLoader } from './combo-player.loader'
 import { AdBanner } from '@omega/ads/ad-banner'
-import { VipPromo } from '@omega/ads/vip-promo'
 
 type Props = { params: Promise<{ id: string }> }
 
-// The link preview (Discord): the combo's title, its deck and its length. Unlisted, so never indexed.
+// The link preview (Discord): the combo's title, its deck and its length. Only a published combo is indexed. A private one
+// answers 404 here, with no session, so its title never reaches a preview.
 export async function generateMetadata({ params }: Props) {
   const [{ id }, t] = await Promise.all([params, getTranslations('Simulator')])
   const path = `/simulator/c/${encodeURIComponent(id)}`
   try {
     const res = await fetch(`${API_URL}/combos/${encodeURIComponent(id)}`, { next: { revalidate: 60 } })
     if (!res.ok) throw new Error(`combo ${res.status}`)
-    const { title, payload }: SharedCombo = await res.json()
+    const { title, payload, visibility }: SharedCombo = await res.json()
     const description = metaDescription([payload.name, t('player.meta', { count: payload.actions.length })].filter(Boolean).join(' · '))
-    return pageMetadata({ title: `${title} — ${t('title')}`, path, description, noIndex: true })
+    return pageMetadata({ title: `${title} — ${t('title')}`, path, description, noIndex: visibility !== 'public' })
   } catch {
     // Unknown, deleted, or the API is down: the simulator's own preview.
     return pageMetadata({ title: t('title'), path, description: t('meta'), noIndex: true })
@@ -33,10 +34,9 @@ const ComboPlayerPage = async ({ params }: Props) => {
       {/* As the simulator's page: clipped sideways at the viewport edge, for a card sliding in from a pile. */}
       <main data-clear-gutters className="min-h-dvh overflow-x-clip pt-16">
         <ComboPlayerLoader id={id} />
-        <AdBanner id="ad-bottom" placement="content" className="mx-auto mt-12 w-[min(var(--container-page),calc(100%-32px))]" />
-        {/* No footer on this page: our VIP pitch goes at the end instead. */}
-        <VipPromo className="mx-auto my-12 w-[min(var(--container-page),calc(100%-32px))]" />
+        <AdBanner id="ad-bottom" placement="content" className="mx-auto mb-12 w-[min(var(--container-page),calc(100%-32px))]" />
       </main>
+      <Footer />
     </>
   )
 }

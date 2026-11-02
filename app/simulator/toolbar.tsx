@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@ui/button'
@@ -76,6 +77,7 @@ type CommandsProps = {
 /** The rail's top row: a hand to start from and the line to keep. Every decision is the client's: the buttons only ask. */
 export const Commands = (p: CommandsProps) => {
   const t = useTranslations('SimulatorNew')
+  const router = useRouter()
   const { session, playing } = p
   const noDeck = session.deck.main.length === 0
   /** Save and Share keep a line: there is none before the first hand. */
@@ -98,6 +100,7 @@ export const Commands = (p: CommandsProps) => {
         items={[
           session.combo ? ['saveAs', t('toolbar.saveAs'), p.onSaveAs, false] : null,
           ['myCombos', t('toolbar.myCombos'), p.onMyCombos, false],
+          ['browse', t('toolbar.browse'), () => router.push('/simulator/combos'), false],
           ['share', t('toolbar.share'), p.onShare, noLine],
           ['video', t('video.open'), p.onVideo, noLine],
           ['reset', t('toolbar.reset'), p.onReset, noLine],
