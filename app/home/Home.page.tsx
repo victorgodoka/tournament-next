@@ -25,7 +25,7 @@ import {
   RELEASES_URL,
 } from "@utils/const";
 import { getLatestArticles } from "@utils/articles";
-import { getTopDecks } from "@utils/global-explorer";
+import { getTopDecks } from "@utils/statistics";
 import type { ArticleSummary } from "@utils/types";
 import { Carousel } from "@ui/carousel";
 import { useTranslations } from "next-intl";
@@ -376,8 +376,8 @@ const Formats = () => (
 
 /** The TCG ranking's top decks; the static picks when the API is down or has no open season. */
 const LiveMetaDecks = async ({ ranked }: { ranked: Ranked }) => {
-  const live = ((await ranked) ?? []).flatMap(({ topCards: [card], name, metaShare }) =>
-    card && name ? [{ id: card.id, name, note: `${(metaShare * 100).toFixed(1)}% of the meta` }] : [])
+  const live = ((await ranked) ?? []).flatMap(({ topCards: [card], name, share }) =>
+    card && name ? [{ id: card.id, name, note: `${(share * 100).toFixed(1)}% of the meta` }] : [])
   return <MetaDecks decks={live.length ? live : HOME_META_DECKS.map(({ id, name, style }) => ({ id, name, note: style }))} />
 }
 
