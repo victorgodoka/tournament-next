@@ -2,63 +2,14 @@
 
 import { useState } from 'react'
 import { Alert } from '@ui/alert'
-import { Button } from '@ui/button'
-import { Chip } from '@ui/chip'
 import { DataTable } from '@ui/data-table'
 import { TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
-import { Panel } from '@ui/panel'
 import { useResource } from '@hooks/index'
 import { count } from '@utils/format'
-import { getPanelDeck, ignoreArchetype, listPanelDecks, panelErrorText, unignoreArchetype, type PanelDeck } from '@utils/panel'
+import { listPanelDecks, panelErrorText } from '@utils/panel'
 import { NextBuildNote, percent, SeasonSelect, useSeason } from '../shared'
-
-const deckName = (deck: Pick<PanelDeck, 'key' | 'name'>) => deck.name ?? (deck.key || 'Unknown')
-
-/** How a key is made: a code near 100% with a mean of one or two is a tech that makes a new key. */
-const Setcodes = ({ season, deck }: { season: number; deck: PanelDeck }) => {
-  const detail = useResource(`${season}:${deck.key}`, (signal) => getPanelDeck(season, deck.key, signal))
-  const [error, setError] = useState<string | null>(null)
-  const act = (request: Promise<unknown>) => {
-    setError(null)
-    request.then(detail.reload, (e) => setError(panelErrorText(e)))
-  }
-  return (
-    <Panel title={deckName(deck)} meta={`${count(deck.decks)} decks`} className="[--edge:var(--color-line-mid)]">
-      <div className="flex flex-col gap-3">
-        {detail.error ? <Alert tone="negative" title="Couldn't read the deck">{panelErrorText(detail.error)}</Alert> : null}
-        {error ? <Alert tone="negative" title="That didn't go through">{error}</Alert> : null}
-        <div className="overflow-x-auto">
-          <DataTable
-            rows={detail.data?.setcodes ?? []}
-            rowKey={(s) => s.code}
-            empty={detail.data ? 'No named setcode in these decks.' : 'Loading…'}
-            columns={[
-              { key: 'name', label: 'Setcode', strong: true, render: (s) => <span className="flex items-center gap-2">{s.name ?? 'No name'}{s.ignored ? <Chip tone="gold">Ignored</Chip> : null}</span> },
-              { key: 'code', label: 'Code', render: (s) => <span className="data">{s.code}</span> },
-              { key: 'share', label: 'In decks', numeric: true, render: (s) => <span className="data">{percent(s.share)}</span> },
-              { key: 'mean', label: 'Cards', numeric: true, render: (s) => <span className="data">{s.mean.toFixed(1)} ({s.min}–{s.max})</span> },
-              {
-                key: 'actions',
-                label: <span className="block text-right">Actions</span>,
-                render: (s) => (
-                  <span className="flex justify-end">
-                    {s.ignored ? (
-                      <Button variant="ghost" size="mono" onClick={() => act(unignoreArchetype(s.code))}>Stop ignoring</Button>
-                    ) : (
-                      <Button variant="ghost" size="mono" onClick={() => act(ignoreArchetype(s.code))}>Ignore</Button>
-                    )}
-                  </span>
-                ),
-              },
-            ]}
-          />
-        </div>
-        <span className="text-ink-muted caption">Stop ignoring only works on a setcode ignored by itself; one ignored through its family is undone on the family, in Ignored setcodes.</span>
-      </div>
-    </Panel>
-  )
-}
+import { deckName, Setcodes } from './Setcodes'
 
 const DecksPage = () => {
   const [picked, setPicked] = useState<number | null>(null)
