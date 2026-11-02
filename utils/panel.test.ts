@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getPanelDeck, listPanelDecks, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSettings } from './panel'
+import { createSeries, deleteSeries, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -65,5 +65,27 @@ describe('settings and keys', () => {
     await updateApiAccount('123456789012345678', { blocked: true })
     expect(url(mock).pathname).toBe('/panel/api-keys/123456789012345678')
     expect(JSON.parse(String(init(mock).body))).toEqual({ blocked: true })
+  })
+})
+
+describe('series', () => {
+  const input = { name: 'A', description: '', archetype: null, archetypes: [4], cards: [1], mentions: [] }
+
+  it('lists, creates, updates and deletes', async () => {
+    const list = stub({ series: [{ id: 1 }] })
+    expect(await listSeries()).toEqual([{ id: 1 }])
+    expect(url(list).pathname).toBe('/panel/series')
+    const post = stub({ id: 2 }, 201)
+    await createSeries(input)
+    expect(init(post).method).toBe('POST')
+    expect(JSON.parse(String(init(post).body))).toEqual(input)
+    const patch = stub({ id: 2 })
+    await updateSeries(2, input)
+    expect(url(patch).pathname).toBe('/panel/series/2')
+    expect(init(patch).method).toBe('PATCH')
+    const del = stub(null, 204)
+    await deleteSeries(2)
+    expect(url(del).pathname).toBe('/panel/series/2')
+    expect(init(del).method).toBe('DELETE')
   })
 })
