@@ -373,10 +373,14 @@ export type Staple = {
   source: 'auto' | 'manual'
   /** `false`: a manual override of an automatic one. */
   enabled: boolean
-  /** The season's decks holding the card, from the last build. */
+  /** The season's decks holding the card in any zone, side included, from the last build. */
   share: number | null
   /** Of those, the decks where no other card shares a setcode with it. */
   foreignShare: number | null
+  /** The season's decks with it in the main or extra deck; `null` before a build has it. */
+  mainShare: number | null
+  /** The season's decks with it in the side deck; a deck with it in both counts in both. */
+  sideShare: number | null
 }
 
 export const listStaples = (season: number, signal?: AbortSignal) =>

@@ -50,6 +50,8 @@ const StaplesPage = () => {
             { key: 'source', label: 'Decided by', render: (s) => <Chip tone={s.source === 'manual' ? 'gold' : 'neutral'}>{s.source === 'manual' ? 'Staff' : 'Build'}</Chip> },
             { key: 'state', label: 'Staple', render: (s) => (s.enabled ? 'Yes' : 'No') },
             { key: 'share', label: 'In decks', numeric: true, render: (s) => <span className="data">{percent(s.share)}</span> },
+            { key: 'main', label: 'Main', numeric: true, render: (s) => <span className="data">{percent(s.mainShare)}</span> },
+            { key: 'side', label: 'Side', numeric: true, render: (s) => <span className="data">{percent(s.sideShare)}</span> },
             { key: 'foreign', label: 'Foreign', numeric: true, render: (s) => <span className="data">{percent(s.foreignShare)}</span> },
             {
               key: 'actions',
@@ -64,7 +66,7 @@ const StaplesPage = () => {
           ]}
         />
       </div>
-      <span className="text-ink-muted caption">Foreign: of the decks holding the card, those where no other card shares a setcode with it. The detection cut-offs are in Settings.</span>
+      <span className="text-ink-muted caption">In decks counts the side deck too: a card counts once per deck in any zone. Main is the main or extra deck, Side the side deck; a deck with it in both counts in both. Foreign: of the decks holding the card, those where no other card shares a setcode with it. The detection cut-offs are in Settings.</span>
       <NextBuildNote />
     </>
   )
