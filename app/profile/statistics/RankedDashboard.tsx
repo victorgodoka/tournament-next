@@ -3,7 +3,7 @@
 /**
  * One duelist's ranked dashboard: how they are doing (KPIs, Elo, last results), with which decks, against
  * which decks, the recent matches and the analysis lines. Everything but turn order is cut from
- * `record.timeline` by the period and the picked deck; turn order is the whole selection.
+ * `timeline` by the period and the picked deck; the table against the ladder is the whole season.
  */
 
 import { useState } from 'react'
@@ -18,8 +18,9 @@ import { ModeTabs } from '@ui/mode-tabs'
 import { Panel } from '@ui/panel'
 import { ResultPill } from '@ui/result'
 import { TierBadge } from '@ui/tier-badge'
-import { Art, faceOf, NOTE, num, NUM, pct, ROW, SortHeads, sortBy, useSort, type Getters } from '@app/statistics/DeepDive'
-import { archKey, type PlayerStatisticsData, type Tally3, type TimelineRow, type TurnSplit } from '@utils/statistics'
+import { MeTable } from '@app/statistics/dashboard/MeTable'
+import { NOTE, num, NUM, pct, ROW, SortHeads, sortBy, useSort, type Getters } from '@app/statistics/shared'
+import type { PlayerAnswer, Scope, Tally3, TimelineRow } from '@utils/statistics'
 import type { EloPoint, Match, Tier } from '@utils/types'
 import {
   byDeck, byOpponent, byPair, eloChange, gameTally, inPeriod, insights, matchTally, MIN_MATCHES, pairKey, played,
@@ -32,7 +33,7 @@ const MatchAnalytics = dynamic(() => import('@omega/analytics/match-analytics').
 export type LadderStanding = { elo: number; tier: Tier; rank: number | null; eloHistory?: EloPoint[] }
 
 type Props = {
-  data: PlayerStatisticsData
+  data: PlayerAnswer
   standing: LadderStanding | null
   /** The profile's first page of ranked matches, already the selection's format. */
   matches: Match[]
@@ -83,13 +84,13 @@ export const RankedDashboard = ({ data, standing, matches, profileId }: Props) =
 
   // A season shorter than a window makes that window the same as "since the start": not offered. Every
   // season (no `season`) offers them all.
+  const scope: Scope | null = data.season ? { ladder: data.season.ladder, season: data.season.code, window: 'season', band: 'all' } : null
   const seasonDays = data.season ? (now - Date.parse(data.season.startsAt)) / DAY_MS : Infinity
   const periods = PERIODS.filter((p) => p.days === null || p.days === 7 || p.days < seasonDays)
   const days: Period = periods.find((p) => p.id === periodId)?.days ?? null
-  const timeline = data.record.timeline ?? []
-  const names = (key: string) => data.record.deckNames?.[key] ?? `Setcode ${key.split('+').join(' / ')}`
-  const artOf = new Map(data.archetypes.map((a) => [archKey(a.archetype), faceOf(a)]))
-  const art = (key: string) => artOf.get(key.split('+').join('-'))
+  const timeline = data.timeline
+  const named = new Map<string, string | null>([...data.decks.map((d) => [d.key, d.name] as const), ...data.matchups.map((m) => [m.opponent, m.opponentName] as const)])
+  const names = (key: string) => named.get(key) ?? key
 
   const rows = inPeriod(timeline, days, now)
   const before = previousPeriod(timeline, days, now)
@@ -103,19 +104,15 @@ export const RankedDashboard = ({ data, standing, matches, profileId }: Props) =
   const decks = byDeck(rows)
   const best = decks.filter((d) => played(d.matches) >= MIN_MATCHES).sort((a, b) => winRate(b.matches)! - winRate(a.matches)!)[0]
 
-  if (!data.record.timeline)
-    return <p className={twMerge(NOTE, 'mt-6')}>{t('oldApi')}</p>
-
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <ModeTabs
           label={t('period.label')}
           items={periods.map((p) => ({ id: p.id, label: p.id === 'start' && !data.season ? t('period.all') : t(`period.${p.id}`) }))}
           value={periodId}
           onChange={setPeriodId}
         />
-        <span className="text-ink-muted signal-sm">{t('analyzed', { analyzed: num(data.matches.analyzed), total: num(data.matches.total) })}</span>
       </div>
 
       {/* KPIs */}
@@ -242,7 +239,6 @@ export const RankedDashboard = ({ data, standing, matches, profileId }: Props) =
                         style={{ gridTemplateColumns: DECK_COLS }}
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <Art card={art(d.key)} size={28} className="size-7" />
                           <span className="truncate font-bold text-ink">{names(d.key)}</span>
                           {d === decks[0] ? <span className="shrink-0 font-mono text-[9px] text-cyan uppercase">{t('decks.mostPlayed')}</span> : null}
                           {d === best ? <span className="shrink-0 font-mono text-[9px] text-gold uppercase">{t('decks.best')}</span> : null}
@@ -267,7 +263,8 @@ export const RankedDashboard = ({ data, standing, matches, profileId }: Props) =
             <p className={NOTE}>{t('kpi.noMatches')}</p>
           )}
       </Panel>
-      <PersonalMatrix rows={focus} names={names} art={art} />
+      <PersonalMatrix rows={focus} names={names} />
+      {scope ? <MeTable decks={data.decks} scope={scope} /> : null}
 
       {/* Recent matches (with the last results on top) and the analysis */}
       <div className="grid grid-cols-1 gap-4 min-[1200px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
@@ -293,13 +290,12 @@ export const RankedDashboard = ({ data, standing, matches, profileId }: Props) =
         </Panel>
       </div>
 
-      <TurnOrder split={data.turnOrder} />
     </div>
   )
 }
 
 /** Their decks (rows) against the decks they faced most (columns), "others" the rest. */
-const PersonalMatrix = ({ rows, names, art }: { rows: TimelineRow[]; names: (key: string) => string; art: (key: string) => { id: number; name: string | null } | undefined }) => {
+const PersonalMatrix = ({ rows, names }: { rows: TimelineRow[]; names: (key: string) => string }) => {
   const t = useTranslations('PlayerStatistics.matrix')
   const mine = byDeck(rows).slice(0, MATRIX_ROWS)
   const opponents = byOpponent(rows)
@@ -330,7 +326,6 @@ const PersonalMatrix = ({ rows, names, art }: { rows: TimelineRow[]; names: (key
                   {cols.map((c) => (
                     <th key={c.key} scope="col" title={names(c.key)} className="px-0.5 pb-2 align-bottom">
                       <span className="flex flex-col items-center gap-1">
-                        <Art card={art(c.key)} size={24} className="size-6" />
                         <span className="block max-w-14 truncate text-[10px] font-normal text-ink-muted">{names(c.key)}</span>
                       </span>
                     </th>
@@ -343,7 +338,6 @@ const PersonalMatrix = ({ rows, names, art }: { rows: TimelineRow[]; names: (key
                   <tr key={d.key}>
                     <th scope="row" className="sticky left-0 bg-surface-100 px-2 text-left">
                       <span className="flex w-36 items-center gap-2 text-sm font-semibold text-ink">
-                        <Art card={art(d.key)} size={22} className="size-5.5" />
                         <span className="truncate">{names(d.key)}</span>
                       </span>
                     </th>
@@ -427,31 +421,6 @@ const RecentMatches = ({ matches, last, names, profileId }: { matches: Match[]; 
         <p className={NOTE}>{t('empty')}</p>
       )}
       <Link href={`/profile/${profileId}#matches`} className="mt-3 inline-flex text-[13px] text-azure-lift hover:text-ink">{t('all')}</Link>
-    </Panel>
-  )
-}
-
-/** First / second, game 1 and after siding: the whole selection, not the period (no per-match turn data). */
-const TurnOrder = ({ split }: { split: PlayerStatisticsData['turnOrder'] }) => {
-  const t = useTranslations('PlayerStatistics.turn')
-  const rows: [string, TurnSplit][] = [[t('all'), split.all], [t('game1'), split.game1], [t('postSide'), split.postSide]]
-  return (
-    <Panel title={t('title')} meta={t('meta')}>
-      <div className="grid grid-cols-1 gap-4 min-[720px]:grid-cols-3">
-        {rows.map(([label, s]) => (
-          <div key={label} className="flex flex-col gap-1.5 border border-line bg-surface-200 p-3">
-            <span className="font-bold text-ink text-[13px]">{label}</span>
-            <span className="flex justify-between font-mono text-xs text-ink-dim">
-              <span>{t('first')} {pct(s.first.winRate)}</span>
-              <span className="text-ink-muted">{t('games', { count: num(s.first.games) })}</span>
-            </span>
-            <span className="flex justify-between font-mono text-xs text-ink-dim">
-              <span>{t('second')} {pct(s.second.winRate)}</span>
-              <span className="text-ink-muted">{t('games', { count: num(s.second.games) })}</span>
-            </span>
-          </div>
-        ))}
-      </div>
     </Panel>
   )
 }

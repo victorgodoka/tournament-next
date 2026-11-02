@@ -5,12 +5,12 @@
  */
 
 import { notFound } from 'next/navigation'
-import { archKey, getPlayerStatistics, type PlayerStatisticsData, type Tally3 } from '@utils/statistics'
+import { getPlayerStatistics, type PlayerAnswer, type Tally3 } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
 import { getProfile } from '@utils/profile'
 import { getPlayerTournamentStats } from '@utils/tournaments'
 import type { Profile, RankedLadderId } from '@utils/types'
-import { played, standingOf, winRate } from '@app/profile/statistics/insights'
+import { byDeck, byOpponent, gameTally, matchTally, played, standingOf, winRate } from '@app/profile/statistics/insights'
 import { Art, Bar, busy, C, col, Empty, Kpi, Label, loadImages, num, Panel, pct, render, row, sizeOf, toDataUri, translator, type Size } from '@omega/infographic/infographic'
 
 const SECTIONS = ['overview', 'decks', 'matchups', 'tournaments'] as const
@@ -21,6 +21,7 @@ type Owner = Extract<Profile, { isPrivate: false }>
 const wrColor = (wr: number | null) => (wr == null ? C.muted : wr >= 0.5 ? C.win : C.loss)
 const record = (t: Tally3) => `${t.wins}-${t.losses}-${t.draws}`
 const PRIVATE = 'private, no-store'
+const deckName = (data: PlayerAnswer, key: string) => data.decks.find((d) => d.key === key)?.name ?? data.matchups.find((m) => m.opponent === key)?.opponentName
 
 const Head = async ({ profile, size, t, children }: { profile: Owner; size: Size; t: T; children?: React.ReactNode }) => {
   const avatar = profile.avatar ? await toDataUri(profile.avatar) : null
@@ -48,11 +49,12 @@ const EloLine = ({ points, width, height }: { points: { elo: number }[]; width: 
   )
 }
 
-const overview = async (profile: Owner, data: PlayerStatisticsData, pick: { season?: string; ladder: RankedLadderId }, size: Size, t: T) => {
-  const r = data.record
+const overview = async (profile: Owner, data: PlayerAnswer, pick: { season?: string; ladder: RankedLadderId }, size: Size, t: T) => {
+  const matches = matchTally(data.timeline)
+  const games = gameTally(data.timeline)
   const standing = standingOf(profile, pick)
-  const last = (r.timeline ?? []).slice(0, size === 'wide' ? 20 : 15)
-  const top = [...r.decks].sort((a, b) => played(b.matches) - played(a.matches))[0]
+  const last = data.timeline.slice(0, size === 'wide' ? 20 : 15)
+  const top = byDeck(data.timeline)[0]
   const elo = standing?.eloHistory ?? []
   const head = await Head({
     profile,
@@ -68,10 +70,10 @@ const overview = async (profile: Owner, data: PlayerStatisticsData, pick: { seas
   const kpis = (
     <div style={{ ...row, gap: 20, flexWrap: 'wrap' }}>
       {([
-        [t('matches'), String(played(r.matches)), C.ink],
-        [t('matchWinRate'), pct(winRate(r.matches)), wrColor(winRate(r.matches))],
-        [t('gameWinRate'), pct(winRate(r.games)), wrColor(winRate(r.games))],
-        [t('record'), record(r.matches), C.dim],
+        [t('matches'), String(played(matches)), C.ink],
+        [t('matchWinRate'), pct(winRate(matches)), wrColor(winRate(matches))],
+        [t('gameWinRate'), pct(winRate(games)), wrColor(winRate(games))],
+        [t('record'), record(matches), C.dim],
       ] as [string, string, string][]).map(([label, value, color]) => (
         <div key={label} style={{ display: 'flex', width: size === 'wide' ? '23%' : '48%' }}>
           <Kpi label={label} value={value} color={color} size={size === 'wide' ? 60 : 68} />
@@ -97,7 +99,7 @@ const overview = async (profile: Owner, data: PlayerStatisticsData, pick: { seas
   ) : null
   const topDeck = top ? (
     <Panel title={t('mostPlayed')} style={{ flex: 1 }}>
-      <div style={{ display: 'flex', fontSize: 40, fontWeight: 700 }}>{top.name ?? t('unknownDeck')}</div>
+      <div style={{ display: 'flex', fontSize: 40, fontWeight: 700 }}>{deckName(data, top.key) ?? t('unknownDeck')}</div>
       <div style={{ display: 'flex', fontSize: 28, color: C.dim }}>{t('deckLine', { matches: played(top.matches), rate: pct(winRate(top.matches)) })}</div>
     </Panel>
   ) : null
@@ -121,19 +123,16 @@ const overview = async (profile: Owner, data: PlayerStatisticsData, pick: { seas
   )
 }
 
-const decks = async (data: PlayerStatisticsData, size: Size, t: T) => {
-  const list = [...data.record.decks].sort((a, b) => played(b.matches) - played(a.matches)).slice(0, 6)
+const decks = (data: PlayerAnswer, size: Size, t: T) => {
+  const list = byDeck(data.timeline).slice(0, 6)
   if (!list.length) return <Empty>{t('empty')}</Empty>
-  const faces = new Map(data.archetypes.map((a) => [archKey(a.archetype), a.face?.id]))
-  const arts = await loadImages(list.map((d) => faces.get(archKey(d.archetype))))
   const most = Math.max(...list.map((d) => played(d.matches)))
   return (
     <div style={{ ...row, flexWrap: 'wrap', gap: 24, alignContent: 'flex-start', flex: 1 }}>
       {list.map((d) => (
-        <div key={archKey(d.archetype)} style={{ ...row, gap: 22, width: size === 'wide' ? 860 : 952, padding: 20, background: C.surface, border: `2px solid ${C.line}` }}>
-          <Art src={arts.get(faces.get(archKey(d.archetype)) ?? -1)} size={size === 'wide' ? 110 : 150} />
+        <div key={d.key} style={{ ...row, gap: 22, width: size === 'wide' ? 860 : 952, padding: 20, background: C.surface, border: `2px solid ${C.line}` }}>
           <div style={{ ...col, gap: 12, flex: 1 }}>
-            <div style={{ display: 'flex', fontSize: 34, fontWeight: 700 }}>{d.name ?? t('unknownDeck')}</div>
+            <div style={{ display: 'flex', fontSize: 34, fontWeight: 700 }}>{deckName(data, d.key) ?? t('unknownDeck')}</div>
             <div style={{ ...row, gap: 14 }}>
               <Bar value={played(d.matches) / most} />
               <div style={{ display: 'flex', fontSize: 24, color: C.dim }}>{t('matchesCount', { count: played(d.matches) })}</div>
@@ -150,24 +149,15 @@ const decks = async (data: PlayerStatisticsData, size: Size, t: T) => {
 }
 
 /** By opponent deck, every own deck summed; 3+ matches to be called best or worst. */
-const matchups = (data: PlayerStatisticsData, size: Size, t: T) => {
-  const by = new Map<string, { name: string | null; matches: Tally3 }>()
-  for (const m of data.record.matchups) {
-    const k = archKey(m.opponent)
-    const cur = by.get(k) ?? { name: m.opponentName, matches: { wins: 0, losses: 0, draws: 0 } }
-    cur.matches.wins += m.matches.wins
-    cur.matches.losses += m.matches.losses
-    cur.matches.draws += m.matches.draws
-    by.set(k, cur)
-  }
-  const rows = [...by.values()].filter((m) => played(m.matches) >= 3).sort((a, b) => winRate(b.matches)! - winRate(a.matches)!)
+const matchups = (data: PlayerAnswer, size: Size, t: T) => {
+  const rows = byOpponent(data.timeline).filter((m) => played(m.matches) >= 3).sort((a, b) => winRate(b.matches)! - winRate(a.matches)!)
   if (!rows.length) return <Empty>{t('empty')}</Empty>
   const n = size === 'wide' ? 5 : 6
   const List = ({ title, list, color }: { title: string; list: typeof rows; color: string }) => (
     <Panel title={title} style={{ flex: 1, gap: 22 }}>
       {list.map((m, i) => (
         <div key={i} style={{ ...row, gap: 16, fontSize: 32 }}>
-          <div style={{ display: 'flex', flex: 1, fontWeight: 700 }}>{m.name ?? t('unknownDeck')}</div>
+          <div style={{ display: 'flex', flex: 1, fontWeight: 700 }}>{deckName(data, m.key) ?? t('unknownDeck')}</div>
           <div style={{ display: 'flex', fontSize: 24, color: C.muted }}>{record(m.matches)}</div>
           <div style={{ display: 'flex', width: 130, justifyContent: 'flex-end', color, fontWeight: 700 }}>{pct(winRate(m.matches))}</div>
         </div>
@@ -256,7 +246,7 @@ const draw = async (request: Request, { params }: Route) => {
 
   const ladder: RankedLadderId = q.get('ladder') === 'genesys' ? 'genesys' : 'tcg'
   const season = q.get('season') || undefined
-  const result = await getPlayerStatistics(id, season ? { season } : { ladder }, cookie)
+  const result = await getPlayerStatistics(id, { ladder, season }, cookie)
   if (!result.ok) return new Response(null, { status: result.status || 502, headers: { 'cache-control': PRIVATE } })
   const { data } = result
   const ladderName = ladder === 'genesys' ? 'Genesys' : 'TCG'
@@ -265,7 +255,7 @@ const draw = async (request: Request, { params }: Route) => {
     section === 'overview'
       ? await overview(profile, data, { season, ladder: data.season?.ladder ?? ladder }, size, t)
       : section === 'decks'
-        ? await decks(data, size, t)
+        ? decks(data, size, t)
         : matchups(data, size, t)
   return render({ size, title: t(`sections.${section as Section}`), subtitle, footer: t('footer', { name, date: today }), body, cache: PRIVATE })
 }

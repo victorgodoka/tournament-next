@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '../../../messages/pt.json'
-import type { PlayerStatisticsData, TimelineRow } from '@utils/statistics'
+import type { PlayerAnswer, TimelineRow } from '@utils/statistics'
 import { RankedDashboard } from './RankedDashboard'
 
 vi.mock('next/dynamic', () => ({ default: () => () => null }))
@@ -17,16 +17,14 @@ const timeline: TimelineRow[] = [
   [ago(4), 'L', '1', '3', 1, 2, 0],
   ...Array.from({ length: 8 }, (_, i): TimelineRow => [ago(5 + i), i < 5 ? 'W' : 'L', '1', '2', i < 5 ? 2 : 0, i < 5 ? 0 : 2, 0]),
 ]
-const tally = { wins: 8, losses: 4, draws: 0 }
-const split = { first: { games: 10, winRate: 0.6 }, second: { games: 10, winRate: 0.5 } }
+const deck = (key: string, name: string) => ({ key, name, games: 12, wins: 8, losses: 4, draws: 0, wr: 0.67, wrLo: 0.5, wrHi: 0.8, ladder: null })
 const data = {
   season: null,
-  formats: ['TCG'],
-  matches: { analyzed: 12, total: 12 },
-  archetypes: [],
-  turnOrder: { all: split, game1: split, postSide: split },
-  record: { matches: tally, games: tally, decks: [], matchups: [], timeline, deckNames: { 1: 'Branded', 2: 'Snake-Eye', 3: 'Tenpai' } },
-} as unknown as PlayerStatisticsData
+  record: { games: 30, wins: 16, losses: 14, draws: 0 },
+  decks: [deck('1', 'Branded')],
+  matchups: [{ ...deck('1', 'Branded'), opponent: '2', opponentName: 'Snake-Eye' }, { ...deck('1', 'Branded'), opponent: '3', opponentName: 'Tenpai' }],
+  timeline,
+} as unknown as PlayerAnswer
 
 const text = () =>
   renderToStaticMarkup(
@@ -54,7 +52,7 @@ describe('RankedDashboard', () => {
     const render = (startsDaysAgo: number) =>
       renderToStaticMarkup(
         <NextIntlClientProvider locale="pt" messages={messages} timeZone="UTC">
-          <RankedDashboard data={{ ...data, season: { startsAt: ago(startsDaysAgo * 24) } } as PlayerStatisticsData} standing={null} matches={[]} profileId="1" />
+          <RankedDashboard data={{ ...data, season: { startsAt: ago(startsDaysAgo * 24) } } as PlayerAnswer} standing={null} matches={[]} profileId="1" />
         </NextIntlClientProvider>,
       )
     const short = render(5)

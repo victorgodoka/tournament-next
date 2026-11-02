@@ -49,12 +49,12 @@ const RankedBody = async ({ profileId, selection, standing, matches, cookie }: {
   cookie: string | null
 }) => {
   const t = await getTranslations('PlayerStatistics')
-  const result = await getPlayerStatistics(profileId, selection.season ? { season: selection.season } : { ladder: selection.ladder }, cookie)
+  const result = await getPlayerStatistics(profileId, selection, cookie)
   if (!result.ok) {
     if (result.status === 403) return <PrivateNotice />
     return <EmptyBox title={result.status === 404 ? t('errors.noSeason') : t('errors.title')}>{result.status === 404 ? t('errors.noSeasonBody') : t('errors.body')}</EmptyBox>
   }
-  if (!result.data.matches.analyzed) return <EmptyBox title={t('errors.noGames')}>{t('errors.noGamesBody')}</EmptyBox>
+  if (!result.data.record.games) return <EmptyBox title={t('errors.noGames')}>{t('errors.noGamesBody')}</EmptyBox>
   return <RankedDashboard data={result.data} standing={standing} matches={matches} profileId={profileId} />
 }
 

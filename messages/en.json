@@ -2211,9 +2211,7 @@
       "tournaments": "Couldn’t read the tournaments"
     },
     "filters": { "format": "Format", "season": "Season", "open": "{label} - Open", "allSeasons": "Every season", "tournaments": "Tournaments" },
-    "oldApi": "This server doesn’t send the match timeline yet.",
     "period": { "label": "Period", "start": "Since the season began", "7": "Last 7 days", "14": "Last 14 days", "30": "Last 30 days", "all": "Every season" },
-    "analyzed": "{analyzed} of {total} matches analyzed",
     "kpi": {
       "rank": "Ladder position",
       "rankPlace": "#{rank} on the ladder",
@@ -2280,7 +2278,6 @@
         "strongMatchup": "Good results against {deck}: {rate} in {n} matches."
       }
     },
-    "turn": { "title": "Turn order", "meta": "Whole selection, not the period", "all": "All games", "game1": "Game 1", "postSide": "Games 2–3", "first": "1st", "second": "2nd", "games": "{count} games" },
     "tournaments": {
       "title": "Tournaments",
       "format": "Tournament format",
@@ -2346,20 +2343,21 @@
       "archetype-analysis": "Archetype analysis",
       "cards": "Most used cards",
       "deep-dive": "Deep dive",
+      "deck": "Deck report",
       "comparator": "Deck comparator",
       "tier-list": "Tier list",
       "meta-report": "Meta report"
     },
     "more": "more",
     "matchesCount": "{count} matches",
-    "tierListNote": "Power tiers, by Wilson score: sample size counts. T1 holds two decks at most. Beside a tier, its share of the meta. Under a deck, its win rate.",
+    "tierListNote": "Power tiers, by expected win rate against the field. Beside a tier, its share of the meta. Under a deck, its expected win rate.",
     "fastestRiser": "Fastest riser",
     "rising": "Rising",
     "falling": "Falling",
     "change": "Share points",
     "winRateShort": "{rate} win rate",
     "noMovers": "No change",
-    "moversNote": "Meta share over the last {days, plural, one {day} other {# days}} against the same span before, in percentage points.",
+    "moversNote": "Meta share in the last week of games against the week before, in percentage points.",
     "source": "Ranked statistics",
     "asOf": "Data up to {date}",
     "footer": "{days, plural, one {# day} other {# days}} of ranked games",

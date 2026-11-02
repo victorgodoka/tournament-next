@@ -132,7 +132,7 @@ type PlayerEstimate = Tally & { name: string | null; wr: number | null; wrLo: nu
 export type PlayerDeck = PlayerEstimate & { key: string }
 export type PlayerMatchup = PlayerEstimate & { key: string; opponent: string; opponentName: string | null }
 /** One per duel, newest first: [day ISO, duel result, deck key | null, the opponent's, games won, lost, drawn]. */
-export type TimelineRow = [day: string, result: 'W' | 'L' | 'D' | null, deck: string | null, opponent: string | null, wins: number, losses: number, draws: number]
+export type TimelineRow = [day: string | null, result: 'W' | 'L' | 'D' | null, deck: string | null, opponent: string | null, wins: number, losses: number, draws: number]
 export type PlayerAnswer = { season: Season | null; record: Tally; decks: PlayerDeck[]; matchups: PlayerMatchup[]; timeline: TimelineRow[] }
 
 export type MatchupCall = 'favorable' | 'neutral' | 'unfavorable'
@@ -286,3 +286,18 @@ export type SampleDeck = {
   side: SampleCard[]
 }
 export type SampleCard = { id: number; name: string | null; count: number }
+
+type FaceSource = { deck: Pick<DeckStat, 'key'>; cards: Pick<CardStat, 'card'>[]; sampleDeck: Pick<SampleDeck, 'coverCardId'> | null }
+
+/** The card that stands for each deck, by key: no two decks on a board look the same. */
+export const deckFaces = (answers: readonly FaceSource[]) => {
+  const taken = new Set<number>()
+  return new Map(
+    answers.flatMap(({ deck, cards, sampleDeck }) => {
+      const face = [sampleDeck?.coverCardId, ...cards.map((c) => c.card)].find((id): id is number => !!id && !taken.has(id))
+      if (!face) return []
+      taken.add(face)
+      return [[deck.key, face] as const]
+    }),
+  )
+}

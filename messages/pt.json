@@ -2211,9 +2211,7 @@
       "tournaments": "Não deu para ler os torneios"
     },
     "filters": { "format": "Formato", "season": "Temporada", "open": "{label} - Open", "allSeasons": "Todas as temporadas", "tournaments": "Torneios" },
-    "oldApi": "Este servidor ainda não envia a linha do tempo das partidas.",
     "period": { "label": "Período", "start": "Desde o início da temporada", "7": "Últimos 7 dias", "14": "Últimos 14 dias", "30": "Últimos 30 dias", "all": "Todas as temporadas" },
-    "analyzed": "{analyzed} de {total} partidas analisadas",
     "kpi": {
       "rank": "Posição no ranking",
       "rankPlace": "#{rank} no ranking",
@@ -2280,7 +2278,6 @@
         "strongMatchup": "Bons resultados contra {deck}: {rate} em {n} partidas."
       }
     },
-    "turn": { "title": "Ordem de turno", "meta": "Toda a seleção, não o período", "all": "Todos os games", "game1": "Game 1", "postSide": "Games 2–3", "first": "1º", "second": "2º", "games": "{count} games" },
     "tournaments": {
       "title": "Torneios",
       "format": "Formato do torneio",
@@ -2346,20 +2343,21 @@
       "archetype-analysis": "Análise de arquétipo",
       "cards": "Cartas mais usadas",
       "deep-dive": "Deep dive",
+      "deck": "Relatório do deck",
       "comparator": "Comparador de decks",
       "tier-list": "Tier list",
       "meta-report": "Relatório do meta"
     },
     "more": "mais",
     "matchesCount": "{count} partidas",
-    "tierListNote": "Power tiers, por Wilson score: a amostra conta. O T1 tem no máximo dois decks. Ao lado do tier, sua fatia do meta. Abaixo do deck, o win rate.",
+    "tierListNote": "Power tiers, pelo win rate esperado contra o campo. Ao lado do tier, sua fatia do meta. Abaixo do deck, o win rate esperado.",
     "fastestRiser": "Maior alta",
     "rising": "Em alta",
     "falling": "Em queda",
     "change": "Pontos de fatia",
     "winRateShort": "{rate} de win rate",
     "noMovers": "Sem mudança",
-    "moversNote": "Fatia do meta {days, plural, one {no último dia} other {nos últimos # dias}} contra o mesmo período anterior, em pontos percentuais.",
+    "moversNote": "Fatia do meta na última semana de games contra a semana anterior, em pontos percentuais.",
     "source": "Estatísticas da ranqueada",
     "asOf": "Dados até {date}",
     "footer": "{days, plural, one {# dia} other {# dias}} de partidas ranqueadas",
