@@ -4,7 +4,7 @@
  */
 
 import { notFound } from 'next/navigation'
-import { deckFaces, effectPoints, getDeck, getMeta, matchupCall, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
+import { deckFaces, effectPoints, families, familyWeeks, getDeck, getMeta, matchupCall, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
 import { Art, busy, C, Chip, col, Empty, F, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size } from '@omega/infographic/infographic'
 
@@ -110,15 +110,18 @@ const MoverRow = ({ m: { a, delta }, src, t }: { m: Mover; src?: string; t: T })
 
 const metaReport = async ({ data, scope, size, t }: Ctx) => {
   const wide = size === 'wide'
-  const decks = new Map(plainDecks(data.decks).map((d) => [d.key, d]))
-  const moves = shareMoves(data.weeks.filter((w) => decks.has(w.key)))
+  const fams = families(data.decks)
+  const decks = new Map(fams.map(({ family }) => [family.key, family]))
+  // A family row has no cards: its art is its most played member's.
+  const lead = new Map(fams.map(({ family, members }) => [family.key, members[0] ?? family]))
+  const moves = shareMoves(familyWeeks(data.weeks, fams))
   const mover = ({ key, delta }: { key: string; delta: number }): Mover => ({ a: decks.get(key)!, delta })
   const rising = moves.risers.map(mover)
   const falling = moves.fallers.map(mover)
   const hero = rising[0]
-  const faces = deckFaces(await answers([...rising, ...falling].map((m) => m.a), scope))
+  const faces = deckFaces(await answers([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope))
   const arts = await loadImages([...faces.values()])
-  const art = (a: DeckStat) => arts.get(faces.get(a.key) ?? -1)
+  const art = (a: DeckStat) => arts.get(faces.get(lead.get(a.key)!.key) ?? -1)
   const list = (n: string, title: string, movers: Mover[]) => (
     <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
       <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
