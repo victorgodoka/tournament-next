@@ -1427,6 +1427,9 @@
     "combos": {
       "dialogTitle": "Save combo",
       "titleLabel": "Title",
+      "coverLabel": "Cover cards",
+      "tagsLabel": "Tags",
+      "archetypeHint": "The archetype is detected from the deck when you save.",
       "visibilityLabel": "Who can open it",
       "visibility": { "public": "Public", "link": "Link only", "private": "Private" },
       "visibilityHint": {
@@ -1454,9 +1457,11 @@
     },
     "browse": {
       "title": "Published combos",
+      "name": "Combo name",
+      "cards": "Cards in the combo",
       "meta": "Yu-Gi-Oh! combo lines published by the community: watch each one step by step, then practise it in the Combo Simulator.",
       "open": "Open the simulator",
-      "empty": "No combos published yet.",
+      "empty": "No combos match.",
       "failed": "Couldn't load the combos."
     },
     "myCombos": {
@@ -1709,6 +1714,9 @@
     "combos": {
       "dialogTitle": "Save combo",
       "titleLabel": "Title",
+      "coverLabel": "Cover cards",
+      "tagsLabel": "Tags",
+      "archetypeHint": "The archetype is detected from the deck when you save.",
       "visibilityLabel": "Who can open it",
       "visibility": { "public": "Public", "link": "Link only", "private": "Private" },
       "visibilityHint": {
@@ -1736,9 +1744,11 @@
     },
     "browse": {
       "title": "Published combos",
+      "name": "Combo name",
+      "cards": "Cards in the combo",
       "meta": "Yu-Gi-Oh! combo lines published by the community: watch each one step by step, then practise it in the Combo Simulator.",
       "open": "Open the simulator",
-      "empty": "No combos published yet.",
+      "empty": "No combos match.",
       "failed": "Couldn't load the combos."
     },
     "myCombos": {

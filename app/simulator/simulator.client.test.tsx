@@ -1797,7 +1797,7 @@ describe('Simulator save and share', () => {
     expect(titleField().value).toBe('Line')
     await retitle('  Opening  ')
     await click('combos.save')
-    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }), visibility: 'link' })
+    expect(saveCombo).toHaveBeenCalledWith({ title: 'Opening', deckId: DECK_ID, payload: expect.objectContaining({ name: 'Line', start: 2 }), visibility: 'link', coverCards: expect.any(Array), tags: [] })
     expect(saveDialog()).toBeNull()
     expect(unsaved()).toBe(false)
 
@@ -1841,6 +1841,21 @@ describe('Simulator save and share', () => {
     await play('zones.m2') // tied to the new one now
     await click('toolbar.save')
     expect(updateCombo).toHaveBeenCalledWith('c2', expect.objectContaining({ title: 'Line, again' }), 1)
+  })
+
+  it('the cover starts as the first three cards of the deck, takes no fourth, and goes out with the tags', async () => {
+    await open(NAMED)
+    await click('toolbar.newHand')
+    await click('toolbar.save')
+    const tiles = () => within(screen.getByRole('list', { name: 'combos.coverLabel' })).getAllByRole('button')
+    const tile = (n: number) => act(async () => void fireEvent.click(tiles()[n]!))
+    expect(tiles().filter((el) => el.getAttribute('aria-pressed') === 'true')).toHaveLength(3)
+    await tile(3) // full: the fourth waits for a free place
+    await tile(0)
+    await tile(3)
+    await click('deckTags.rogue')
+    await click('combos.save')
+    expect(vi.mocked(saveCombo).mock.lastCall![0]).toMatchObject({ coverCards: [2, 3, 4], tags: ['rogue'] })
   })
 
   it('the dialog says who opens the combo; a later Save keeps it, and Share warns when it is private', async () => {
@@ -1888,6 +1903,9 @@ describe('Simulator save and share', () => {
       deckId: DECK_ID,
       owner: { id: 'u1', name: 'Me' },
       visibility: 'link',
+      coverCards: [],
+      tags: [],
+      archetype: null,
       revision: 2,
       updatedAt: '2026-10-19T00:00:00Z',
       payload: { start: 0, name: 'Line', actions: [{ n: 2, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,
@@ -2170,7 +2188,7 @@ describe('Simulator save and share', () => {
 describe('Simulator my combos', () => {
   const DECK_ID = '0123456789abcdef'
   const NAMED = `${DECK}&name=Line&deck=${DECK_ID}`
-  const summary = (id: string, title: string): ComboSummary => ({ id, title, deckName: 'Line', steps: 3, visibility: 'link', updatedAt: '2026-10-19T00:00:00Z' })
+  const summary = (id: string, title: string): ComboSummary => ({ id, title, deckName: 'Line', steps: 3, visibility: 'link', coverCards: [], tags: [], archetype: null, updatedAt: '2026-10-19T00:00:00Z' })
   /** As the server sends it: jsonb reorders the keys, so the hash of this payload is not the session's. */
   const stored = (id: string): SharedCombo => ({
     id,
@@ -2178,6 +2196,9 @@ describe('Simulator my combos', () => {
     deckId: DECK_ID,
     owner: { id: 'u1', name: 'Me' },
     visibility: 'link',
+    coverCards: [],
+    tags: [],
+    archetype: null,
     revision: 3,
     updatedAt: '2026-10-19T00:00:00Z',
     payload: { start: 1, name: 'Line', actions: [{ n: 3, t: 'draw' }, { n: 1, t: 'draw' }], deck: { side: [], extra: [7], main: [1, 2, 3, 4, 5, 6] } } as never,

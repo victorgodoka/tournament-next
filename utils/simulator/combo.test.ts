@@ -81,12 +81,12 @@ describe('sessionOf', () => {
 })
 
 describe('comboSession', () => {
-  const shared = (p: ComboPayload): SharedCombo => ({ id: ref.id, title: 'Dragão line', deckId: 'abcdefabcdefabcd', owner: { id: 'u1', name: 'Me' }, payload: p, visibility: 'private', revision: 2, updatedAt: '2026-10-19T00:00:00Z' })
+  const shared = (p: ComboPayload): SharedCombo => ({ id: ref.id, title: 'Dragão line', deckId: 'abcdefabcdefabcd', owner: { id: 'u1', name: 'Me' }, payload: p, visibility: 'private', coverCards: [1], tags: ['rogue'], archetype: null, revision: 2, updatedAt: '2026-10-19T00:00:00Z' })
 
   it('opens the combo tied to itself, with the hash of the session as parsed', () => {
     const s = comboSession(shared(payload))!
     expect(s).toMatchObject({ deck, actions, cursor: 4, start: 3, deckId: 'abcdefabcdefabcd' })
-    expect(s.combo).toEqual({ id: ref.id, title: 'Dragão line', revision: 2, saved: hashPayload(payloadOf(s)), visibility: 'private' })
+    expect(s.combo).toEqual({ id: ref.id, title: 'Dragão line', revision: 2, saved: hashPayload(payloadOf(s)), visibility: 'private', coverCards: [1], tags: ['rogue'] })
   })
 
   it('hashes the same whatever order the server returned the keys in (jsonb reorders them)', () => {

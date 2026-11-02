@@ -1426,6 +1426,9 @@
     },
     "combos": {
       "dialogTitle": "Salvar combo",
+      "coverLabel": "Cartas da capa",
+      "tagsLabel": "Tags",
+      "archetypeHint": "O arquétipo é detectado pelo deck ao salvar.",
       "visibilityLabel": "Quem pode abrir",
       "visibility": { "public": "Público", "link": "Só com o link", "private": "Privado" },
       "visibilityHint": {
@@ -1454,9 +1457,11 @@
     },
     "browse": {
       "title": "Combos publicados",
+      "name": "Nome do combo",
+      "cards": "Cartas no combo",
       "meta": "Linhas de combo de Yu-Gi-Oh! publicadas pela comunidade: assista passo a passo e treine no Simulador de Combos.",
       "open": "Abrir o simulador",
-      "empty": "Nenhum combo publicado ainda.",
+      "empty": "Nenhum combo encontrado.",
       "failed": "Não foi possível carregar os combos."
     },
     "myCombos": {
@@ -1708,6 +1713,9 @@
     },
     "combos": {
       "dialogTitle": "Salvar combo",
+      "coverLabel": "Cartas da capa",
+      "tagsLabel": "Tags",
+      "archetypeHint": "O arquétipo é detectado pelo deck ao salvar.",
       "visibilityLabel": "Quem pode abrir",
       "visibility": { "public": "Público", "link": "Só com o link", "private": "Privado" },
       "visibilityHint": {
@@ -1736,9 +1744,11 @@
     },
     "browse": {
       "title": "Combos publicados",
+      "name": "Nome do combo",
+      "cards": "Cartas no combo",
       "meta": "Linhas de combo de Yu-Gi-Oh! publicadas pela comunidade: assista passo a passo e treine no Simulador de Combos.",
       "open": "Abrir o simulador",
-      "empty": "Nenhum combo publicado ainda.",
+      "empty": "Nenhum combo encontrado.",
       "failed": "Não foi possível carregar os combos."
     },
     "myCombos": {

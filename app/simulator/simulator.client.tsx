@@ -507,7 +507,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
               }
             />
           ) : null}
-          <SaveFlowView flow={saves} playing={playing} />
+          <SaveFlowView flow={saves} playing={playing} deck={session.deck} cards={cards} />
           {placing ? (
             <Alert
               tone="info"
