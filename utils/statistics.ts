@@ -39,6 +39,9 @@ export const scopeFrom = (q: { ladder?: string | string[]; season?: string | str
 export const scopeQuery = ({ ladder, season, window = 'season', band = 'aggregate' }: StatisticsScope) =>
   new URLSearchParams({ ...(season ? { season } : { ladder }), ...(window === 'season' ? {} : { window }), ...(band === 'aggregate' ? {} : { band }) }).toString()
 
+/** The aggregate band has nothing to show: the API answers 404, or serves its row with no games. */
+export const aggregateEmpty = (result: Result<{ fit: { games: number } }>) => (result.ok ? result.data.fit.games === 0 : result.status === 404)
+
 export const statisticsHref = (scope: StatisticsScope) => `/statistics?${scopeQuery(scope)}`
 /** `*` stays readable in the path; `>` goes as %3E. */
 export const deckHref = (key: string, scope: StatisticsScope) => `/statistics/archetypes/${encodeURIComponent(key)}?${scopeQuery(scope)}`

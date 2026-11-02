@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
+import { aggregateEmpty, bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -105,6 +105,13 @@ describe('scope', () => {
     expect(scopeFrom({}).band).toBe('aggregate')
     expect(scopeFrom({ band: 'Iron' }).band).toBe('aggregate')
     expect(scopeFrom({ band: 'all' }).band).toBe('all')
+  })
+
+  it('calls the aggregate band empty on a 404 or a row with no games', () => {
+    expect(aggregateEmpty({ ok: false, status: 404 })).toBe(true)
+    expect(aggregateEmpty({ ok: true, data: { fit: { games: 0 } } })).toBe(true)
+    expect(aggregateEmpty({ ok: true, data: { fit: { games: 10 } } })).toBe(false)
+    expect(aggregateEmpty({ ok: false, status: 500 })).toBe(false)
   })
 
   it('keeps the scope on the links, the key URL-encoded', () => {

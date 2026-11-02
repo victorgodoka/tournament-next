@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { pageMetadata } from '@utils/metadata'
-import { getMeta, getSeasons, scopeFrom } from '@utils/statistics'
+import { aggregateEmpty, getMeta, getSeasons, scopeFrom } from '@utils/statistics'
 import { MetaDashboard } from './MetaDashboard'
 import { StatsShell } from './StatsShell'
 
@@ -17,7 +17,7 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
   const [seasons, first] = await Promise.all([getSeasons(), getMeta(scope)])
   let result = first
   // No games reach the aggregate band: show every rating, with a note, instead of an empty page.
-  const fallback = !result.ok && result.status === 404 && scope.band === 'aggregate'
+  const fallback = scope.band === 'aggregate' && aggregateEmpty(result)
   if (fallback) {
     scope = { ...scope, band: 'all' }
     result = await getMeta(scope)
