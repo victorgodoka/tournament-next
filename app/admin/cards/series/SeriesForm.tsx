@@ -47,7 +47,13 @@ const Chips = ({ items, onRemove }: { items: Pick[]; onRemove: (id: number) => v
     </ul>
   ) : null
 
-type ListKey = 'archetypes' | 'cards' | 'mentions'
+/** The two setcode pickers never offer what the other holds: the API refuses the same code as both. */
+export const excludesOf = (s: State) => ({
+  archetype: s.archetypes.map((p) => p.id),
+  archetypes: [...s.archetypes.map((p) => p.id), ...(s.archetype ? [s.archetype.id] : [])],
+})
+
+type ListKey ='archetypes' | 'cards' | 'mentions'
 
 export const SeriesForm = ({ series, saving, error, onSave, onCancel }: { series?: Series; saving: boolean; error: string | null; onSave: (input: SeriesInput) => void; onCancel: () => void }) => {
   const [state, setState] = useState(() => stateOf(series))
@@ -55,6 +61,7 @@ export const SeriesForm = ({ series, saving, error, onSave, onCancel }: { series
     setState((s) => ({ ...s, [key]: [...s[key], { id: Number(o.key), label: String(o.label) }] }))
   const remove = (key: ListKey) => (id: number) => setState((s) => ({ ...s, [key]: s[key].filter((p) => p.id !== id) }))
   const ids = (key: ListKey) => state[key].map((p) => p.id)
+  const excludes = excludesOf(state)
 
   return (
     <form
@@ -73,11 +80,11 @@ export const SeriesForm = ({ series, saving, error, onSave, onCancel }: { series
       </Field>
       <Field label="Becomes setcode" hint="Empty makes a new archetype; a setcode makes the Series that setcode.">
         <Chips items={state.archetype ? [state.archetype] : []} onRemove={() => setState({ ...state, archetype: null })} />
-        <Lookup label="Setcode the Series becomes" placeholder="Archetype name or setcode" search={findSetcodes} onPick={(o) => setState({ ...state, archetype: { id: Number(o.key), label: String(o.label) } })} />
+        <Lookup label="Setcode the Series becomes" placeholder="Archetype name or setcode" search={findSetcodes} exclude={excludes.archetype} onPick={(o) => setState({ ...state, archetype: { id: Number(o.key), label: String(o.label) } })} />
       </Field>
       <Field label="Child setcodes" meta={`${state.archetypes.length} of 32`} hint="Their cards count for the Series in every deck.">
         <Chips items={state.archetypes} onRemove={remove('archetypes')} />
-        <Lookup label="Add child setcode" placeholder="Archetype name or setcode" search={findSetcodes} exclude={ids('archetypes')} onPick={(o) => add('archetypes', o)} />
+        <Lookup label="Add child setcode" placeholder="Archetype name or setcode" search={findSetcodes} exclude={excludes.archetypes} onPick={(o) => add('archetypes', o)} />
       </Field>
       <Field label="Cards" meta={`${state.cards.length} of 200`} hint="The members.">
         <Chips items={state.cards} onRemove={remove('cards')} />

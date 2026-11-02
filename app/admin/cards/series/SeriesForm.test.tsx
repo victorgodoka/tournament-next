@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { toSeriesInput, type Series } from '@utils/panel'
-import { payloadOf, SeriesForm, stateOf } from './SeriesForm'
+import { excludesOf, payloadOf, SeriesForm, stateOf } from './SeriesForm'
 
 const series: Series = {
   id: 3,
@@ -36,6 +36,12 @@ describe('SeriesForm', () => {
 
   it('trims the name and sends a new Series empty', () => {
     expect(payloadOf({ ...stateOf(undefined), name: '  Hero  ' })).toEqual({ name: 'Hero', description: '', archetype: null, archetypes: [], cards: [], mentions: [] })
+  })
+
+  it('keeps the setcode pickers from offering what the other holds', () => {
+    const state = { ...stateOf(undefined), archetype: { id: 0x115, label: 'A' }, archetypes: [{ id: 0x200, label: 'B' }] }
+    expect(excludesOf(state)).toEqual({ archetype: [0x200], archetypes: [0x200, 0x115] })
+    expect(excludesOf(stateOf(undefined))).toEqual({ archetype: [], archetypes: [] })
   })
 
   it('passes the API error text to the alert', () => {
