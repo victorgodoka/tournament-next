@@ -2037,7 +2037,7 @@ describe('Simulator save and share', () => {
     expect(writeText).toHaveBeenCalledTimes(3)
   })
 
-  it('Download video saves an unsaved line first, then opens the video dialog; a step since drops the ask', async () => {
+  it('Record video saves an unsaved line first, then opens the video dialog; a step since drops the ask', async () => {
     await open(NAMED)
     await click('toolbar.newHand')
     await more('video.open')

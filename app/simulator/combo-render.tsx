@@ -129,6 +129,9 @@ const Frame = ({ combo, session: opened, cards, speed, onReady }: Loaded & Omit<
         const at = video.at(ms)
         if (at.cursor !== cursor) {
           cursor = at.cursor
+          // What the last step left running on a card that stays stops here: held at this step's time, it would play over.
+          // A CSS animation belongs to its element's state (a glow), and that state decides.
+          for (const animation of document.getAnimations()) if (!('animationName' in animation)) animation.cancel()
           // Committed at once (the step's slides start in its layout effects), then two frames for its glow to start, then
           // the images the step mounted (a card drawn, a new GY top), so its first frame never shows an empty tile.
           flushSync(() => dispatch({ type: 'seek', cursor: at.cursor }))

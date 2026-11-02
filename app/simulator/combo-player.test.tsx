@@ -182,7 +182,7 @@ describe('ComboPlayer', () => {
     expect(push).toHaveBeenCalledWith('/simulator')
   })
 
-  it('Download video shows for a signed-out viewer, and opens the dialog', async () => {
+  it('Record video shows for a signed-out viewer, and opens the dialog', async () => {
     vi.mocked(useAuth).mockReturnValue({ user: null } as ReturnType<typeof useAuth>)
     await open()
     await click('player.cancel')

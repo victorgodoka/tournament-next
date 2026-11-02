@@ -33,8 +33,8 @@ const combo = (over: Partial<SharedCombo> = {}): SharedCombo => ({
   ...over,
 })
 
-type Stub = { pause: ReturnType<typeof vi.fn>; currentTime: number | null }
-const stub = (): Stub => ({ pause: vi.fn(), currentTime: null })
+type Stub = { pause: ReturnType<typeof vi.fn>; cancel: ReturnType<typeof vi.fn>; currentTime: number | null; animationName?: string }
+const stub = (): Stub => ({ pause: vi.fn(), cancel: vi.fn(), currentTime: null })
 /** What `document.getAnimations()` returns: a glow and a slide already running, and whatever `animate` starts. */
 let animations: Stub[]
 /** What the page handed to `onReady`. */
@@ -205,6 +205,19 @@ describe('ComboRender', () => {
       expect(a.pause).toHaveBeenCalled()
       expect(a.currentTime).toBe(700)
     }
+  })
+
+  it('a new step stops what the last one left running on a card, or it would play over; a CSS glow stays', async () => {
+    const glow = { ...stub(), animationName: 'sim-glow' }
+    const effect = stub()
+    animations = [glow, effect]
+    await open()
+    await page().ready
+    await seek(1000)
+    expect(effect.cancel).toHaveBeenCalledTimes(1)
+    expect(glow.cancel).not.toHaveBeenCalled()
+    await seek(1100) // the same step: nothing to stop
+    expect(effect.cancel).toHaveBeenCalledTimes(1)
   })
 
   it('a seek that changes the step waits for the images the step mounts', async () => {

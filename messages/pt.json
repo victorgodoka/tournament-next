@@ -1508,8 +1508,8 @@
       "failed": "Não foi possível gravar o vídeo."
     },
     "video": {
-      "open": "Baixar vídeo",
-      "title": "Baixar vídeo",
+      "open": "Gravar vídeo",
+      "title": "Gravar vídeo",
       "aspect": "Proporção",
       "speed": "Velocidade",
       "length": "Duração estimada: {length}",
@@ -1795,8 +1795,8 @@
       "failed": "Não foi possível gravar o vídeo."
     },
     "video": {
-      "open": "Baixar vídeo",
-      "title": "Baixar vídeo",
+      "open": "Gravar vídeo",
+      "title": "Gravar vídeo",
       "aspect": "Proporção",
       "speed": "Velocidade",
       "length": "Duração estimada: {length}",

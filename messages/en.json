@@ -1508,8 +1508,8 @@
       "failed": "Could not record the video."
     },
     "video": {
-      "open": "Download video",
-      "title": "Download video",
+      "open": "Record video",
+      "title": "Record video",
       "aspect": "Aspect ratio",
       "speed": "Speed",
       "length": "Estimated length: {length}",
@@ -1795,8 +1795,8 @@
       "failed": "Could not record the video."
     },
     "video": {
-      "open": "Download video",
-      "title": "Download video",
+      "open": "Record video",
+      "title": "Record video",
       "aspect": "Aspect ratio",
       "speed": "Speed",
       "length": "Estimated length: {length}",
