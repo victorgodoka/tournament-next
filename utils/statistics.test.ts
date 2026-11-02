@@ -79,6 +79,16 @@ describe('families', () => {
     expect(fallers[0]!.key).toBe('1*')
     expect(fallers[0]!.delta).toBeCloseTo(-0.05)
   })
+
+  it('orders the sums by week when the first member lacks week 1, and passes a member-less family', () => {
+    const w = (key: string, n: number, share: number) => ({ key, week: n, firstDay: `d${n}`, games: 10, share }) as Week
+    const found = families([deck('1*', 0.3), deck('1', 0.2), deck('1>2', 0.1)])
+    const summed = familyWeeks([w('1', 2, 0.2), w('1', 3, 0.2), w('1>2', 1, 0.1), w('1>2', 2, 0.1)], found)
+    expect(summed.map((s) => s.week)).toEqual([1, 2, 3])
+    const empty = familyWeeks([w('1', 1, 0.2)], [{ family: deck('9*', 0.1), members: [] }])
+    expect(empty).toEqual([])
+    expect(shareMoves(empty)).toEqual({ risers: [], fallers: [] })
+  })
 })
 
 describe('scope', () => {

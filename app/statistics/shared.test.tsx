@@ -7,6 +7,7 @@ describe('nameOf', () => {
   it('falls back to the key for a setcode without a name', () => {
     expect(nameOf({ key: '207', name: null })).toBe('207')
     expect(nameOf({ key: '482', name: 'Snake-Eye' })).toBe('Snake-Eye')
+    expect(nameOf({ key: '207*', name: null })).toBe('207')
   })
 })
 

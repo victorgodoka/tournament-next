@@ -145,13 +145,13 @@ const headline = (ladder: Ladder) => {
   return top.length === 1 ? `${top[0]} is the only Tier 1 deck` : `${and(top)} lead Tier 1`
 }
 
-const moveOf = (ladder: Ladder, deck: DeckStat) => [...risers(ladder), ...fallers(ladder)].find((m) => m.deck === deck)?.delta ?? null
+const moveOf = (ladder: Ladder, deck: DeckStat) => [...risers(ladder), ...fallers(ladder)].find((m) => m.deck === deck) ?? null
 
 const leaderNote = (ladder: Ladder) => {
   const [first] = ladder.decks
   if (!first) return ''
-  const delta = moveOf(ladder, first)
-  const move = delta === null ? '' : ` Its family's share ${delta >= 0 ? 'rose' : 'fell'} ${Math.abs(delta * 100).toFixed(1)} points last week.`
+  const moved = moveOf(ladder, first)
+  const move = moved ? ` ${name(moved.family)} decks as a whole ${moved.delta >= 0 ? 'rose' : 'fell'} ${Math.abs(moved.delta * 100).toFixed(1)} points of share last week.` : ''
   return `${name(first)} has the best expected win rate on the ladder, ${pct(first.wrExpected)} (95% interval ${interval(first)}) over ${num(first.games)} games. In game 1 it wins ${pct(first.firstG1Wr)} going first and ${pct(first.secondG1Wr)} going second.${move}`
 }
 
@@ -379,9 +379,10 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
 
 const movementTable = (moves: Move[]) =>
   [
-    '| Deck | Tier | Season share | Change | Expected win rate |',
+    '| Family | Tier | Season share | Change | Expected win rate |',
     '|---|---:|---:|---:|---:|',
-    ...moves.map(({ family, delta }) => `| **${name(family)}** | ${family.tier ?? '—'} | ${pct(family.share)} | ${paint(points(delta), delta >= 0 ? WIN : LOSS)} | ${pct(family.wrExpected)} |`),
+    // Tier and rate are the most played listed build's: the `A*` row's would contradict the tier list under the same name.
+    ...moves.map(({ family, deck, delta }) => `| **${name(family)}** | ${deck?.tier ?? '—'} | ${pct(family.share)} | ${paint(points(delta), delta >= 0 ? WIN : LOSS)} | ${deck ? pct(deck.wrExpected) : '—'} |`),
   ].join('\n')
 
 /** The API's flagged shifts: this week's expected rate against last week's, past noise. */
@@ -427,7 +428,7 @@ const spotlight = (ladder: Ladder): WikiBlock[] => {
   const answer = ladder.answers.get(deck.key)
   const faced = (answer?.against ?? []).slice(0, 3).map(cardLink)
   const lines = [
-    `${opening} Its most played build, ${name(deck)}, has an expected win rate of ${pct(deck.wrExpected)} (95% interval ${interval(deck)}); in game 1 it wins ${pct(deck.firstG1Wr)} going first and ${pct(deck.secondG1Wr)} going second.`,
+    `${opening} ${name(deck) === name(family) ? 'Its core build has' : `Its most played build, ${name(deck)}, has`} an expected win rate of ${pct(deck.wrExpected)} (95% interval ${interval(deck)}); in game 1 it wins ${pct(deck.firstG1Wr)} going first and ${pct(deck.secondG1Wr)} going second.`,
     best ? `- **Best matchup:** ${best}` : '',
     worst ? `- **Worst matchup:** ${worst}` : '',
     faced.length ? `- **Most used against it:** ${and(faced)}` : '',

@@ -74,5 +74,6 @@ describe('deckFaces', () => {
 describe('name', () => {
   it('falls back to the key', () => {
     expect(name({ key: '207', name: null })).toBe('Archetype 207')
+    expect(name({ key: '207*', name: null })).toBe('Archetype 207')
   })
 })

@@ -1,5 +1,5 @@
 /** The pure part of scripts/wiki-tier-list.ts: which decks a weekly article lists and how it says it. */
-import { familyWeeks, plainDecks, shareMoves, type DeckAnswer, type DeckStat, type Family, type Meta } from '@utils/statistics'
+import { familyWeeks, leadOf, plainDecks, shareMoves, type DeckAnswer, type DeckStat, type Family, type Meta } from '@utils/statistics'
 
 /** The API's own floors for a tier: under them a deck can't be ranked, not even as "outside the tiers". */
 export const MIN_SHARE = 0.005
@@ -13,7 +13,7 @@ export const listed = (meta: Pick<Meta, 'decks'>) => plainDecks(meta.decks).filt
 
 export const pct = (rate: number | null | undefined, digits = 1) => `${((rate ?? 0) * 100).toFixed(digits)}%`
 export const and = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
-export const name = (deck: Pick<DeckStat, 'key' | 'name'>) => deck.name ?? `Archetype ${deck.key}`
+export const name = (deck: Pick<DeckStat, 'key' | 'name'>) => deck.name ?? `Archetype ${deck.key.endsWith('*') ? leadOf(deck.key) : deck.key}`
 export const tier = (ladder: Pick<Ladder, 'decks'>, t: Tier) => ladder.decks.filter((deck) => deck.tier === t)
 
 /** The leaders, as a sentence that holds for one Tier 1 deck or for several. */

@@ -63,17 +63,19 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                   <span role="cell"><Bar value={f.family.share} max={max} label={pct(f.family.share)} /></span>
                   <span role="cell" title={t('weekly')}><Spark weeks={famWeeks.filter((w) => w.key === f.family.key)} /></span>
                   {f.members.length > 1 && (
-                    <details role="cell" className="col-span-full pb-2">
-                      <summary className={twMerge(NOTE, 'cursor-pointer')}>{t('variants', { count: f.members.length })}</summary>
-                      <ul className="mt-1 flex flex-col gap-1">
-                        {f.members.map((m) => (
-                          <li key={m.key} className="flex justify-between gap-3">
-                            {link(m.key)}
-                            <span className="shrink-0 font-mono text-xs">{pct(m.share)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
+                    <span role="cell" className="col-span-full pb-2">
+                      <details>
+                        <summary className={twMerge(NOTE, 'cursor-pointer')}>{t('variants', { count: f.members.length })}</summary>
+                        <ul className="mt-1 flex flex-col gap-1">
+                          {f.members.map((m) => (
+                            <li key={m.key} className="flex justify-between gap-3">
+                              {link(m.key)}
+                              <span className="shrink-0 font-mono text-xs">{pct(m.share)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </span>
                   )}
                 </div>
               ))}

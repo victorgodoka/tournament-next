@@ -92,16 +92,17 @@ const tierList = async ({ data, scope, size, t }: Ctx) => {
 
 const points = (delta: number) => `${delta >= 0 ? '+' : '−'}${Math.abs(delta * 100).toFixed(1)}`
 
-type Mover = { a: DeckStat; delta: number }
+/** `build` is the family's most played member: its tier and rate stand for the family, never the `A*` row's. */
+type Mover = { a: DeckStat; build: DeckStat | null; delta: number }
 
-const MoverRow = ({ m: { a, delta }, src, t }: { m: Mover; src?: string; t: T }) => (
+const MoverRow = ({ m: { a, build, delta }, src, t }: { m: Mover; src?: string; t: T }) => (
   <div style={{ ...row, gap: 16 }}>
     <Art src={src} size={64} />
     <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
       <div style={{ display: 'block', fontSize: 21, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a, t)}</div>
       <div style={{ ...row, gap: 12 }}>
-        {a.tier ? <Label size={13} color={C.tier[a.tier]} weight={700}>{`T${a.tier}`}</Label> : null}
-        <Label size={13}>{t('winRateShort', { rate: pct(a.wrExpected) })}</Label>
+        {build?.tier ? <Label size={13} color={C.tier[build.tier]} weight={700}>{`T${build.tier}`}</Label> : null}
+        {build ? <Label size={13}>{t('winRateShort', { rate: pct(build.wrExpected) })}</Label> : null}
       </div>
     </div>
     <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1, color: delta >= 0 ? C.win : C.loss }}>{points(delta)}</div>
@@ -115,7 +116,11 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
   // A family row has no cards: its art is its most played member's.
   const lead = new Map(fams.map(({ family, members }) => [family.key, members[0] ?? family]))
   const moves = shareMoves(familyWeeks(data.weeks, fams))
-  const mover = ({ key, delta }: { key: string; delta: number }): Mover => ({ a: decks.get(key)!, delta })
+  const mover = ({ key, delta }: { key: string; delta: number }): Mover => {
+    const a = decks.get(key)!
+    const member = lead.get(key)!
+    return { a, build: member === a ? null : member, delta }
+  }
   const rising = moves.risers.map(mover)
   const falling = moves.fallers.map(mover)
   const hero = rising[0]
@@ -144,10 +149,12 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
                     <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: C.win }}>{points(hero.delta)}</div>
                     <Label size={13}>{t('change')}</Label>
                   </div>
-                  <div style={{ ...col, width: '50%', gap: 6 }}>
-                    <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: wrColor(hero.a.wrExpected) }}>{pct(hero.a.wrExpected)}</div>
-                    <Label size={13}>{t('winRate')}</Label>
-                  </div>
+                  {hero.build ? (
+                    <div style={{ ...col, width: '50%', gap: 6 }}>
+                      <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: wrColor(hero.build.wrExpected) }}>{pct(hero.build.wrExpected)}</div>
+                      <Label size={13}>{t('winRate')}</Label>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

@@ -171,7 +171,7 @@ export const familyWeeks = (weeks: readonly Week[], list: readonly Family[]): Sh
       sum.share += w.share
       sums.set(w.week, sum)
     }
-    return [...sums.values()]
+    return [...sums.values()].sort((a, b) => a.week - b.week)
   })
 
 /** The deck with the best share-weighted adjusted rate against the `top` most played; one missing any of them doesn't count. */
