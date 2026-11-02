@@ -7,8 +7,8 @@ type MoveVariant = 'plain' | 'set' | 'top' | 'bottom' | 'faceDown' | 'faceUp' | 
 /** The variant Shift picks on a pile (decision 5); hand and GY have none, so Shift does nothing there. */
 const SHIFT: Partial<Record<ZoneId, MoveVariant>> = { deck: 'bottom', banished: 'faceDown', extra: 'faceUp' }
 
-function variantAction(card: number, to: ZoneId, variant: MoveVariant): Action {
-  const move = { t: 'move', card, to } as const
+function variantAction(card: number, to: ZoneId, variant: MoveVariant, how?: How): Action {
+  const move = { t: 'move', card, to, ...(how && { how }) } as const
   switch (variant) {
     case 'set':
       return { ...move, face: 'down', ...(isMonsterSlot(to) && { pos: 'def' as const }) }
@@ -29,7 +29,7 @@ function variantAction(card: number, to: ZoneId, variant: MoveVariant): Action {
 /**
  * The move a drop on `zone` means, or null when it would do nothing or the reducer would refuse it. A card dropped on an
  * occupied monster slot goes on top of the stack; Shift attaches it under instead. Elsewhere Shift sets the card on a slot
- * and picks the variant of a pile.
+ * and picks the variant of a pile. A card that comes from the Extra Deck or the GY onto a monster slot is Special Summoned.
  */
 export function dropAction(board: Board, card: number, zone: ZoneId | null, shift: boolean): Action | null {
   if (!zone) return null
@@ -39,8 +39,10 @@ export function dropAction(board: Board, card: number, zone: ZoneId | null, shif
     : isSlot(zone) ? 'set'
     : (SHIFT[zone] ?? 'plain')
   // a plain drop on the card's own pile is a no-op; only a pile variant (deck bottom, face-down, face-up) repositions it
-  if (variant === 'plain' && locate(board, card)?.zone === zone) return null
-  const action = variantAction(card, zone, variant)
+  const from = locate(board, card)?.zone
+  if (variant === 'plain' && from === zone) return null
+  const summoned = (from === 'extra' || from === 'gy') && isMonsterSlot(zone) && variant !== 'material'
+  const action = variantAction(card, zone, variant, summoned ? 'special' : undefined)
   return isValid(board, action) ? action : null
 }
 

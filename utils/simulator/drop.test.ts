@@ -39,6 +39,23 @@ describe('simulator drop', () => {
     expect(apply(base, dropAction(base, 2, 'm0', false)!).zones.m0).toEqual([2, 0])
   })
 
+  it('a card dragged from the Extra Deck onto a monster slot is a Special Summon, unless it goes under as a material', () => {
+    expect(dropAction(base, 10, 'm1', false)).toEqual({ ...move(10, 'm1'), how: 'special' })
+    expect(dropAction(base, 10, 'emz0', false)).toEqual({ ...move(10, 'emz0'), how: 'special' })
+    expect(dropAction(base, 10, 'm1', true)).toEqual({ ...move(10, 'm1', { face: 'down', pos: 'def' }), how: 'special' })
+    expect(dropAction(base, 10, 'm0', false)).toEqual({ ...move(10, 'm0', { at: 'top' }), how: 'special' })
+    expect(dropAction(base, 10, 'm0', true)).toEqual(move(10, 'm0'))
+    expect(dropAction(base, 10, 'gy', false)).toEqual(move(10, 'gy'))
+    expect(dropAction(base, 2, 'm1', false)).toEqual(move(2, 'm1')) // from the hand a drop is a plain move
+  })
+
+  it('so is a card dragged from the GY onto a monster slot', () => {
+    const gy = apply(base, mv(2, 'gy'))
+    expect(dropAction(gy, 2, 'm1', false)).toEqual({ ...move(2, 'm1'), how: 'special' })
+    expect(dropAction(gy, 2, 'm0', true)).toEqual(move(2, 'm0'))
+    expect(dropAction(gy, 2, 's1', false)).toEqual(move(2, 's1'))
+  })
+
   it('empty spell or field slot: plain, Shift sets face-down; occupied gives null', () => {
     expect(dropAction(base, 2, 's1', false)).toEqual(move(2, 's1'))
     expect(dropAction(base, 2, 's1', true)).toEqual(move(2, 's1', { face: 'down' }))
