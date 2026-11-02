@@ -504,3 +504,46 @@ export const ignoreArchetype = (code: number) =>
   request<{ archetypes: IgnoredArchetype[] }>(`/panel/ignored-archetypes/${code}`, json('PUT')).then((page) => page.archetypes)
 
 export const unignoreArchetype = (code: number) => request<void>(`/panel/ignored-archetypes/${code}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
+ * Series (section 9.4): archetypes the card database does not have, made of cards
+ * ---------------------------------------------------------------- */
+
+export type SeriesCard = { id: number; name: string | null; kind: string | null }
+
+export type Series = {
+  id: number
+  /** `archetype.code` when it becomes a setcode, else 65536 + id. Read-only: the API rejects it in a body. */
+  code: number
+  name: string
+  description: string
+  archetype: { code: number; name: string | null } | null
+  archetypes: { code: number; name: string | null }[]
+  cards: SeriesCard[]
+  mentions: SeriesCard[]
+  updatedAt: string
+}
+
+/** Plain numbers, exactly the six fields the API accepts. */
+export type SeriesInput = { name: string; description: string; archetype: number | null; archetypes: number[]; cards: number[]; mentions: number[] }
+
+export const listSeries = (signal?: AbortSignal) => request<{ series: Series[] }>('/panel/series', { signal }).then((page) => page.series)
+
+export const getSeries = (id: number, signal?: AbortSignal) => request<Series>(`/panel/series/${id}`, { signal })
+
+export const createSeries = (input: SeriesInput) => request<Series>('/panel/series', json('POST', input))
+
+/** The record is written whole: send every field. */
+export const updateSeries = (id: number, input: SeriesInput) => request<Series>(`/panel/series/${id}`, json('PATCH', input))
+
+export const deleteSeries = (id: number) => request<void>(`/panel/series/${id}`, json('DELETE'))
+
+/** What an edit form sends back: the objects turned into numbers, `code`, `id` and `updatedAt` left out. */
+export const toSeriesInput = (series: Series): SeriesInput => ({
+  name: series.name,
+  description: series.description,
+  archetype: series.archetype?.code ?? null,
+  archetypes: series.archetypes.map((a) => a.code),
+  cards: series.cards.map((c) => c.id),
+  mentions: series.mentions.map((c) => c.id),
+})
