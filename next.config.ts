@@ -16,10 +16,6 @@ const nextConfig: NextConfig = {
     { source: '/admin/analytics/:path*', destination: '/admin/statistics/:path*', permanent: true },
     { source: '/profile/:id/analytics', destination: '/profile/:id/statistics', permanent: true },
     { source: '/profile/:id/explorations/:path*', destination: '/profile/:id/statistics', permanent: true },
-    // The global statistics are down for maintenance: `/statistics` says so, and these stay out of reach until it's back.
-    { source: '/statistics/archetypes/:path*', destination: '/statistics', permanent: false },
-    { source: '/statistics/cards/:path*', destination: '/statistics', permanent: false },
-    { source: '/statistics/activity', destination: '/statistics', permanent: false },
     // NitroAds (site 2429) hosts the ads.txt; duelistsunite.org/ads.txt redirects there too.
     { source: '/ads.txt', destination: 'https://api.nitropay.com/v1/ads-2429.txt', permanent: true },
   ],
