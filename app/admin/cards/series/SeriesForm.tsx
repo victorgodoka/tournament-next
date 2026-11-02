@@ -66,6 +66,11 @@ export const SeriesForm = ({ series, saving, error, onSave, onCancel }: { series
   return (
     <form
       className="flex max-w-2xl flex-col gap-5"
+      // Enter in a picker's search field must not submit the form mid-edit.
+      onKeyDown={(e) => {
+        const target = e.target as HTMLInputElement
+        if (e.key === 'Enter' && target.tagName === 'INPUT' && target.type === 'search') e.preventDefault()
+      }}
       onSubmit={(e) => {
         e.preventDefault()
         onSave(payloadOf(state))

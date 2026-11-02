@@ -52,7 +52,7 @@ const SeriesPage = () => {
           series={editing === 'new' ? undefined : editing}
           saving={saving}
           error={error}
-          onCancel={() => setEditing(null)}
+          onCancel={() => { setError(null); setEditing(null) }}
           onSave={(input) => run(editing === 'new' ? createSeries(input) : updateSeries(editing.id, input), () => setEditing(null))}
         />
       ) : (
