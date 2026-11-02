@@ -69,7 +69,7 @@ describe('settings and keys', () => {
 })
 
 describe('series', () => {
-  const input = { name: 'A', description: '', archetype: null, archetypes: [4], cards: [1], mentions: [] }
+  const input = { name: 'A', description: '', archetype: null, archetypes: [4], cards: [1], mentions: [], cover: null }
 
   it('lists, creates, updates and deletes', async () => {
     const list = stub({ series: [{ id: 1 }] })

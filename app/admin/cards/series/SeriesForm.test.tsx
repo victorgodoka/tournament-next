@@ -12,13 +12,14 @@ const series: Series = {
   archetypes: [{ code: 4, name: 'Blue-Eyes' }],
   cards: [{ id: 14558127, name: 'Ash Blossom', kind: 'monster' }],
   mentions: [{ id: 12345, name: 'Adventurer Token', kind: 'monster' }],
+  cover: { id: 46986414, name: 'Dark Magician', kind: 'monster' },
   updatedAt: '2026-11-02T12:00:00.000Z',
 }
 
 describe('toSeriesInput', () => {
   it('maps objects to numbers and leaves code, id and updatedAt out', () => {
-    expect(toSeriesInput(series)).toEqual({ name: 'Adventure', description: 'Quest cards', archetype: 277, archetypes: [4], cards: [14558127], mentions: [12345] })
-    expect(toSeriesInput({ ...series, archetype: null }).archetype).toBeNull()
+    expect(toSeriesInput(series)).toEqual({ name: 'Adventure', description: 'Quest cards', archetype: 277, archetypes: [4], cards: [14558127], mentions: [12345], cover: 46986414 })
+    expect(toSeriesInput({ ...series, archetype: null, cover: null })).toMatchObject({ archetype: null, cover: null })
   })
 })
 
@@ -26,8 +27,8 @@ describe('SeriesForm', () => {
   const html = renderToStaticMarkup(<SeriesForm series={series} saving={false} error={null} onSave={() => {}} onCancel={() => {}} />)
 
   it('shows the series as removable chips', () => {
-    for (const text of ['Adventure', 'Quest cards', 'Sky Striker', 'Blue-Eyes', 'Ash Blossom', 'Adventurer Token']) expect(html).toContain(text)
-    for (const name of ['Sky Striker', 'Blue-Eyes', 'Ash Blossom', 'Adventurer Token']) expect(html).toContain(`aria-label="Remove ${name}"`)
+    for (const text of ['Adventure', 'Quest cards', 'Sky Striker', 'Blue-Eyes', 'Ash Blossom', 'Adventurer Token', 'Dark Magician']) expect(html).toContain(text)
+    for (const name of ['Sky Striker', 'Blue-Eyes', 'Ash Blossom', 'Adventurer Token', 'Dark Magician']) expect(html).toContain(`aria-label="Remove ${name}"`)
   })
 
   it('sends an unchanged form as toSeriesInput', () => {
@@ -35,7 +36,7 @@ describe('SeriesForm', () => {
   })
 
   it('trims the name and sends a new Series empty', () => {
-    expect(payloadOf({ ...stateOf(undefined), name: '  Hero  ' })).toEqual({ name: 'Hero', description: '', archetype: null, archetypes: [], cards: [], mentions: [] })
+    expect(payloadOf({ ...stateOf(undefined), name: '  Hero  ' })).toEqual({ name: 'Hero', description: '', archetype: null, archetypes: [], cards: [], mentions: [], cover: null })
   })
 
   it('keeps the setcode pickers from offering what the other holds', () => {

@@ -521,11 +521,13 @@ export type Series = {
   archetypes: { code: number; name: string | null }[]
   cards: SeriesCard[]
   mentions: SeriesCard[]
+  /** Pinned cover; `null` = the server's chain (first mention, most included card of the first child setcode…). */
+  cover: SeriesCard | null
   updatedAt: string
 }
 
-/** Plain numbers, exactly the six fields the API accepts. */
-export type SeriesInput = { name: string; description: string; archetype: number | null; archetypes: number[]; cards: number[]; mentions: number[] }
+/** Plain numbers, exactly the seven fields the API accepts. */
+export type SeriesInput = { name: string; description: string; archetype: number | null; archetypes: number[]; cards: number[]; mentions: number[]; cover: number | null }
 
 export const listSeries = (signal?: AbortSignal) => request<{ series: Series[] }>('/panel/series', { signal }).then((page) => page.series)
 
@@ -546,4 +548,5 @@ export const toSeriesInput = (series: Series): SeriesInput => ({
   archetypes: series.archetypes.map((a) => a.code),
   cards: series.cards.map((c) => c.id),
   mentions: series.mentions.map((c) => c.id),
+  cover: series.cover?.id ?? null,
 })

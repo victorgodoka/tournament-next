@@ -10,7 +10,7 @@ import type { Series, SeriesInput } from '@utils/panel'
 import { findCards, findSetcodes, NextBuildNote } from '../shared'
 
 type Pick = { id: number; label: string }
-type State = { name: string; description: string; archetype: Pick | null; archetypes: Pick[]; cards: Pick[]; mentions: Pick[] }
+type State = { name: string; description: string; archetype: Pick | null; archetypes: Pick[]; cards: Pick[]; mentions: Pick[]; cover: Pick | null }
 
 const named = (id: number, name: string | null, fallback: string) => ({ id, label: name ?? `${fallback} ${id}` })
 
@@ -21,9 +21,10 @@ export const stateOf = (series?: Series): State => ({
   archetypes: series?.archetypes.map((a) => named(a.code, a.name, 'Setcode')) ?? [],
   cards: series?.cards.map((c) => named(c.id, c.name, 'Card')) ?? [],
   mentions: series?.mentions.map((c) => named(c.id, c.name, 'Card')) ?? [],
+  cover: series?.cover ? named(series.cover.id, series.cover.name, 'Card') : null,
 })
 
-/** The body the form sends: numbers only, and only the six fields the API accepts. */
+/** The body the form sends: numbers only, and only the seven fields the API accepts. */
 export const payloadOf = (s: State): SeriesInput => ({
   name: s.name.trim(),
   description: s.description,
@@ -31,6 +32,7 @@ export const payloadOf = (s: State): SeriesInput => ({
   archetypes: s.archetypes.map((p) => p.id),
   cards: s.cards.map((p) => p.id),
   mentions: s.mentions.map((p) => p.id),
+  cover: s.cover?.id ?? null,
 })
 
 const Chips = ({ items, onRemove }: { items: Pick[]; onRemove: (id: number) => void }) =>
@@ -98,6 +100,10 @@ export const SeriesForm = ({ series, saving, error, onSave, onCancel }: { series
       <Field label="Mentions" meta={`${state.mentions.length} of 200`} hint="Cards whose quoted name makes members; not members themselves.">
         <Chips items={state.mentions} onRemove={remove('mentions')} />
         <Lookup label="Add mention" placeholder="Card name or passcode" search={findCards} exclude={ids('mentions')} onPick={(o) => add('mentions', o)} />
+      </Field>
+      <Field label="Cover" hint="Art of the Series' decks. Empty: the first mention, else the most included card of the first child setcode, else of the setcode it becomes, else the first card.">
+        <Chips items={state.cover ? [state.cover] : []} onRemove={() => setState({ ...state, cover: null })} />
+        <Lookup label="Cover card" placeholder="Card name or passcode" search={findCards} exclude={state.cover ? [state.cover.id] : []} onPick={(o) => setState({ ...state, cover: { id: Number(o.key), label: String(o.label) } })} />
       </Field>
       <div className="flex gap-3">
         <Button type="submit" disabled={saving || !state.name.trim()}>{saving ? 'Saving…' : 'Save'}</Button>
