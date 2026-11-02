@@ -401,7 +401,12 @@ export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 
 export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5 }
 
 /** A key never written is absent. */
-export type PanelSettings = { 'analytics.tiers'?: Partial<TierAnchors>; 'analytics.classification'?: Partial<Classification> }
+/** The seven tiers, lowest first; `aggregateFloor` is one of them. */
+export const BAND_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Omega'] as const
+export type Filters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: (typeof BAND_NAMES)[number] }
+export const DEFAULT_FILTERS: Filters = { minPlayerGames: 10, minListGames: 5, minKeyGames: 30, eloCap: 3000, aggregateFloor: 'Gold' }
+
+export type PanelSettings = { 'analytics.tiers'?: Partial<TierAnchors>; 'analytics.classification'?: Partial<Classification>; 'analytics.filters'?: Partial<Filters> }
 
 export const getSettings = (signal?: AbortSignal) => request<PanelSettings>('/panel/settings', { signal })
 
