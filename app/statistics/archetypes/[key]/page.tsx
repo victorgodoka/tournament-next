@@ -13,8 +13,14 @@ type Query = { ladder?: string | string[]; season?: string | string[]; window?: 
 type DeckRouteProps = { params: Promise<{ key: string }>; searchParams: Promise<Query> }
 
 const read = cache(async (key: string, q: string) => {
-  const scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
-  return { scope, result: await getDeck(key, scope) }
+  let scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
+  let result = await getDeck(key, scope)
+  // An empty default aggregate band is not a missing deck: read every rating instead.
+  if (scope.band === 'aggregate' && !result.ok && result.status === 404) {
+    scope = { ...scope, band: 'all' }
+    result = await getDeck(key, scope)
+  }
+  return { scope, result }
 })
 
 const load = async ({ params, searchParams }: DeckRouteProps) => {

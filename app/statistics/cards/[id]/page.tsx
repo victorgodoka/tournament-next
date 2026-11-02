@@ -12,8 +12,14 @@ type Query = { ladder?: string | string[]; season?: string | string[] }
 type CardRouteProps = { params: Promise<{ id: string }>; searchParams: Promise<Query> }
 
 const read = cache(async (id: number, q: string) => {
-  const scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
-  return { scope, result: await getCard(id, scope) }
+  let scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
+  let result = await getCard(id, scope)
+  // An empty default aggregate band is not a missing card: read every rating instead.
+  if (scope.band === 'aggregate' && !result.ok && result.status === 404) {
+    scope = { ...scope, band: 'all' }
+    result = await getCard(id, scope)
+  }
+  return { scope, result }
 })
 
 const load = async ({ params, searchParams }: CardRouteProps) => {
