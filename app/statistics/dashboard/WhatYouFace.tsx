@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Panel } from '@ui/panel'
-import { deckHref, plainDecks, shareMoves, weekJumps, type Meta, type Scope, type Week } from '@utils/statistics'
+import { deckHref, families, familyWeeks, plainDecks, shareMoves, weekJumps, type Family, type Meta, type Scope, type ShareWeek } from '@utils/statistics'
 import { Bar, nameOf, NOTE, pct, ROW } from '../shared'
 
 const TOP = 12
 const COLS = 'minmax(150px, 1.4fr) minmax(130px, 1.4fr) 96px'
 
 /** The deck's weekly share: a line with no axes, on its own scale. */
-const Spark = ({ weeks }: { weeks: Week[] }) => {
+const Spark = ({ weeks }: { weeks: ShareWeek[] }) => {
   if (weeks.length < 2) return <span />
   const W = 96, H = 24
   const first = weeks[0]!.week
@@ -31,20 +31,22 @@ const Column = ({ title, empty, children }: { title: string; empty: string; chil
 /** Who is on the ladder and which way it is moving. */
 export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   const t = useTranslations('Statistics.face')
-  const decks = plainDecks(meta.decks).sort((a, b) => b.share - a.share)
-  const top = decks.slice(0, TOP)
-  const byKey = new Map(decks.map((d) => [d.key, d]))
-  const weeks = meta.weeks.filter((w) => byKey.has(w.key))
-  const { risers, fallers } = shareMoves(weeks)
-  const jumps = weekJumps(weeks)
-  const max = Math.max(...top.map((d) => d.share), 0.01)
-  const link = (key: string) => {
-    const deck = byKey.get(key)!
-    return <Link href={deckHref(key, scope)} className="truncate hover:text-cyan">{nameOf(deck)}</Link>
-  }
+  const fams = families(meta.decks)
+  const top = fams.slice(0, TOP)
+  const famWeeks = familyWeeks(meta.weeks, fams)
+  const byFamily = new Map(fams.map((f) => [f.family.key, f]))
+  const plain = new Map(plainDecks(meta.decks).map((d) => [d.key, d]))
+  const { risers, fallers } = shareMoves(famWeeks)
+  const jumps = weekJumps(meta.weeks.filter((w) => plain.has(w.key)))
+  const max = Math.max(...top.map((f) => f.family.share), 0.01)
+  /** A family opens on its most played build; one with no builds opens on its own `A*` key. */
+  const familyLink = ({ family, members }: Family) => (
+    <Link href={deckHref((members[0] ?? family).key, scope)} className="truncate hover:text-cyan">{nameOf(family)}</Link>
+  )
+  const link = (key: string) => <Link href={deckHref(key, scope)} className="truncate hover:text-cyan">{nameOf(plain.get(key)!)}</Link>
   const moved = ({ key, delta }: { key: string; delta: number }) => (
     <li key={key} className="flex justify-between gap-3">
-      {link(key)}
+      {familyLink(byFamily.get(key)!)}
       <span className={twMerge('shrink-0 font-mono text-xs', delta > 0 ? 'text-win' : 'text-loss')}>{delta > 0 ? '+' : '−'}{(Math.abs(delta) * 100).toFixed(1)}</span>
     </li>
   )
@@ -55,11 +57,26 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
         <div className="flex flex-col gap-6">
           <div className="overflow-x-auto">
             <div role="table" aria-label={t('title')} className="min-w-[480px] border border-line">
-              {top.map((d) => (
-                <div key={d.key} role="row" className={ROW} style={{ gridTemplateColumns: COLS }}>
-                  <span role="cell" className="truncate font-bold text-ink">{link(d.key)}</span>
-                  <span role="cell"><Bar value={d.share} max={max} label={pct(d.share)} /></span>
-                  <span role="cell" title={t('weekly')}><Spark weeks={weeks.filter((w) => w.key === d.key)} /></span>
+              {top.map((f) => (
+                <div key={f.family.key} role="row" className={ROW} style={{ gridTemplateColumns: COLS }}>
+                  <span role="cell" className="truncate font-bold text-ink">{familyLink(f)}</span>
+                  <span role="cell"><Bar value={f.family.share} max={max} label={pct(f.family.share)} /></span>
+                  <span role="cell" title={t('weekly')}><Spark weeks={famWeeks.filter((w) => w.key === f.family.key)} /></span>
+                  {f.members.length > 1 && (
+                    <span role="cell" className="col-span-full pb-2">
+                      <details>
+                        <summary className={twMerge(NOTE, 'cursor-pointer')}>{t('variants', { count: f.members.length })}</summary>
+                        <ul className="mt-1 flex flex-col gap-1">
+                          {f.members.map((m) => (
+                            <li key={m.key} className="flex justify-between gap-3">
+                              {link(m.key)}
+                              <span className="shrink-0 font-mono text-xs">{pct(m.share)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

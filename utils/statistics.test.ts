@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, getTopDecks, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
+import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -52,6 +52,42 @@ describe('bestAgainst', () => {
 describe('plainDecks', () => {
   it('leaves out the lead rows and the unknown key, which double-count the shares', () => {
     expect(plainDecks([deck('482', 0.1), deck('482>65537', 0.1), deck('482*', 0.2), deck('', 0.05)]).map((d) => d.key)).toEqual(['482', '482>65537'])
+  })
+})
+
+describe('families', () => {
+  it('reads the lead of a key', () => {
+    expect([leadOf(''), leadOf('A'), leadOf('A>B'), leadOf('A*')]).toEqual(['', 'A', 'A', 'A'])
+  })
+
+  it('groups the plain keys under the lead row they belong to, most played first', () => {
+    const found = families([deck('1*', 0.3), deck('1', 0.2), deck('1>2', 0.1), deck('3*', 0.05), deck('', 0.4)])
+    expect(found.map((f) => f.family.key)).toEqual(['1*', '3*'])
+    expect(found[0]!.members.map((d) => d.key)).toEqual(['1', '1>2'])
+    expect(found[1]!.members).toEqual([])
+  })
+
+  it('sums the member weeks, and a week without some member still counts', () => {
+    const w = (key: string, n: number, share: number, games: number) => ({ key, week: n, firstDay: `d${n}`, games, share }) as Week
+    const found = families([deck('1*', 0.3), deck('1', 0.2), deck('1>2', 0.1)])
+    const summed = familyWeeks([w('1', 1, 0.2, 20), w('1>2', 1, 0.1, 10), w('1', 2, 0.25, 30)], found)
+    expect(summed).toEqual([
+      { key: '1*', week: 1, firstDay: 'd1', games: 30, share: expect.closeTo(0.3) },
+      { key: '1*', week: 2, firstDay: 'd2', games: 30, share: 0.25 },
+    ])
+    const { fallers } = shareMoves(summed)
+    expect(fallers[0]!.key).toBe('1*')
+    expect(fallers[0]!.delta).toBeCloseTo(-0.05)
+  })
+
+  it('orders the sums by week when the first member lacks week 1, and passes a member-less family', () => {
+    const w = (key: string, n: number, share: number) => ({ key, week: n, firstDay: `d${n}`, games: 10, share }) as Week
+    const found = families([deck('1*', 0.3), deck('1', 0.2), deck('1>2', 0.1)])
+    const summed = familyWeeks([w('1', 2, 0.2), w('1', 3, 0.2), w('1>2', 1, 0.1), w('1>2', 2, 0.1)], found)
+    expect(summed.map((s) => s.week)).toEqual([1, 2, 3])
+    const empty = familyWeeks([w('1', 1, 0.2)], [{ family: deck('9*', 0.1), members: [] }])
+    expect(empty).toEqual([])
+    expect(shareMoves(empty)).toEqual({ risers: [], fallers: [] })
   })
 })
 

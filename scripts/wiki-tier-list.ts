@@ -27,10 +27,10 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
-import { deckFaces, effectPoints, matchupCall, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
+import { deckFaces, effectPoints, families, matchupCall, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
-import { and, fallers, leaders, listed, MIN_PLAYERS, MIN_SHARE, name, pct, risers, tier, type Ladder, type Tier } from './tier-list'
+import { and, fallers, leaders, listed, MIN_PLAYERS, MIN_SHARE, name, pct, risers, tier, type Ladder, type Move, type Tier } from './tier-list'
 
 /** Production by default: a local API has no ladder data. */
 const API = process.env.WIKI_API ?? 'https://godokaapi.duelistsunite.org'
@@ -145,13 +145,13 @@ const headline = (ladder: Ladder) => {
   return top.length === 1 ? `${top[0]} is the only Tier 1 deck` : `${and(top)} lead Tier 1`
 }
 
-const moveOf = (ladder: Ladder, deck: DeckStat) => [...risers(ladder), ...fallers(ladder)].find((m) => m.deck === deck)?.delta ?? null
+const moveOf = (ladder: Ladder, deck: DeckStat) => [...risers(ladder), ...fallers(ladder)].find((m) => m.deck === deck) ?? null
 
 const leaderNote = (ladder: Ladder) => {
   const [first] = ladder.decks
   if (!first) return ''
-  const delta = moveOf(ladder, first)
-  const move = delta === null ? '' : ` Its share ${delta >= 0 ? 'rose' : 'fell'} ${Math.abs(delta * 100).toFixed(1)} points last week.`
+  const moved = moveOf(ladder, first)
+  const move = moved ? ` ${name(moved.family)} decks as a whole ${moved.delta >= 0 ? 'rose' : 'fell'} ${Math.abs(moved.delta * 100).toFixed(1)} points of share last week.` : ''
   return `${name(first)} has the best expected win rate on the ladder, ${pct(first.wrExpected)} (95% interval ${interval(first)}) over ${num(first.games)} games. In game 1 it wins ${pct(first.firstG1Wr)} going first and ${pct(first.secondG1Wr)} going second.${move}`
 }
 
@@ -377,11 +377,12 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
   }
 }
 
-const movementTable = (moves: { deck: DeckStat; delta: number }[]) =>
+const movementTable = (moves: Move[]) =>
   [
-    '| Deck | Tier | Season share | Change | Expected win rate |',
+    '| Family | Tier | Season share | Change | Expected win rate |',
     '|---|---:|---:|---:|---:|',
-    ...moves.map(({ deck, delta }) => `| **${name(deck)}** | ${deck.tier ?? '—'} | ${pct(deck.share)} | ${paint(points(delta), delta >= 0 ? WIN : LOSS)} | ${pct(deck.wrExpected)} |`),
+    // Tier and rate are the most played listed build's: the `A*` row's would contradict the tier list under the same name.
+    ...moves.map(({ family, deck, delta }) => `| **${name(family)}** | ${deck?.tier ?? '—'} | ${pct(family.share)} | ${paint(points(delta), delta >= 0 ? WIN : LOSS)} | ${deck ? pct(deck.wrExpected) : '—'} |`),
   ].join('\n')
 
 /** The API's flagged shifts: this week's expected rate against last week's, past noise. */
@@ -418,20 +419,23 @@ const tierChanges = (ladder: Ladder, previous: Snapshot | null) => {
 const spotlight = (ladder: Ladder): WikiBlock[] => {
   const riser = risers(ladder)[0]
   if (!riser) return []
-  const { deck, delta } = riser
+  const { family, deck, delta } = riser
   const id = `spotlight-${ladder.prefix}`
+  const opening = `${name(family)} gained ${Math.abs(delta * 100).toFixed(1)} points of meta share last week, the most on the ladder, for ${pct(family.share)} of the season so far.`
+  // A family with no listed build has nothing more to say: the stats, matchups and sample deck all belong to one build.
+  if (!deck) return [heading(`h-${id}`, 3, `${ladder.label}: ${name(family)}`, id), text(id, opening)]
   const { best, worst } = bestAndWorst(ladder, deck)
   const answer = ladder.answers.get(deck.key)
   const faced = (answer?.against ?? []).slice(0, 3).map(cardLink)
   const lines = [
-    `${name(deck)} gained ${Math.abs(delta * 100).toFixed(1)} points of meta share last week, the most on the ladder, for ${pct(deck.share)} of the season so far. Its expected win rate is ${pct(deck.wrExpected)} (95% interval ${interval(deck)}); in game 1 it wins ${pct(deck.firstG1Wr)} going first and ${pct(deck.secondG1Wr)} going second.`,
+    `${opening} ${name(deck) === name(family) ? 'Its core build has' : `Its most played build, ${name(deck)}, has`} an expected win rate of ${pct(deck.wrExpected)} (95% interval ${interval(deck)}); in game 1 it wins ${pct(deck.firstG1Wr)} going first and ${pct(deck.secondG1Wr)} going second.`,
     best ? `- **Best matchup:** ${best}` : '',
     worst ? `- **Worst matchup:** ${worst}` : '',
     faced.length ? `- **Most used against it:** ${and(faced)}` : '',
   ]
   const cards = (answer?.sampleDeck?.main ?? []).slice(0, 4).map((card) => ({ id: card.id, name: cardName(card), note: `×${card.count} in the sample deck` }))
   return [
-    heading(`h-${id}`, 3, `${ladder.label}: ${name(deck)}`, id),
+    heading(`h-${id}`, 3, `${ladder.label}: ${name(family)}`, id),
     text(id, lines.filter(Boolean).join('\n')),
     ...(cards.length ? [{ id: `cards-${id}`, type: 'cards', cards, caption: `From the sample deck of ${name(deck)}` } as const] : []),
   ]
@@ -439,10 +443,10 @@ const spotlight = (ladder: Ladder): WikiBlock[] => {
 
 const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snapshot | null): WikiDoc => {
   const issueDay = day(issue)
-  const lead = (ladder: Ladder) => risers(ladder)[0]?.deck
+  const lead = (ladder: Ladder) => risers(ladder)[0]?.family
   const rising = (ladder: Ladder) => {
-    const deck = lead(ladder)
-    return deck ? `${name(deck)} rose fastest in ${ladder.label}` : `no ${ladder.label} deck gained share`
+    const family = lead(ladder)
+    return family ? `${name(family)} rose fastest in ${ladder.label}` : `no ${ladder.label} deck gained share`
   }
   const events = [...eventRows(tcg), ...eventRows(genesys)]
   const changes = [tierChanges(tcg, previous), tierChanges(genesys, previous)]
@@ -575,8 +579,8 @@ const read = async <T>(path: string): Promise<T> => {
 const load = async (label: Ladder['label'], prefix: Ladder['prefix']): Promise<Ladder> => {
   const meta = await read<Meta>(`/statistics/meta?ladder=${prefix}`)
   const decks = listed(meta)
-  const ladder: Ladder = { label, prefix, meta, decks, answers: new Map() }
-  const wanted = [...new Set([...tiered(ladder), ...risers(ladder).slice(0, 5).map((m) => m.deck)])]
+  const ladder: Ladder = { label, prefix, meta, decks, families: families(meta.decks), answers: new Map() }
+  const wanted = [...new Set([...tiered(ladder), ...risers(ladder).slice(0, 5).flatMap((m) => (m.deck ? [m.deck] : []))])]
   for (const deck of wanted) ladder.answers.set(deck.key, await read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(deck.key)}?ladder=${prefix}`))
   return ladder
 }

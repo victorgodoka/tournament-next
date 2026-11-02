@@ -2035,7 +2035,8 @@
     },
     "face": {
       "title": "What will I face",
-      "meta": "By share of games",
+      "meta": "By family, share of games",
+      "variants": "{count, plural, one {# build} other {# builds}}",
       "weekly": "Weekly share",
       "risers": "Rising",
       "fallers": "Falling",

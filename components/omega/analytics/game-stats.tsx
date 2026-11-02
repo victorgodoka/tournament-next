@@ -145,13 +145,13 @@ export const GameStatsView = ({ game, players }: { game: GameStats; players: Pla
     </div>
 
     <section>
-      <PanelLabel>Hand traps</PanelLabel>
-      {game.handTraps.length ? (
+      <PanelLabel>Staples</PanelLabel>
+      {game.staples.length ? (
         <ol className="mt-2.5 grid gap-px border border-line bg-line">
-          {game.handTraps.map((trap) => (
-            <li key={trap.seq} className={twMerge('flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-space-000 px-3 py-2.5', SIDE[trap.player].stripe)}>
+          {game.staples.map((trap) => (
+            <li key={trap.seq} className={twMerge('flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-space-000 px-3 py-2.5', trap.player && SIDE[trap.player].stripe)}>
               <CardLine id={trap.cardId} name={trap.name} size="sm" className="flex-[1_1_220px]">
-                <span className={SIDE[trap.player].text}>{duelistName(players[trap.player])}</span> · turn {trap.turn} · CL{trap.link}
+                <span className={trap.player ? SIDE[trap.player].text : undefined}>{trap.player ? duelistName(players[trap.player]) : 'unknown'}</span> · turn {trap.turn} · CL{trap.link}
               </CardLine>
               <p className="min-w-0 text-ink-muted mono-note">
                 {trap.chainedTo ? (
@@ -166,7 +166,7 @@ export const GameStatsView = ({ game, players }: { game: GameStats; players: Pla
           ))}
         </ol>
       ) : (
-        <p className="mt-2.5 text-ink-muted body-sm">No tracked hand trap was activated this game.</p>
+        <p className="mt-2.5 text-ink-muted body-sm">No enabled staple was activated this game.</p>
       )}
     </section>
   </div>

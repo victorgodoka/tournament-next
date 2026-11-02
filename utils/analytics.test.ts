@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { describe, expect, it, vi } from 'vitest'
+import { GameStatsView } from '@omega/analytics/game-stats'
 import { groupGame } from '@omega/analytics/match-timeline'
-import { analyticsMatchId, pct, type TimelineEvent } from '@utils/analytics'
+import { analyticsMatchId, pct, type GameStats, type MatchStats, type TimelineEvent } from '@utils/analytics'
+
+vi.mock('@omega/card-art', () => ({ CardArt: () => null }))
 
 const event = (seq: number, turn: number, phaseCode: number, turnPlayer: TimelineEvent['turnPlayer'] = 'player1'): TimelineEvent => ({
   seq,
@@ -42,5 +47,27 @@ describe('analytics helpers', () => {
     expect(pct(null)).toBe('—')
     expect(pct(0)).toBe('0%')
     expect(pct(0.5263)).toBe('53%')
+  })
+})
+
+describe('GameStatsView staples', () => {
+  const side = { archetype: null, actions: 0, comboLength: null, cards: [], mostUsed: [], deckCoverage: { main: { used: 0, total: 0, rate: null }, extra: { used: 0, total: 0, rate: null } }, sideCardsUsed: [] }
+  const players = { player1: { id: '1', displayName: 'Ann', username: null, avatar: null, archetype: null, deckName: null }, player2: { id: '2', displayName: 'Bob', username: null, avatar: null, archetype: null, deckName: null } } as MatchStats['players']
+  const render = (staples: GameStats['staples']) =>
+    renderToStaticMarkup(
+      createElement(GameStatsView, { game: { gameNumber: 1, firstPlayer: 'player1', winner: 'player1', endReasonCode: null, turns: 1, totalActions: 1, longestChain: 1, turn1SpecialSummons: 0, perTurn: [], staples, players: { player1: side, player2: side } }, players }),
+    )
+  const section = (html: string) => html.slice(html.indexOf('Staples'))
+
+  it('renders a staple with no attributed player without a side stripe', () => {
+    const html = section(render([{ seq: 1, turn: 2, player: null, cardId: 14558127, name: 'Ash Blossom', link: 1, chainedTo: null }]))
+    expect(html).toContain('Ash Blossom')
+    expect(html).toContain('unknown')
+    expect(html).toContain('started the chain')
+    expect(html).not.toContain('inset_2px_0_0')
+  })
+
+  it('says so when no staple was activated', () => {
+    expect(section(render([]))).toContain('No enabled staple was activated this game.')
   })
 })

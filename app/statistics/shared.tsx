@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
-import type { CardStat, SampleDeck } from '@utils/statistics'
+import { leadOf, type CardStat, type SampleDeck } from '@utils/statistics'
 
 export const pct = (r: number | null | undefined) => (r == null ? '—' : (r * 100).toFixed(1) + '%')
 export const fixed = (n: number | null, digits: number) => (n == null ? '—' : n.toFixed(digits))
@@ -16,7 +16,7 @@ export const range = (lo: number | null | undefined, hi: number | null | undefin
 /** A rate with no decimals past what it has: `55`, `55.2`. */
 export const value = (r: number) => points(r)
 /** `name` is `null` for a setcode without a name: the key stands in. */
-export const nameOf = (a: { key: string; name: string | null }) => a.name ?? (a.key || '?')
+export const nameOf = (a: { key: string; name: string | null }) => a.name ?? ((a.key.endsWith('*') ? leadOf(a.key) : a.key) || '?')
 export const cardName = (c: { name: string | null; id: number }) => c.name ?? `#${c.id}`
 /** A deck's face: its sample deck's cover, else its most included card. */
 export const faceOf = ({ cards, sampleDeck }: { cards: Pick<CardStat, 'card'>[]; sampleDeck: Pick<SampleDeck, 'coverCardId'> | null }) => {

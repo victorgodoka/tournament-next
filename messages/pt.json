@@ -2035,7 +2035,8 @@
     },
     "face": {
       "title": "O que vou enfrentar",
-      "meta": "Por share de games",
+      "meta": "Por família, participação nos jogos",
+      "variants": "{count, plural, one {# build} other {# builds}}",
       "weekly": "Share semanal",
       "risers": "Subindo",
       "fallers": "Caindo",

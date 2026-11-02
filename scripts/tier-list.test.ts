@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deckFaces, type DeckStat, type Meta, type Week } from '@utils/statistics'
+import { deckFaces, families, type DeckStat, type Meta, type Week } from '@utils/statistics'
 import { fallers, leaders, listed, name, risers, tier, type Ladder } from './tier-list'
 
 const deck = (key: string, wrExpected: number, deckTier: DeckStat['tier'], share = 0.1, players = 50) =>
@@ -9,7 +9,7 @@ const week = (key: string, n: number, share: number) => ({ key, week: n, share, 
 
 const ladder = (decks: DeckStat[], weeks: Week[] = []): Ladder => {
   const meta = { decks, weeks } as Meta
-  return { label: 'TCG', prefix: 'tcg', meta, decks: listed(meta), answers: new Map() }
+  return { label: 'TCG', prefix: 'tcg', meta, decks: listed(meta), families: families(decks), answers: new Map() }
 }
 
 describe('listed', () => {
@@ -39,15 +39,22 @@ describe('leaders', () => {
 })
 
 describe('risers and fallers', () => {
-  const l = ladder([deck('1', 0.56, 1), deck('2', 0.55, 2), deck('3', 0.54, null)], [week('1', 1, 0.1), week('1', 2, 0.13), week('2', 1, 0.2), week('2', 2, 0.15), week('3', 1, 0.05), week('3', 2, 0.1), week('off', 1, 0.1), week('off', 2, 0.9)])
+  const decks = [deck('1*', 0.5, null, 0.3), deck('1', 0.56, 1, 0.2), deck('1>2', 0.55, 2, 0.1), deck('3*', 0.5, null, 0.1), deck('3', 0.54, null, 0.1), deck('5*', 0.5, null, 0.1), { ...deck('5', 0.5, null, 0.1), players: 3 }]
+  const l = ladder(decks, [week('1', 1, 0.1), week('1', 2, 0.12), week('1>2', 1, 0.05), week('1>2', 2, 0.07), week('3', 1, 0.1), week('3', 2, 0.08), week('5', 1, 0.1), week('5', 2, 0.2)])
 
-  it('orders every listed deck by its move, biggest first', () => {
-    expect(risers(l).map((m) => m.deck.key)).toEqual(['3', '1'])
-    expect(fallers(l).map((m) => m.deck.key)).toEqual(['2'])
+  it('orders the families by their summed move, biggest first, each with its most played listed member', () => {
+    expect(risers(l).map((m) => [m.family.key, m.deck?.key])).toEqual([['5*', undefined], ['1*', '1']])
+    expect(risers(l)[1]!.delta).toBeCloseTo(0.04)
+    expect(fallers(l).map((m) => [m.family.key, m.deck?.key])).toEqual([['3*', '3']])
+  })
+
+  it('has no deck for a family none of whose members is listed', () => {
+    expect(risers(l)[0]!.deck).toBeNull()
   })
 
   it('has none in the first week', () => {
-    expect(risers(ladder([deck('1', 0.56, 1)], [week('1', 1, 0.1)]))).toEqual([])
+    expect(risers(ladder([deck('1*', 0.5, null), deck('1', 0.56, 1)], [week('1', 1, 0.1)]))).toEqual([])
+    expect(fallers(ladder([deck('1*', 0.5, null), deck('1', 0.56, 1)], [week('1', 1, 0.1)]))).toEqual([])
   })
 })
 
@@ -67,5 +74,6 @@ describe('deckFaces', () => {
 describe('name', () => {
   it('falls back to the key', () => {
     expect(name({ key: '207', name: null })).toBe('Archetype 207')
+    expect(name({ key: '207*', name: null })).toBe('Archetype 207')
   })
 })
