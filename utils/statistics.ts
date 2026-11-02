@@ -170,6 +170,52 @@ export const bestAgainst = (decks: readonly DeckStat[], matchups: readonly Match
   return best
 }
 
+const sigma = (x: number) => 1 / (1 + Math.exp(-x))
+const logit = (p: number) => Math.log(p / (1 - p))
+
+/** A logit value (`firstEffect`, a card's `effect`) as points of win rate around 50%: σ(x) − 0.5. */
+export const effectPoints = (x: number) => (sigma(x) - 0.5) * 100
+
+/** A week's 95% band: its `se` is on the logit scale. */
+export const weekBand = ({ wrExpected, se }: Pick<Week, 'wrExpected' | 'se'>) => ({ lo: sigma(logit(wrExpected) - 1.96 * se), hi: sigma(logit(wrExpected) + 1.96 * se) })
+
+/** In this share of the lists or more, a card is the deck's core; under it, a flex slot. */
+export const CORE_RATE = 0.8
+export const coreFlex = <C extends Pick<CardStat, 'inclusion'>>(cards: readonly C[]) => ({ core: cards.filter((c) => c.inclusion >= CORE_RATE), flex: cards.filter((c) => c.inclusion < CORE_RATE) })
+
+const lastWeek = (weeks: readonly Week[]) => Math.max(0, ...weeks.map((w) => w.week))
+
+/** The biggest share moves of the last week against the one before; a deck in only one of them doesn't count. */
+export const shareMoves = (weeks: readonly Week[], top = 5) => {
+  const last = lastWeek(weeks)
+  const before = new Map(weeks.filter((w) => w.week === last - 1).map((w) => [w.key, w.share]))
+  const moves = weeks.flatMap((w) => {
+    const from = w.week === last ? before.get(w.key) : undefined
+    return from === undefined ? [] : [{ key: w.key, delta: w.share - from }]
+  })
+  return {
+    risers: moves.filter((m) => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, top),
+    fallers: moves.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, top),
+  }
+}
+
+export const weekJumps = (weeks: readonly Week[]) => {
+  const last = lastWeek(weeks)
+  return weeks.filter((w) => w.week === last && w.jump !== 0)
+}
+
+/** The swept days the window really holds: `last7` on day 2 of a season is 2. */
+export const windowDays = ({ window, season, weeks }: Pick<Meta, 'window' | 'season' | 'weeks'>) => {
+  if (!season.sweptThrough) return 0
+  const first = weeks.reduce((min, w) => (w.firstDay < min ? w.firstDay : min), season.startsAt.slice(0, 10))
+  const days = Math.round((Date.parse(season.sweptThrough) - Date.parse(first)) / 86_400_000) + 1
+  return window === 'last7' ? Math.min(7, days) : days
+}
+
+/** Above or below the deck only when the two intervals don't touch. */
+export const meVerdict = ({ wrLo, wrHi, ladder }: Pick<PlayerDeck, 'wrLo' | 'wrHi' | 'ladder'>) =>
+  wrLo == null || wrHi == null || !ladder ? null : wrLo > ladder.wrHi ? ('above' as const) : wrHi < ladder.wrLo ? ('below' as const) : ('same' as const)
+
 const read = async <T>(path: string, call: string, init: RequestInit & { next?: { revalidate: number } } = { next: { revalidate: 300 } }): Promise<Result<T>> => {
   try {
     const res = await fetch(`${API_URL}${path}`, init)

@@ -1,45 +1,54 @@
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
 import { pageMetadata } from '@utils/metadata'
-import { getStatistics } from '@utils/statistics'
+import { getCard, getSeasons, scopeFrom, statisticsHref } from '@utils/statistics'
 import { CardPage } from '../../CardPage'
 import { StatsShell } from '../../StatsShell'
 
-type CardRouteProps = {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ ladder?: string | string[]; season?: string | string[] }>
-}
+type Query = { ladder?: string | string[]; season?: string | string[] }
+type CardRouteProps = { params: Promise<{ id: string }>; searchParams: Promise<Query> }
 
-const read = async ({ params, searchParams }: CardRouteProps) => {
+const read = cache(async (id: number, q: string) => {
+  const scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
+  return { scope, result: await getCard(id, scope) }
+})
+
+const load = async ({ params, searchParams }: CardRouteProps) => {
   const [{ id: raw }, q] = await Promise.all([params, searchParams])
-  const id = /^[1-9]\d{0,11}$/.test(raw) ? Number(raw) : null
-  const ladder = q.ladder === 'genesys' ? ('genesys' as const) : ('tcg' as const)
-  const season = typeof q.season === 'string' && q.season ? q.season : undefined
+  const id = /^[1-9]\d{0,9}$/.test(raw) ? Number(raw) : null
   if (!id) notFound()
-  const result = await getStatistics({ ladder, season })
-  const listed = result.ok ? ([...result.data.mostUsed.main, ...result.data.mostUsed.extra].find((c) => c.id === id) ?? null) : null
-  return { id, ladder, season, result, listed }
+  return { id, ...(await read(id, new URLSearchParams(q as Record<string, string>).toString())) }
 }
 
 export async function generateMetadata(props: CardRouteProps) {
   const t = await getTranslations('Statistics.cardPage')
-  const { id, listed } = await read(props)
-  const name = listed?.name
+  const { id, result } = await load(props)
+  const name = result.ok ? result.data.card.name : null
   return pageMetadata({ title: name ? t('metaTitle', { name }) : t('metaFallback'), path: `/statistics/cards/${id}`, description: t('metaDescription', { name: name ?? 'YGO Omega' }) })
 }
 
-/** A card of the season's list renders from the cached report; any other is read from the viewer's browser. */
 const CardRoute = async (props: CardRouteProps) => {
-  const t = await getTranslations('Statistics.error')
-  const { id, ladder, season, result, listed } = await read(props)
+  const t = await getTranslations('Statistics')
+  const { scope, result } = await load(props)
+  // The newest swept season of the ladder, as the API read it, when the URL names none.
+  const season = (await getSeasons()).find((s) => (scope.season ? s.code === scope.season : s.ladder === scope.ladder && s.sweptThrough))
+  if (!result.ok || !season) {
+    const gone = !result.ok && result.status === 404
+    return (
+      <StatsShell>
+        <Panel title={gone ? t('jobs.cardGoneTitle') : t('error.title')} className="mt-6">
+          <p className="text-ink-dim body">{gone ? t('jobs.cardGone') : t('error.body')}</p>
+          <Button size="sm" variant="secondary" href={statisticsHref(scope)} className="mt-4">{t('jobs.back')}</Button>
+        </Panel>
+      </StatsShell>
+    )
+  }
   return (
     <StatsShell>
-      {result.ok ? (
-        <CardPage id={id} scope={{ ladder, season }} listed={listed} season={result.data.season} totalGames={result.data.totals.games} />
-      ) : (
-        <Panel title={t('title')} className="mt-6"><p className="text-ink-dim body">{t('body')}</p></Panel>
-      )}
+      <CardPage answer={result.data} season={season} scope={{ ...scope, ladder: season.ladder }} />
     </StatsShell>
   )
 }

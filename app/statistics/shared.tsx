@@ -42,6 +42,11 @@ export const Bar = ({ value, max = 1, color = 'series-1', label, w = 56, mark }:
   </span>
 )
 
+/** A deck's tier. A deck without one shows nothing: that is not "missing". */
+export const TierTag = ({ children }: { children: React.ReactNode }) => (
+  <span className="cut px-2 py-0.5 text-cyan signal-strong [--cut:var(--cut-xs)] [--edge:var(--color-cyan)] [--fill:var(--color-ground-cyan)]">{children}</span>
+)
+
 /** Square artwork crop. `card` undefined (a deck with no tracked card) keeps the slot as an empty well. */
 export const Art = ({ card, size, className }: { card?: { id: number; name: string | null }; size: number; className?: string }) =>
   card ? (

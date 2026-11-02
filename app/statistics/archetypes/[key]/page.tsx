@@ -1,69 +1,57 @@
-import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import { getTranslations } from 'next-intl/server'
+import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
+import { cardsByIds } from '@utils/cards'
 import { pageMetadata } from '@utils/metadata'
-import { archKey, getStatistics, type DeepDiveMode } from '@utils/statistics'
+import type { WikiCard } from '@utils/wiki'
+import { getDeck, getSeasons, scopeFrom, statisticsHref } from '@utils/statistics'
 import { DeckPage } from '../../DeckPage'
 import { StatsShell } from '../../StatsShell'
 
-type DeckRouteProps = {
-  params: Promise<{ key: string }>
-  searchParams: Promise<{ ladder?: string | string[]; season?: string | string[]; mode?: string | string[] }>
-}
+type Query = { ladder?: string | string[]; season?: string | string[]; window?: string | string[]; band?: string | string[] }
+type DeckRouteProps = { params: Promise<{ key: string }>; searchParams: Promise<Query> }
 
-const parseKey = (key: string) => (/^[1-9]\d{0,8}(-[1-9]\d{0,8})?$/.test(key) ? key.split('-').map(Number) : null)
-/** `pure` of one key is the `main` row: the page has one address for it. */
-const parseMode = (mode: unknown): DeepDiveMode => (mode === 'general' || mode === 'combined' ? mode : 'main')
+const read = cache(async (key: string, q: string) => {
+  const scope = scopeFrom(Object.fromEntries(new URLSearchParams(q)))
+  return { scope, result: await getDeck(key, scope) }
+})
 
-const read = async ({ params, searchParams }: DeckRouteProps) => {
+const load = async ({ params, searchParams }: DeckRouteProps) => {
   const [{ key }, q] = await Promise.all([params, searchParams])
-  const archetype = parseKey(key)
-  const ladder = q.ladder === 'genesys' ? ('genesys' as const) : ('tcg' as const)
-  const season = typeof q.season === 'string' && q.season ? q.season : undefined
-  if (!archetype) notFound()
-  return { archetype, ladder, season, mode: parseMode(q.mode), result: await getStatistics({ ladder, season }) }
+  // The key comes URL-encoded in the path (`482%3E65537`).
+  const deck = decodeURIComponent(key)
+  return { key: deck, ...(await read(deck, new URLSearchParams(q as Record<string, string>).toString())) }
 }
 
 export async function generateMetadata(props: DeckRouteProps) {
   const t = await getTranslations('Statistics.deck')
-  const { archetype, mode, result } = await read(props)
-  const name = mode === 'main' && result.ok ? result.data.archetypes.find((a) => archKey(a.archetype) === archKey(archetype))?.name : null
-  return pageMetadata({ title: name ? t('metaTitle', { name }) : t('metaFallback'), path: `/statistics/archetypes/${archKey(archetype)}`, description: t('metaDescription', { name: name ?? 'YGO Omega' }) })
+  const { key, result } = await load(props)
+  const name = result.ok ? result.data.deck.name : null
+  return pageMetadata({ title: name ? t('metaTitle', { name }) : t('metaFallback'), path: `/statistics/archetypes/${encodeURIComponent(key)}`, description: t('metaDescription', { name: name ?? 'YGO Omega' }) })
 }
 
-/**
- * A deck of the page's list renders from the cached report, on the server. Any other row is read from the viewer's
- * browser: the API's limit is per IP, and every visitor would share the server's.
- */
 const DeckRoute = async (props: DeckRouteProps) => {
-  const t = await getTranslations('Statistics.error')
-  const { archetype, ladder, season, mode, result } = await read(props)
-  if (!result.ok)
+  const t = await getTranslations('Statistics')
+  const { scope, result } = await load(props)
+  if (!result.ok) {
+    const gone = result.status === 404
     return (
       <StatsShell>
-        <Panel title={t('title')} className="mt-6"><p className="text-ink-dim body">{t('body')}</p></Panel>
+        <Panel title={gone ? t('jobs.deckGoneTitle') : t('error.title')} className="mt-6">
+          <p className="text-ink-dim body">{gone ? t('jobs.deckGone') : t('error.body')}</p>
+          <Button size="sm" variant="secondary" href={statisticsHref(scope)} className="mt-4">{t('jobs.back')}</Button>
+        </Panel>
       </StatsShell>
     )
-  const { data } = result
-  const key = archKey(archetype)
-  const index = data.archetypes.findIndex((a) => archKey(a.archetype) === key)
-  const listed = mode === 'main' && index >= 0 ? { ...data.archetypes[index]!, rank: index + 1 } : null
+  }
+  // The deck's cards come without names, and the season is the one the API read.
+  const [seasons, cards] = await Promise.all([getSeasons(), cardsByIds(result.data.cards.map((c) => c.card)).catch(() => new Map<number, WikiCard>())])
+  const season = seasons.find((s) => (scope.season ? s.code === scope.season : s.ladder === scope.ladder && s.sweptThrough))
+  if (!season) throw new Error('GET /statistics/seasons has no season for a deck that answered')
   return (
     <StatsShell>
-      <DeckPage
-        archetype={archetype}
-        mode={mode}
-        scope={{ ladder, season }}
-        listed={listed}
-        season={data.season}
-        syncedDays={data.syncedDays.count}
-        frozenBeforeModes={!data.views}
-        matchups={mode === 'main' ? data.matchups.filter((m) => archKey(m.archetype) === key) : []}
-        names={Object.fromEntries(data.archetypes.map((a) => [archKey(a.archetype), a.name]))}
-        trend={mode === 'main' ? (data.trends.find((d) => archKey(d.archetype) === key) ?? null) : null}
-        sampleDeck={data.sampleDecks?.find((d) => archKey(d.archetype) === key) ?? null}
-        ratingTiers={data.ratingTiers ?? []}
-      />
+      <DeckPage answer={result.data} season={season} scope={{ ...scope, ladder: season.ladder }} names={Object.fromEntries([...cards].map(([id, card]) => [id, card.name]))} />
     </StatsShell>
   )
 }

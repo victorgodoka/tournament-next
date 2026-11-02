@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, deckHref, getDeck, getMeta, getSeasons, localHours, matchupCall, plainDecks, scopeFrom, scopeQuery, statisticsHref, type DeckStat, type Matchup } from '@utils/statistics'
+import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -105,5 +105,76 @@ describe('client', () => {
     expect(await getSeasons()).toEqual([season])
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })))
     expect(await getSeasons()).toEqual([])
+  })
+})
+
+describe('effectPoints', () => {
+  it('turns a logit into points of win rate around 50%', () => {
+    expect(effectPoints(0)).toBe(0)
+    expect(effectPoints(0.118)).toBeCloseTo(2.95, 1)
+    expect(effectPoints(-0.118)).toBeCloseTo(-2.95, 1)
+  })
+})
+
+describe('weekBand', () => {
+  it('draws the band around the week through the logit, so it stays inside 0–1', () => {
+    const { lo, hi } = weekBand({ wrExpected: 0.52, se: 0.05 })
+    expect(lo).toBeLessThan(0.52)
+    expect(hi).toBeGreaterThan(0.52)
+    expect(hi - 0.52).toBeCloseTo(0.0244, 3)
+    expect(weekBand({ wrExpected: 0.99, se: 5 }).hi).toBeLessThan(1)
+  })
+})
+
+describe('coreFlex', () => {
+  it('splits a deck at 80% of the lists', () => {
+    const cards = [{ inclusion: 0.95 }, { inclusion: 0.8 }, { inclusion: 0.79 }] as CardStat[]
+    const { core, flex } = coreFlex(cards)
+    expect(core.map((c) => c.inclusion)).toEqual([0.95, 0.8])
+    expect(flex.map((c) => c.inclusion)).toEqual([0.79])
+  })
+})
+
+describe('weeks', () => {
+  const week = (key: string, n: number, share: number, jump: Week['jump'] = 0) => ({ key, week: n, share, jump }) as Week
+  const weeks = [week('a', 1, 0.1), week('a', 2, 0.15, 1), week('b', 1, 0.2), week('b', 2, 0.12), week('c', 2, 0.05)]
+
+  it('moves are the last week against the one before, for decks in both', () => {
+    const { risers, fallers } = shareMoves(weeks)
+    expect(risers.map((m) => m.key)).toEqual(['a'])
+    expect(risers[0]!.delta).toBeCloseTo(0.05)
+    expect(fallers.map((m) => m.key)).toEqual(['b'])
+  })
+
+  it('has no moves in the first week', () => {
+    expect(shareMoves([week('a', 1, 0.1)])).toEqual({ risers: [], fallers: [] })
+  })
+
+  it('reads the jumps of the last week', () => {
+    expect(weekJumps(weeks).map((w) => w.key)).toEqual(['a'])
+  })
+})
+
+describe('windowDays', () => {
+  const meta = (window: Window, sweptThrough: string | null, firstDay = '2026-10-19') =>
+    ({ window, season: { startsAt: '2026-10-19T03:00:00.000Z', sweptThrough }, weeks: [{ firstDay }] }) as unknown as Meta
+
+  it('counts the swept days, a day-2 window not pretending to a week', () => {
+    expect(windowDays(meta('last7', '2026-10-20'))).toBe(2)
+    expect(windowDays(meta('last7', '2026-10-31'))).toBe(7)
+    expect(windowDays(meta('season', '2026-10-31'))).toBe(13)
+    expect(windowDays(meta('season', null))).toBe(0)
+  })
+})
+
+describe('meVerdict', () => {
+  const row = (wrLo: number | null, wrHi: number | null, ladder: { wrLo: number; wrHi: number } | null) => ({ wrLo, wrHi, ladder }) as PlayerDeck
+
+  it('tells the two apart only when the intervals do not touch', () => {
+    expect(meVerdict(row(0.6, 0.7, { wrLo: 0.5, wrHi: 0.55 }))).toBe('above')
+    expect(meVerdict(row(0.3, 0.45, { wrLo: 0.5, wrHi: 0.55 }))).toBe('below')
+    expect(meVerdict(row(0.45, 0.6, { wrLo: 0.5, wrHi: 0.55 }))).toBe('same')
+    expect(meVerdict(row(null, null, { wrLo: 0.5, wrHi: 0.55 }))).toBeNull()
+    expect(meVerdict(row(0.45, 0.6, null))).toBeNull()
   })
 })

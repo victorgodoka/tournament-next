@@ -5,16 +5,17 @@
  * Cards and daily charts add both ladders up; the tier split follows the page's ladder.
  */
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { BarList, LineChart } from '@ui/chart'
 import { Segmented } from '@ui/choice'
 import { DataTable } from '@ui/data-table'
+import { Panel } from '@ui/panel'
 import { RailHead } from '@ui/rail-head'
 import { StatGrid, type Stat } from '@ui/stat-grid'
-import type { OmegaActivity as Activity, OmegaCard, OmegaRange } from '@utils/statistics'
+import { localHours, type OmegaActivity as Activity, type OmegaCard, type OmegaRange } from '@utils/statistics'
 import type { RankedLadderId, Tier } from '@utils/types'
-import { num, NOTE, SPLIT } from './DeepDive'
+import { num, NOTE, SPLIT } from '../shared'
 
 const Section = ({ num: n, label, stamp, children }: { num: string; label: string; stamp?: React.ReactNode; children: React.ReactNode }) => (
   <section aria-label={label} className="mt-12 flex scroll-mt-24 flex-col gap-6 min-[720px]:mt-16">
@@ -142,5 +143,26 @@ export const OmegaActivity = ({ data, ladder }: { data: Activity; ladder: Ranked
         <p className={NOTE}>{t('note')}</p>
       </Section>
     </>
+  )
+}
+
+const noSubscribe = () => () => {}
+
+/** Ranked duels per hour, on the viewer's clock. */
+export const BusiestHours = ({ hours }: { hours?: number[] }) => {
+  const t = useTranslations('Statistics.activity')
+  const offset = useSyncExternalStore(noSubscribe, () => new Date().getTimezoneOffset() / 60, () => 0)
+  if (!hours?.length) return null
+  const local = localHours(hours, offset)
+  const max = Math.max(...local, 1)
+  return (
+    <Panel title={t('hours')} meta={t('hoursMeta')}>
+      <div role="img" aria-label={t('hoursLabel', { hour: local.indexOf(max) })} className="grid h-32 grid-cols-[repeat(24,minmax(0,1fr))] items-end gap-0.5">
+        {local.map((n, hour) => <span key={hour} title={`${hour}:00 · ${n}`} className="bg-series-1" style={{ height: `${(n / max) * 100}%` }} />)}
+      </div>
+      <div className="mt-1 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-0.5" aria-hidden>
+        {local.map((_, hour) => <span key={hour} className="text-center font-mono text-[10px] text-ink-muted">{hour % 6 === 0 ? hour : ''}</span>)}
+      </div>
+    </Panel>
   )
 }
