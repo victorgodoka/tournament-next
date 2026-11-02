@@ -9,7 +9,6 @@ import { Skeleton } from '@omega/analytics/primitives'
 import { InfographicLinks } from '@omega/infographic/infographic-links'
 import { getMeta, infographicHrefs, MIN_MATCHUP_GAMES, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
 import { Pickers } from './Pickers'
-import { num } from './shared'
 import { BestAgainst } from './dashboard/BestAgainst'
 import { HowToBeat } from './dashboard/HowToBeat'
 import { MeSection } from './dashboard/MeOrTheDeck'
@@ -104,7 +103,8 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
               <div className="flex max-w-3xl flex-col gap-3 text-sm text-ink-dim">
                 <p>{t('method.model')}</p>
                 <p>{t('method.bands', { floor: meta?.fit.aggregateFloor })}</p>
-                {dropped ? <p>{t('method.filters', { players: num(dropped.players), lists: num(dropped.lists), iron: num(dropped.iron), total: num(dropped.total) })}</p> : null}
+                {/* num() lives in the 'use client' shared module, so format inline here */}
+                {dropped ? <p>{t('method.filters', { players: dropped.players.toLocaleString('en-US'), lists: dropped.lists.toLocaleString('en-US'), iron: dropped.iron.toLocaleString('en-US'), total: dropped.total.toLocaleString('en-US') })}</p> : null}
                 <p>{t('method.matchups', { min: MIN_MATCHUP_GAMES })}</p>
                 <p>{t('method.caveats')}</p>
               </div>

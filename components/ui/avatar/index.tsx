@@ -55,6 +55,8 @@ type AvatarProps = {
   status?: Status
   /** Equipped cosmetics from the API; the `WEBDECO` frame is drawn over the portrait. */
   cosmetics?: Cosmetics | null
+  /** Above the fold and likely the LCP, like a profile's header portrait. */
+  eager?: boolean
   className?: string
 }
 
@@ -67,10 +69,10 @@ export const AvatarFrame = ({ cosmetics }: { cosmetics?: Cosmetics | null }) => 
 }
 
 /** Square portrait on a hairline edge, shown as uploaded. No image: Anton initials on azure. */
-export const Avatar = ({ name, src, size = 'md', status, cosmetics, className }: AvatarProps) => (
+export const Avatar = ({ name, src, size = 'md', status, cosmetics, eager, className }: AvatarProps) => (
   <span className={twMerge('relative inline-block shrink-0', SIZE[size].box, className)}>
     {src ? (
-      <Image src={src} alt={name} fill sizes={`${SIZE[size].px}px`} className="border border-line-mid object-cover" />
+      <Image src={src} alt={name} fill sizes={`${SIZE[size].px}px`} loading={eager ? 'eager' : undefined} className="border border-line-mid object-cover" />
     ) : (
       <span role="img" aria-label={name} className="grid size-full place-items-center border border-line-mid bg-azure font-display leading-none text-ink">
         {initialsOf(name)}

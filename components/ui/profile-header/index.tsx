@@ -35,7 +35,7 @@ export const ProfileHeader = ({ name, handle, avatar, cosmetics, status, tier, m
   return (
     <section aria-label={`${name ?? 'Duelist'} profile`} style={PROFILE_FILL} className={twMerge('cut notch [--cut:var(--cut-lg)]', className)}>
       <div className="flex flex-wrap items-center gap-6 p-6">
-        <Avatar name={name ?? '?'} src={avatar} cosmetics={cosmetics} size="xl" status={status} />
+        <Avatar name={name ?? '?'} src={avatar} cosmetics={cosmetics} size="xl" status={status} eager />
         <div className="flex min-w-60 flex-1 flex-col gap-2.5">
           {facts.length ? (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ink-muted signal-sm">

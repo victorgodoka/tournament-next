@@ -179,8 +179,9 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
       ) : (
         <>
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-            {current.decks.map((deck) => (
-              <DeckCard key={deck.id} deck={deck} format={formatName(deck.format)} showOwner={!userId} />
+            {current.decks.map((deck, i) => (
+              // ponytail: first row is at most 4 wide at 260px cards; widen if the grid ever packs more.
+              <DeckCard key={deck.id} deck={deck} format={formatName(deck.format)} showOwner={!userId} eager={i < 4} />
             ))}
           </ul>
           {current.failed ? <Alert tone="negative" edged title={t('failed')} /> : null}
@@ -195,7 +196,7 @@ export const DeckBrowser = ({ userId }: { userId?: string }) => {
   )
 }
 
-const DeckCard = ({ deck, format, showOwner }: { deck: DeckSummary; format?: string; showOwner: boolean }) => {
+const DeckCard = ({ deck, format, showOwner, eager }: { deck: DeckSummary; format?: string; showOwner: boolean; eager: boolean }) => {
   const t = useTranslations('DeckEditor')
   const formatter = useFormatter()
   const now = useNow()
@@ -206,7 +207,7 @@ const DeckCard = ({ deck, format, showOwner }: { deck: DeckSummary; format?: str
     // The title link stretches over the card; the owner and the deck's links sit above it.
     <li className="relative flex flex-col border border-line bg-surface-100 hover:border-line-strong">
       <span className="relative aspect-[16/9] bg-surface-300">
-        {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" className="object-cover" /> : null}
+        {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill sizes="(min-width: 1024px) 25vw, 100vw" loading={eager ? 'eager' : undefined} className="object-cover" /> : null}
       </span>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h2 className="truncate text-ink body-strong">
