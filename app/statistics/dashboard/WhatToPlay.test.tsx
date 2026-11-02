@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '../../../messages/en.json'
 import type { DeckStat, Meta, Scope } from '@utils/statistics'
-import { WhatToPlay } from './WhatToPlay'
+import { BestLine, WhatToPlay } from './WhatToPlay'
 
 vi.mock('@omega/card-art', () => ({ CardArt: () => null }))
 
@@ -21,10 +21,10 @@ const meta = (window: Meta['window'], sweptThrough: string) =>
 
 const scope: Scope = { ladder: 'tcg', window: 'season', band: 'all' }
 
-const render = (data: Meta, best: { key: string; wr: number } | null = null) =>
+const render = (data: Meta, callout?: React.ReactNode) =>
   renderToStaticMarkup(
     <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
-      <WhatToPlay meta={data} scope={scope} best={best} />
+      <WhatToPlay meta={data} scope={scope} callout={callout} />
     </NextIntlClientProvider>,
   )
 const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
@@ -52,6 +52,6 @@ describe('WhatToPlay', () => {
   })
 
   it('names the best deck against the most played', () => {
-    expect(text(render(meta('season', '2026-10-31'), { key: '3', wr: 0.5512 }))).toContain('Best against the 5 most played: Mid, 55.1%')
+    expect(text(render(meta('season', '2026-10-31'), <BestLine deck={deck('3', 'Mid', 0.52, 3)} rate={0.5512} scope={scope} />))).toContain('Best against the 5 most played: Mid, 55.1%')
   })
 })

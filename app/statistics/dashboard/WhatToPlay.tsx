@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
-import { deckHref, effectPoints, plainDecks, windowDays, type Meta, type Scope } from '@utils/statistics'
+import { deckHref, effectPoints, plainDecks, windowDays, type DeckStat, type Meta, type Scope } from '@utils/statistics'
 import { Interval } from '../Interval'
 import { nameOf, NOTE, NUM, num, pct, range, ROW, TierTag } from '../shared'
 
@@ -13,23 +13,27 @@ const SHOWN = 30
 const COLS = '32px minmax(170px, 1.6fr) 48px 64px 84px minmax(130px, 1.2fr) 64px 72px 72px'
 const HEAD = 'grid min-h-9 items-center gap-x-4 border-b border-line-mid bg-surface-200 px-4 text-ink-muted signal-sm'
 
+export const BestLine = ({ deck, rate, scope }: { deck: DeckStat; rate: number; scope: Scope }) => {
+  const t = useTranslations('Statistics.play')
+  return (
+    <p className="border border-line bg-surface-200 px-4 py-3 text-sm text-ink">
+      <Link href={deckHref(deck.key, scope)} className="hover:text-cyan">{t('best', { name: nameOf(deck), rate: pct(rate) })}</Link>
+    </p>
+  )
+}
+
 /** Every deck by the win rate the model expects against the field. A deck under the floors just has no badge. */
-export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; best: { key: string; wr: number } | null }) => {
+export const WhatToPlay = ({ meta, scope, callout }: { meta: Meta; scope: Scope; callout?: React.ReactNode }) => {
   const t = useTranslations('Statistics.play')
   const [all, setAll] = useState(false)
   const decks = plainDecks(meta.decks).sort((a, b) => b.wrExpected - a.wrExpected)
-  const bestDeck = best && decks.find((d) => d.key === best.key)
   const first = effectPoints(meta.fit.firstEffect)
 
   return (
     <Panel title={t('title')} meta={t('meta', { count: num(decks.length) })}>
       {decks.length ? (
         <div className="flex flex-col gap-3">
-          {bestDeck ? (
-            <p className="border border-line bg-surface-200 px-4 py-3 text-sm text-ink">
-              <Link href={deckHref(bestDeck.key, scope)} className="hover:text-cyan">{t('best', { name: nameOf(bestDeck), rate: pct(best.wr) })}</Link>
-            </p>
-          ) : null}
+          {callout}
           <div className="overflow-x-auto">
             <div role="table" aria-label={t('title')} className="min-w-[860px] border border-line">
               <div role="row" className={HEAD} style={{ gridTemplateColumns: COLS }}>

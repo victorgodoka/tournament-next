@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Week, type Window } from '@utils/statistics'
+import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -176,5 +176,21 @@ describe('meVerdict', () => {
     expect(meVerdict(row(0.45, 0.6, { wrLo: 0.5, wrHi: 0.55 }))).toBe('same')
     expect(meVerdict(row(null, null, { wrLo: 0.5, wrHi: 0.55 }))).toBeNull()
     expect(meVerdict(row(0.45, 0.6, null))).toBeNull()
+  })
+})
+
+describe('seasonOf', () => {
+  const seasons = [
+    { id: 15, code: 'genesys-2', ladder: 'genesys', sweptThrough: null },
+    { id: 14, code: 'tcg-3', ladder: 'tcg', sweptThrough: '2026-10-31' },
+    { id: 13, code: 'tcg-2', ladder: 'tcg', sweptThrough: '2026-10-18' },
+  ] as Season[]
+
+  it('finds the season the API read: by code or id, else the newest swept of the ladder', () => {
+    expect(seasonOf(seasons, { ladder: 'tcg', season: 'tcg-2' })?.id).toBe(13)
+    expect(seasonOf(seasons, { ladder: 'tcg', season: '13' })?.id).toBe(13)
+    expect(seasonOf(seasons, { ladder: 'tcg' })?.id).toBe(14)
+    expect(seasonOf(seasons, { ladder: 'genesys' })).toBeUndefined()
+    expect(seasonOf([], { ladder: 'tcg' })).toBeUndefined()
   })
 })

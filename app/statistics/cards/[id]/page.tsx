@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
 import { pageMetadata } from '@utils/metadata'
-import { getCard, getSeasons, scopeFrom, statisticsHref } from '@utils/statistics'
+import { getCard, getSeasons, scopeFrom, seasonOf, statisticsHref } from '@utils/statistics'
 import { CardPage } from '../../CardPage'
 import { StatsShell } from '../../StatsShell'
 
@@ -33,8 +33,7 @@ export async function generateMetadata(props: CardRouteProps) {
 const CardRoute = async (props: CardRouteProps) => {
   const t = await getTranslations('Statistics')
   const { scope, result } = await load(props)
-  // The newest swept season of the ladder, as the API read it, when the URL names none.
-  const season = (await getSeasons()).find((s) => (scope.season ? s.code === scope.season : s.ladder === scope.ladder && s.sweptThrough))
+  const season = seasonOf(await getSeasons(), scope)
   if (!result.ok || !season) {
     const gone = !result.ok && result.status === 404
     return (

@@ -5,7 +5,7 @@ import { Panel } from '@ui/panel'
 import { cardsByIds } from '@utils/cards'
 import { pageMetadata } from '@utils/metadata'
 import type { WikiCard } from '@utils/wiki'
-import { getDeck, getSeasons, scopeFrom, statisticsHref } from '@utils/statistics'
+import { getDeck, getSeasons, scopeFrom, seasonOf, statisticsHref } from '@utils/statistics'
 import { DeckPage } from '../../DeckPage'
 import { StatsShell } from '../../StatsShell'
 
@@ -34,8 +34,11 @@ export async function generateMetadata(props: DeckRouteProps) {
 const DeckRoute = async (props: DeckRouteProps) => {
   const t = await getTranslations('Statistics')
   const { scope, result } = await load(props)
-  if (!result.ok) {
-    const gone = result.status === 404
+  // The deck's cards come without names, and the season is the one the API read.
+  const [seasons, cards] = await Promise.all([getSeasons(), cardsByIds(result.ok ? result.data.cards.map((c) => c.card) : []).catch(() => new Map<number, WikiCard>())])
+  const season = seasonOf(seasons, scope)
+  if (!result.ok || !season) {
+    const gone = !result.ok && result.status === 404
     return (
       <StatsShell>
         <Panel title={gone ? t('jobs.deckGoneTitle') : t('error.title')} className="mt-6">
@@ -45,10 +48,6 @@ const DeckRoute = async (props: DeckRouteProps) => {
       </StatsShell>
     )
   }
-  // The deck's cards come without names, and the season is the one the API read.
-  const [seasons, cards] = await Promise.all([getSeasons(), cardsByIds(result.data.cards.map((c) => c.card)).catch(() => new Map<number, WikiCard>())])
-  const season = seasons.find((s) => (scope.season ? s.code === scope.season : s.ladder === scope.ladder && s.sweptThrough))
-  if (!season) throw new Error('GET /statistics/seasons has no season for a deck that answered')
   return (
     <StatsShell>
       <DeckPage answer={result.data} season={season} scope={{ ...scope, ladder: season.ladder }} names={Object.fromEntries([...cards].map(([id, card]) => [id, card.name]))} />

@@ -232,6 +232,10 @@ export const getSeasons = async (): Promise<Season[]> => {
   return result.ok ? result.data.seasons : []
 }
 
+/** The season the API reads for a scope: `season` by code or id, else the ladder's newest swept. */
+export const seasonOf = (seasons: readonly Season[], { ladder, season }: StatisticsScope) =>
+  seasons.find((s) => (season ? s.code === season || String(s.id) === season : s.ladder === ladder && s.sweptThrough))
+
 export const getMeta = (scope: Scope) => read<Meta>(`/statistics/meta?${scopeQuery(scope)}`, 'GET /statistics/meta')
 
 export const getDeck = (key: string, scope: Scope) => read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(key)}?${scopeQuery(scope)}`, 'GET /statistics/decks/:key')

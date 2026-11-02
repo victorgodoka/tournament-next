@@ -9,6 +9,7 @@ import { Skeleton } from '@omega/analytics/primitives'
 import { InfographicLinks } from '@omega/infographic/infographic-links'
 import { infographicHrefs, MIN_MATCHUP_GAMES, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
 import { Pickers } from './Pickers'
+import { BestAgainst } from './dashboard/BestAgainst'
 import { HowToBeat } from './dashboard/HowToBeat'
 import { MeSection } from './dashboard/MeOrTheDeck'
 import { SECTIONS, type Section } from './dashboard/sections'
@@ -23,12 +24,10 @@ type MetaDashboardProps = {
   scope: Scope
   seasons: Season[]
   result: Result<Meta>
-  /** The deck that does best against the most played, read on the server. */
-  best: { key: string; wr: number } | null
 }
 
 /** /statistics: the pickers, then one section per question a ranked player asks, then how it's counted. */
-export const MetaDashboard = async ({ scope, seasons, result, best }: MetaDashboardProps) => {
+export const MetaDashboard = async ({ scope, seasons, result }: MetaDashboardProps) => {
   const t = await getTranslations('Statistics')
   const locale = await getLocale()
   const meta = result.ok ? result.data : null
@@ -89,7 +88,7 @@ export const MetaDashboard = async ({ scope, seasons, result, best }: MetaDashbo
 
           {/* Keyed by the scope: a picked deck starts over with the new numbers. */}
           <div key={scopeQuery(shown)} className="flex flex-col gap-10">
-            <Block id="play"><WhatToPlay meta={meta} scope={shown} best={best} /></Block>
+            <Block id="play"><WhatToPlay meta={meta} scope={shown} callout={<Suspense fallback={null}><BestAgainst meta={meta} scope={scope} /></Suspense>} /></Block>
             <Block id="face"><WhatYouFace meta={meta} scope={shown} /></Block>
             <Block id="beat"><HowToBeat meta={meta} scope={shown} /></Block>
             <Block id="me">
