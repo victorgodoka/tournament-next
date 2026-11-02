@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
+import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, getDeck, getMeta, getSeasons, getTopDecks, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -192,5 +192,31 @@ describe('seasonOf', () => {
     expect(seasonOf(seasons, { ladder: 'tcg' })?.id).toBe(14)
     expect(seasonOf(seasons, { ladder: 'genesys' })).toBeUndefined()
     expect(seasonOf([], { ladder: 'tcg' })).toBeUndefined()
+  })
+})
+
+describe('getTopDecks', () => {
+  const season = { id: 14, ladder: 'tcg' }
+  const row = (key: string, name: string, share: number) => ({ key, name, share })
+
+  it('takes the most played plain decks, with cards from the sample deck or the list', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes('/statistics/meta')) return new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1), row('2', 'Two', 0.3), row('2*', 'Two', 0.4), row('', 'x', 0.5), row('3', 'Three', 0.05)] }))
+      if (url.includes('/decks/2?')) return new Response(JSON.stringify({ sampleDeck: { main: [{ id: 7, name: 'Seven', count: 3 }] }, cards: [] }))
+      if (url.includes('/decks/1?')) return new Response(JSON.stringify({ sampleDeck: null, cards: [{ card: 8 }, { card: 9 }] }))
+      return new Response('{}', { status: 500 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await getTopDecks('tcg', 2)).toEqual([
+      { key: '2', name: 'Two', share: 0.3, topCards: [{ id: 7, name: 'Seven' }] },
+      { key: '1', name: 'One', share: 0.1, topCards: [{ id: 8, name: null }, { id: 9, name: null }] },
+    ])
+  })
+
+  it('is null without a meta, and a deck it can not read has no cards', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 404 })))
+    expect(await getTopDecks('tcg')).toBeNull()
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.includes('/meta') ? new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1)] })) : new Response('{}', { status: 429 }))))
+    expect(await getTopDecks('tcg')).toEqual([{ key: '1', name: 'One', share: 0.1, topCards: [] }])
   })
 })

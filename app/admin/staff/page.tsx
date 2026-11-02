@@ -11,9 +11,9 @@ import { SectionHead } from '@ui/section-head'
 import { TextInput } from '@ui/field'
 import { useResource } from '@hooks/index'
 import { demoteEditor, listEditors, promoteEditor } from '@utils/articles'
-import { timeLabel } from '@utils/format'
-import { demoteAnalyst, getSettings, listAnalysts, panelErrorText, promoteAnalyst, updateSettings } from '@utils/panel'
+import { demoteAnalyst, listAnalysts, panelErrorText, promoteAnalyst } from '@utils/panel'
 import type { WikiEditor } from '@utils/types'
+import { SettingsPanel } from './Settings'
 
 const ROLE: Record<string, { label: string; tone: ChipTone }> = {
   ADMIN: { label: 'Admin', tone: 'gold' },
@@ -112,24 +112,6 @@ const People = ({
 const StaffPage = () => {
   const analysts = useResource('analysts', () => listAnalysts())
   const editors = useResource('editors', () => listEditors())
-  const settings = useResource('settings', () => getSettings())
-  const [minSamples, setMinSamples] = useState<string | null>(null)
-  const [saved, setSaved] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const value = minSamples ?? String(settings.data?.['analytics.global.minSamples'] ?? '')
-
-  const saveSettings = () => {
-    setError(null)
-    updateSettings({ 'analytics.global.minSamples': Number(value) }).then(
-      (next) => {
-        settings.setData(() => next)
-        setMinSamples(null)
-        setSaved(`Saved at ${timeLabel(new Date())}`)
-      },
-      (e) => setError(panelErrorText(e)),
-    )
-  }
 
   return (
     <>
@@ -137,7 +119,7 @@ const StaffPage = () => {
         flush
         eyebrow="Staff"
         title="Access and settings"
-        lead="Who can write analytics for any profile, who can edit the wiki, and the values staff tune without a deploy. Roles apply on the next request, no sign-in needed."
+        lead="Who can read any duelist's statistics, who can edit the wiki, and the values staff tune without a deploy. Roles apply on the next request, no sign-in needed."
       />
       {analysts.error || editors.error ? (
         <Alert tone="negative" title="Couldn't read the staff lists">{panelErrorText(analysts.error ?? editors.error)}</Alert>
@@ -148,13 +130,13 @@ const StaffPage = () => {
           num="01"
           id="analysts"
           title="Analysts"
-          blurb="An analyst writes explorations on any profile and shows as the author, with the owner as co-author."
+          blurb="An analyst reads the statistics of any duelist as if they were the owner."
           hint="The role is exclusive: an editor made analyst stops being an editor. They must have signed in once."
           add="Analyst"
           people={analysts.data}
           onAdd={(id) => promoteAnalyst(id).then(() => { analysts.reload(); editors.reload() })}
           onRemove={(id) => demoteAnalyst(id).then(analysts.reload)}
-          footnote="Removing sets them back to a duelist. Their explorations stay."
+          footnote="Removing sets them back to a duelist."
         />
         <People
           num="02"
@@ -169,19 +151,7 @@ const StaffPage = () => {
         />
       </div>
 
-      <Panel label="Settings" className="flex scroll-mt-6 flex-col gap-4.5 [--edge:var(--color-line-mid)]">
-        <span id="settings" />
-        <SectionHead compact num="03" end={saved ?? '1 setting'}>Settings</SectionHead>
-        <div className="grid grid-cols-1 items-center gap-6 min-[720px]:grid-cols-[minmax(0,1fr)_220px_auto]">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="min-samples" className="text-ink data">analytics.global.minSamples</label>
-            <span className="text-sm leading-5.5 text-ink-dim">Global analytics hide any cut with fewer deck samples than this. 0 shows everything.</span>
-          </div>
-          <TextInput id="min-samples" inputMode="numeric" suffix="0–1 000 000" value={value} onChange={(e) => setMinSamples(e.target.value)} />
-          <Button size="mono-md" disabled={minSamples === null || value.trim() === ''} onClick={saveSettings}>Save settings</Button>
-        </div>
-        {error ? <Alert tone="negative" title="Not saved">{error}</Alert> : null}
-      </Panel>
+      <SettingsPanel />
     </>
   )
 }

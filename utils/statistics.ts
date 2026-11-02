@@ -242,6 +242,22 @@ export const getDeck = (key: string, scope: Scope) => read<DeckAnswer>(`/statist
 
 export const getCard = (id: number, scope: StatisticsScope) => read<CardAnswer>(`/statistics/cards/${id}?${scopeQuery(scope)}`, 'GET /statistics/cards/:id')
 
+export type TopDeck = Pick<DeckStat, 'key' | 'name' | 'share'> & { topCards: { id: number; name: string | null }[] }
+
+/** The most played decks of a ladder's newest swept season with three of their cards: the sample deck's, else the most included. */
+export const getTopDecks = async (ladder: RankedLadderId, top = 10): Promise<TopDeck[] | null> => {
+  const scope: Scope = { ladder, window: 'season', band: 'all' }
+  const meta = await getMeta(scope)
+  if (!meta.ok) return null
+  const decks = plainDecks(meta.data.decks).sort((a, b) => b.share - a.share).slice(0, top)
+  const answers = await Promise.all(decks.map((d) => getDeck(d.key, scope)))
+  return decks.map(({ key, name, share }, i) => {
+    const answer = answers[i]
+    const cards = answer?.ok ? (answer.data.sampleDeck?.main ?? answer.data.cards.map((c) => ({ id: c.card, name: null }))) : []
+    return { key, name, share, topCards: cards.slice(0, 3).map(({ id, name: card }) => ({ id, name: card })) }
+  })
+}
+
 /** Owner only (403 otherwise), live from the games: on the server, pass the incoming `cookie`. */
 export const getPlayerStatistics = (id: string, { ladder, season }: Pick<Scope, 'ladder' | 'season'>, cookie: string | null) =>
   read<PlayerAnswer>(`/statistics/players/${encodeURIComponent(id)}?${scopeQuery({ ladder, season })}`, 'GET /statistics/players/:id', { cache: 'no-store', headers: cookie ? { cookie } : undefined })

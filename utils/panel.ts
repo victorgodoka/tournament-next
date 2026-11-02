@@ -7,8 +7,6 @@
  * tournament that actually ran so a schedule can be linked to it, never edits it.
  */
 import { API_URL } from './auth'
-import type { AnalyticsPeriod } from './explorer'
-import type { GlobalExploration } from './global-explorer'
 import type {
   RankedLadderId,
   RankedFormat,
@@ -295,15 +293,15 @@ export const renameSeason = (code: string, next: { code?: string; label?: string
   request<PanelSeason['season']>(`/ranked/seasons/${encodeURIComponent(code)}`, json('PATCH', next))
 
 /* ---------------------------------------------------------------- *
- * Season analytics sweep (section 8) — what the 01:00 cron does, forced
+ * Ranked analytics job (section 8) — dispatches the workflow the 01:00 run is
  * ---------------------------------------------------------------- */
 
-export type AnalyticsSweep = {
+export type AnalyticsRun = {
   from: string
   to: string
   /** `null` = both formats. */
   ladder: RankedLadderId | null
-  /** Day being swept now. */
+  /** Day being swept. The job writes this when it starts and ends, so it doesn't advance mid-run. */
   current: string | null
   done: { day: string; matches: number; rows: number; ms: number }[]
   startedAt: string
@@ -312,150 +310,126 @@ export type AnalyticsSweep = {
   error: string | null
 }
 
-/** `running` is `null` when idle; `last` is `null` after a restart. */
-/** `rulesStale`: series, ignored archetypes or card groups changed since the open seasons were last rebuilt. */
-export type AnalyticsSweepStatus = { running: AnalyticsSweep | null; last: AnalyticsSweep | null; rulesStale: boolean }
+/** `running` is `null` when idle, and for the 1-2 minutes a dispatched runner takes to start. */
+export type AnalyticsSync = { running: AnalyticsRun | null; last: AnalyticsRun | null }
 
-/** Sweeps the open seasons from their first day to yesterday. `409 BUSY` while one runs, `409 NOTHING_TO_REBUILD` before any day. */
-export const rebuildOpenSeasons = () =>
-  request<{ status: 'started'; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
+/** `unavailable`: the API has no dispatch token and nothing started. Runs queue on GitHub, there is no busy. */
+export type Dispatch = 'dispatched' | 'unavailable'
+
+export const getAnalyticsSync = (signal?: AbortSignal) => request<AnalyticsSync>('/panel/analytics/sync', { signal })
 
 /**
  * All optional: no dates is yesterday, only `from` is that single day; no `ladder` is both formats
- * (with one, the other's days stay as they were). `409 BUSY` while one runs.
+ * (with one, the other's days stay as they were). Up to 366 days, ending today at the latest.
  */
-export const startAnalyticsSweep = (range: { from?: string; to?: string; ladder?: RankedLadderId }) =>
-  request<{ status: 'started'; from: string; to: string; ladder: RankedLadderId | null }>('/panel/analytics/sync', json('POST', range))
+export const startAnalyticsSync = (range: { from?: string; to?: string; ladder?: RankedLadderId }) =>
+  request<{ status: Dispatch; from: string; to: string; ladder: RankedLadderId | null }>('/panel/analytics/sync', json('POST', range))
 
-/** A ranked season and its /statistics freeze. `lastDay` (job zone) is `null` while open; `frozenAt` `null` while live. */
-export type StatisticsSeason = {
-  code: string
-  label: string
-  ladder: RankedLadderId
-  startsAt: string
-  endsAt: string | null
-  lastDay: string | null
-  frozenAt: string | null
+/** Every open season from its first day to yesterday, both formats. `409 NOTHING_TO_REBUILD` before any day. */
+export const rebuildOpenSeasons = () => request<{ status: Dispatch; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
+
+/* ---------------------------------------------------------------- *
+ * Deck classification (section 9) — decks, ignored setcodes, staples
+ * ---------------------------------------------------------------- */
+
+export type PanelDeck = {
+  /** Setcodes joined by `>`, lead first; `''` = Unknown. */
+  key: string
+  /** `null` when a code of the key has no name. */
+  name: string | null
+  lead: number | null
+  /** The deck's game 1s. */
+  decks: number
+  games: number
+  share: number
+  players: number
 }
 
-export const listStatisticsSeasons = (signal?: AbortSignal) =>
-  request<StatisticsSeason[]>('/panel/analytics/statistics/seasons', { signal })
+export type DeckSetcode = {
+  code: number
+  name: string | null
+  /** The code or its family is ignored. */
+  ignored: boolean
+  decks: number
+  share: number
+  mean: number
+  min: number
+  max: number
+}
 
-export const getAnalyticsSweep = (signal?: AbortSignal) =>
-  request<AnalyticsSweepStatus>('/panel/analytics/sync', { signal })
+export type DeckSetcodes = { key: string; name: string | null; decks: number; setcodes: DeckSetcode[] }
 
-/** Recomputes the whole season for one player, today included, and waits. No `season` = every open season. */
-export const syncPlayerAnalytics = (playerId: string, season?: string) =>
-  request<{ playerId: string; seasons: { code: string; matches: number; days: number }[]; ms: number }>(
-    `/panel/analytics/players/${encodeURIComponent(playerId)}/sync`,
-    json('POST', season ? { season } : {}),
-  )
+export const listPanelDecks = (season: number, signal?: AbortSignal) =>
+  request<{ decks: PanelDeck[] }>(`/panel/analytics/decks${search({ season })}`, { signal }).then((page) => page.decks)
 
-/* ---------------------------------------------------------------- *
- * Analytics periods — any window, a segment next to the seasons
- * ---------------------------------------------------------------- */
+/** `-` asks for the empty key: `''` doesn't fit in a path. */
+export const getPanelDeck = (season: number, key: string, signal?: AbortSignal) =>
+  request<DeckSetcodes>(`/panel/analytics/decks/${key ? encodeURIComponent(key) : '-'}${search({ season })}`, { signal })
 
-/** `code` is what explorations store: never change it once saved. ISO dates, `endsAt` exclusive. */
-export type PeriodBody = { code?: string; label: string; ladder: RankedLadderId; startsAt: string; endsAt: string }
+export type Staple = {
+  card: number
+  /** `null`: not in the card database. */
+  name: string | null
+  source: 'auto' | 'manual'
+  /** `false`: a manual override of an automatic one. */
+  enabled: boolean
+  /** The season's decks holding the card, from the last build. */
+  share: number | null
+  /** Of those, the decks where no other card shares a setcode with it. */
+  foreignShare: number | null
+}
 
-export type PanelPeriod = AnalyticsPeriod & { id: number; createdBy: string | null; createdAt: string }
+export const listStaples = (season: number, signal?: AbortSignal) =>
+  request<{ staples: Staple[] }>(`/panel/staples${search({ season })}`, { signal }).then((page) => page.staples)
 
-/** The global sweep over the period's days: `null` when it starts in the future or only the name changed. */
-export type PeriodBackfill = { status: 'started' | 'busy'; from: string; to: string } | null
+/** A manual decision: enables any card, or disables an automatic one. Alternate art resolves to the original. */
+export const setStaple = (card: number, enabled: boolean) =>
+  request<Pick<Staple, 'card' | 'source' | 'enabled'>>(`/panel/staples/${card}`, json('PUT', { enabled }))
 
-export const listPanelPeriods = (signal?: AbortSignal) =>
-  request<{ periods: PanelPeriod[] }>('/panel/analytics/periods', { signal }).then((page) => page.periods)
-
-/** `409 CODE_TAKEN` when a season or another period has the code. */
-export const createPeriod = (body: PeriodBody) =>
-  request<PanelPeriod & { backfill: PeriodBackfill }>('/panel/analytics/periods', json('POST', body))
-
-export const updatePeriod = (id: number, body: Partial<PeriodBody>) =>
-  request<PanelPeriod & { backfill: PeriodBackfill }>(`/panel/analytics/periods/${id}`, json('PATCH', body))
-
-/** Drops its global data too. */
-export const deletePeriod = (id: number) => request<void>(`/panel/analytics/periods/${id}`, json('DELETE'))
-
-/* ---------------------------------------------------------------- *
- * Global explorations (section 8.4) — staff-built, draft or public
- * ---------------------------------------------------------------- */
-
-export type GlobalExplorationBody = Partial<Pick<GlobalExploration, 'name' | 'description' | 'position' | 'published' | 'config'>>
-
-/** Drafts and published, in `position` order. */
-export const listPanelExplorations = (signal?: AbortSignal) =>
-  request<{ explorations: GlobalExploration[] }>('/panel/analytics/explorations', { signal }).then((page) => page.explorations)
-
-/** Needs `name` and `config`. `400 INVALID_EXPLORATION` names the broken builder rule. */
-export const createPanelExploration = (body: GlobalExplorationBody) =>
-  request<GlobalExploration>('/panel/analytics/explorations', json('POST', body))
-
-/** Only the fields sent change. `published: true` keeps the first publish date; `false` is back to draft. */
-export const updatePanelExploration = (id: string, body: GlobalExplorationBody) =>
-  request<GlobalExploration>(`/panel/analytics/explorations/${encodeURIComponent(id)}`, json('PATCH', body))
-
-export const deletePanelExploration = (id: string) =>
-  request<void>(`/panel/analytics/explorations/${encodeURIComponent(id)}`, json('DELETE'))
+/** Forgets the decision; the next build decides again. `404` when the card has none. */
+export const resetStaple = (card: number) => request<void>(`/panel/staples/${card}`, json('DELETE'))
 
 /* ---------------------------------------------------------------- *
  * Settings (section 10) — values staff tune without a deploy
  * ---------------------------------------------------------------- */
 
-export type PanelSettings = {
-  /** A global-analytics cut with fewer deck-samples than this is hidden. `0` shows everything. */
-  'analytics.global.minSamples': number
-}
+export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number }
+export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
+
+/** What the server falls back to for a key left out. */
+export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5 }
+export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5 }
+
+/** A key never written is absent. */
+export type PanelSettings = { 'analytics.tiers'?: Partial<TierAnchors>; 'analytics.classification'?: Partial<Classification> }
 
 export const getSettings = (signal?: AbortSignal) => request<PanelSettings>('/panel/settings', { signal })
 
 /** Keys not sent keep their value. Answers every setting after the write. */
-export const updateSettings = (body: Partial<PanelSettings>) => request<PanelSettings>('/panel/settings', json('PATCH', body))
+export const updateSettings = (body: PanelSettings) => request<PanelSettings>('/panel/settings', json('PATCH', body))
 
 /* ---------------------------------------------------------------- *
- * Card categories (section 9) — engine, tech, hand trap
+ * Public API accounts — the key itself is born in the owner's portal login
  * ---------------------------------------------------------------- */
 
-export type CardGroupKind = 'engine' | 'tech'
-
-export type CardGroup = {
-  id: number
-  kind: CardGroupKind
-  name: string
-  description: string
-  /** Only ever `true` on a tech group. */
-  handTrap: boolean
-  /** Engine only: deck archetypes where this is NOT engine. */
-  exceptions: { code: number; name: string }[]
-  /** Canonical ids. `name`/`kind` are `null` once the card left the card database. */
-  cards: { id: number; name: string | null; kind: 'monster' | 'spell' | 'trap' | null }[]
-  /** The card that stands for the group (one of `cards`); `null` = the first card of the list. */
-  cover: number | null
-  updatedAt: string
+export type ApiAccount = {
+  discordId: string
+  discordUsername: string
+  keyPrefix: string | null
+  /** Requests a minute, 1-10000. */
+  rateLimit: number
+  createdAt: string
+  rotatedAt: string | null
+  lastUsedAt: string | null
+  blockedAt: string | null
 }
 
-/** `exceptions` and `cards` also accept the objects the GET returns, so a form can send back what it read. */
-export type CardGroupBody = {
-  kind?: CardGroupKind
-  name?: string
-  description?: string
-  handTrap?: boolean
-  exceptions?: number[]
-  /** Replaces the list. Alt-art passcodes are saved as the original; duplicates collapse. */
-  cards?: number[]
-  /** One of `cards`; `null` clears it (the first card is the cover then). */
-  cover?: number | null
-}
+export const listApiAccounts = (signal?: AbortSignal) =>
+  request<{ accounts: ApiAccount[] }>(`/panel/api-keys${search({ limit: 200 })}`, { signal }).then((page) => page.accounts)
 
-export const listCardGroups = (signal?: AbortSignal) =>
-  request<{ groups: CardGroup[] }>('/panel/card-groups', { signal }).then((page) => page.groups)
-
-export const createCardGroup = (body: CardGroupBody) => request<CardGroup>('/panel/card-groups', json('POST', body))
-
-/** Merged over the current group. Switching `kind` drops what doesn't belong to the new one. */
-export const updateCardGroup = (id: number, body: CardGroupBody) =>
-  request<CardGroup>(`/panel/card-groups/${id}`, json('PATCH', body))
-
-export const deleteCardGroup = (id: number) => request<void>(`/panel/card-groups/${id}`, json('DELETE'))
+/** Blocking drops the key at once and stops the owner from making another. */
+export const updateApiAccount = (discordId: string, body: { rateLimit?: number; blocked?: boolean }) =>
+  request<ApiAccount>(`/panel/api-keys/${encodeURIComponent(discordId)}`, json('PATCH', body))
 
 /* ---------------------------------------------------------------- *
  * Analysts (section 11.1) — `user.manage`, same shape as `/wiki/editors`
@@ -467,7 +441,7 @@ export const listAnalysts = async () => (await request<{ analysts: WikiEditor[] 
 /** Exclusive role: an editor made analyst stops being editor. `404` = never signed in, `403` = admin. */
 export const promoteAnalyst = (userId: string) => request<WikiEditor>(`/panel/analysts/${encodeURIComponent(userId)}`, json('PUT'))
 
-/** Back to `USER`; their explorations stay. */
+/** Back to `USER`. */
 export const demoteAnalyst = (userId: string) => request<void>(`/panel/analysts/${encodeURIComponent(userId)}`, json('DELETE'))
 
 const seg = encodeURIComponent
@@ -517,50 +491,8 @@ export const listAuditActions = (signal?: AbortSignal) =>
   )
 
 /* ---------------------------------------------------------------- *
- * Series and ignored archetypes (sections 9.2, 9.3)
+ * Ignored setcodes (section 9.2): they never name a deck
  * ---------------------------------------------------------------- */
-
-type CardRef = CardGroup['cards'][number]
-
-export type Series = {
-  id: number
-  /** Archetype code in the stats: the overridden setcode, or 65536 + id. */
-  code: number
-  name: string
-  description: string
-  archetype: { code: number; name: string | null } | null
-  mode: 'extend' | 'replace'
-  archetypes: { code: number; name: string | null; keep: boolean }[]
-  cards: CardRef[]
-  mentions: CardRef[]
-  /** The pinned cover, any card. null: first mention, then most included of the first child, of the overridden setcode, first card. */
-  cover: CardRef | null
-  updatedAt: string
-  /** `GET /panel/series/{id}` only: what it takes today, direct + resolved mentions. */
-  members?: CardRef[]
-}
-
-export type SeriesBody = {
-  name?: string
-  description?: string
-  archetype?: number | null
-  mode?: 'extend' | 'replace'
-  archetypes?: { code: number; keep: boolean }[]
-  cards?: number[]
-  mentions?: number[]
-  cover?: number | null
-}
-
-export const listSeries = (signal?: AbortSignal) =>
-  request<{ series: Series[] }>('/panel/series', { signal }).then((page) => page.series)
-
-export const getSeries = (id: number, signal?: AbortSignal) => request<Series>(`/panel/series/${id}`, { signal })
-
-export const createSeries = (body: SeriesBody) => request<Series>('/panel/series', json('POST', body))
-
-export const updateSeries = (id: number, body: SeriesBody) => request<Series>(`/panel/series/${id}`, json('PATCH', body))
-
-export const deleteSeries = (id: number) => request<void>(`/panel/series/${id}`, json('DELETE'))
 
 export type IgnoredArchetype = { code: number; name: string | null; updatedAt: string }
 

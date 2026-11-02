@@ -19,18 +19,14 @@ const NAV: { label: string; items: NavItem[] }[] = [
   { label: 'Schedule', items: [{ href: '/admin/tournaments', label: 'Tournaments' }, { href: '/admin/formats', label: 'Formats' }] },
   {
     label: 'Statistics',
-    items: [
-      { href: '/admin/statistics/sweep', label: 'Season sweep' },
-      { href: '/admin/statistics/explorations', label: 'Explorations' },
-      { href: '/admin/statistics/periods', label: 'Periods' },
-    ],
+    items: [{ href: '/admin/statistics/sweep', label: 'Statistics job' }],
   },
   {
-    label: 'Cards',
+    label: 'Deck classification',
     items: [
-      { href: '/admin/cards/categories', label: 'Card categories' },
-      { href: '/admin/cards/series', label: 'Series' },
-      { href: '/admin/cards/ignored', label: 'Ignored archetypes' },
+      { href: '/admin/cards/decks', label: 'Decks' },
+      { href: '/admin/cards/ignored', label: 'Ignored setcodes' },
+      { href: '/admin/cards/staples', label: 'Staples' },
     ],
   },
   {
@@ -38,6 +34,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/staff#settings', label: 'Settings' },
       { href: '/admin/staff#analysts', label: 'Analysts' },
+      { href: '/admin/api-keys', label: 'API keys' },
       { href: '/admin/activity', label: 'Activity log' },
     ],
   },

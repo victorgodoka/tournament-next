@@ -1,11 +1,11 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { Alert } from '@ui/alert'
+import { Select } from '@ui/field'
 import type { LookupOption } from '@ui/lookup'
+import { useResource } from '@hooks/index'
 import { findArchetypes, searchCardArts } from '@utils/cards'
-import type { CardGroup } from '@utils/panel'
-
-export type CardRef = CardGroup['cards'][number]
+import { getSeasons } from '@utils/statistics'
 
 /** Module-level so `useSearch` sees a stable function. */
 export const findCards = (text: string, signal: AbortSignal): Promise<LookupOption[]> =>
@@ -14,31 +14,22 @@ export const findCards = (text: string, signal: AbortSignal): Promise<LookupOpti
 export const findSetcodes = (text: string, signal: AbortSignal): Promise<LookupOption[]> =>
   findArchetypes(text, signal).then((list) => list.map((a) => ({ key: a.code, label: a.name, meta: a.code })))
 
-const KIND_COLOR = { monster: 'bg-type-effect', spell: 'bg-type-spell', trap: 'bg-type-trap' }
+export const percent = (rate: number | null) => (rate === null ? '—' : `${(rate * 100).toFixed(1)}%`)
 
-/** Cards picked into a group or a Series: frame color, passcode, name, kind, remove. */
-export const CardList = ({ cards, onRemove }: { cards: CardRef[]; onRemove: (id: number) => void }) => (
-  <ul className="flex flex-col">
-    {cards.map((c) => (
-      <li key={c.id} className="grid h-11 grid-cols-[10px_96px_minmax(0,1fr)_80px_28px] items-center gap-3 border-t border-line">
-        <span aria-hidden className={twMerge('size-2.5', c.kind ? KIND_COLOR[c.kind] : 'bg-line-mid')} />
-        <span className="text-ink-dim data">{c.id}</span>
-        <span className="truncate text-sm font-bold">{c.name ?? 'Left the card database'}</span>
-        <span className="text-ink-muted signal-sm">{c.kind ?? '—'}</span>
-        <button
-          type="button"
-          aria-label={`Remove ${c.name ?? c.id}`}
-          onClick={() => onRemove(c.id)}
-          className="grid size-7 cursor-pointer place-items-center text-ink-muted hover:text-crimson-lift"
-        >
-          <svg viewBox="0 0 24 24" width={12} height={12} aria-hidden fill="currentColor">
-            <path d="M5.3 3.9 12 10.6l6.7-6.7 1.4 1.4-6.7 6.7 6.7 6.7-1.4 1.4-6.7-6.7-6.7 6.7-1.4-1.4 6.7-6.7-6.7-6.7z" />
-          </svg>
-        </button>
-      </li>
-    ))}
-  </ul>
+/** The swept seasons, newest first, and the picked one: the first until someone picks. */
+export const useSeason = (picked: number | null) => {
+  const seasons = useResource('statistics-seasons', () => getSeasons())
+  const swept = (seasons.data ?? []).filter((s) => s.sweptThrough)
+  return { swept, season: picked ?? swept[0]?.id ?? null, loading: !seasons.data }
+}
+
+export const SeasonSelect = ({ seasons, value, onChange }: { seasons: { id: number; label: string; code: string }[]; value: number | null; onChange: (id: number) => void }) => (
+  <Select label="Season" value={value === null ? '' : String(value)} onChange={(e) => onChange(Number(e.target.value))} options={seasons.map((s) => ({ value: String(s.id), label: `${s.label} (${s.code})` }))} />
 )
 
-/** A picked card from the lookup: the kind isn't known until saved, the server fills it in. */
-export const pickedCard = (option: LookupOption): CardRef => ({ id: Number(option.key), name: String(option.label), kind: null })
+/** Every rule of this section lands in two steps. */
+export const NextBuildNote = () => (
+  <Alert edged plain={false} tone="warn" title="A change shows in two steps">
+    Deck names in profiles, match history and tournament decklists change on their next read. /statistics changes after the next build: the nightly job, or the job page for yesterday.
+  </Alert>
+)
