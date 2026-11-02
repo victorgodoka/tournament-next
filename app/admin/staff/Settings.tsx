@@ -8,7 +8,7 @@ import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { useResource } from '@hooks/index'
 import { count, timeLabel } from '@utils/format'
-import { BAND_NAMES, DEFAULT_CLASSIFICATION, DEFAULT_FILTERS, DEFAULT_TIERS, getSettings, panelErrorText, updateSettings, type Classification, type Filters, type PanelSettings, type TierAnchors } from '@utils/panel'
+import { BAND_NAMES, DEFAULT_CLASSIFICATION, DEFAULT_FILTERS, DEFAULT_TIERS, FORMATS, getSettings, panelErrorText, updateSettings, type Classification, type Filters, type Format, type PanelSettings, type TierAnchors } from '@utils/panel'
 import { getMeta } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
 
@@ -30,10 +30,12 @@ const TIERS: { key: keyof TierAnchors; label: string }[] = [
 
 const toPercent = (rate: number) => String(Number((rate * 100).toFixed(2)))
 const fromPercent = (text: string) => Number(text) / 100
+/** A filter field of one format, as the draft keys it: `TCG.minListGames`. */
+type FilterDraftKey = `${Format}.${keyof Filters}`
 /** Edits in progress, as typed; a field without one shows the stored value. */
-type Draft = Partial<Record<keyof TierAnchors | keyof Classification | keyof Filters, string>>
+type Draft = Partial<Record<keyof TierAnchors | keyof Classification | FilterDraftKey, string>>
 
-/** What the form holds, with the percent fields back in rates. A field left alone isn't sent. */
+/** What the form holds, with the percent fields back in rates. A field left alone isn't sent; a format with no edit isn't either. */
 export const settingsBody = (draft: Draft): PanelSettings => {
   const tiers = Object.fromEntries(TIERS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, fromPercent(draft[key])]])))
   const { maxNames, stapleShare, stapleForeign } = draft
@@ -42,10 +44,16 @@ export const settingsBody = (draft: Draft): PanelSettings => {
     ...(stapleShare === undefined ? {} : { stapleShare: fromPercent(stapleShare) }),
     ...(stapleForeign === undefined ? {} : { stapleForeign: fromPercent(stapleForeign) }),
   }
-  const filters = {
-    ...Object.fromEntries(FILTER_COUNTS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, Number(draft[key])]]))),
-    ...(draft.aggregateFloor === undefined ? {} : { aggregateFloor: draft.aggregateFloor as Filters['aggregateFloor'] }),
-  }
+  const filters = Object.fromEntries(
+    FORMATS.flatMap((format) => {
+      const floor = draft[`${format}.aggregateFloor`]
+      const one = {
+        ...Object.fromEntries(FILTER_COUNTS.flatMap(({ key }) => (draft[`${format}.${key}`] === undefined ? [] : [[key, Number(draft[`${format}.${key}`])]]))),
+        ...(floor === undefined ? {} : { aggregateFloor: floor as Filters['aggregateFloor'] }),
+      }
+      return Object.keys(one).length ? [[format, one]] : []
+    }),
+  )
   return {
     ...(Object.keys(tiers).length ? { 'analytics.tiers': tiers } : {}),
     ...(Object.keys(classification).length ? { 'analytics.classification': classification } : {}),
@@ -79,9 +87,9 @@ export const SettingsPanel = () => {
   const [error, setError] = useState<string | null>(null)
   const tiers = { ...DEFAULT_TIERS, ...settings.data?.['analytics.tiers'] }
   const classification = { ...DEFAULT_CLASSIFICATION, ...settings.data?.['analytics.classification'] }
-  const filters = { ...DEFAULT_FILTERS, ...settings.data?.['analytics.filters'] }
+  const filtersOf = (format: Format): Filters => ({ ...DEFAULT_FILTERS, ...settings.data?.['analytics.filters']?.[format] })
   const set = (key: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((d) => ({ ...d, [key]: e.target.value }))
-  const bad = Object.entries(draft).some(([k, v]) => k !== 'aggregateFloor' && (v.trim() === '' || !Number.isFinite(Number(v))))
+  const bad = Object.entries(draft).some(([k, v]) => !k.endsWith('aggregateFloor') && (v.trim() === '' || !Number.isFinite(Number(v))))
 
   const save = () => {
     setError(null)
@@ -130,21 +138,29 @@ export const SettingsPanel = () => {
       </div>
       <fieldset className="flex flex-col gap-3">
         <legend className="pb-2 body-strong">Sample filters</legend>
-        <span className="text-sm leading-5.5 text-ink-dim">Which ranked games and decks the statistics count. Read at the next build.</span>
-        <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3 xl:grid-cols-5">
-          {FILTER_COUNTS.map(({ key, label, hint }) => (
-            <div key={key} className="flex flex-col gap-1">
-              <Field label={label} htmlFor={`filter-${key}`}>
-                <TextInput id={`filter-${key}`} inputMode="numeric" value={draft[key] ?? String(filters[key])} onChange={set(key)} />
-              </Field>
-              <span className="text-xs leading-5 text-ink-dim">{hint}</span>
+        <span className="text-sm leading-5.5 text-ink-dim">Which ranked games and decks the statistics count, per format: a season is filtered by its own. Read at the next build.</span>
+        {FORMATS.map((format) => {
+          const filters = filtersOf(format)
+          return (
+            <div key={format} className="flex flex-col gap-2">
+              <span className="body-strong">{format}</span>
+              <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3 xl:grid-cols-5">
+                {FILTER_COUNTS.map(({ key, label, hint }) => (
+                  <div key={key} className="flex flex-col gap-1">
+                    <Field label={label} htmlFor={`filter-${format}-${key}`}>
+                      <TextInput id={`filter-${format}-${key}`} inputMode="numeric" value={draft[`${format}.${key}`] ?? String(filters[key])} onChange={set(`${format}.${key}`)} />
+                    </Field>
+                    <span className="text-xs leading-5 text-ink-dim">{hint}</span>
+                  </div>
+                ))}
+                <div className="flex flex-col gap-1">
+                  <Select block label={`Aggregate floor (${format})`} value={draft[`${format}.aggregateFloor`] ?? filters.aggregateFloor} onChange={set(`${format}.aggregateFloor`)} options={[...BAND_NAMES]} />
+                  <span className="text-xs leading-5 text-ink-dim">The lowest tier in the “and up” band.</span>
+                </div>
+              </div>
             </div>
-          ))}
-          <div className="flex flex-col gap-1">
-            <Select block label="Aggregate floor" value={draft.aggregateFloor ?? filters.aggregateFloor} onChange={set('aggregateFloor')} options={[...BAND_NAMES]} />
-            <span className="text-xs leading-5 text-ink-dim">The lowest tier in the “and up” band.</span>
-          </div>
-        </div>
+          )
+        })}
         <Dropped />
       </fieldset>
       <div>

@@ -406,7 +406,10 @@ export const BAND_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'M
 export type Filters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: (typeof BAND_NAMES)[number] }
 export const DEFAULT_FILTERS: Filters = { minPlayerGames: 10, minListGames: 5, minKeyGames: 30, eloCap: 3000, aggregateFloor: 'Gold' }
 
-export type PanelSettings = { 'analytics.tiers'?: Partial<TierAnchors>; 'analytics.classification'?: Partial<Classification>; 'analytics.filters'?: Partial<Filters> }
+export const FORMATS = ['TCG', 'Genesys'] as const
+export type Format = (typeof FORMATS)[number]
+/** The filters are per format, each over the same defaults; a format left out keeps them all. */
+export type PanelSettings = { 'analytics.tiers'?: Partial<TierAnchors>; 'analytics.classification'?: Partial<Classification>; 'analytics.filters'?: Partial<Record<Format, Partial<Filters>>> }
 
 export const getSettings = (signal?: AbortSignal) => request<PanelSettings>('/panel/settings', { signal })
 
