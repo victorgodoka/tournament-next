@@ -1964,6 +1964,12 @@
       "cta": "See VIP perks"
     }
   },
+  "Maintenance": {
+    "eyebrow": "Maintenance",
+    "title": "This page is under maintenance",
+    "body": "We're working on it to keep the site stable. It'll be back soon.",
+    "home": "Back to home"
+  },
   "Statistics": {
     "infographic": {
       "label": "Infographic",
