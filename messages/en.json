@@ -1989,8 +1989,12 @@
       "window": "Period",
       "windows": { "season": "Whole season", "last7": "Last 7 days" },
       "band": "Rating band",
-      "allBands": "All ratings",
-      "bandOption": "{band} · {players} duelists"
+      "aggregateOption": "{floor} and up · {games} games",
+      "allOption": "All ratings · {games} games",
+      "bandOption": "{band} · {games} games",
+      "aggregateName": "Aggregate",
+      "allName": "All ratings",
+      "aggregateEmpty": "No games reach the aggregate band this season; showing all ratings."
     },
     "nav": {
       "aria": "Statistics sections",
@@ -2093,6 +2097,8 @@
       "title": "How it’s counted",
       "model": "Every game with a result fits one model: each deck has a strength, and the chance of winning a game depends on the two strengths, on who went first and on the rating gap. Strengths are pulled toward the ladder mean, so a deck with few games sits near the middle. The expected win rate is that strength against the field, weighted by share; its 95% interval is widened by how much the deck’s daily results move beyond chance. Tier reads the expected rate against fixed marks: T1 from 55%, T1.5 from 54%, T2 from 52.5%, T3 from 51%, T4 from 50%, none under 0.5% of the meta or 10 duelists.",
       "matchups": "A matchup starts from what the two strengths predict and moves toward the observed games only as far as the sample allows, so a pair with 20 games stays near its prediction. It is called favorable or unfavorable only when its interval excludes the prediction. Under {min} games a matchup is hidden unless you ask for it. A week is a block of 7 days from the season’s start; a deck is flagged as changed only past 3.5 standard errors.",
+      "bands": "A game belongs to one rating band: the one of its two players’ mean rating the day before, each capped at the rating cap, so a mismatched pair lands between them. The page opens on {floor} and up; All ratings holds every band from Bronze.",
+      "filters": "Left out this season: games of players with too few ranked games ({players}), games of one-off decklists ({lists}) and games whose mean rating is Iron ({iron}), of {total} games.",
       "caveats": "Read with care: after game 1 the loser picks who goes first, so turn order is only shown for game 1; a card’s effect compares lists with and without it, which is not the same as cutting it from your list; a deck whose games come from a handful of duelists carries their skill."
     },
     "jobs": {

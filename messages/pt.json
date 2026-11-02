@@ -1989,8 +1989,12 @@
       "window": "Período",
       "windows": { "season": "Temporada inteira", "last7": "Últimos 7 dias" },
       "band": "Faixa de rating",
-      "allBands": "Todos os ratings",
-      "bandOption": "{band} · {players} duelistas"
+      "aggregateOption": "{floor} ou mais · {games} jogos",
+      "allOption": "Todos os ratings · {games} jogos",
+      "bandOption": "{band} · {games} jogos",
+      "aggregateName": "Agregado",
+      "allName": "Todos os ratings",
+      "aggregateEmpty": "Nenhum jogo chega à faixa agregada nesta temporada; mostrando todos os ratings."
     },
     "nav": {
       "aria": "Seções das estatísticas",
@@ -2093,6 +2097,8 @@
       "title": "Como é contado",
       "model": "Todo game com resultado ajusta um único modelo: cada deck tem uma força, e a chance de vencer um game depende das duas forças, de quem foi primeiro e da diferença de rating. As forças são puxadas para a média do ladder, então um deck com poucos games fica perto do meio. O win rate esperado é essa força contra o campo, ponderada por share; o intervalo de 95% é alargado pelo quanto os resultados diários do deck oscilam além do acaso. O tier lê o esperado contra marcas fixas: T1 a partir de 55%, T1.5 de 54%, T2 de 52,5%, T3 de 51%, T4 de 50%, nenhum abaixo de 0,5% do meta ou de 10 duelistas.",
       "matchups": "Um matchup parte do que as duas forças preveem e só se move na direção dos games observados até onde a amostra permite, então um par com 20 games fica perto da previsão. Ele só é chamado de favorável ou desfavorável quando o intervalo exclui a previsão. Abaixo de {min} games o matchup fica oculto até você pedir. Uma semana é um bloco de 7 dias a partir do início da temporada; um deck só é marcado como mudado acima de 3,5 erros-padrão.",
+      "bands": "Um jogo pertence a uma faixa de rating: a da média dos ratings dos dois duelistas no dia anterior, cada um limitado ao teto de rating, então um par desigual cai entre as duas. A página abre em {floor} ou mais; Todos os ratings reúne todas as faixas a partir de Bronze.",
+      "filters": "Ficam de fora nesta temporada: jogos de duelistas com poucos jogos ranqueados ({players}), jogos de listas de uso único ({lists}) e jogos cuja média de rating é Iron ({iron}), de {total} jogos.",
       "caveats": "Leia com cuidado: depois do game 1 quem perdeu escolhe quem começa, por isso a ordem de turno só aparece para o game 1; o efeito de uma carta compara listas com e sem ela, o que não é o mesmo que tirá-la da sua lista; um deck cujos games vêm de poucos duelistas carrega a habilidade deles."
     },
     "jobs": {

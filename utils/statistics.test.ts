@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
+import { aggregateEmpty, bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -94,17 +94,28 @@ describe('families', () => {
 describe('scope', () => {
   it('sends the ladder, or the season over it, and the pickers off their defaults', () => {
     expect(scopeQuery({ ladder: 'tcg', window: 'last7', band: 'Gold' })).toBe('ladder=tcg&window=last7&band=Gold')
-    expect(scopeQuery({ ladder: 'tcg', season: 'tcg-2', window: 'season', band: 'all' })).toBe('season=tcg-2')
+    expect(scopeQuery({ ladder: 'tcg', season: 'tcg-2', window: 'season', band: 'aggregate' })).toBe('season=tcg-2')
+    expect(scopeQuery({ ladder: 'tcg', band: 'all' })).toBe('ladder=tcg&band=all')
   })
 
   it('reads the URL, dropping values the API would refuse', () => {
     expect(scopeFrom({ ladder: 'genesys', season: 'genesys-1', window: 'last7', band: 'Gold' })).toEqual({ ladder: 'genesys', season: 'genesys-1', window: 'last7', band: 'Gold' })
-    expect(scopeFrom({ ladder: 'x', window: 'year', band: 'Wood' })).toEqual({ ladder: 'tcg', season: undefined, window: 'season', band: 'all' })
-    expect(scopeFrom({ band: ['Gold', 'Iron'] }).band).toBe('all')
+    expect(scopeFrom({ ladder: 'x', window: 'year', band: 'Wood' })).toEqual({ ladder: 'tcg', season: undefined, window: 'season', band: 'aggregate' })
+    expect(scopeFrom({ band: ['Gold', 'Iron'] }).band).toBe('aggregate')
+    expect(scopeFrom({}).band).toBe('aggregate')
+    expect(scopeFrom({ band: 'Iron' }).band).toBe('aggregate')
+    expect(scopeFrom({ band: 'all' }).band).toBe('all')
+  })
+
+  it('calls the aggregate band empty on a 404 or a row with no games', () => {
+    expect(aggregateEmpty({ ok: false, status: 404 })).toBe(true)
+    expect(aggregateEmpty({ ok: true, data: { fit: { games: 0 } } })).toBe(true)
+    expect(aggregateEmpty({ ok: true, data: { fit: { games: 10 } } })).toBe(false)
+    expect(aggregateEmpty({ ok: false, status: 500 })).toBe(false)
   })
 
   it('keeps the scope on the links, the key URL-encoded', () => {
-    const scope = { ladder: 'tcg', window: 'last7', band: 'all' } as const
+    const scope = { ladder: 'tcg', window: 'last7', band: 'aggregate' } as const
     expect(statisticsHref(scope)).toBe('/statistics?ladder=tcg&window=last7')
     expect(deckHref('482>65537', scope)).toBe('/statistics/archetypes/482%3E65537?ladder=tcg&window=last7')
     expect(deckHref('482*', scope)).toBe('/statistics/archetypes/482*?ladder=tcg&window=last7')

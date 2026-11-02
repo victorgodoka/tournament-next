@@ -53,13 +53,16 @@ const IMAGE_SIZES = { wide: { width: 1920, height: 1080 }, tall: { width: 1080, 
 const MATCHUP_GAMES = { TCG: 300, Genesys: 80 }
 /** The API's tier anchors, in percent of expected win rate. */
 const ANCHORS: [Tier, number][] = [[1, 55], [1.5, 54], [2, 52.5], [3, 51], [4, 50]]
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+/** The tier list ranks on the aggregate band, pinned so a server default change can't move it. */
+const BAND = 'aggregate'
+const MONTHS =['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 /** Last issue's tiered decks by deck key. `rebuilt` marks the keys of the rebuilt statistics. */
 type Snapshot = {
   issue: string
   rebuilt?: true
-  ladders: Record<Ladder['label'], { season: string; decks: Record<string, { name: string; tier: number; share?: number }> }>
+  /** `band` and `floor` say which games the tiers were fitted on; tiers of another band or floor don't compare. */
+  ladders: Record<Ladder['label'], { season: string; band?: string; floor?: string; decks: Record<string, { name: string; tier: number; share?: number }> }>
 }
 
 const day = (iso: string) => {
@@ -294,7 +297,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
     heading('h-method', 2, 'How this tier list works', 'methodology'),
     text(
       'method',
-      `Every number comes from ranked games played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](${live}). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results, and the statistics page shows the same tiers.\n\n**Each deck gets an expected win rate.** One model reads every game of the season: each deck has a strength, and the chance of winning depends on the two strengths, on who went first and on the rating gap. A deck's expected win rate is its strength against the whole field, weighted by how much each deck is played, and a deck with few games is pulled toward the middle. A tier reads that rate against fixed marks:\n\n| Tier | Expected win rate |\n|---|---|\n${bands}\n\nDecks under the last mark stay outside the tiers. A deck needs at least ${MIN_SHARE * 100}% of the meta and ${MIN_PLAYERS} players to be ranked at all, because the model corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **The 95% interval** is the range the expected win rate is likely in, widened by how much the deck's daily results move beyond chance.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds.`,
+      `Every number comes from ranked games played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](${live}). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results, and the statistics page shows the same tiers.\n\n**Each deck gets an expected win rate.** One model reads the games of the season between players rated ${ladder.meta.fit.aggregateFloor} and up, after leaving out players with too few ranked games and one-off decklists: each deck has a strength, and the chance of winning depends on the two strengths, on who went first and on the rating gap. A deck's expected win rate is its strength against the whole field, weighted by how much each deck is played, and a deck with few games is pulled toward the middle. A tier reads that rate against fixed marks:\n\n| Tier | Expected win rate |\n|---|---|\n${bands}\n\nDecks under the last mark stay outside the tiers. A deck needs at least ${MIN_SHARE * 100}% of the meta and ${MIN_PLAYERS} players to be ranked at all, because the model corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **The 95% interval** is the range the expected win rate is likely in, widened by how much the deck's daily results move beyond chance.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds.`,
     ),
     {
       id: 'limits',
@@ -400,7 +403,7 @@ const eventRows = (ladder: Ladder) => {
 /** `null` without a comparable issue: no snapshot yet, the season changed under it, or it predates the rebuilt keys. */
 const tierChanges = (ladder: Ladder, previous: Snapshot | null) => {
   const before = previous?.rebuilt ? previous.ladders[ladder.label] : null
-  if (!before || before.season !== ladder.meta.season.code) return null
+  if (!before || before.season !== ladder.meta.season.code || before.band !== BAND || before.floor !== ladder.meta.fit.aggregateFloor) return null
   const now = new Map(ladder.decks.map((deck) => [deck.key, deck]))
   const label = (tier?: number | null) => (tier ? `Tier ${tier}` : 'Unranked')
   const keys = new Set([...Object.keys(before.decks), ...tiered(ladder).map((deck) => deck.key)])
@@ -546,6 +549,8 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
 const snapshotOf = (issue: string, ladders: Ladder[]): Snapshot => {
   const of = (ladder: Ladder) => ({
     season: ladder.meta.season.code,
+    band: BAND,
+    floor: ladder.meta.fit.aggregateFloor,
     decks: Object.fromEntries(tiered(ladder).map((deck) => [deck.key, { name: name(deck), tier: deck.tier ?? 0, share: deck.share }])),
   })
   const [tcg, genesys] = ladders as [Ladder, Ladder]
@@ -577,11 +582,11 @@ const read = async <T>(path: string): Promise<T> => {
 }
 
 const load = async (label: Ladder['label'], prefix: Ladder['prefix']): Promise<Ladder> => {
-  const meta = await read<Meta>(`/statistics/meta?ladder=${prefix}`)
+  const meta = await read<Meta>(`/statistics/meta?ladder=${prefix}&band=${BAND}`)
   const decks = listed(meta)
   const ladder: Ladder = { label, prefix, meta, decks, families: families(meta.decks), answers: new Map() }
   const wanted = [...new Set([...tiered(ladder), ...risers(ladder).slice(0, 5).flatMap((m) => (m.deck ? [m.deck] : []))])]
-  for (const deck of wanted) ladder.answers.set(deck.key, await read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(deck.key)}?ladder=${prefix}`))
+  for (const deck of wanted) ladder.answers.set(deck.key, await read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(deck.key)}?ladder=${prefix}&band=${BAND}`))
   return ladder
 }
 

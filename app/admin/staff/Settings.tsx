@@ -3,12 +3,22 @@
 import { useState } from 'react'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
-import { Field, TextInput } from '@ui/field'
+import { Field, Select, TextInput } from '@ui/field'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { useResource } from '@hooks/index'
-import { timeLabel } from '@utils/format'
-import { DEFAULT_CLASSIFICATION, DEFAULT_TIERS, getSettings, panelErrorText, updateSettings, type Classification, type PanelSettings, type TierAnchors } from '@utils/panel'
+import { count, timeLabel } from '@utils/format'
+import { BAND_NAMES, DEFAULT_CLASSIFICATION, DEFAULT_FILTERS, DEFAULT_TIERS, getSettings, panelErrorText, updateSettings, type Classification, type Filters, type PanelSettings, type TierAnchors } from '@utils/panel'
+import { getMeta } from '@utils/statistics'
+import type { RankedLadderId } from '@utils/types'
+
+const LADDERS: RankedLadderId[] = ['tcg', 'genesys']
+const FILTER_COUNTS: { key: 'minPlayerGames' | 'minListGames' | 'minKeyGames' | 'eloCap'; label: string; hint: string }[] = [
+  { key: 'minPlayerGames', label: 'Player games', hint: 'Ranked games a player needs in the season; a game is out unless both players reach it. 0 turns it off.' },
+  { key: 'minListGames', label: 'List games', hint: 'Games a decklist needs to count. 0 turns it off.' },
+  { key: 'minKeyGames', label: 'Deck games', hint: 'Games a deck key needs to get a row. 0 turns it off.' },
+  { key: 'eloCap', label: 'Rating cap', hint: 'Each rating is capped here before the pair’s mean sets the game’s band.' },
+]
 
 const TIERS: { key: keyof TierAnchors; label: string }[] = [
   { key: 't1', label: 'Tier 1' },
@@ -21,7 +31,7 @@ const TIERS: { key: keyof TierAnchors; label: string }[] = [
 const toPercent = (rate: number) => String(Number((rate * 100).toFixed(2)))
 const fromPercent = (text: string) => Number(text) / 100
 /** Edits in progress, as typed; a field without one shows the stored value. */
-type Draft = Partial<Record<keyof TierAnchors | keyof Classification, string>>
+type Draft = Partial<Record<keyof TierAnchors | keyof Classification | keyof Filters, string>>
 
 /** What the form holds, with the percent fields back in rates. A field left alone isn't sent. */
 export const settingsBody = (draft: Draft): PanelSettings => {
@@ -32,10 +42,34 @@ export const settingsBody = (draft: Draft): PanelSettings => {
     ...(stapleShare === undefined ? {} : { stapleShare: fromPercent(stapleShare) }),
     ...(stapleForeign === undefined ? {} : { stapleForeign: fromPercent(stapleForeign) }),
   }
+  const filters = {
+    ...Object.fromEntries(FILTER_COUNTS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, Number(draft[key])]]))),
+    ...(draft.aggregateFloor === undefined ? {} : { aggregateFloor: draft.aggregateFloor as Filters['aggregateFloor'] }),
+  }
   return {
     ...(Object.keys(tiers).length ? { 'analytics.tiers': tiers } : {}),
     ...(Object.keys(classification).length ? { 'analytics.classification': classification } : {}),
+    ...(Object.keys(filters).length ? { 'analytics.filters': filters } : {}),
   }
+}
+
+/** Games each filter dropped on the latest build of each ladder's season; none until a build has them. */
+const Dropped = () => {
+  const ladders = useResource('settings-dropped', () => Promise.all(LADDERS.map((ladder) => getMeta({ ladder, window: 'season', band: 'all' }))))
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="body-strong">What the filters drop</span>
+      {LADDERS.map((ladder, i) => {
+        const r = ladders.data?.[i]
+        const d = r?.ok ? r.data.fit.dropped : null
+        return (
+          <span key={ladder} className="text-sm leading-5.5 text-ink-dim">
+            {ladder}: {!ladders.data ? '…' : d ? `${count(d.players)} by player floor, ${count(d.lists)} by list floor, ${count(d.iron)} Iron, of ${count(d.total)} games` : 'no build yet'}
+          </span>
+        )
+      })}
+    </div>
+  )
 }
 
 export const SettingsPanel = () => {
@@ -45,8 +79,9 @@ export const SettingsPanel = () => {
   const [error, setError] = useState<string | null>(null)
   const tiers = { ...DEFAULT_TIERS, ...settings.data?.['analytics.tiers'] }
   const classification = { ...DEFAULT_CLASSIFICATION, ...settings.data?.['analytics.classification'] }
-  const set = (key: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement>) => setDraft((d) => ({ ...d, [key]: e.target.value }))
-  const bad = Object.values(draft).some((v) => v.trim() === '' || !Number.isFinite(Number(v)))
+  const filters = { ...DEFAULT_FILTERS, ...settings.data?.['analytics.filters'] }
+  const set = (key: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((d) => ({ ...d, [key]: e.target.value }))
+  const bad = Object.entries(draft).some(([k, v]) => k !== 'aggregateFloor' && (v.trim() === '' || !Number.isFinite(Number(v))))
 
   const save = () => {
     setError(null)
@@ -93,6 +128,25 @@ export const SettingsPanel = () => {
           </div>
         </fieldset>
       </div>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="pb-2 body-strong">Sample filters</legend>
+        <span className="text-sm leading-5.5 text-ink-dim">Which ranked games and decks the statistics count. Read at the next build.</span>
+        <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3 xl:grid-cols-5">
+          {FILTER_COUNTS.map(({ key, label, hint }) => (
+            <div key={key} className="flex flex-col gap-1">
+              <Field label={label} htmlFor={`filter-${key}`}>
+                <TextInput id={`filter-${key}`} inputMode="numeric" value={draft[key] ?? String(filters[key])} onChange={set(key)} />
+              </Field>
+              <span className="text-xs leading-5 text-ink-dim">{hint}</span>
+            </div>
+          ))}
+          <div className="flex flex-col gap-1">
+            <Select block label="Aggregate floor" value={draft.aggregateFloor ?? filters.aggregateFloor} onChange={set('aggregateFloor')} options={[...BAND_NAMES]} />
+            <span className="text-xs leading-5 text-ink-dim">The lowest tier in the “and up” band.</span>
+          </div>
+        </div>
+        <Dropped />
+      </fieldset>
       <div>
         <Button size="mono-md" disabled={bad || !Object.keys(draft).length} onClick={save}>Save settings</Button>
       </div>

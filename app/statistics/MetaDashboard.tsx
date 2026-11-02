@@ -7,8 +7,9 @@ import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
 import { Skeleton } from '@omega/analytics/primitives'
 import { InfographicLinks } from '@omega/infographic/infographic-links'
-import { infographicHrefs, MIN_MATCHUP_GAMES, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
+import { getMeta, infographicHrefs, MIN_MATCHUP_GAMES, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
 import { Pickers } from './Pickers'
+import { num } from './shared'
 import { BestAgainst } from './dashboard/BestAgainst'
 import { HowToBeat } from './dashboard/HowToBeat'
 import { MeSection } from './dashboard/MeOrTheDeck'
@@ -24,13 +25,17 @@ type MetaDashboardProps = {
   scope: Scope
   seasons: Season[]
   result: Result<Meta>
+  /** The aggregate band had no games, so `all` is shown instead. */
+  fellBack?: boolean
 }
 
 /** /statistics: the pickers, then one section per question a ranked player asks, then how it's counted. */
-export const MetaDashboard = async ({ scope, seasons, result }: MetaDashboardProps) => {
+export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDashboardProps) => {
   const t = await getTranslations('Statistics')
   const locale = await getLocale()
   const meta = result.ok ? result.data : null
+  // The filter counts live on the `all` band's fit; one more cached request when another band is shown.
+  const dropped = meta ? (meta.band === 'all' ? meta.fit : (await getMeta({ ...scope, band: 'all' }).then((r) => (r.ok ? r.data.fit : null))))?.dropped : null
   const season = meta?.season
   const shown = season ? { ...scope, ladder: season.ladder } : scope
   const status = result.ok ? null : result.status
@@ -58,12 +63,13 @@ export const MetaDashboard = async ({ scope, seasons, result }: MetaDashboardPro
           ) : null}
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} />
+          <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
           <span className="flex flex-wrap gap-4 font-mono text-xs text-ink-muted">
             {season?.sweptThrough ? <span>{t('header.synced', { date: date(season.sweptThrough) })}</span> : null}
             <Link href={`/statistics/activity?ladder=${shown.ladder}`} className="text-cyan hover:underline">{t('header.activity')}</Link>
           </span>
         </div>
+        {fellBack ? <p className="text-sm text-ink-dim">{t('pickers.aggregateEmpty')}</p> : null}
       </header>
 
       {!meta ? (
@@ -97,6 +103,8 @@ export const MetaDashboard = async ({ scope, seasons, result }: MetaDashboardPro
             <Panel title={t('method.title')}>
               <div className="flex max-w-3xl flex-col gap-3 text-sm text-ink-dim">
                 <p>{t('method.model')}</p>
+                <p>{t('method.bands', { floor: meta?.fit.aggregateFloor })}</p>
+                {dropped ? <p>{t('method.filters', { players: num(dropped.players), lists: num(dropped.lists), iron: num(dropped.iron), total: num(dropped.total) })}</p> : null}
                 <p>{t('method.matchups', { min: MIN_MATCHUP_GAMES })}</p>
                 <p>{t('method.caveats')}</p>
               </div>
