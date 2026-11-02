@@ -328,6 +328,10 @@ export const startAnalyticsSync = (range: { from?: string; to?: string; ladder?:
 /** Every open season from its first day to yesterday, both formats. `409 NOTHING_TO_REBUILD` before any day. */
 export const rebuildOpenSeasons = () => request<{ status: Dispatch; from: string; to: string }>('/panel/analytics/sync/rebuild', json('POST', {}))
 
+/** No sweep: reclassifies the open seasons' stored decks with the rules of now and rebuilds their answers and sample decks. */
+export const buildOpenSeasons = (ladder?: RankedLadderId) =>
+  request<{ status: Dispatch; ladder: RankedLadderId | null }>('/panel/analytics/sync/build', json('POST', ladder ? { ladder } : {}))
+
 /* ---------------------------------------------------------------- *
  * Deck classification (section 9) — decks, ignored setcodes, staples
  * ---------------------------------------------------------------- */

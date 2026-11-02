@@ -12,7 +12,7 @@ import { SectionHead } from '@ui/section-head'
 import { Segmented } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { count, dayTime, timeLabel } from '@utils/format'
-import { getAnalyticsSync, panelErrorText, rebuildOpenSeasons, startAnalyticsSync, type AnalyticsRun, type Dispatch } from '@utils/panel'
+import { buildOpenSeasons, getAnalyticsSync, panelErrorText, rebuildOpenSeasons, startAnalyticsSync, type AnalyticsRun, type Dispatch } from '@utils/panel'
 import { LADDERS } from '@utils/ranked'
 import type { RankedLadderId } from '@utils/types'
 
@@ -45,7 +45,8 @@ const JobPage = () => {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [ladder, setLadder] = useState<RankedLadderId | ''>('')
-  const [notice, setNotice] = useState<{ status: Dispatch; from: string; to: string } | null>(null)
+  // A build-only run has no days: no from/to, and the sweep status it would watch doesn't move.
+  const [notice, setNotice] = useState<{ status: Dispatch; from?: string; to?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [watching, setWatching] = useState(false)
 
@@ -66,13 +67,13 @@ const JobPage = () => {
     return () => clearTimeout(timer)
   }, [watching])
 
-  const start = (request: Promise<{ status: Dispatch; from: string; to: string }>) => {
+  const start = (request: Promise<{ status: Dispatch; from?: string; to?: string }>) => {
     setError(null)
     setNotice(null)
     request.then(
       (answer) => {
         setNotice(answer)
-        if (answer.status === 'dispatched') setWatching(true)
+        if (answer.status === 'dispatched' && answer.from) setWatching(true)
       },
       (e) => setError(panelErrorText(e)),
     )
@@ -89,7 +90,7 @@ const JobPage = () => {
       {sync.error ? <Alert tone="negative" title="Couldn't read the job">{panelErrorText(sync.error)}</Alert> : null}
       {error ? <Alert tone="negative" title="Not started">{error}</Alert> : null}
       {notice?.status === 'dispatched' ? (
-        <Alert tone="positive" title={`Dispatched ${notice.from} → ${notice.to}`}>The runner takes 1 to 2 minutes to start; runs queue one at a time.</Alert>
+        <Alert tone="positive" title={notice.from ? `Dispatched ${notice.from} → ${notice.to}` : 'Dispatched a rebuild of the statistics, no sweep'}>The runner takes 1 to 2 minutes to start; runs queue one at a time.</Alert>
       ) : null}
       {notice?.status === 'unavailable' ? (
         <Alert tone="negative" title="Nothing started">The API has no dispatch token, so only the nightly run covers yesterday.</Alert>
@@ -141,6 +142,13 @@ const JobPage = () => {
           <p className="text-sm leading-5.5 text-ink-dim">Sweeps every open season from its first day to yesterday, both formats. A closed season is only refitted when a range covers its last day.</p>
           <div>
             <Button variant="secondary" size="mono-md" onClick={() => start(rebuildOpenSeasons())}>Rebuild open seasons</Button>
+          </div>
+          <SectionHead compact num="03">Reclassify only</SectionHead>
+          <p className="text-sm leading-5.5 text-ink-dim">
+            Sweeps nothing: reclassifies the open seasons&apos; decks with the current Series, staples, ignored setcodes and settings, then rebuilds the statistics and sample decks. Minutes instead of hours. Uses the Format picked for the job (both by default).
+          </p>
+          <div>
+            <Button variant="secondary" size="mono-md" onClick={() => start(buildOpenSeasons(ladder || undefined))}>Reclassify open seasons</Button>
           </div>
         </Panel>
       </div>
