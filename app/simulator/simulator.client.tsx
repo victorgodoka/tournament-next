@@ -14,10 +14,10 @@ import type { SharedCombo } from '@utils/combos'
 import { chainAt, destroyedBy, initial, isMonsterSlot, kindsIn, nextPhase, shuffleAction, stepCards, timeline, validRun } from '@utils/simulator/board'
 import { comboSession } from '@utils/simulator/combo'
 import { draftStorage, writeDraft } from '@utils/simulator/draft'
-import { dropAction, placeOptions, type PlaceKind, type Placing, type Stance } from '@utils/simulator/drop'
+import { dropAction, placeOptions, type PlaceKind, type Stance } from '@utils/simulator/drop'
 import { sessionReducer } from '@utils/simulator/session'
 import { LIMITS } from '@utils/simulator/types'
-import type { Action, MonsterSlot, Pile, Session, ZoneId } from '@utils/simulator/types'
+import type { Action, How, MonsterSlot, Pile, Session, ZoneId } from '@utils/simulator/types'
 import { BoardView, DragGhost, FLIP_MS } from './board'
 import { bootSession, type Boot } from './boot'
 import { CardMenu } from './card-menu'
@@ -157,7 +157,7 @@ const Loaded = ({ boot }: { boot: Boot }) => {
   /** Target mode: the card being activated and the cards picked so far. Menus and drag are off until it is confirmed or cancelled. */
   const [targeting, setTargeting] = useState<{ source: number; targets: number[] } | null>(null)
   /** A card being brought into play, and where it can go: the board asks for the zone. Menus and drag are off until it answers. */
-  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions>; targets: boolean } | null>(null)
+  const [placing, setPlacing] = useState<{ card: number; options: ReturnType<typeof placeOptions> } | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   /** The piles (and the monster slots, for their Xyz materials) whose windows are open, in the order they were opened. */
   const [piles, setPiles] = useState<(Pile | MonsterSlot)[]>([])
@@ -387,20 +387,15 @@ const Loaded = ({ boot }: { boot: Boot }) => {
     return !data || data.kind === 'monster' ? 'monster' : data.humanReadableCardType === 'Field Spell' ? 'fieldSpell' : 'spell'
   }
   /** Asks for the zone of a card coming into play. With none free there is nothing to ask. */
-  const place = (card: number, how: Placing, stance?: Stance, targets = false) => {
+  const place = (card: number, how: How, stance?: Stance) => {
     const options = placeOptions(board, card, how, placeKind(card), stance)
-    if (options.length) setPlacing({ card, options, targets })
+    if (options.length) setPlacing({ card, options })
   }
-  /** A double-click: a Spell or Trap in the hand activates on the field, as its menu does; anything else activates where it is. */
-  const activateCard = (id: number) => {
-    if (board.zones.hand.includes(id) && placeKind(id) !== 'monster') place(id, 'activate')
-    else perform([{ t: 'activate', card: id, targets: [] }])
-  }
+  /** A double-click: the card activates where it is. */
+  const activateCard = (id: number) => perform([{ t: 'activate', card: id, targets: [] }])
   const placeAt = (zone: ZoneId) => {
     const option = placing?.options.find((one) => one.zone === zone)
-    // With targets to pick, the card lands now and its activation waits for them.
-    if (option) perform(placing?.targets ? option.actions.slice(0, 1) : option.actions)
-    if (option && placing?.targets) setTargeting({ source: placing.card, targets: [] })
+    if (option) perform([option.action])
     setPlacing(null)
   }
   const confirmTargets = () => {

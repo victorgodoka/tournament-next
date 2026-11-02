@@ -44,8 +44,6 @@ export function dropAction(board: Board, card: number, zone: ZoneId | null, shif
   return isValid(board, action) ? action : null
 }
 
-/** How the menu brings a card into play: summoned or set, or a Spell or Trap played face-up and activated. */
-export type Placing = How | 'activate'
 /** What decides where a card can stand. */
 export type PlaceKind = 'monster' | 'spell' | 'fieldSpell'
 /** The position a Special Summon comes in: the other ways into play have one of their own. */
@@ -55,14 +53,10 @@ const MAIN_ZONES: ZoneId[] = ['m0', 'm1', 'm2', 'm3', 'm4']
 const BACK_ZONES: ZoneId[] = ['s0', 's1', 's2', 's3', 's4']
 
 /** Every empty zone the card can come into play on, and what playing it there logs. Only a Special Summon reaches the Extra Monster Zones. */
-export function placeOptions(board: Board, card: number, how: Placing, kind: PlaceKind, stance?: Stance): { zone: ZoneId; actions: Action[] }[] {
+export function placeOptions(board: Board, card: number, how: How, kind: PlaceKind, stance?: Stance): { zone: ZoneId; action: Action }[] {
   const zones = kind === 'fieldSpell' ? (['field'] as ZoneId[]) : kind === 'spell' ? BACK_ZONES : how === 'special' ? [...MAIN_ZONES, 'emz0' as const, 'emz1' as const] : MAIN_ZONES
   return zones.flatMap((zone) => {
-    const move: Action =
-      how === 'activate' ? { t: 'move', card, to: zone }
-      : how === 'set' ? { t: 'move', card, to: zone, face: 'down', ...(kind === 'monster' && { pos: 'def' as const }), how }
-      : { t: 'move', card, to: zone, how, ...stance }
-    if (board.zones[zone].length || !isValid(board, move)) return []
-    return [{ zone, actions: how === 'activate' ? [move, { t: 'activate', card, targets: [] }] : [move] }]
+    const action: Action = how === 'set' ? { t: 'move', card, to: zone, face: 'down', ...(kind === 'monster' && { pos: 'def' as const }), how } : { t: 'move', card, to: zone, how, ...stance }
+    return board.zones[zone].length || !isValid(board, action) ? [] : [{ zone, action }]
   })
 }

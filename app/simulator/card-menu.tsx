@@ -6,9 +6,9 @@ import { Icon } from '@ui/icon'
 import { CardTile } from '@app/deck-builder/card-tile'
 import type { CardData } from '@utils/deck/types'
 import { apply, isMonsterSlot, isSlot, isValid, locate, shuffleAction } from '@utils/simulator/board'
-import type { Placing, Stance } from '@utils/simulator/drop'
+import type { Stance } from '@utils/simulator/drop'
 import { LIMITS, PLAIN } from '@utils/simulator/types'
-import type { Action, Board, Face, MonsterSlot, Pos, ZoneId } from '@utils/simulator/types'
+import type { Action, Board, Face, How, MonsterSlot, Pos, ZoneId } from '@utils/simulator/types'
 
 export type CardMenuProps = {
   board: Board
@@ -29,8 +29,8 @@ export type CardMenuProps = {
   onClose(): void
   /** The card's data, when it loaded: the head of the menu, and what it can be played as. An unknown card is offered as a monster. */
   data?: CardData
-  /** Brings the card into play: the board then asks for the zone, and with `targets` for what a Spell or Trap activates on. */
-  onPlace(card: number, how: Placing, stance?: Stance, targets?: boolean): void
+  /** Brings the card into play: the board then asks for the zone. */
+  onPlace(card: number, how: How, stance?: Stance): void
 }
 
 /** One item: it opens a submenu (`sub`), runs a callback, or performs actions; the last two close the menu. */
@@ -109,9 +109,9 @@ const MenuList = ({ label, entries, from, at, expanded, onChoose, onHover, onKey
 
 /**
  * What a card can do, moves from zone to zone left to dragging. Opens at `at` with the first item focused; the card's name
- * heads the list, and what brings it into play comes first: from the hand a monster's Normal Summon, Special Summon, Activate
- * Effect and Set or a Spell or Trap's Activate and Set; from a pile a monster's Special Summon or a Spell or Trap's Activate
- * and Set. Everything ends on Send to, Destroy and Shuffle into Deck.
+ * heads the list, and what brings it into play comes first: from the hand a monster's Normal Summon, Special Summon and Set;
+ * from a pile a monster's Special Summon; from either a Spell or Trap's Set. Activate leaves the card where it is, wherever
+ * that is. Everything ends on Send to, Destroy and Shuffle into Deck.
  *
  * A submenu opens beside its item as the pointer rests on it; a tap or a click opens it too, for a finger and for the keyboard.
  * Arrows move between items, right and left in and out of a submenu; Escape, a pointer down outside or choosing an item closes
@@ -170,8 +170,7 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
   const slot = where.zone
   const monsterCard = !data || data.kind === 'monster'
   const inHand = where.zone === 'hand'
-  const inPile = !isSlot(where.zone) && !inHand
-  const place = (key: Placing, label: string): Entry => ({ key, label, run: () => onPlace(card, key) })
+  const place = (key: How, label: string): Entry => ({ key, label, run: () => onPlace(card, key) })
   const stance = (key: string, label: string, face: Face, pos: Pos): Entry => ({ key, label, run: () => onPlace(card, 'special', { face, pos }) })
   const special: Entry = {
     key: 'special',
@@ -183,28 +182,20 @@ export const CardMenu = ({ board, card, at, kinds, extra, onAct, onTargets, onNe
       stance('specialSet', t('menu.specialSet'), 'down', 'def'),
     ],
   }
+  /** Wherever the card is, it activates there. */
   const activate: Entry = {
     key: 'activate',
-    label: t('menu.activate'),
+    label: t(monsterCard ? 'menu.activate' : 'menu.play'),
     sub: [
       { key: 'activateNow', label: t('menu.activateNow'), actions: [{ t: 'activate', card, targets: [] }] },
       { key: 'activateTargets', label: t('menu.activateTargets'), run: () => onTargets(card) },
     ],
   }
-  /** A Spell or Trap played from off the field: on the field first, then activated at once or with its targets. */
-  const play: Entry = {
-    key: 'play',
-    label: t('menu.play'),
-    sub: [
-      { key: 'playNow', label: t('menu.activateNow'), run: () => onPlace(card, 'activate') },
-      { key: 'playTargets', label: t('menu.activateTargets'), run: () => onPlace(card, 'activate', undefined, true) },
-    ],
-  }
   const plays: Entry[] =
-    inHand ? (monsterCard ? [place('normal', t('menu.normal')), special, activate, place('set', t('menu.set'))] : [play, place('set', t('menu.set'))])
-    : !inPile ? [activate]
-    : monsterCard ? [special, activate]
-    : [play, place('set', t('menu.set')), activate] // the effect it has where it lies, as in the GY
+    isSlot(where.zone) ? [activate]
+    : !monsterCard ? [activate, place('set', t('menu.set'))]
+    : inHand ? [place('normal', t('menu.normal')), special, activate, place('set', t('menu.set'))]
+    : [special, activate]
 
   /** The plain counter first, then the kinds on offer and any the card already carries. */
   const every = [PLAIN, ...new Set([...kinds, ...Object.keys(state.counters)].filter((kind) => kind !== PLAIN))]

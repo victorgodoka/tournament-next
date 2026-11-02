@@ -1409,53 +1409,56 @@ describe('Simulator bringing a card into play', () => {
       await wait(0)
     }
 
-    it('offers Activate and Set, and activating puts it on the field', async () => {
+    it('offers Activate and Set, and activating leaves it in the hand', async () => {
       await start()
-      await rightClick(hand()[0]!)
+      const card = hand()[0]!
+      await rightClick(card)
       expect(names()).toEqual(['menu.play', 'menu.set', 'menu.sendTo', 'menu.destroy', 'menu.shuffleDeck'])
       await choose('menu.play')
       expect(names()).toEqual(['menu.activateNow', 'menu.activateTargets'])
       await choose('menu.activateNow')
-      expect(picks()).toEqual(['zones.s0', 'zones.s1', 'zones.s2', 'zones.s3', 'zones.s4'])
-      await click('zones.s0')
-      expect(cardsIn('s0')).toHaveLength(1)
-      expect(cardsIn('s0')[0]!.getAttribute('data-active')).not.toBeNull()
+      expect(picks()).toEqual([])
+      expect(hand()).toHaveLength(5)
+      expect(card.dataset.active).toBe('true')
+      expect(steps().at(-1)).toBe('history.activate')
     })
 
-    it('activating with targets lands it first, then picks them, and the activation points at them', async () => {
+    it('activating with targets picks them from where it lies', async () => {
       await start()
       await rightClick(hand()[0]!)
       await choose('menu.set')
       await click('zones.s1')
       const field = cardsIn('s1')[0]!
-      await rightClick(hand()[0]!)
+      const source = hand()[0]!
+      await rightClick(source)
       await choose('menu.play')
       await choose('menu.activateTargets')
-      await click('zones.s0')
-      const source = cardsIn('s0')[0]!
-      const before = steps().length // the card has landed; the activation waits for its targets
       await mouseClick(field)
       await click('targets.confirm')
-      expect(steps()).toHaveLength(before + 1)
-      expect(source.getAttribute('data-active')).not.toBeNull()
+      expect(hand()).toHaveLength(4)
+      expect(source.dataset.active).toBe('true')
       expect(field.getAttribute('data-targeted')).not.toBeNull()
     })
 
-    it('a Spell from a pile offers Activate and Set besides the effect it has there', async () => {
+    it('a Spell in a pile activates where it lies, and can still be Set', async () => {
       await start()
       await discard()
       await rightClick(within(await openPile('gy')).getAllByRole('button')[0]!)
-      expect(names().slice(0, 3)).toEqual(['menu.play', 'menu.set', 'menu.activate'])
+      expect(names().slice(0, 2)).toEqual(['menu.play', 'menu.set'])
       await choose('menu.play')
       await choose('menu.activateNow')
-      expect(picks()).toHaveLength(5)
+      expect(picks()).toEqual([])
+      expect(cardsIn('s0')).toHaveLength(0)
+      expect(steps().at(-1)).toBe('history.activate')
+      expect(within(screen.getByRole('list', { name: 'zones.gy' })).getAllByRole('button')).toHaveLength(1)
     })
 
-    it('a double-click asks for the zone too, and never activates it in the hand', async () => {
+    it('a double-click activates it in the hand, as Activate does', async () => {
       await start()
       await act(async () => void fireEvent.doubleClick(hand()[0]!))
-      expect(picks()).toHaveLength(5)
+      expect(picks()).toEqual([])
       expect(hand()).toHaveLength(5)
+      expect(steps().at(-1)).toBe('history.activate')
     })
   })
 })
