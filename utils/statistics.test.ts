@@ -94,17 +94,21 @@ describe('families', () => {
 describe('scope', () => {
   it('sends the ladder, or the season over it, and the pickers off their defaults', () => {
     expect(scopeQuery({ ladder: 'tcg', window: 'last7', band: 'Gold' })).toBe('ladder=tcg&window=last7&band=Gold')
-    expect(scopeQuery({ ladder: 'tcg', season: 'tcg-2', window: 'season', band: 'all' })).toBe('season=tcg-2')
+    expect(scopeQuery({ ladder: 'tcg', season: 'tcg-2', window: 'season', band: 'aggregate' })).toBe('season=tcg-2')
+    expect(scopeQuery({ ladder: 'tcg', band: 'all' })).toBe('ladder=tcg&band=all')
   })
 
   it('reads the URL, dropping values the API would refuse', () => {
     expect(scopeFrom({ ladder: 'genesys', season: 'genesys-1', window: 'last7', band: 'Gold' })).toEqual({ ladder: 'genesys', season: 'genesys-1', window: 'last7', band: 'Gold' })
-    expect(scopeFrom({ ladder: 'x', window: 'year', band: 'Wood' })).toEqual({ ladder: 'tcg', season: undefined, window: 'season', band: 'all' })
-    expect(scopeFrom({ band: ['Gold', 'Iron'] }).band).toBe('all')
+    expect(scopeFrom({ ladder: 'x', window: 'year', band: 'Wood' })).toEqual({ ladder: 'tcg', season: undefined, window: 'season', band: 'aggregate' })
+    expect(scopeFrom({ band: ['Gold', 'Iron'] }).band).toBe('aggregate')
+    expect(scopeFrom({}).band).toBe('aggregate')
+    expect(scopeFrom({ band: 'Iron' }).band).toBe('aggregate')
+    expect(scopeFrom({ band: 'all' }).band).toBe('all')
   })
 
   it('keeps the scope on the links, the key URL-encoded', () => {
-    const scope = { ladder: 'tcg', window: 'last7', band: 'all' } as const
+    const scope = { ladder: 'tcg', window: 'last7', band: 'aggregate' } as const
     expect(statisticsHref(scope)).toBe('/statistics?ladder=tcg&window=last7')
     expect(deckHref('482>65537', scope)).toBe('/statistics/archetypes/482%3E65537?ladder=tcg&window=last7')
     expect(deckHref('482*', scope)).toBe('/statistics/archetypes/482*?ladder=tcg&window=last7')

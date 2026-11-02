@@ -142,7 +142,7 @@ export const DeckPage = ({ answer, season, scope, names }: { answer: DeckAnswer;
               </div>
               {byBand.map((b) => (
                 <div key={b.band} role="row" className={ROW} style={{ gridTemplateColumns: BAND_COLS }}>
-                  <span role="cell" className="font-bold text-ink">{b.band === 'all' ? tRoot('pickers.allBands') : b.band}</span>
+                  <span role="cell" className="font-bold text-ink">{b.band === 'all' ? tRoot('pickers.allName') : b.band === 'aggregate' ? tRoot('pickers.aggregateName') : b.band}</span>
                   <span role="cell" className={NUM}>{num(b.games)}</span>
                   <span role="cell" className={NUM}>{pct(b.wrExpected)}</span>
                   <span role="cell" className={NUM}>{range(b.wrLo, b.wrHi)}</span>

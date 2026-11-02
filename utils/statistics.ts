@@ -26,18 +26,18 @@ export type Window = 'season' | 'last7'
 export type Scope = { ladder: RankedLadderId; season?: string; window: Window; band: string }
 export type StatisticsScope = Pick<Scope, 'ladder' | 'season'> & Partial<Scope>
 
-export const BANDS = ['all', 'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Omega'] as const
+export const BANDS = ['aggregate', 'all', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Omega'] as const
 
 /** `searchParams` to a scope; anything the API would answer 400 to is the default. */
 export const scopeFrom = (q: { ladder?: string | string[]; season?: string | string[]; window?: string | string[]; band?: string | string[] }): Scope => ({
   ladder: q.ladder === 'genesys' ? 'genesys' : 'tcg',
   season: typeof q.season === 'string' && q.season ? q.season : undefined,
   window: q.window === 'last7' ? 'last7' : 'season',
-  band: (BANDS as readonly unknown[]).includes(q.band) ? (q.band as string) : 'all',
+  band: (BANDS as readonly unknown[]).includes(q.band) ? (q.band as string) : 'aggregate',
 })
 
-export const scopeQuery = ({ ladder, season, window = 'season', band = 'all' }: StatisticsScope) =>
-  new URLSearchParams({ ...(season ? { season } : { ladder }), ...(window === 'season' ? {} : { window }), ...(band === 'all' ? {} : { band }) }).toString()
+export const scopeQuery = ({ ladder, season, window = 'season', band = 'aggregate' }: StatisticsScope) =>
+  new URLSearchParams({ ...(season ? { season } : { ladder }), ...(window === 'season' ? {} : { window }), ...(band === 'aggregate' ? {} : { band }) }).toString()
 
 export const statisticsHref = (scope: StatisticsScope) => `/statistics?${scopeQuery(scope)}`
 /** `*` stays readable in the path; `>` goes as %3E. */
@@ -45,7 +45,9 @@ export const deckHref = (key: string, scope: StatisticsScope) => `/statistics/ar
 export const cardHref = (id: number, scope: StatisticsScope) => `/statistics/cards/${id}?${scopeQuery(scope)}`
 
 export type Season = { id: number; code: string; ladder: RankedLadderId; label: string; startsAt: string; endsAt: string | null; sweptThrough: string | null }
-export type Fit = { band: string; players: number; games: number; decks: number; firstEffect: number; ratingEffect: number; matchupStrength: number; cardStrength: number; phiMedian: number; builtAt: string }
+/** Games each filter removed (on the `all` band only), and the aggregate band's floor tier. */
+export type Dropped = { players: number; lists: number; iron: number; total: number }
+export type Fit = { band: string; players: number; games: number; decks: number; firstEffect: number; ratingEffect: number; matchupStrength: number; cardStrength: number; phiMedian: number; builtAt: string; dropped: Dropped | null; aggregateFloor: string }
 
 export type DeckStat = {
   /** `''` unknown, `A`, `A>B` (A leads) or `A*` (every key A leads, summed). Use it as the id; `name` is only the label. */
@@ -122,7 +124,7 @@ export type CardStat = {
 
 export type AgainstCard = { id: number; name: string | null; games: number; rate: number; winRate: number | null }
 
-export type Meta = { season: Season; window: Window; band: string; bands: { band: string; players: number }[]; fit: Fit; decks: DeckStat[]; weeks: Week[] }
+export type Meta = { season: Season; window: Window; band: string; bands: { band: string; games: number }[]; fit: Fit; decks: DeckStat[]; weeks: Week[] }
 export type DeckAnswer = { deck: DeckStat; matchups: Matchup[]; cards: CardStat[]; weeks: Week[]; byBand: (DeckStat & { band: string })[]; against: AgainstCard[]; sampleDeck: SampleDeck | null }
 export type CardAnswer = { card: { id: number; name: string | null; extra: boolean }; all: CardStat; byDeck: CardStat[] }
 
