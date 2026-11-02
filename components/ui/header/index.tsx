@@ -66,7 +66,7 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
         onClick={() => setIsOpen((open) => !open)}
         className={twMerge(CELL, "cursor-pointer gap-2.5 px-3.75", isOpen ? "bg-surface-400 text-ink" : "text-ink hover:bg-surface-300")}
       >
-        <Avatar name={name} src={user.profile.avatarUrl} cosmetics={user.cosmetics} size="sm" />
+        <Avatar name={name} src={user.profile.avatarUrl} cosmetics={user.cosmetics} size="sm" eager />
 
 
         <span className="hidden text-left sm:block">
