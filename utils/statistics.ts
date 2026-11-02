@@ -146,6 +146,34 @@ export const MIN_MATCHUP_GAMES = 100
 /** The decks proper: `A*` rows repeat the games of the keys they sum, and `''` is nobody's deck. */
 export const plainDecks = <D extends { key: string }>(decks: readonly D[]): D[] => decks.filter((d) => d.key && !d.key.endsWith('*'))
 
+/** The card that leads a key: `''` for the unknown, `A` for `A`, `A>B` and `A*`. */
+export const leadOf = (key: string) => key.split(/[>*]/)[0]!
+
+export type Family = { family: DeckStat; members: DeckStat[] }
+
+/** One family per `A*` row, most played first, with the plain keys A leads (most played first); a family may have no members. */
+export const families = (decks: readonly DeckStat[]): Family[] => {
+  const byShare = [...decks].sort((a, b) => b.share - a.share)
+  return byShare.filter((d) => d.key.endsWith('*')).map((family) => ({ family, members: plainDecks(byShare).filter((d) => leadOf(d.key) === leadOf(family.key)) }))
+}
+
+export type ShareWeek = Pick<Week, 'key' | 'week' | 'firstDay' | 'games' | 'share'>
+
+/** The weeks of each family: its members' rows summed per week, under the `A*` key; a week no member played has no row. */
+export const familyWeeks = (weeks: readonly Week[], list: readonly Family[]): ShareWeek[] =>
+  list.flatMap(({ family, members }) => {
+    const keys = new Set(members.map((m) => m.key))
+    const sums = new Map<number, ShareWeek>()
+    for (const w of weeks) {
+      if (!keys.has(w.key)) continue
+      const sum = sums.get(w.week) ?? { key: family.key, week: w.week, firstDay: w.firstDay, games: 0, share: 0 }
+      sum.games += w.games
+      sum.share += w.share
+      sums.set(w.week, sum)
+    }
+    return [...sums.values()]
+  })
+
 /** The deck with the best share-weighted adjusted rate against the `top` most played; one missing any of them doesn't count. */
 export const bestAgainst = (decks: readonly DeckStat[], matchups: readonly Matchup[], top = 5): { key: string; wr: number } | null => {
   const played = [...decks].sort((a, b) => b.share - a.share).slice(0, top)
@@ -183,10 +211,10 @@ export const weekBand = ({ wrExpected, se }: Pick<Week, 'wrExpected' | 'se'>) =>
 export const CORE_RATE = 0.8
 export const coreFlex = <C extends Pick<CardStat, 'inclusion'>>(cards: readonly C[]) => ({ core: cards.filter((c) => c.inclusion >= CORE_RATE), flex: cards.filter((c) => c.inclusion < CORE_RATE) })
 
-const lastWeek = (weeks: readonly Week[]) => Math.max(0, ...weeks.map((w) => w.week))
+const lastWeek = (weeks: readonly Pick<Week, 'week'>[]) => Math.max(0, ...weeks.map((w) => w.week))
 
 /** The biggest share moves of the last week against the one before; a deck in only one of them doesn't count. */
-export const shareMoves = (weeks: readonly Week[], top = 5) => {
+export const shareMoves = (weeks: readonly Pick<Week, 'key' | 'week' | 'share'>[], top = 5) => {
   const last = lastWeek(weeks)
   const before = new Map(weeks.filter((w) => w.week === last - 1).map((w) => [w.key, w.share]))
   const moves = weeks.flatMap((w) => {
