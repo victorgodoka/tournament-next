@@ -62,16 +62,17 @@ export const mono: CSSProperties = { fontFamily: F.mono, letterSpacing: 2, textT
 /** The largest art any infographic draws. Every 624 px original goes into the SVG whole otherwise: a 50-deck board peaked at 300 MB instead of 150. */
 const ART_WIDTH = 320
 
-export const toDataUri = async (url: string, width?: number): Promise<string | null> => {
+/** A timeout or a server error tries once more, so one slow file on a big board doesn't leave its tile blank. */
+export const toDataUri = async (url: string, width?: number, retry = true): Promise<string | null> => {
   try {
     // A day in the data cache: art never changes, and the origin takes seconds per file.
     const res = await fetch(url, { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
+    if (!res.ok) return res.status >= 500 && retry ? toDataUri(url, width, false) : null
     const file = Buffer.from(await res.arrayBuffer())
     if (width) return `data:image/jpeg;base64,${(await sharp(file).resize({ width, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer()).toString('base64')}`
     return `data:${res.headers.get('content-type') ?? 'image/jpeg'};base64,${file.toString('base64')}`
   } catch {
-    return null
+    return retry ? toDataUri(url, width, false) : null
   }
 }
 
