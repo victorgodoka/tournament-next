@@ -2396,6 +2396,187 @@
     }
   },
   "PlayerStatistics": {
+    "my": {
+      "breadcrumb": "Navegação",
+      "statistics": "Estatísticas",
+      "head": {
+        "private": "Só você vê esta página",
+        "lede": "Como você joga comparado a um duelista médio com os seus decks, os seus oponentes e a sua ordem de turno.",
+        "rating": "Rating {ladder}",
+        "opponents": "Média dos oponentes"
+      },
+      "filters": {
+        "ladder": "Ladder",
+        "season": "Temporada",
+        "period": "Período",
+        "whole": "Temporada inteira",
+        "last7": "Últimos 7 dias",
+        "note": "A temporada {label} começou {date}.",
+        "updated": "Atualizado <time></time>.",
+        "summary": "{ladder} · Temporada {season} · {period}",
+        "edit": "Editar",
+        "done": "Pronto"
+      },
+      "tabs": {
+        "label": "Seções",
+        "overview": "Visão geral",
+        "decks": "Meus decks",
+        "matchups": "Matchups",
+        "progress": "Progresso"
+      },
+      "verdict": {
+        "above": "Acima do esperado",
+        "below": "Abaixo do esperado",
+        "unclear": "Ainda incerto",
+        "aboveShort": "Acima",
+        "belowShort": "Abaixo",
+        "unclearShort": "Incerto"
+      },
+      "cols": {
+        "games": "Games",
+        "you": "Você",
+        "expected": "Esperado",
+        "gapAxis": "Diferença, de menos 20 a mais 20 pontos",
+        "gap": "Dif.",
+        "verdict": "Veredito"
+      },
+      "overview": {
+        "eyebrow": "Você contra um piloto médio",
+        "headline": {
+          "above": "À frente do piloto médio",
+          "below": "Atrás do piloto médio",
+          "unclear": "Empatado, por enquanto",
+          "few": "Cedo demais para dizer"
+        },
+        "body": "Você venceu <b>{you}</b> de {n} games comparados. Um piloto médio nos mesmos games teria vencido <b>{exp}</b>.",
+        "bodyShort": "Você venceu <b>{you}</b> de {n} games comparados. Um piloto médio teria vencido <b>{exp}</b>.",
+        "gap": {
+          "unclear": "A diferença de <g>{gap} pts</g> ainda está dentro do intervalo, então pode ser sorte.",
+          "above": "A diferença de <g>{gap} pts</g> sai do intervalo.",
+          "below": "A diferença de <g>{gap} pts</g> sai do intervalo.",
+          "few": "A diferença de <g>{gap} pts</g> vem de poucos games demais para concluir."
+        },
+        "gapShort": {
+          "unclear": "A diferença de <g>{gap} pts</g> ainda pode ser sorte.",
+          "above": "A diferença de <g>{gap} pts</g> sai do intervalo.",
+          "below": "A diferença de <g>{gap} pts</g> sai do intervalo.",
+          "few": "Poucos games para concluir sobre <g>{gap} pts</g>."
+        },
+        "carries": "{best} te carrega.",
+        "pulls": "{worst} te puxa para trás.",
+        "axisLow": "−10 pts",
+        "axisMid": "Piloto médio",
+        "axisHigh": "+10 pts",
+        "axisLowShort": "−10",
+        "axisMidShort": "Médio",
+        "axisHighShort": "+10",
+        "interval": "Intervalo de 95% <b>{lo} a {hi}</b>",
+        "intervalShort": "Intervalo <b>{lo} a {hi}</b>",
+        "wins": "<g>{wins} vitórias</g> em {n} games",
+        "winsShort": "<g>{wins} vitórias</g>",
+        "summary": {
+          "label": "Resumo da temporada",
+          "games": "Games",
+          "matches": "Partidas",
+          "rate": "Seu win rate",
+          "rateNote": "Games comparados",
+          "expected": "Esperado",
+          "expectedNote": "Piloto médio, mesmos games",
+          "benchmarked": "Comparados",
+          "recordOnly": "{n} games contam só no histórico",
+          "recordOnlyShort": "{n} games comparados. {rest} contam só no seu histórico."
+        },
+        "highlights": {
+          "bestDeck": "Seu melhor deck",
+          "worstDeck": "Seu deck mais fraco",
+          "bestOpponent": "Melhor matchup",
+          "toughestOpponent": "Matchup mais difícil",
+          "meta": "{games} games · {you} vs {exp}",
+          "games": "{games} games",
+          "pts": "{gap} pts",
+          "allDecks": "Todos os seus decks",
+          "allMatchups": "Todos os matchups"
+        },
+        "other": "Outros decks",
+        "turn": {
+          "title": "Ordem de turno, game 1",
+          "first": "Indo primeiro",
+          "second": "Indo segundo",
+          "row": "{you} vs <e>{exp}</e> · {n} games",
+          "none": "Nenhum game ainda",
+          "note": "Só o game 1. Depois dele, quem perdeu escolhe quem começa."
+        },
+        "method": {
+          "title": "Como isto é medido",
+          "expected": "<b>Esperado</b> é o que um duelista médio venceria em cada um dos seus games: mesmo deck, mesmo deck do oponente, mesma ordem de turno, mesmo rating do oponente. O seu rating fica de fora, então o número mede como você pilota.",
+          "verdict": "<b>Acima</b> ou <b>abaixo</b> só aparece quando o intervalo sai do esperado. Poucos games deixam o intervalo largo.",
+          "benchmarked": "Games <b>comparados</b> têm tudo de que o modelo precisa. Os outros continuam contando no seu histórico."
+        }
+      },
+      "decks": {
+        "title": "Meus decks",
+        "lede": "Cada deck que você jogou, o seu resultado ao lado do que um piloto médio faz com ele nos mesmos games.",
+        "ledeShort": "Seu resultado com cada deck ao lado do de um piloto médio nos mesmos games.",
+        "table": "Seus decks",
+        "deck": "Deck",
+        "record": "{w}–{l}–{d} em games",
+        "matches": "{n} partidas",
+        "games": "{n} games",
+        "legendPilot": "Piloto médio",
+        "legendGap": "Sua diferença, colorida quando o intervalo passa da linha",
+        "mirrors": "Games de espelho contam no seu histórico; neles o esperado só pesa ordem de turno e rating.",
+        "legendShort": "Linha dourada: piloto médio. Barras de −20 a +20 pts.",
+        "contribTitle": "De onde vem a diferença",
+        "contribLede": "Vitórias acima ou abaixo do piloto médio, por deck. Somam o seu {sum}.",
+        "contribLedeShort": "Vitórias acima ou abaixo do piloto médio. Somam {sum}."
+      },
+      "matchups": {
+        "title": "Matchups",
+        "lede": "Como você vai contra cada deck, ao lado do que um piloto médio faz nos mesmos games.",
+        "ledeShort": "Como você vai contra cada deck, ao lado de um piloto médio.",
+        "playing": "Jogando",
+        "all": "Todos os seus decks",
+        "table": "Seus matchups",
+        "opponent": "Oponente",
+        "other": "Outros decks",
+        "mirrors": "Inclui {n} games de espelho",
+        "share": "{share} do meta",
+        "rogue": "Decks rogue, {n} diferentes",
+        "games": "{n} games",
+        "empty": "Ainda não há matchups comparados nesta escolha.",
+        "note": "Outros decks junta oponentes raros demais no ladder para ter força própria. Eles são comparados ao deck rogue médio do ladder.",
+        "noteShort": "Outros decks são comparados ao deck rogue médio do ladder."
+      },
+      "progress": {
+        "title": "Progresso",
+        "lede": "Se você está se afastando do piloto médio ao longo da temporada.",
+        "ledeShort": "Se você se afasta do piloto médio ao longo da temporada.",
+        "runTitle": "Vitórias acima do esperado, game a game",
+        "runTitleShort": "Vitórias acima do esperado",
+        "now": "Agora <g>{wins}</g> após {n} games",
+        "runAria": "Total acumulado de vitórias acima do piloto médio, terminando em {wins} após {n} games.",
+        "runNote": "A linha sobe quando você vence games que um piloto médio perderia. As linhas tracejadas separam as semanas da temporada.",
+        "weeks": "Por semana",
+        "weeksAria": "Seu resultado por semana",
+        "cols": {
+          "week": "Semana",
+          "games": "Games",
+          "you": "Você",
+          "expected": "Esperado",
+          "gap": "Dif."
+        },
+        "week": "Semana {n}",
+        "since": "Desde {day}",
+        "games": "{n} games",
+        "weeksNote": "As semanas são os blocos de 7 dias da temporada, os mesmos do Meta.",
+        "rating": "Rating {ladder}",
+        "ratingDelta": "<b>{elo}</b> · <g>{delta}</g> nesta temporada",
+        "ratingNow": "<b>{elo}</b>",
+        "ratingAria": "Rating {ladder} de {from} a {to} ao longo da temporada",
+        "ratingNote": "O rating sobe e desce com vitórias e derrotas. A linha acima tira quem você enfrentou e o que você jogou.",
+        "noRating": "Ainda não há histórico de rating nesta temporada."
+      }
+    },
     "infographic": {
       "label": "Infográfico",
       "wide": "16:9",
@@ -2408,7 +2589,7 @@
       "notFound": "Perfil não encontrado",
       "unknown": "Duelista desconhecido",
       "title": "{name} · Estatísticas",
-      "description": "Estatísticas de ranked e torneios de {name}: Elo, decks, matchups e partidas recentes."
+      "description": "Estatísticas ranqueadas de {name} contra um piloto médio nos mesmos games: decks, matchups e progresso."
     },
     "unknown": "Duelista desconhecido",
     "tabs": { "label": "Seções do perfil", "profile": "Perfil", "statistics": "Estatísticas" },

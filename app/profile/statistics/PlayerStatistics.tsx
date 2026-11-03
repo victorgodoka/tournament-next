@@ -1,93 +1,69 @@
-import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
-import { twMerge } from "tailwind-merge";
+import { getTranslations } from "next-intl/server";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { AvatarFrame } from "@ui/avatar";
-import { TierBadge } from "@ui/tier-badge";
 import { EmptyBox } from "@omega/profile/empty-box";
 import { PrivateNotice } from "@omega/profile/private-notice";
-import { Skeleton } from "@omega/analytics/primitives";
-import { getPlayerStatistics, infographicHrefs } from "@utils/statistics";
-import { getPlayerTournamentStats } from "@utils/tournaments";
-import type { Match, Profile, RankedLadderId } from "@utils/types";
-import { RankedDashboard, type LadderStanding } from "./RankedDashboard";
+import { AdBanner } from "@omega/ads/ad-banner";
+import { getPlayerStatistics, type PlayerPeriod } from "@utils/statistics";
+import type { Profile, RankedLadderId, Tier } from "@utils/types";
+import { MySections } from "./MySections";
+import { PlayerFilters } from "./PlayerFilters";
 import { standingOf } from "./insights";
-import { StatisticsFilters } from "./StatisticsFilters";
-import { TournamentSummary } from "./TournamentSummary";
-import { TournamentReport } from "./TournamentReport";
-import { InfographicLinks } from "@omega/infographic/infographic-links";
 
-export type SeasonChoice = { code: string; label: string; format: 'TCG' | 'Genesys'; open: boolean }
+export type SeasonChoice = { code: string; label: string; format: 'TCG' | 'Genesys'; open: boolean; startsAt?: string }
 
 /** Every season the duelist has a record in, played ladders first; an unplayed ladder offers its open season. */
 export const seasonChoices = (profile: Extract<Profile, { isPrivate: false }>): SeasonChoice[] => {
   const played = profile.ladders.flatMap((ladder) =>
-    ladder.played ? ladder.seasons.map(({ code, label, open }) => ({ code, label, open, format: ladder.format })) : [],
+    ladder.played ? ladder.seasons.map(({ code, label, open, startsAt }) => ({ code, label, open, startsAt, format: ladder.format })) : [],
   )
   const unplayed = profile.currentSeasons
     .filter(({ format }) => !played.some((choice) => choice.format === format))
-    .map(({ code, label, format }) => ({ code, label, format, open: true }))
+    .map(({ code, label, format, startsAt }) => ({ code, label, format, open: true, startsAt }))
   return [...played, ...unplayed]
 }
 
-/** Ranked: one season or every season of a ladder. Tournaments: one format or all, a param of its own. */
-export type StatisticsSelection = { view: 'ranked' | 'tournaments'; season?: string; ladder: RankedLadderId; tournamentFormat?: string }
+/** One season (or a ladder's newest) and a period, all in the URL. */
+export type StatisticsSelection = { season?: string; ladder: RankedLadderId; period: PlayerPeriod }
 
 const LADDER: Record<RankedLadderId, 'TCG' | 'Genesys'> = { tcg: 'TCG', genesys: 'Genesys' }
-
-const Loading = ({ label }: { label: string }) => <Skeleton rows={6} label={label} />
-
-/** The slow part (a few seconds cold): streamed behind a skeleton so the head and the filters paint at once. */
-const RankedBody = async ({ profileId, selection, standing, matches, cookie }: {
-  profileId: string
-  selection: StatisticsSelection
-  standing: LadderStanding | null
-  matches: Match[]
-  cookie: string | null
-}) => {
-  const t = await getTranslations('PlayerStatistics')
-  const result = await getPlayerStatistics(profileId, selection, cookie)
-  if (!result.ok) {
-    if (result.status === 403) return <PrivateNotice />
-    return <EmptyBox title={result.status === 404 ? t('errors.noSeason') : t('errors.title')}>{result.status === 404 ? t('errors.noSeasonBody') : t('errors.body')}</EmptyBox>
-  }
-  if (!result.data.record.games) return <EmptyBox title={t('errors.noGames')}>{t('errors.noGamesBody')}</EmptyBox>
-  return <RankedDashboard data={result.data} standing={standing} matches={matches} profileId={profileId} />
+const TIER_COLOR: Record<Tier, string> = {
+  Iron: 'var(--color-tier-iron)', Bronze: 'var(--color-tier-bronze)', Silver: 'var(--color-tier-silver)', Gold: 'var(--color-tier-gold)',
+  Platinum: 'var(--color-tier-platinum)', Diamond: 'var(--color-tier-diamond)', Master: 'var(--color-tier-master)', Omega: 'var(--color-tier-omega)',
 }
+/** The rating with a space for thousands: 1 842. */
+const elo = (v: number) => String(v).replace(/(\d)(\d{3})$/, '$1 $2')
+const WIDE = 'max-[719px]:hidden'
+const NARROW = 'min-[720px]:hidden'
 
-const TournamentBody = async ({ profileId, format, base, cookie }: { profileId: string; format?: string; base: string; cookie: string | null }) => {
-  const t = await getTranslations('PlayerStatistics')
-  const data = await getPlayerTournamentStats(profileId, cookie, format).catch(() => null)
-  if (!data) return <EmptyBox title={t('errors.tournaments')}>{t('errors.body')}</EmptyBox>
-  const href = (f?: string) => `${base}?${new URLSearchParams({ view: 'tournaments', ...(f ? { format: f } : {}) })}`
-  return (
-    <>
-      {data.formats.length ? (
-        <nav aria-label={t('tournaments.format')} className="flex flex-wrap items-center gap-2">
-          <Chip href={href()} on={!format}>{t('tournaments.allFormats')}</Chip>
-          {data.formats.map((f) => (
-            <Chip key={f.format} href={href(f.format)} on={f.format === format}>{f.format} · {f.tournaments}</Chip>
-          ))}
-        </nav>
-      ) : null}
-      <TournamentReport data={data} />
-    </>
-  )
-}
-
-const Chip = ({ href, on, children }: { href: string; on: boolean; children: React.ReactNode }) => (
-  <Link
-    href={href}
-    aria-current={on ? 'page' : undefined}
-    scroll={false}
-    className={twMerge('inline-flex min-h-9 items-center gap-2 border px-3 signal-chip', on ? 'border-cyan bg-ground-cyan text-cyan' : 'border-line text-ink-dim hover:border-cyan hover:text-cyan')}
-  >
-    {children}
-  </Link>
+const Lock = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--color-ink-muted)" aria-hidden><path d="M12 2a5 5 0 0 0-5 5v3H5v12h14V10h-2V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3z" /></svg>
 )
+
+const TierChip = ({ tier, small }: { tier: Tier; small?: boolean }) => (
+  <span
+    style={{ '--edge': TIER_COLOR[tier], color: TIER_COLOR[tier] } as React.CSSProperties}
+    className="cut inline-flex h-7 items-center gap-2 px-3 font-mono text-[11px] font-bold tracking-[0.14em] uppercase [--cut:var(--cut-xs)] [--fill:var(--color-surface-100)]"
+  >
+    <span aria-hidden className={small ? 'size-1.75 rotate-45' : 'size-2 rotate-45'} style={{ background: TIER_COLOR[tier] }} />
+    {tier}
+  </span>
+)
+
+const Avatar = ({ profile, size, name }: { profile: Profile; size: 96 | 64; name: string }) =>
+  profile.avatar ? (
+    <span className="relative flex-none border-3 border-space-000 bg-surface-100" style={{ width: size, height: size }}>
+      <Image src={profile.avatar} alt="" fill sizes={`${size}px`} className="object-cover" />
+      <AvatarFrame cosmetics={profile.cosmetics} />
+    </span>
+  ) : (
+    <span aria-hidden style={{ width: size, height: size }} className={`inline-flex flex-none items-center justify-center bg-azure font-display text-ink ${size === 96 ? 'text-5xl' : 'text-[32px]'}`}>
+      {name.charAt(0).toUpperCase()}
+    </span>
+  )
 
 type PlayerStatisticsProps = {
   profile: Profile
@@ -96,102 +72,101 @@ type PlayerStatisticsProps = {
   cookie: string | null
 }
 
+/** /profile/[id]/statistics: My statistics, owner only, the duelist against an average pilot in the same games. */
 export const PlayerStatistics = async ({ profile, choices, selection, cookie }: PlayerStatisticsProps) => {
   const t = await getTranslations('PlayerStatistics')
-  const tIg = await getTranslations("Infographic.profile")
-  const locale = await getLocale()
+  const tm = await getTranslations('PlayerStatistics.my')
   const name = profile.displayName ?? profile.handle ?? t('unknown')
   const base = `/profile/${profile.id}/statistics`
   // Owner-only, even on a public profile: only the self profile carries `visibility`. The API checks too.
   const visible = !profile.isPrivate && profile.visibility !== undefined ? profile : null
-  const standing = visible ? standingOf(visible, selection) : null
   const format = LADDER[selection.ladder]
-  // The profile's first page of ranked matches, this format only (the history mixes both ladders).
-  const matches = visible ? (visible.matches ?? []).filter((m) => m.format.toLowerCase().includes(format.toLowerCase())) : []
+  const result = visible && choices.length ? await getPlayerStatistics(profile.id, selection, cookie) : null
+  const data = result?.ok ? result.data : null
+  const pick = data?.season ? { ladder: data.season.ladder, season: data.season.code } : selection
+  const standing = visible ? standingOf(visible, pick) : null
+  const opponents = data?.opponentRating ?? null
 
   return (
     <>
       <Header />
-      <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16 pb-[clamp(56px,7vw,96px)]">
-        <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-gutter pt-8">
-          {/* Compact head: who, the two tabs, and the rank of the pick */}
-          <header className="flex flex-wrap items-center gap-5 border-b border-line pb-5">
-            {profile.avatar ? (
-              <div className="relative size-16 shrink-0 border-3 border-space-000 bg-surface-100 shadow-lift">
-                <Image src={profile.avatar} alt="" fill sizes="64px" className="object-cover" />
-                <AvatarFrame cosmetics={profile.cosmetics} />
+      <main id="top" data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16">
+        <div className="mx-auto flex w-full max-w-page flex-col gap-7 px-gutter pt-8 pb-24 max-[719px]:gap-5 max-[719px]:pt-5 max-[719px]:pb-16">
+          <nav aria-label={tm('breadcrumb')} className={`flex items-center gap-2.5 ${WIDE}`}>
+            <Link href={`/profile/${profile.id}`} className="text-cyan signal-strong hover:text-ink">{name}</Link>
+            <span aria-hidden className="text-ink-muted signal">/</span>
+            <span aria-current="page" className="text-ink signal-strong">{tm('statistics')}</span>
+          </nav>
+
+          {/* Desktop head: avatar, private note, name and tier, lede, rating tiles */}
+          <section className={`cut notch flex flex-wrap items-center gap-x-8 gap-y-6 p-7 [--cut:var(--cut-lg)] [--edge:var(--color-line-mid)] [--fill:var(--color-surface-100)] ${WIDE}`}>
+            <Avatar profile={profile} size={96} name={name} />
+            <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-2.5">
+              <div className="flex items-center gap-2"><Lock size={14} /><span className="text-ink-muted signal">{tm('head.private')}</span></div>
+              <div className="flex flex-wrap items-center gap-4">
+                <h1 className="m-0 font-display text-5xl leading-none text-ink uppercase">{name}</h1>
+                {standing ? <TierChip tier={standing.tier} /> : null}
               </div>
-            ) : null}
-            <div className="flex min-w-0 flex-col">
-              <h1 className="truncate text-ink display-2">{name}</h1>
-              {profile.handle ? <span className="text-ink-muted signal-sm">@{profile.handle}</span> : null}
+              <p className="m-0 max-w-170 text-lg leading-7 text-ink-dim">{tm('head.lede')}</p>
             </div>
-            <nav aria-label={t('tabs.label')} className="flex gap-1">
-              <Link href={`/profile/${profile.id}`} className="inline-flex min-h-10 items-center px-4 text-ink-dim signal hover:text-cyan">{t('tabs.profile')}</Link>
-              <span aria-current="page" className="inline-flex min-h-10 items-center border-b-2 border-cyan px-4 text-cyan signal">{t('tabs.statistics')}</span>
-            </nav>
             {standing ? (
-              <div className="ml-auto flex items-center gap-3">
-                <TierBadge tier={standing.tier} size="lg" />
-                <span className="flex flex-col text-right">
-                  <span className="text-ink-muted signal-sm">{t('currentRank', { format })}</span>
-                  <span className="font-mono text-sm text-ink">{standing.rank ? `#${standing.rank}` : '—'} · {standing.elo}</span>
-                </span>
+              <div className="grid grid-cols-[repeat(2,minmax(120px,auto))] gap-px border border-line bg-line">
+                <div className="flex flex-col gap-1.5 bg-surface-200 px-4.5 py-3.5">
+                  <span className={`signal-sm ${format === 'TCG' ? 'text-ladder-tcg' : 'text-ladder-genesys'}`}>{tm('head.rating', { ladder: format })}</span>
+                  <span className="font-display text-[28px] leading-none text-ink">{elo(standing.elo)}</span>
+                </div>
+                <div className="flex flex-col gap-1.5 bg-surface-200 px-4.5 py-3.5">
+                  <span className="text-ink-muted signal-sm">{tm('head.opponents')}</span>
+                  <span className="font-display text-[28px] leading-none text-ink">{opponents !== null ? elo(opponents) : '–'}</span>
+                </div>
               </div>
             ) : null}
-          </header>
+          </section>
+
+          {/* Phone head */}
+          <section className={`flex flex-col gap-3 ${NARROW}`}>
+            <div className="flex items-center gap-3.5">
+              <Avatar profile={profile} size={64} name={name} />
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <h1 className="m-0 truncate font-display text-[32px] leading-none text-ink uppercase">{name}</h1>
+                {standing ? (
+                  <div className="flex items-center gap-2.5">
+                    <TierChip tier={standing.tier} small />
+                    <span className="text-xs leading-4 font-medium text-ink-muted"><span className={format === 'TCG' ? 'text-ladder-tcg' : 'text-ladder-genesys'}>{format}</span> {elo(standing.elo)}</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-2"><Lock size={12} /><span className="text-ink-muted signal-sm">{tm('head.private')}</span></div>
+          </section>
 
           {profile.isPrivate ? (
             <PrivateNotice />
           ) : !visible ? (
             <EmptyBox title={t('errors.ownerOnly')}>{t('errors.ownerOnlyBody')}</EmptyBox>
+          ) : !choices.length ? (
+            <EmptyBox title={t('errors.noSeason')}>{t('errors.noRanked')}</EmptyBox>
           ) : (
             <>
-              {/* One row of tabs for the whole page: TCG, Genesys (ranked) and Tournaments. */}
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <h2 className="display-3">{selection.view === 'tournaments' ? t('tournaments.title') : t('ranked')}</h2>
-                <StatisticsFilters
-                  base={base}
-                  choices={choices}
-                  season={selection.season}
-                  ladder={selection.ladder}
-                  view={selection.view}
-                  keep={selection.tournamentFormat ? { format: selection.tournamentFormat } : {}}
-                />
-              </div>
-              {/* Owner's own numbers as PNGs to share: the same pick as on screen. */}
-              <InfographicLinks
-                label={t('infographic.label')}
-                hint={t('infographic.hint')}
-                busy={t('infographic.busy')}
-                failed={t('infographic.failed')}
-                sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
-                items={(selection.view === 'tournaments' ? (['tournaments'] as const) : (['overview', 'decks', 'matchups'] as const)).map((section) => ({
-                  label: tIg(`sections.${section}`),
-                  file: `${profile.handle ?? profile.id}-${section}`,
-                  hrefs: infographicHrefs(`${base}/infographic/${section}`, {
-                    ...(selection.view === 'tournaments'
-                      ? selection.tournamentFormat ? { format: selection.tournamentFormat } : {}
-                      : selection.season ? { season: selection.season } : { ladder: selection.ladder }),
-                    locale,
-                  }),
-                }))}
+              <PlayerFilters
+                base={base}
+                choices={choices}
+                season={pick.season}
+                ladder={pick.ladder}
+                period={selection.period}
+                startsAt={data?.season?.startsAt ?? choices.find((c) => c.code === pick.season)?.startsAt ?? null}
+                builtAt={data?.benchmark?.builtAt ?? null}
               />
-              {selection.view === 'tournaments' ? (
-                <section aria-label={t('tournaments.title')} className="flex flex-col gap-5">
-                  <TournamentSummary tournaments={profile.tournaments} />
-                  <Suspense key={selection.tournamentFormat ?? ''} fallback={<Loading label={t('loadingTournaments')} />}>
-                    <TournamentBody profileId={profile.id} format={selection.tournamentFormat} base={base} cookie={cookie} />
-                  </Suspense>
-                </section>
-              ) : !choices.length ? (
-                <EmptyBox title={t('errors.noSeason')}>{t('errors.noRanked')}</EmptyBox>
+              {!result?.ok ? (
+                result?.status === 403 ? <PrivateNotice /> : (
+                  <EmptyBox title={result?.status === 404 ? t('errors.noSeason') : t('errors.title')}>{result?.status === 404 ? t('errors.noSeasonBody') : t('errors.body')}</EmptyBox>
+                )
+              ) : !data!.record.games ? (
+                <EmptyBox title={t('errors.noGames')}>{t('errors.noGamesBody')}</EmptyBox>
               ) : (
-                // Keyed by the pick so switching streams a fresh skeleton instead of holding the old numbers.
-                <Suspense key={selection.season ?? selection.ladder} fallback={<Loading label={t('loadingRanked')} />}>
-                  <RankedBody profileId={profile.id} selection={selection} standing={standing} matches={matches} cookie={cookie} />
-                </Suspense>
+                <MySections data={data!} ladder={format} history={standing?.eloHistory ?? []} />
               )}
+              <AdBanner id="ad-profile-bottom" placement="content" className={`mx-auto w-full max-w-[728px] pt-2 ${WIDE}`} />
             </>
           )}
         </div>

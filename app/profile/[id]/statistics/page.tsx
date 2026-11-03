@@ -5,7 +5,7 @@ import { PlayerStatistics, seasonChoices, type StatisticsSelection } from '@app/
 import { getProfile } from '@utils/profile'
 import { pageMetadata } from '@utils/metadata'
 
-type Query = { view?: string | string[]; season?: string | string[]; ladder?: string | string[]; format?: string | string[] }
+type Query = { season?: string | string[]; ladder?: string | string[]; period?: string | string[] }
 type StatisticsRouteProps = {
   params: Promise<{ id: string }>
   searchParams: Promise<Query>
@@ -41,18 +41,16 @@ const StatisticsRoute = async ({ params, searchParams }: StatisticsRouteProps) =
 
   const choices = profile.isPrivate ? [] : seasonChoices(profile)
   const ladderParam = one(q.ladder)
-  // A season names its ladder; else `?ladder=`; else the first played ladder's open season. `?view=tournaments`
-  // is the third tab, with its own `?format=`; any other `view` (an old link) opens ranked.
+  // A season names its ladder; else `?ladder=`; else the first played ladder's open season. `?period=last7` cuts to a week.
   const picked = choices.find((choice) => choice.code === one(q.season))
   const first = choices.find((choice) => choice.open) ?? choices[0]
   const ladderOf = (format?: 'TCG' | 'Genesys'): 'tcg' | 'genesys' => (format === 'Genesys' ? 'genesys' : 'tcg')
-  const view = one(q.view) === 'tournaments' ? 'tournaments' : 'ranked'
+  const period = one(q.period) === 'last7' ? 'last7' : 'season'
   const selection: StatisticsSelection = picked
-    ? { view, season: picked.code, ladder: ladderOf(picked.format) }
+    ? { season: picked.code, ladder: ladderOf(picked.format), period }
     : ladderParam === 'tcg' || ladderParam === 'genesys'
-      ? { view, ladder: ladderParam }
-      : { view, season: first?.code, ladder: ladderOf(first?.format) }
-  selection.tournamentFormat = one(q.format)
+      ? { ladder: ladderParam, period }
+      : { season: first?.code, ladder: ladderOf(first?.format), period }
 
   return <PlayerStatistics profile={profile} choices={choices} selection={selection} cookie={(await headers()).get('cookie')} />
 }
