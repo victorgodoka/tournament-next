@@ -8,6 +8,8 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Next's image optimiser gives up on upstreams after 7 s; ygopro.online takes 3-6 s per card art.
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 # --- build ---
