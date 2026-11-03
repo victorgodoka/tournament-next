@@ -107,7 +107,7 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
   const standing = visible ? standingOf(visible, selection) : null
   const format = LADDER[selection.ladder]
   // The profile's first page of ranked matches, this format only (the history mixes both ladders).
-  const matches = visible ? visible.matches.filter((m) => m.format.toLowerCase().includes(format.toLowerCase())) : []
+  const matches = visible ? (visible.matches ?? []).filter((m) => m.format.toLowerCase().includes(format.toLowerCase())) : []
 
   return (
     <>

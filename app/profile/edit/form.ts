@@ -1,5 +1,5 @@
 /** Edit-profile form model: pure, so it runs in tests without the app. */
-import type { CardArt, ProfileSettings, ProfileSettingsPatch, ProfileSocial, Region, SocialNetwork, Visibility } from "@utils/types";
+import type { CardArt, ProfilePrivacy, ProfileSettings, ProfileSettingsPatch, ProfileSocial, Region, SocialNetwork, Visibility } from "@utils/types";
 
 /* ── Limits the API enforces (PROFILE_API.md §3.3), checked here first so saves don't bounce ── */
 
@@ -19,11 +19,18 @@ export type Form = {
   bio: string
   region: Region | null
   visibility: Visibility
+  hideLastSeen: boolean
   favoriteCard: CardArt | null
+  /** Free text. */
   favoriteDeckName: string
-  favoriteDeckArt: CardArt | null
   /** Raw input per network: a handle without `@`, or a URL without the scheme. */
   socials: Record<SocialNetwork, string>
+  /**
+   * What the page shows as the cover, and the id to send. `id: undefined` = untouched; a string is a
+   * fresh upload (not saved yet), `null` removes it. `preview` is the saved URL or the local file.
+   */
+  cover: { id?: string | null; preview: string | null }
+  privacy: ProfilePrivacy
 }
 
 const handleSocial = (network: SocialNetwork, base: string) => (value: string): ProfileSocial =>
@@ -57,9 +64,11 @@ export const toForm = (settings: ProfileSettings): Form => ({
   bio: settings.bio,
   region: settings.region,
   visibility: settings.visibility,
+  hideLastSeen: settings.hideLastSeen,
   favoriteCard: settings.favoriteCard,
-  favoriteDeckName: settings.favoriteDeck?.name ?? '',
-  favoriteDeckArt: settings.favoriteDeck?.art ?? null,
+  favoriteDeckName: settings.favoriteDeck ?? '',
+  cover: { preview: settings.coverImage },
+  privacy: settings.privacy,
   socials: Object.assign(
     { instagram: '', x: '', youtube: '', twitch: '', website: '' },
     Object.fromEntries(settings.socials.map((social) => [social.network, socialInput(social)])),
@@ -72,9 +81,12 @@ export const diff = (from: Form, to: Form): ProfileSettingsPatch => {
   if (from.bio !== to.bio) patch.bio = to.bio
   if (from.region !== to.region) patch.region = to.region
   if (from.visibility !== to.visibility) patch.visibility = to.visibility
+  if (from.hideLastSeen !== to.hideLastSeen) patch.hideLastSeen = to.hideLastSeen
   if (from.favoriteCard?.id !== to.favoriteCard?.id) patch.favoriteCardId = to.favoriteCard?.id ?? null
   if (from.favoriteDeckName.trim() !== to.favoriteDeckName.trim()) patch.favoriteDeckName = to.favoriteDeckName.trim() || null
-  if (from.favoriteDeckArt?.id !== to.favoriteDeckArt?.id) patch.favoriteDeckCardId = to.favoriteDeckArt?.id ?? null
+  if (to.cover.id !== undefined && to.cover.id !== from.cover.id) patch.coverImageId = to.cover.id
+  const privacy = (Object.keys(to.privacy) as (keyof ProfilePrivacy)[]).filter((key) => from.privacy[key] !== to.privacy[key])
+  if (privacy.length) patch.privacy = Object.fromEntries(privacy.map((key) => [key, to.privacy[key]])) as Partial<ProfilePrivacy>
   const socials = toSocials(to.socials)
   if (JSON.stringify(toSocials(from.socials)) !== JSON.stringify(socials)) patch.socials = socials
   return patch
