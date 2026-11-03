@@ -1,0 +1,26 @@
+diff --git a/dist/esm/server/image-optimizer.js b/dist/esm/server/image-optimizer.js
+index 8e9784f5dd90bb8b5c1a8824723d594dbf87934b..1d97e325943d7875b29b8eb9e5f8f18222c37d19 100644
+--- a/dist/esm/server/image-optimizer.js
++++ b/dist/esm/server/image-optimizer.js
+@@ -391,7 +391,7 @@ function upstreamTimedOut(href) {
+ }
+ const agentOptions = {
+     keepAlive: true,
+-    timeout: 7000
++    timeout: 30000
+ };
+ const getHttpAgentName = HttpAgent.prototype.getName;
+ const getHttpsAgentName = HttpsAgent.prototype.getName;
+diff --git a/dist/server/image-optimizer.js b/dist/server/image-optimizer.js
+index 64a567edb27010733751ce087d7d43b64ad24c7f..f80d5acfa41d7679db98b473a59b38e63ef9d871 100644
+--- a/dist/server/image-optimizer.js
++++ b/dist/server/image-optimizer.js
+@@ -476,7 +476,7 @@ function upstreamTimedOut(href) {
+ }
+ const agentOptions = {
+     keepAlive: true,
+-    timeout: 7000
++    timeout: 30000
+ };
+ const getHttpAgentName = _http.Agent.prototype.getName;
+ const getHttpsAgentName = _https.Agent.prototype.getName;
