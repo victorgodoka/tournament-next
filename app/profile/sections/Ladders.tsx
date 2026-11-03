@@ -89,7 +89,7 @@ const VipLadder = ({ ladder, first, charts, main }: LadderProps) => {
 
   const elo = season && !hidden && season.elo != null ? (
     <div className="flex items-end gap-4">
-      <span className={twMerge('font-display leading-[0.9] text-ink tabular-nums', main ? 'text-[72px] max-md:text-[56px]' : 'text-[56px] max-md:text-[44px]')}>{formatNumber(season.elo)}</span>
+      <span className={twMerge('font-display text-ink tabular-nums', main ? 'text-[72px] max-md:text-[56px]' : 'text-[56px] max-md:text-[44px]', 'leading-[0.9]')}>{formatNumber(season.elo)}</span>
       <div className="flex flex-col gap-2 pb-1">
         {season.tier ? <TierBadge tier={season.tier} size={main ? 'lg' : 'md'} /> : null}
         {main ? <span className={CAPTION}>{season.open ? 'Elo · live' : 'Final Elo'}</span> : null}

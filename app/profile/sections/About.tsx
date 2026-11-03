@@ -55,7 +55,7 @@ const FavoriteCard = ({ card, size }: { card: CardArtType; size: 'lg' | 'md' }) 
     />
     <span className="flex min-w-0 flex-col gap-2">
       <span className={twMerge(CAPTION, 'text-gold')}>Favorite card</span>
-      <span className={twMerge('font-display leading-[1.02] uppercase group-hover:text-cyan', size === 'lg' ? 'text-[30px] max-md:text-[26px]' : 'text-2xl max-md:text-[22px]')}>
+      <span className={twMerge('font-display uppercase group-hover:text-cyan', size === 'lg' ? 'text-[30px] max-md:text-[26px]' : 'text-2xl max-md:text-[22px]', 'leading-[1.02]')}>
         {card.name ?? `Card ${card.id}`}
       </span>
     </span>
@@ -82,7 +82,7 @@ export const About = ({ num, vip, bio, socials = [], favoriteCard, favoriteDeck 
 
   const bioBlock = bio ? (
     <div
-      className="flex flex-col gap-2.5 text-[15px] leading-6 text-ink-dim [&_*]:m-0 [&_a]:text-cyan [&_a]:underline [&_a]:underline-offset-3 [&_strong]:text-ink"
+      className="flex flex-col gap-2.5 text-[15px] leading-6 text-ink-dim [&_*]:m-0 [&_*]:text-[15px] [&_*]:leading-6 [&_a]:text-cyan [&_a]:underline [&_a]:underline-offset-3 [&_strong]:text-ink"
       dangerouslySetInnerHTML={{ __html: bio }}
     />
   ) : null

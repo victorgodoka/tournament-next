@@ -36,7 +36,7 @@ type ProfileHeaderProps = {
 
 const Facts = ({ facts }: { facts: React.ReactNode[] }) =>
   facts.length ? (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ink-muted signal-sm">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] leading-3 tracking-[0.14em] text-ink-muted uppercase">
       {facts.map((fact, i) => (
         <span key={i} className="flex items-center gap-4">
           {i ? <span aria-hidden className="size-1 bg-line-mid" /> : null}
@@ -92,7 +92,7 @@ export const ProfileHeader = ({ name, handle, avatar, cosmetics, status, cover, 
         </span>
         <div className={twMerge('flex min-w-60 flex-1 flex-col gap-2.5', cover && 'pt-5')}>
           <Facts facts={facts} />
-          <h1 className="wrap-anywhere text-ink display-1">{label}</h1>
+          <h1 className="wrap-anywhere font-display text-5xl leading-none text-ink uppercase">{label}</h1>
           {handle || badges ? (
             <div className="flex flex-wrap items-center gap-3">
               {handle ? <span className="text-ink-dim data">{handle}</span> : null}
