@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useId, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, Suspense, useId, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -144,7 +144,10 @@ const DuelRow = ({ match, time }: { match: Match; time: 'clock' | 'date' }) => {
       </div>
       {mounted ? (
         <div id={panelId} role="region" aria-label={`Duel against ${opponent}`} hidden={!open} className="border-t border-line px-4 py-5 lg:px-8 lg:py-7">
-          <MatchAnalytics matchId={match.id} opponentId={match.opponent.id} />
+          {/* Own boundary: without it the lazy chunk suspends up to `app/loading.tsx`, which swaps the whole page and drops the scroll to the top. */}
+          <Suspense fallback={<p role="status" className="text-sm text-ink-muted">Loading duel…</p>}>
+            <MatchAnalytics matchId={match.id} opponentId={match.opponent.id} />
+          </Suspense>
         </div>
       ) : null}
     </div>
