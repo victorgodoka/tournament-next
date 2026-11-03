@@ -401,12 +401,15 @@ export const resetStaple = (card: number) => request<void>(`/panel/staples/${car
  * Settings (section 10) — values staff tune without a deploy
  * ---------------------------------------------------------------- */
 
-/** The `wrExpected` each tier needs, the same for both formats (the floors to get one are per format, in `Filters`). */
-export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number }
+/**
+ * How far below the leader's `wrExpected` (a rate: 0.0075 = 0.75 point) a deck may sit for each tier, the same for
+ * both formats. Tier 1 is the leader and at most one more; past `t3Gap` is Tier 4. The floors are per format, in `Filters`.
+ */
+export type TierAnchors = { t1Gap: number; t2Gap: number; t3Gap: number }
 export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
 
 /** What the server falls back to for a key left out. */
-export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5 }
+export const DEFAULT_TIERS: TierAnchors = { t1Gap: 0.0075, t2Gap: 0.0125, t3Gap: 0.025 }
 export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5 }
 
 /** A key never written is absent. */

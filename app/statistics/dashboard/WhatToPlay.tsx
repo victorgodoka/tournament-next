@@ -23,23 +23,24 @@ const Caret = ({ open }: { open: boolean }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden fill="currentColor" className={twMerge('flex-none text-ink-muted transition-transform duration-[120ms]', open && 'rotate-90')}><path d="M9 6l6 6-6 6z" /></svg>
 )
 
-/** A deck that passes the floors and has no tier sits under the last mark. */
-const TierCell = ({ deck, tiers }: { deck: DeckStat; tiers: TierRules | null | undefined }) => {
+/** Every deck over the floors has a tier now (Tier 4 has no bottom): no tier only on an older build. */
+const TierCell = ({ deck }: { deck: DeckStat }) => {
   const t = useTranslations('Statistics.play')
-  if (deck.tier !== null) return <TierChip tier={deck.tier} />
-  return <span className="text-ink-muted signal-sm">{tiers ? t('underTier', { rate: mark(tiers.t4) }) : t('noTier')}</span>
+  return deck.tier !== null ? <TierChip tier={deck.tier} /> : <span className="text-ink-muted signal-sm">{t('noTier')}</span>
 }
 
 /** `signal` on wide screens, `signal-sm` on a phone (component classes take no variants). */
 const STAT_LABEL = 'text-ink-muted signal max-[719px]:text-[10px] max-[719px]:leading-3 max-[719px]:tracking-[0.16em]'
 
 /** Every deck by the win rate the model expects against the field; decks under the tier floors after them, apart. */
-export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; best?: React.ReactNode }) => {
+export const WhatToPlay = ({ meta, scope, best, wiki }: { meta: Meta; scope: Scope; best?: React.ReactNode; /** The wiki's tier list and meta reports. */ wiki?: React.ReactNode }) => {
   const t = useTranslations('Statistics.play')
   const locale = useLocale()
   const [all, setAll] = useState(false)
   const [openRare, setOpenRare] = useState(false)
   const tiers = meta.fit.tiers
+  // a build before the leader-relative tiers sends absolute marks (t1…t4): no gaps to explain, no card
+  const gaps = typeof tiers?.t1Gap === 'number' ? tiers : null
   const faces = facesOf(meta.decks)
   const decks = plainDecks(meta.decks).sort((a, b) => b.wrExpected - a.wrExpected)
   const ranked = decks.filter((d) => !underFloors(d, tiers))
@@ -95,7 +96,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
                   <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
                   {link(d, 'text-ink')}
                 </span>
-                <span role="cell"><TierCell deck={d} tiers={tiers} /></span>
+                <span role="cell"><TierCell deck={d} /></span>
                 <span role="cell" className="flex flex-col">
                   <span className="font-display text-xl leading-none text-ink">{pc(d.wrExpected)}</span>
                   <span className="mt-1 tracking-[0.06em] text-ink-muted signal-sm">{ci(d.wrLo, d.wrHi)}</span>
@@ -160,7 +161,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
               </span>
               <span className="flex flex-col items-end gap-1">
                 <span className="font-display text-xl leading-none text-ink">{pc(d.wrExpected)}</span>
-                <TierCell deck={d} tiers={tiers} />
+                <TierCell deck={d} />
               </span>
               <span className="col-[3/5]"><Track value={d.wrExpected} low={d.wrLo} high={d.wrHi} lo={LO} hi={HI} h={16} /></span>
             </div>
@@ -215,45 +216,47 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
       <div className="grid items-stretch gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] max-[719px]:gap-4">
         {best}
         <div className={twMerge('flex flex-col gap-6', WIDE)}>
-          {tiers ? <TiersCard tiers={tiers} /> : null}
+          {gaps ? <TiersCard tiers={gaps} /> : null}
           <BarsCard />
         </div>
-        {tiers ? <TiersCard tiers={tiers} narrow /> : null}
+        {gaps ? <TiersCard tiers={gaps} narrow /> : null}
       </div>
+      {wiki}
     </>
   )
 }
 
 const TIER_ROWS = [1, 1.5, 2, 3, 4] as const
 
-/** The tier marks the build used; on a phone it carries one line on reading the bars. */
+/** A gap to the leader in points, up to two decimals: 0.0075 → `0.75`. */
+const points = (rate: number) => String(Number((rate * 100).toFixed(2)))
+
+/** How the build placed each deck: relative to the leader, with the gaps and floors it ran with. */
 const TiersCard = ({ tiers, narrow }: { tiers: TierRules; narrow?: boolean }) => {
-  const t = useTranslations('Statistics.play')
-  const floor = { 1: tiers.t1, 1.5: tiers.t15, 2: tiers.t2, 3: tiers.t3, 4: tiers.t4 }
-  const ceiling = { 1: null, 1.5: tiers.t1, 2: tiers.t15, 3: tiers.t2, 4: tiers.t3 }
-  const range = (tier: (typeof TIER_ROWS)[number], short: boolean) => {
-    const top = ceiling[tier]
-    if (top === null) return short ? t('tiers.fromShort', { lo: mark(floor[tier]) }) : t('tiers.from', { lo: mark(floor[tier]) })
-    return short ? t('tiers.betweenShort', { lo: mark(floor[tier]).replace('%', ''), hi: mark(top) }) : t('tiers.between', { lo: mark(floor[tier]), hi: mark(top) })
-  }
+  const t = useTranslations('Statistics.play.tiers')
+  const tRoot = useTranslations('Statistics.play')
+  const rows = { 1: t('rows.1', { gap: points(tiers.t1Gap) }), 1.5: t('rows.15', { gap: points(tiers.t1Gap) }), 2: t('rows.2', { gap: points(tiers.t2Gap) }), 3: t('rows.3', { gap: points(tiers.t3Gap) }), 4: t('rows.4', { gap: points(tiers.t3Gap) }) }
   return (
     <Box className={twMerge('gap-3.5 p-6', narrow ? twMerge(NARROW, 'gap-3 p-5') : undefined)}>
-      <h3 className="m-0 display-3 text-ink max-[719px]:text-xl">{t('tiers.title')}</h3>
-      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('tiers.lede')}</p>
-      <div className={twMerge('grid items-center gap-x-3.5 gap-y-2', narrow ? 'grid-cols-[auto_1fr_auto_1fr] gap-x-2.5' : 'grid-cols-[auto_1fr]')}>
+      <h3 className="m-0 display-3 text-ink max-[719px]:text-xl">{t('title')}</h3>
+      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('lede')}</p>
+      <div className="grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-2">
         {TIER_ROWS.map((tier) => (
           <span key={tier} className="contents">
             <TierChip tier={tier} />
-            <span className="text-[13px] text-ink-dim">{range(tier, !!narrow)}</span>
+            <span className="text-[13px] leading-5 text-ink-dim">{rows[tier]}</span>
           </span>
         ))}
       </div>
+      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('floors', { share: mark(tiers.minShare), players: tiers.minPlayers })}</p>
+      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('moves')}</p>
+      <p className="m-0 text-[13px] leading-5 text-ink-muted">{t('interval')}</p>
       {narrow ? (
         <div className="flex items-center gap-3 border-t border-line pt-3">
           <span aria-hidden className="relative h-1.75 w-12 flex-none rounded-xs bg-series-3/75">
             <span className="absolute -top-1.25 left-5.5 h-4.25 w-0.75 bg-ink" />
           </span>
-          <span className="text-[13px] leading-5 text-ink-dim">{t('bars.short')}</span>
+          <span className="text-[13px] leading-5 text-ink-dim">{tRoot('bars.short')}</span>
         </div>
       ) : null}
     </Box>

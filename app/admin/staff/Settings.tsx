@@ -19,14 +19,14 @@ const FILTER_COUNTS: { key: 'minPlayerGames' | 'minListGames' | 'minKeyGames' | 
   { key: 'eloCap', label: 'Rating cap', hint: 'Each rating is capped here before the pair’s mean sets the game’s band.' },
 ]
 
-const TIERS: { key: 't1' | 't15' | 't2' | 't3' | 't4'; label: string }[] = [
-  { key: 't1', label: 'Tier 1' },
-  { key: 't15', label: 'Tier 1.5' },
-  { key: 't2', label: 'Tier 2' },
-  { key: 't3', label: 'Tier 3' },
-  { key: 't4', label: 'Tier 4' },
+const TIERS: { key: keyof TierAnchors; label: string; hint: string }[] = [
+  { key: 't1Gap', label: 'Tier 1 · second deck', hint: 'The leader is Tier 1. The next deck joins it within this gap; any further deck within it is Tier 1.5.' },
+  { key: 't2Gap', label: 'Tier 2', hint: 'Within this gap of the leader.' },
+  { key: 't3Gap', label: 'Tier 3', hint: 'Within this gap. Beyond it, Tier 4.' },
 ]
 
+const pick = <T extends object>(stored: T | undefined, keys: readonly string[]) =>
+  Object.fromEntries(Object.entries(stored ?? {}).filter(([k]) => keys.includes(k)))
 const toPercent = (rate: number) => String(Number((rate * 100).toFixed(2)))
 const fromPercent = (text: string) => Number(text) / 100
 /** A filter field of one format, as the draft keys it: `TCG.minListGames`. */
@@ -63,7 +63,8 @@ export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSet
   )
   const storedFilters = stored['analytics.filters'] ?? {}
   return {
-    ...(Object.keys(tiers).length ? { 'analytics.tiers': { ...stored['analytics.tiers'], ...tiers } } : {}),
+    // only today's keys of what is stored: an old absolute mark (`t1`…`t4`) would be refused
+    ...(Object.keys(tiers).length ? { 'analytics.tiers': { ...pick(stored['analytics.tiers'], TIERS.map((t) => t.key)), ...tiers } } : {}),
     ...(Object.keys(classification).length ? { 'analytics.classification': { ...stored['analytics.classification'], ...classification } } : {}),
     ...(Object.keys(filters).length
       ? { 'analytics.filters': { ...storedFilters, ...Object.fromEntries(Object.entries(filters).map(([f, one]) => [f, { ...storedFilters[f as Format], ...one }])) } }
@@ -134,12 +135,15 @@ export const SettingsPanel = () => {
       {settings.error ? <Alert tone="negative" title="Couldn't read the settings">{panelErrorText(settings.error)}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Group title="Tiers" when="/statistics · next build" lede="The expected win rate a deck needs for each tier, highest first: each mark at or below the one before. A deck under the floors gets no tier and is listed apart as untiered.">
-          <div className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-5">
-            {TIERS.map(({ key, label }) => (
-              <Field key={key} label={label} htmlFor={`tier-${key}`}>
-                <TextInput id={`tier-${key}`} inputMode="decimal" suffix="%" value={draft[key] ?? toPercent(tiers[key])} onChange={set(key)} plateClassName={edited(key)} />
-              </Field>
+        <Group title="Tiers" when="/statistics · next build" lede="Tiers are relative to the leader: the deck with the highest expected win rate among those over the floors. Each field is how many points below the leader a deck may sit, smallest first. Tier 1 holds two decks at most. A deck under the floors gets no tier and is listed apart as untiered.">
+          <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3">
+            {TIERS.map(({ key, label, hint }) => (
+              <div key={key} className="flex flex-col gap-1">
+                <Field label={label} htmlFor={`tier-${key}`}>
+                  <TextInput id={`tier-${key}`} inputMode="decimal" suffix="pts" value={draft[key] ?? toPercent(tiers[key])} onChange={set(key)} plateClassName={edited(key)} />
+                </Field>
+                <Hint>{hint}</Hint>
+              </div>
             ))}
           </div>
           <div className="flex flex-col gap-3 border-t border-line pt-4">

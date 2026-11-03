@@ -2037,7 +2037,6 @@
       "aria": "Deck ranking",
       "cols": { "deck": "Deck", "tier": "Tier", "expected": "Expected", "meta": "Meta", "games": "Games", "players": "Players" },
       "axis": "95% interval, {lo} to {hi} percent",
-      "underTier": "Under {rate}",
       "noTier": "No tier",
       "untiered": "Untiered",
       "untieredNote": "Under {share} of the meta or under {players} players. With so few games, their bars stay wide.",
@@ -2067,11 +2066,22 @@
       },
       "tiers": {
         "title": "How tiers work",
-        "lede": "Tier comes from expected win chance alone.",
-        "from": "{lo} or more",
-        "fromShort": "{lo}+",
-        "between": "{lo} to {hi}",
-        "betweenShort": "{lo}–{hi}"
+        "lede": "We take the deck with the highest expected win chance as the leader and place every other deck by how many points it trails.",
+        "rows": {
+          "1": "The leader, plus the next deck if it trails by {gap} points or less",
+          "15": "Any further deck within {gap} points",
+          "2": "Within {gap} points",
+          "3": "Within {gap} points",
+          "4": "More than {gap} points behind"
+        },
+        "floors": "A deck needs {share} of the meta and {players} duelists to get a tier. Below that, you'll find it under Untiered.",
+        "moves": "We redo the tiers at every build, so a deck can move when new games come in.",
+        "interval": "The bar shows how sure each estimate is. It plays no part in the tier."
+      },
+      "wiki": {
+        "title": "From the wiki",
+        "lede": "The tier list we update every week, and the latest meta reports with what changed.",
+        "all": "All articles"
       },
       "bars": {
         "title": "Reading the bars",
@@ -2256,8 +2266,8 @@
         "byBandAria": "Expected win chance by rating band",
         "cols": { "band": "Band", "games": "Games", "expected": "Exp.", "tier": "Tier" },
         "axis": "Interval, {lo} to {hi} percent",
-        "under": "Under {rate}",
-        "underShort": "< {rate}",
+        "underFloors": "Too few games",
+        "noTierShort": "–",
         "noTier": "No tier",
         "siding": {
           "title": "After siding",
@@ -2278,7 +2288,6 @@
       "versions": {
         "title": "Other versions",
         "tooRare": "Too rare",
-        "under": "Under {rate}",
         "noTier": "No tier",
         "thisPage": "{name} (this page)",
         "meta": "{share} of the meta · {players} duelists",

@@ -334,7 +334,8 @@ const ByBand = ({ rows, tiers }: { rows: Band[]; tiers: TierRules | null }) => {
   const tRoot = useTranslations('Statistics.pickers')
   if (!rows.length) return null
   const label = (band: string) => (band === 'all' ? tRoot('allName') : band)
-  const noTier = (short: boolean) => (tiers ? (short ? t('underShort', { rate: mark(tiers.t4) }) : t('under', { rate: mark(tiers.t4) })) : t('noTier'))
+  // a faixa tem o proprio lider: sem tier so abaixo dos pisos (Tier 4 nao tem fundo)
+  const noTier = (short: boolean) => (short ? t('noTierShort') : tiers ? t('underFloors') : t('noTier'))
   return (
     <Box className="pt-6 max-[719px]:pt-4">
       <div className="flex flex-col gap-1 px-6 pb-4 max-[719px]:px-4 max-[719px]:pb-3">
@@ -391,7 +392,7 @@ const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; ve
   const t = useTranslations('Statistics.deck.versions')
   const others = versions.members.filter((m) => m.key !== deck.key).slice(0, 2)
   const self = versions.members.find((m) => m.key === deck.key) ?? deck
-  const note = (m: DeckStat) => (underFloors(m, tiers) ? t('tooRare') : tiers ? t('under', { rate: mark(tiers.t4) }) : t('noTier'))
+  const note = (m: DeckStat) => (underFloors(m, tiers) ? t('tooRare') : t('noTier'))
   return (
     <Box className={narrow ? 'gap-2.5 px-4 py-5' : 'gap-3 p-6'}>
       <PanelTitle>{t('title')}</PanelTitle>

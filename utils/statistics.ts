@@ -50,8 +50,8 @@ export const cardHref = (id: number, scope: StatisticsScope) => `/statistics/car
 export type Season = { id: number; code: string; ladder: RankedLadderId; label: string; startsAt: string; endsAt: string | null; sweptThrough: string | null }
 /** Games each filter removed (on the `all` band only), and the aggregate band's floor tier. */
 export type Dropped = { players: number; lists: number; iron: number; total: number }
-/** The tier marks (min `wrExpected` per tier) and floors the build ran with. */
-export type TierRules = { t1: number; t15: number; t2: number; t3: number; t4: number; minShare: number; minPlayers: number }
+/** How far below the leader each tier reaches (rates) and the floors to get one, as the build ran. */
+export type TierRules = { t1Gap: number; t2Gap: number; t3Gap: number; minShare: number; minPlayers: number }
 export type Fit = {
   band: string; players: number; games: number; decks: number; firstEffect: number; ratingEffect: number; matchupStrength: number; cardStrength: number; phiMedian: number
   builtAt: string; dropped: Dropped | null; aggregateFloor: string

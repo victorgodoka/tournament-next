@@ -55,9 +55,9 @@ describe('job', () => {
 describe('settings and keys', () => {
   it('patches only what it is given', async () => {
     const mock = stub({})
-    await updateSettings({ 'analytics.tiers': { t1: 0.56 } })
+    await updateSettings({ 'analytics.tiers': { t1Gap: 0.005 } })
     expect(init(mock).method).toBe('PATCH')
-    expect(JSON.parse(String(init(mock).body))).toEqual({ 'analytics.tiers': { t1: 0.56 } })
+    expect(JSON.parse(String(init(mock).body))).toEqual({ 'analytics.tiers': { t1Gap: 0.005 } })
   })
 
   it('updates an account by Discord id', async () => {

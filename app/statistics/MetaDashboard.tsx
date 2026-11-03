@@ -9,6 +9,7 @@ import { Pickers } from './Pickers'
 import { SectionTabs } from './SectionTabs'
 import { BestAgainst } from './dashboard/BestAgainst'
 import { HowToBeat } from './dashboard/HowToBeat'
+import { MetaArticles } from './dashboard/MetaArticles'
 import { MeSection } from './dashboard/MeOrTheDeck'
 import { WhatToPlay } from './dashboard/WhatToPlay'
 import { WhatYouFace } from './dashboard/WhatYouFace'
@@ -81,7 +82,11 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
             <SectionTabs
               label={t('nav.aria')}
               tabs={[
-                { id: 'play', label: t('nav.play'), panel: <WhatToPlay meta={meta} scope={shown} best={<Suspense fallback={null}><BestAgainst meta={meta} scope={shown} /></Suspense>} /> },
+                {
+                  id: 'play',
+                  label: t('nav.play'),
+                  panel: <WhatToPlay meta={meta} scope={shown} best={<Suspense fallback={null}><BestAgainst meta={meta} scope={shown} /></Suspense>} wiki={<Suspense fallback={null}><MetaArticles ladder={shown.ladder} /></Suspense>} />,
+                },
                 { id: 'face', label: t('nav.face'), panel: <WhatYouFace meta={meta} scope={shown} /> },
                 { id: 'beat', label: t('nav.beat'), panel: <HowToBeat meta={meta} scope={shown} /> },
                 { id: 'me', label: t('nav.me'), panel: <Suspense fallback={<p role="status" className="text-[13px] leading-5 text-ink-muted">{t('me.loading')}</p>}><MeSection scope={shown} faces={faces} /></Suspense> },

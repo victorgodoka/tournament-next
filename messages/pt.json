@@ -2037,7 +2037,6 @@
       "aria": "Ranking de decks",
       "cols": { "deck": "Deck", "tier": "Tier", "expected": "Esperado", "meta": "Meta", "games": "Games", "players": "Jogadores" },
       "axis": "Intervalo de 95%, de {lo} a {hi} por cento",
-      "underTier": "Abaixo de {rate}",
       "noTier": "Sem tier",
       "untiered": "Sem tier",
       "untieredNote": "Menos de {share} do meta ou menos de {players} jogadores. Com tão poucos games, as barras ficam largas.",
@@ -2067,11 +2066,22 @@
       },
       "tiers": {
         "title": "Como os tiers funcionam",
-        "lede": "O tier vem só da chance de vitória esperada.",
-        "from": "{lo} ou mais",
-        "fromShort": "{lo}+",
-        "between": "{lo} a {hi}",
-        "betweenShort": "{lo}–{hi}"
+        "lede": "Tomamos como líder o deck com a maior chance de vitória esperada e encaixamos cada outro deck pelos pontos que ele fica atrás.",
+        "rows": {
+          "1": "O líder, mais o próximo deck se ficar até {gap} pontos atrás",
+          "15": "Qualquer outro deck a até {gap} pontos",
+          "2": "A até {gap} pontos",
+          "3": "A até {gap} pontos",
+          "4": "Mais de {gap} pontos atrás"
+        },
+        "floors": "Para ter tier, um deck precisa de {share} do meta e {players} duelistas. Abaixo disso, você o encontra em Sem tier.",
+        "moves": "Refazemos os tiers a cada build: um deck muda de tier quando chegam games novos.",
+        "interval": "A barra mostra a margem de erro de cada estimativa. Ela não entra no tier."
+      },
+      "wiki": {
+        "title": "Na wiki",
+        "lede": "A tier list que atualizamos toda semana e os meta reports mais recentes com o que mudou.",
+        "all": "Todos os artigos"
       },
       "bars": {
         "title": "Como ler as barras",
@@ -2256,8 +2266,8 @@
         "byBandAria": "Chance de vitória esperada por faixa de rating",
         "cols": { "band": "Faixa", "games": "Games", "expected": "Esp.", "tier": "Tier" },
         "axis": "Intervalo, de {lo} a {hi} por cento",
-        "under": "Abaixo de {rate}",
-        "underShort": "< {rate}",
+        "underFloors": "Poucos games",
+        "noTierShort": "–",
         "noTier": "Sem tier",
         "siding": {
           "title": "Depois do side",
@@ -2278,7 +2288,6 @@
       "versions": {
         "title": "Outras versões",
         "tooRare": "Rara demais",
-        "under": "Abaixo de {rate}",
         "noTier": "Sem tier",
         "thisPage": "{name} (esta página)",
         "meta": "{share} do meta · {players} duelistas",

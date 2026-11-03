@@ -10,7 +10,7 @@ vi.mock('@omega/card-art', () => ({ CardArt: () => null }))
 const deck = (key: string, name: string, wrExpected: number, tier: DeckStat['tier'], share = 0.1, players = 40) =>
   ({ key, name, wrExpected, wrLo: wrExpected - 0.01, wrHi: wrExpected + 0.01, tier, share, games: 500, players }) as DeckStat
 
-const TIERS: TierRules = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5, minShare: 0.005, minPlayers: 10 }
+const TIERS: TierRules = { t1Gap: 0.0075, t2Gap: 0.0125, t3Gap: 0.025, minShare: 0.005, minPlayers: 10 }
 const meta = (tiers: TierRules | null) =>
   ({
     window: 'season',
@@ -54,12 +54,19 @@ describe('WhatToPlay', () => {
     expect(out.indexOf('Untiered · 1')).toBeGreaterThan(out.indexOf('Low'))
     expect(html).toContain('aria-expanded="false"')
     expect(out).not.toContain('Rare')
-    expect(out).toContain('Under 50%')
+    expect(out).toContain('No tier')
     expect(text(render(meta(TIERS)))).toContain('3 + 1')
   })
 
   it('reads the tier marks from the build, and without them sets nothing apart', () => {
-    expect(text(render(meta(TIERS)))).toContain('52.5% to 54%')
+    const card = text(render(meta(TIERS)))
+    expect(card).toContain('plus the next deck if it trails by 0.75 points or less')
+    expect(card).toContain('More than 2.5 points behind')
+    expect(card).toContain('A deck needs 0.5% of the meta and 10 duelists')
+    // a build of the old absolute marks: the floors still set decks apart, the card stays out
+    const old = text(render(meta({ t1: 0.55, minShare: 0.005, minPlayers: 10 } as unknown as TierRules)))
+    expect(old).not.toContain('How tiers work')
+    expect(old).toContain('Untiered')
     const out = table(render(meta(null)))
     expect(out).not.toContain('Untiered')
     expect(out).not.toContain('How tiers work')
