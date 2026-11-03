@@ -47,6 +47,14 @@ describe('HowToBeat', () => {
     expect(screen.getAllByRole('link', { name: 'Tenpai' }).length).toBeGreaterThan(0)
   })
 
+  it('reads each matchup from the opponent seat: a deck the picked one beats loses to it', async () => {
+    vi.stubGlobal('fetch', respond(answer))
+    show()
+    await waitFor(() => screen.getAllByText('Loses to it'))
+    expect(screen.getAllByText('45.0%').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('−5.0').length).toBeGreaterThan(0)
+  })
+
   it('says how much less the deck wins when a card shows up, and what going first is worth', async () => {
     vi.stubGlobal('fetch', respond(answer))
     show()

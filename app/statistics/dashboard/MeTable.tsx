@@ -71,6 +71,7 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
     return { d, read: verdict ? READ[verdict] : ('flat' as Read), verdict }
   })
   const verdictText = (v: ReturnType<typeof meVerdict>) => t(`verdicts.${v ?? 'same'}`)
+  const tally = (['good', 'bad', 'flat'] as const).map((r) => ({ read: r, count: rows.filter((x) => x.read === r).length }))
   const link = (d: PlayerDeck, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge('truncate font-bold text-ink hover:text-cyan', className)}>{nameOf(d)}</Link>
   const legendText = t.rich('legendText', {
     up: (c) => <span className="text-win">{c}</span>,
@@ -88,6 +89,10 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
   return (
     <>
       <Head stamp={who ? <><span className={WIDE}>{t('stamp', { name: who, games: n(games) })}</span><span className={NARROW}>{t('stampShort', { name: who, games: n(games) })}</span></> : undefined} />
+      <div className="flex flex-wrap items-center gap-2.5">
+        {tally.map(({ read, count }) => <ReadChip key={read} read={read}>{t(`summary.${read}`, { count })}</ReadChip>)}
+        <Small>{t('summaryNote', { count: rows.length })}</Small>
+      </div>
       <Box className="pt-1 max-[719px]:pt-0.5">
         <div className={twMerge('overflow-x-auto', WIDE)}>
           <div role="table" aria-label={t('aria')} className={twMerge(ROWS, 'min-w-[860px]')}>

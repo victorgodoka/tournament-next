@@ -59,6 +59,11 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   const prevRate = new Map(meta.weeks.filter((w) => w.week === lastWeek - 1).map((w) => [w.key, w.wrExpected]))
   const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
   const toggle = (key: string) => setOpen((o) => ({ ...o, [key]: !o[key] }))
+  // the last week still filling: its share moves are against a few days, not a week
+  const lastDay = meta.weeks.find((w) => w.week === lastWeek)?.firstDay
+  const swept = meta.season?.sweptThrough
+  const sofar = lastDay && swept ? Math.round((Date.parse(swept.slice(0, 10)) - Date.parse(lastDay)) / 86_400_000) + 1 : 7
+  const partial = sofar < 7 ? t('partial', { days: sofar }) : null
   const link = (l: Line, className: string) => <Link href={l.href} className={twMerge('truncate hover:text-cyan', className)}>{l.name}</Link>
 
   if (!top.length) {
@@ -181,7 +186,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
         </div>
 
         <div className={twMerge('border-t border-line px-6 py-3.5', WIDE)}>
-          <span className="text-[13px] leading-5 text-ink-muted">{t('note')}</span>
+          <span className="text-[13px] leading-5 text-ink-muted">{t('note')}{partial ? ` ${partial}` : null}</span>
         </div>
       </Box>
 
@@ -214,6 +219,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
               )) : <Small className="border-t border-line pt-2.5">{t('noMoves')}</Small>}
             </div>
           ))}
+          {partial ? <Small className="border-t border-line pt-2.5">{partial}</Small> : null}
         </Box>
         <ChangedCard jumps={jumps} plain={plain} prevRate={prevRate} day={day} scope={scope} narrow />
       </div>

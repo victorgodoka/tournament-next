@@ -128,18 +128,26 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   )
 }
 
-const gapOf = (m: Matchup) => {
-  const read: Read = READ_OF[matchupCall(m)]
-  return { gap: (m.wrAdjusted - m.wrExpected) * 100, low: (m.wrLo - m.wrExpected) * 100, high: (m.wrHi - m.wrExpected) * 100, read }
+/**
+ * A matchup from the opponent's seat: the page asks how to beat the picked deck. `edge` is who wins the pairing
+ * (the interval clear of 50%); `read` and the gap, whether it goes better or worse than the prediction.
+ */
+const sideOf = (m: Matchup) => {
+  const opp = { wrExpected: 1 - m.wrExpected, wrAdjusted: 1 - m.wrAdjusted, wrLo: 1 - m.wrHi, wrHi: 1 - m.wrLo }
+  const read: Read = READ_OF[matchupCall(opp)]
+  const edge: Read = opp.wrLo > 0.5 ? 'good' : opp.wrHi < 0.5 ? 'bad' : 'flat'
+  const gap = (opp.wrAdjusted - opp.wrExpected) * 100
+  return { ...opp, gap, low: (opp.wrLo - opp.wrExpected) * 100, high: (opp.wrHi - opp.wrExpected) * 100, read, edge }
 }
 
-/** The deck's adjusted result against each opponent beside the prediction, best first; under the floor, hidden until asked for. */
+/** Each opponent's adjusted result against the deck beside the prediction, best answer first; under the floor, hidden until asked for. */
 const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]; scope: Scope }) => {
   const t = useTranslations('Statistics.beat.matchups')
   const [low, setLow] = useState(false)
-  const byGap = [...matchups].sort((a, b) => b.wrAdjusted - b.wrExpected - (a.wrAdjusted - a.wrExpected))
-  const main = byGap.filter((m) => m.games >= MIN_MATCHUP_GAMES)
-  const small = byGap.filter((m) => m.games < MIN_MATCHUP_GAMES)
+  const edgeText = (e: Read) => t(e === 'good' ? 'beats' : e === 'bad' ? 'loses' : 'even')
+  const byAnswer = [...matchups].sort((a, b) => a.wrAdjusted - b.wrAdjusted)
+  const main = byAnswer.filter((m) => m.games >= MIN_MATCHUP_GAMES)
+  const small = byAnswer.filter((m) => m.games < MIN_MATCHUP_GAMES)
   const label = (m: Matchup) => nameOf({ key: m.opponent, name: m.opponentName })
   const link = (m: Matchup, className: string) =>
     m.opponent ? <Link href={deckHref(m.opponent, scope)} className={twMerge('truncate font-bold hover:text-cyan', className)}>{label(m)}</Link> : <span className={twMerge('truncate font-bold', className)}>{label(m)}</span>
@@ -157,8 +165,8 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
           <p className="m-0 text-[13px] leading-5 text-ink-dim"><span className={WIDE}>{t('lede', { name })}</span><span className={NARROW}>{t('ledeShort')}</span></p>
         </div>
         <div aria-hidden className={twMerge('flex flex-wrap gap-4', WIDE)}>
-          <span className="flex items-center gap-1.5 text-win signal-sm"><span className="h-1.5 w-2.5 rounded-xs bg-win" />{t('favored')}</span>
-          <span className="flex items-center gap-1.5 text-loss signal-sm"><span className="h-1.5 w-2.5 rounded-xs bg-loss" />{t('unfavored')}</span>
+          <span className="flex items-center gap-1.5 text-win signal-sm"><span className="h-1.5 w-2.5 rounded-xs bg-win" />{t('above')}</span>
+          <span className="flex items-center gap-1.5 text-loss signal-sm"><span className="h-1.5 w-2.5 rounded-xs bg-loss" />{t('below')}</span>
           <span className="flex items-center gap-1.5 text-draw signal-sm"><span className="h-1.5 w-2.5 rounded-xs bg-[#4a5578]" />{t('unclear')}</span>
         </div>
       </div>
@@ -168,7 +176,7 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
           <div role="row" className={HEAD_ROW} style={{ gridTemplateColumns: MU_COLS }}>
             <span role="columnheader" className={twMerge(TH, 'pl-6')}>{t('cols.opponent')}</span>
             <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.games')}</span>
-            <span role="columnheader" className={twMerge(TH, 'pl-6')}>{t('cols.actual')}</span>
+            <span role="columnheader" className={twMerge(TH, 'pl-6')}>{t('cols.actual', { name })}</span>
             <span role="columnheader" aria-label={t('axis', { r: R })} className="relative mx-3 block h-11">
               <span className="absolute top-4 left-0 text-ink-muted signal-sm">−{R}</span>
               <span className="absolute top-4 left-1/2 -translate-x-1/2 text-ink-muted signal-sm">0</span>
@@ -177,26 +185,26 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
             <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.read')}</span>
           </div>
           {main.map((m) => {
-            const g = gapOf(m)
+            const g = sideOf(m)
             return (
               <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: MU_COLS }}>
                 <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace} name={label(m)} size={36} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className="flex items-baseline gap-1.5 pl-6">
-                  <span className="font-bold text-ink tabular-nums">{pc(m.wrAdjusted)}</span>
-                  <span className="text-[13px] text-ink-muted tabular-nums">/ {pc(m.wrExpected)}</span>
+                  <span className="font-bold text-ink tabular-nums">{pc(g.wrAdjusted)}</span>
+                  <span className="text-[13px] text-ink-muted tabular-nums">/ {pc(g.wrExpected)}</span>
                 </span>
                 <span role="cell" className="mx-3"><GapTrack gap={g.gap} low={g.low} high={g.high} range={R} h={52} read={g.read} /></span>
                 <span role="cell" className="flex items-center justify-end gap-2.5 pr-6">
                   <span className={twMerge('text-[13px] font-bold tabular-nums', tone(g.gap))}>{signed(g.gap)}</span>
-                  <ReadChip read={g.read} className="px-2">{t(g.read === 'good' ? 'favored' : g.read === 'bad' ? 'unfavored' : 'unclear')}</ReadChip>
+                  <ReadChip read={g.edge} className="px-2">{edgeText(g.edge)}</ReadChip>
                 </span>
               </div>
             )
           })}
           {low
             ? small.map((m) => {
-                const g = gapOf(m)
+                const g = sideOf(m)
                 return (
                   <div key={m.opponent} role="row" className="grid min-h-13 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
@@ -208,8 +216,8 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
                     </span>
                     <span role="cell" className={twMerge(NUMERIC, 'text-ink-muted')}>{n(m.games)}</span>
                     <span role="cell" className="flex items-baseline gap-1.5 pl-6">
-                      <span className="text-ink-dim tabular-nums">{pc(m.wrAdjusted)}</span>
-                      <span className="text-[13px] text-ink-muted tabular-nums">/ {pc(m.wrExpected)}</span>
+                      <span className="text-ink-dim tabular-nums">{pc(g.wrAdjusted)}</span>
+                      <span className="text-[13px] text-ink-muted tabular-nums">/ {pc(g.wrExpected)}</span>
                     </span>
                     <span role="cell" className="mx-3"><GapTrack gap={g.gap} low={g.low} high={g.high} range={R} h={52} read={g.read} dim /></span>
                     <span role="cell" className={twMerge(NUMERIC, 'pr-6 text-[13px] opacity-75', tone(g.gap))}>{signed(g.gap)}</span>
@@ -222,17 +230,17 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
 
       <div role="list" aria-label={t('aria', { name })} className={twMerge(ROWS, 'border-t border-line', NARROW)}>
         {main.map((m) => {
-          const g = gapOf(m)
+          const g = sideOf(m)
           return (
             <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
               <Art id={m.opponentFace} name={label(m)} size={36} />
               <span className="flex min-w-0 flex-col">
                 {link(m, 'text-ink')}
-                <Small>{t('rowMeta', { act: pc(m.wrAdjusted), exp: pc(m.wrExpected), games: n(m.games) })}</Small>
+                <Small>{t('rowMeta', { act: pc(g.wrAdjusted), exp: pc(g.wrExpected), games: n(m.games) })}</Small>
               </span>
               <span className="flex flex-col items-end gap-1">
                 <span className={twMerge('text-sm font-bold tabular-nums', tone(g.gap))}>{signed(g.gap)}</span>
-                <ReadChip read={g.read}>{t(g.read === 'good' ? 'favored' : g.read === 'bad' ? 'unfavored' : 'unclear')}</ReadChip>
+                <ReadChip read={g.edge}>{edgeText(g.edge)}</ReadChip>
               </span>
               <span className="col-[2/4]"><GapTrack gap={g.gap} low={g.low} high={g.high} range={R} h={14} read={g.read} /></span>
             </div>
@@ -240,7 +248,7 @@ const Matchups = ({ name, matchups, scope }: { name: string; matchups: Matchup[]
         })}
         {low
           ? small.map((m) => {
-              const g = gapOf(m)
+              const g = sideOf(m)
               return (
                 <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
                   <Art id={m.opponentFace} name={label(m)} size={36} dim />
@@ -268,7 +276,13 @@ const KIND_ORDER = ['monster', 'spell', 'trap'] as const
 /** What opponents use on the deck, and how much less it wins when the card shows up. */
 const UsedAgainst = ({ name, against, cards }: { name: string; against: AgainstCard[]; cards: ReadonlyMap<number, WikiCard> }) => {
   const t = useTranslations('Statistics.beat.against')
-  const rows = against.map((c) => ({ c, drop: c.winRate != null && c.winRateWithout != null ? (c.winRate - c.winRateWithout) * 100 : null }))
+  const rows = against.map((c) => {
+    const drop = c.winRate != null && c.winRateWithout != null ? (c.winRate - c.winRateWithout) * 100 : null
+    // ponytail: the with-card side's binomial SE alone, a floor on the gap's; swap for the server's interval when it sends one
+    const clear = drop !== null && c.games > 0 && Math.abs(drop) > 196 * Math.sqrt((c.winRate! * (1 - c.winRate!)) / c.games)
+    return { c, drop, clear }
+  })
+  const color = (drop: number | null, clear: boolean) => (drop === null || !clear ? 'text-ink-muted' : drop < 0 ? 'text-loss' : 'text-win')
   return (
     <Box className="pt-6 min-[720px]:min-w-0 min-[720px]:flex-[2_1_560px] max-[719px]:pt-4">
       <div className="flex flex-col gap-1 px-6 pb-4 max-[719px]:px-4 max-[719px]:pb-3">
@@ -283,7 +297,7 @@ const UsedAgainst = ({ name, against, cards }: { name: string; against: AgainstC
               <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.seen')}</span>
               <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.win', { name })}</span>
             </div>
-            {rows.map(({ c, drop }) => (
+            {rows.map(({ c, drop, clear }) => (
               <div key={c.id} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: CARD_COLS }}>
                 <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
                   <span aria-hidden className="h-7 w-1 flex-none" style={{ background: frameColor(cards.get(c.id)) }} />
@@ -292,25 +306,26 @@ const UsedAgainst = ({ name, against, cards }: { name: string; against: AgainstC
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(c.rate)}</span>
                 <span role="cell" className="flex items-center justify-end gap-2.5 pr-6">
                   <span aria-hidden className="relative block h-1.5 w-16 bg-surface-200">
-                    {drop !== null ? <span className={twMerge('absolute top-0 right-0 bottom-0 rounded-l-xs', drop <= 0 ? 'bg-loss' : 'bg-win')} style={{ width: at(Math.abs(drop), 0, DROP_SCALE) }} /> : null}
+                    {drop !== null ? <span className={twMerge('absolute top-0 right-0 bottom-0 rounded-l-xs', !clear ? 'bg-line-mid' : drop < 0 ? 'bg-loss' : 'bg-win')} style={{ width: at(Math.abs(drop), 0, DROP_SCALE) }} /> : null}
                   </span>
-                  <span className={twMerge('min-w-15 text-right text-[13px] font-bold tabular-nums', drop === null ? 'text-ink-muted' : drop <= 0 ? 'text-loss' : 'text-win')}>{drop === null ? '–' : t('pts', { value: signed(drop) })}</span>
+                  <span className={twMerge('min-w-15 text-right text-[13px] font-bold tabular-nums', color(drop, clear))}>{drop === null ? '–' : t('pts', { value: signed(drop) })}</span>
                 </span>
               </div>
             ))}
           </div>
           <div role="list" aria-label={t('aria', { name })} className={twMerge(ROWS, 'border-t border-line', NARROW)}>
-            {rows.map(({ c, drop }) => (
+            {rows.map(({ c, drop, clear }) => (
               <div key={c.id} role="listitem" className="grid grid-cols-[4px_minmax(0,1fr)_auto] items-center gap-3 bg-surface-100 px-4 py-2.5">
                 <span aria-hidden className="h-7.5" style={{ background: frameColor(cards.get(c.id)) }} />
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate font-bold text-ink">{cardName(c)}</span>
                   <Small>{t('seenRow', { rate: pc(c.rate) })}</Small>
                 </span>
-                <span className={twMerge('text-sm font-bold tabular-nums', drop === null ? 'text-ink-muted' : drop <= 0 ? 'text-loss' : 'text-win')}>{drop === null ? '–' : t('pts', { value: signed(drop) })}</span>
+                <span className={twMerge('text-sm font-bold tabular-nums', color(drop, clear))}>{drop === null ? '–' : t('pts', { value: signed(drop) })}</span>
               </div>
             ))}
           </div>
+          <p className="m-0 border-t border-line px-6 py-3 text-xs leading-4 font-medium text-ink-muted max-[719px]:px-4">{t('note')}</p>
           <div className={twMerge('mt-auto flex flex-wrap items-center gap-4 border-t border-line px-6 py-3.5', WIDE)}>
             {KIND_ORDER.map((kind) => (
               <span key={kind} className="flex items-center gap-1.5 text-ink-muted signal-sm">
