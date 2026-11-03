@@ -56,6 +56,8 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="currentColor"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" /></svg>
           </Link>
         </div>
+        {/* The weekly tier list and reports first: most visitors come for them; the filters below are for digging in. */}
+        <Suspense fallback={null}><MetaArticles /></Suspense>
         <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
         {fellBack ? <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('pickers.aggregateEmpty')}</p> : null}
       </section>
@@ -85,7 +87,7 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
                 {
                   id: 'play',
                   label: t('nav.play'),
-                  panel: <WhatToPlay meta={meta} scope={shown} best={<Suspense fallback={null}><BestAgainst meta={meta} scope={shown} /></Suspense>} wiki={<Suspense fallback={null}><MetaArticles ladder={shown.ladder} /></Suspense>} />,
+                  panel: <WhatToPlay meta={meta} scope={shown} best={<Suspense fallback={null}><BestAgainst meta={meta} scope={shown} /></Suspense>} />,
                 },
                 { id: 'face', label: t('nav.face'), panel: <WhatYouFace meta={meta} scope={shown} /> },
                 { id: 'beat', label: t('nav.beat'), panel: <HowToBeat meta={meta} scope={shown} /> },

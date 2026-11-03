@@ -33,7 +33,7 @@ const TierCell = ({ deck }: { deck: DeckStat }) => {
 const STAT_LABEL = 'text-ink-muted signal max-[719px]:text-[10px] max-[719px]:leading-3 max-[719px]:tracking-[0.16em]'
 
 /** Every deck by the win rate the model expects against the field; decks under the tier floors after them, apart. */
-export const WhatToPlay = ({ meta, scope, best, wiki }: { meta: Meta; scope: Scope; best?: React.ReactNode; /** The wiki's tier list and meta reports. */ wiki?: React.ReactNode }) => {
+export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; best?: React.ReactNode }) => {
   const t = useTranslations('Statistics.play')
   const locale = useLocale()
   const [all, setAll] = useState(false)
@@ -215,13 +215,8 @@ export const WhatToPlay = ({ meta, scope, best, wiki }: { meta: Meta; scope: Sco
 
       <div className="grid items-stretch gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] max-[719px]:gap-4">
         {best}
-        <div className={twMerge('flex flex-col gap-6', WIDE)}>
-          {gaps ? <TiersCard tiers={gaps} /> : null}
-          <BarsCard />
-        </div>
-        {gaps ? <TiersCard tiers={gaps} narrow /> : null}
+        <TiersCard tiers={gaps} />
       </div>
-      {wiki}
     </>
   )
 }
@@ -231,13 +226,20 @@ const TIER_ROWS = [1, 1.5, 2, 3, 4] as const
 /** A gap to the leader in points, up to two decimals: 0.0075 → `0.75`. */
 const points = (rate: number) => String(Number((rate * 100).toFixed(2)))
 
-/** How the build placed each deck: relative to the leader, with the gaps and floors it ran with. */
-const TiersCard = ({ tiers, narrow }: { tiers: TierRules; narrow?: boolean }) => {
+/** The server's defaults, for a build that sent no gaps yet (`analytics.tiers`, `analytics.filters`). */
+const DEFAULT_RULES: TierRules = { t1Gap: 0.0075, t2Gap: 0.0125, t3Gap: 0.025, minShare: 0.005, minPlayers: 10 }
+
+const Swatch = ({ children }: { children: React.ReactNode }) => <span aria-hidden className="relative flex h-4.25 w-14 flex-none items-center">{children}</span>
+
+/** How to read the page: the tiers relative to the leader, the floors, then the bars. The build's numbers, else the defaults. */
+const TiersCard = ({ tiers: built }: { tiers: TierRules | null }) => {
   const t = useTranslations('Statistics.play.tiers')
-  const tRoot = useTranslations('Statistics.play')
+  const tBars = useTranslations('Statistics.play.bars')
+  const tiers = built ?? DEFAULT_RULES
   const rows = { 1: t('rows.1', { gap: points(tiers.t1Gap) }), 1.5: t('rows.15', { gap: points(tiers.t1Gap) }), 2: t('rows.2', { gap: points(tiers.t2Gap) }), 3: t('rows.3', { gap: points(tiers.t3Gap) }), 4: t('rows.4', { gap: points(tiers.t3Gap) }) }
+  const line = 'm-0 text-[13px] leading-5 text-ink-dim'
   return (
-    <Box className={twMerge('gap-3.5 p-6', narrow ? twMerge(NARROW, 'gap-3 p-5') : undefined)}>
+    <Box className="gap-3.5 p-6 max-[719px]:gap-3 max-[719px]:p-5">
       <h3 className="m-0 display-3 text-ink max-[719px]:text-xl">{t('title')}</h3>
       <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('lede')}</p>
       <div className="grid grid-cols-[auto_1fr] items-center gap-x-3.5 gap-y-2">
@@ -248,41 +250,26 @@ const TiersCard = ({ tiers, narrow }: { tiers: TierRules; narrow?: boolean }) =>
           </span>
         ))}
       </div>
-      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('floors', { share: mark(tiers.minShare), players: tiers.minPlayers })}</p>
-      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('moves')}</p>
-      <p className="m-0 text-[13px] leading-5 text-ink-muted">{t('interval')}</p>
-      {narrow ? (
-        <div className="flex items-center gap-3 border-t border-line pt-3">
-          <span aria-hidden className="relative h-1.75 w-12 flex-none rounded-xs bg-series-3/75">
-            <span className="absolute -top-1.25 left-5.5 h-4.25 w-0.75 bg-ink" />
-          </span>
-          <span className="text-[13px] leading-5 text-ink-dim">{tRoot('bars.short')}</span>
+      <p className={line}>{t('floors', { share: mark(tiers.minShare), players: tiers.minPlayers })}</p>
+      <p className={line}>{t('moves')}</p>
+      <div className="flex flex-col gap-3 border-t border-line pt-4">
+        <span className="text-ink signal-strong">{tBars('title')}</span>
+        <div className="flex items-center gap-3.5">
+          <Swatch>
+            <span className="h-1.75 w-full rounded-xs bg-series-3/75" />
+            <span className="absolute top-0 left-6.5 h-4.25 w-0.75 bg-ink" />
+          </Swatch>
+          <span className={line}>{tBars('tick')}</span>
         </div>
-      ) : null}
-    </Box>
-  )
-}
-
-const BarsCard = () => {
-  const t = useTranslations('Statistics.play.bars')
-  return (
-    <Box className="gap-3.5 p-6">
-      <h3 className="m-0 display-3 text-ink">{t('title')}</h3>
-      <div className="flex items-center gap-3.5">
-        <span aria-hidden className="relative h-1.75 w-14 flex-none rounded-xs bg-series-3/75">
-          <span className="absolute -top-1.25 left-6.5 h-4.25 w-0.75 bg-ink" />
-        </span>
-        <span className="text-[13px] leading-5 text-ink-dim">{t('tick')}</span>
-      </div>
-      <div className="flex items-center gap-3.5">
-        <span aria-hidden className="h-1.75 w-14 flex-none rounded-xs bg-line-mid" />
-        <span className="text-[13px] leading-5 text-ink-dim">{t('wide')}</span>
-      </div>
-      <div className="flex items-center gap-3.5">
-        <span aria-hidden className="relative h-4.25 w-14 flex-none">
-          <span className="absolute top-0 bottom-0 left-6.75 w-px bg-line-mid" />
-        </span>
-        <span className="text-[13px] leading-5 text-ink-dim">{t('line')}</span>
+        <div className="flex items-center gap-3.5">
+          <Swatch><span className="h-1.75 w-full rounded-xs bg-line-mid" /></Swatch>
+          <span className={line}>{tBars('wide')}</span>
+        </div>
+        <div className="flex items-center gap-3.5">
+          <Swatch><span className="absolute top-0 bottom-0 left-6.75 w-px bg-line-mid" /></Swatch>
+          <span className={line}>{tBars('line')}</span>
+        </div>
+        <p className="m-0 text-[13px] leading-5 text-ink-muted">{t('interval')}</p>
       </div>
     </Box>
   )

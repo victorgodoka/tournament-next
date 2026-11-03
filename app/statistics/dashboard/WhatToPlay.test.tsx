@@ -63,13 +63,14 @@ describe('WhatToPlay', () => {
     expect(card).toContain('plus the next deck if it trails by 0.75 points or less')
     expect(card).toContain('More than 2.5 points behind')
     expect(card).toContain('A deck needs 0.5% of the meta and 10 duelists')
-    // a build of the old absolute marks: the floors still set decks apart, the card stays out
+    expect(card).toContain('Reading the bars')
+    // a build of the old absolute marks: the floors still set decks apart, the card explains the default gaps
     const old = text(render(meta({ t1: 0.55, minShare: 0.005, minPlayers: 10 } as unknown as TierRules)))
-    expect(old).not.toContain('How tiers work')
+    expect(old).toContain('plus the next deck if it trails by 0.75 points or less')
+    expect(old).not.toContain('NaN')
     expect(old).toContain('Untiered')
     const out = table(render(meta(null)))
     expect(out).not.toContain('Untiered')
-    expect(out).not.toContain('How tiers work')
     expect(out.indexOf('Rare')).toBeLessThan(out.indexOf('High'))
   })
 

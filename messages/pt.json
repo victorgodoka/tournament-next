@@ -2079,17 +2079,15 @@
         "interval": "A barra mostra a margem de erro de cada estimativa. Ela não entra no tier."
       },
       "wiki": {
-        "title": "Na wiki",
-        "lede": "A tier list que atualizamos toda semana e os meta reports mais recentes com o que mudou.",
-        "all": "Todos os artigos"
+        "title": "Tier list e meta reports da semana",
+        "tierList": "Tier list {ladder} · atualizada toda semana",
+        "report": "Meta report"
       },
       "bars": {
         "title": "Como ler as barras",
         "tick": "A marca mostra a chance de vitória esperada. A barra mostra o intervalo de 95%.",
         "wide": "Barra larga quer dizer poucos games. Confie menos no número.",
-        "line": "A linha fina marca 50%.",
-        "short": "A marca é o esperado, a barra o intervalo de 95%. Barra larga, poucos games."
-      }
+        "line": "A linha fina marca 50%."      }
     },
     "face": {
       "title": "O que vou enfrentar?",

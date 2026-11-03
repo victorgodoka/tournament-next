@@ -2079,16 +2079,15 @@
         "interval": "The bar shows how sure each estimate is. It plays no part in the tier."
       },
       "wiki": {
-        "title": "From the wiki",
-        "lede": "The tier list we update every week, and the latest meta reports with what changed.",
-        "all": "All articles"
+        "title": "This week's tier list and meta reports",
+        "tierList": "{ladder} tier list · updated weekly",
+        "report": "Meta report"
       },
       "bars": {
         "title": "Reading the bars",
         "tick": "The tick shows expected win chance. The bar shows the 95% interval.",
         "wide": "A wide bar means few games. Trust the number less.",
-        "line": "The thin line marks 50%.",
-        "short": "Tick is the expected value, bar the 95% interval. Wide bar, few games."
+        "line": "The thin line marks 50%."
       }
     },
     "face": {

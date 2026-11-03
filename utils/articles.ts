@@ -108,11 +108,11 @@ export const getLatestArticles = async (limit = 3): Promise<ArticleSummary[]> =>
 }
 
 /**
- * The weekly meta articles for /statistics: the ladder's fixed tier list (`yu-gi-oh-{tcg|genesys}-tier-list`) and the
+ * The weekly meta articles for /statistics: both fixed tier lists (`yu-gi-oh-{tcg|genesys}-tier-list`, TCG first) and the
  * newest dated meta reports (`yu-gi-oh-meta-report-…`). The index filters by title only, so it searches the words and
  * keeps the slugs. Published only, cached like the page, `[]` when the API is slow or down.
  */
-export const getMetaArticles = async (ladder: 'tcg' | 'genesys', reports = 2): Promise<ArticleSummary[]> => {
+export const getMetaArticles = async (reports = 2): Promise<ArticleSummary[]> => {
   const find = async (search: string) => {
     try {
       const res = await fetch(`${API_URL}/wiki?search=${encodeURIComponent(search)}&limit=20`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(3_000) })
@@ -123,8 +123,8 @@ export const getMetaArticles = async (ladder: 'tcg' | 'genesys', reports = 2): P
     }
   }
   const [lists, dated] = await Promise.all([find('tier list'), find('meta report')])
-  const list = lists.find((a) => a.slug === `yu-gi-oh-${ladder}-tier-list`)
-  return [...(list ? [list] : []), ...dated.filter((a) => a.slug.startsWith('yu-gi-oh-meta-report-')).slice(0, reports)]
+  const tierLists = (['tcg', 'genesys'] as const).flatMap((ladder) => lists.filter((a) => a.slug === `yu-gi-oh-${ladder}-tier-list`))
+  return [...tierLists, ...dated.filter((a) => a.slug.startsWith('yu-gi-oh-meta-report-')).slice(0, reports)]
 }
 
 /** Everyone with at least one article this viewer can see: the index's author filter. */
