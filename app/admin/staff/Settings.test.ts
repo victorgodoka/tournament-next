@@ -8,6 +8,10 @@ describe('settingsBody', () => {
     expect(settingsBody({ t1: '56', stapleShare: '12.5' })).toEqual({ 'analytics.tiers': { t1: 0.56 }, 'analytics.classification': { stapleShare: 0.125 } })
   })
 
+  it('sends the tier floors with the anchors: the share as a rate, the duelists as a count', () => {
+    expect(settingsBody({ minShare: '0.5', minPlayers: '12' })).toEqual({ 'analytics.tiers': { minShare: 0.005, minPlayers: 12 } })
+  })
+
   it('keeps maxNames an integer, not a rate', () => {
     expect(settingsBody({ maxNames: '4' })).toEqual({ 'analytics.classification': { maxNames: 4 } })
   })

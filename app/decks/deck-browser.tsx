@@ -40,10 +40,10 @@ const query = (f: Filters): DeckFilters => ({
  * A filterable grid of decks. With `userId`, that duelist's decks as the viewer may see them (the
  * owner sees every one); without, every public deck.
  */
-export const DeckBrowser = ({ userId }: { userId?: string }) => {
+export const DeckBrowser = ({ userId, initialArchetype = '' }: { userId?: string; /** Opens filtered to it (`/decks?archetype=`). */ initialArchetype?: string }) => {
   const t = useTranslations('DeckEditor.browse')
   const tEditor = useTranslations('DeckEditor')
-  const [filters, setFilters] = useState(EMPTY)
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY, archetype: initialArchetype.slice(0, 80) })
   const [banlists, setBanlists] = useState<Banlist[]>([])
   const [seasons, setSeasons] = useState<Season[]>([])
   const [attempt, setAttempt] = useState(0)

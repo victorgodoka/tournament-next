@@ -41,7 +41,7 @@ describe('bestAgainst', () => {
 
   it('reads only the `top` most played, and skips a deck missing one of them', () => {
     const matchups = [cell('a', 'b', 0.51), cell('b', 'a', 0.49), cell('c', 'a', 0.7)]
-    expect(bestAgainst(decks, matchups, 2)).toEqual({ key: 'a', wr: 0.51 })
+    expect(bestAgainst(decks, matchups, 2)).toMatchObject({ key: 'a', wr: 0.51, opponents: [{ key: 'b', wr: 0.51 }] })
   })
 
   it('is null with no matchups', () => {

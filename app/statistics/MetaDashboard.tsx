@@ -2,23 +2,18 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { Button } from '@ui/button'
-import { Panel } from '@ui/panel'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
-import { Skeleton } from '@omega/analytics/primitives'
-import { InfographicLinks } from '@omega/infographic/infographic-links'
-import { getMeta, infographicHrefs, MIN_MATCHUP_GAMES, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
+import { scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
 import { Pickers } from './Pickers'
+import { SectionTabs } from './SectionTabs'
 import { BestAgainst } from './dashboard/BestAgainst'
 import { HowToBeat } from './dashboard/HowToBeat'
 import { MeSection } from './dashboard/MeOrTheDeck'
-import { SECTIONS, type Section } from './dashboard/sections'
 import { WhatToPlay } from './dashboard/WhatToPlay'
 import { WhatYouFace } from './dashboard/WhatYouFace'
-
-const Block = ({ id, children }: { id: Section; children: React.ReactNode }) => (
-  <section id={id} className="flex scroll-mt-24 flex-col gap-4">{children}</section>
-)
+import { LINK_BTN, NARROW, WIDE } from './format'
+import { Box, GoldDot } from './kit'
 
 type MetaDashboardProps = {
   scope: Scope
@@ -28,87 +23,70 @@ type MetaDashboardProps = {
   fellBack?: boolean
 }
 
-/** /statistics: the pickers, then one section per question a ranked player asks, then how it's counted. */
+/** /statistics: the header and filters, then one tab per question a ranked player asks. */
 export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDashboardProps) => {
   const t = await getTranslations('Statistics')
   const locale = await getLocale()
   const meta = result.ok ? result.data : null
-  // The filter counts live on the `all` band's fit; one more cached request when another band is shown.
-  const dropped = meta ? (meta.band === 'all' ? meta.fit : (await getMeta({ ...scope, band: 'all' }).then((r) => (r.ok ? r.data.fit : null))))?.dropped : null
   const season = meta?.season
   const shown = season ? { ...scope, ladder: season.ladder } : scope
   const status = result.ok ? null : result.status
-  const query = Object.fromEntries(new URLSearchParams(scopeQuery(shown)))
-  const date = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, { day: '2-digit', month: 'short', timeZone: 'UTC' })
+  const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
+  const faces = Object.fromEntries((meta?.decks ?? []).map((d) => [d.key, d.face ?? null]))
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-5 border-b border-line pb-6">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div className="flex flex-col gap-2">
-            <h1 className="display-2 text-ink">{t('header.title')}</h1>
-            <p className="max-w-2xl text-sm text-ink-dim">{t('header.lede')}</p>
+    <div className="flex flex-col gap-8 pt-6 max-[719px]:gap-5 max-[719px]:pt-2">
+      <section className="flex flex-col gap-6 max-[719px]:gap-3">
+        {season ? (
+          <div className="flex items-center gap-2.5 max-[719px]:gap-2">
+            <GoldDot />
+            <span className={`text-ink-muted signal ${WIDE}`}>{season.sweptThrough ? t('header.eyebrow', { season: season.label, date: day(season.sweptThrough) }) : season.label}</span>
+            <span className={`text-ink-muted signal-sm ${NARROW}`}>{season.sweptThrough ? t('header.eyebrowShort', { season: season.label, date: day(season.sweptThrough) }) : season.label}</span>
           </div>
-          {season ? (
-            <InfographicLinks
-              label={t('infographic.label')}
-              hint={t('infographic.hint')}
-              busy={t('infographic.busy')}
-              failed={t('infographic.failed')}
-              sizes={{ wide: t('infographic.wide'), tall: t('infographic.tall') }}
-              items={(['tier-list', 'meta-report'] as const).map((section) => ({ file: `${section}-${season.code}`, hrefs: infographicHrefs(`/statistics/infographic/${section}`, { ...query, locale }) }))}
-              className="md:justify-end"
-            />
-          ) : null}
+        ) : null}
+        <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6 max-[719px]:gap-3">
+          <div className="flex max-w-180 flex-[1_1_520px] flex-col gap-3.5 max-[719px]:gap-3">
+            <h1 className="m-0 font-display text-5xl leading-none text-ink uppercase max-[719px]:text-4xl">{t('header.title')}</h1>
+            <p className={`m-0 text-lg leading-7 text-ink-dim ${WIDE}`}>{t('header.lede')}</p>
+            <p className={`m-0 text-ink-dim ${NARROW}`}>{t('header.ledeShort')}</p>
+          </div>
+          <Link href={`/statistics/activity?ladder=${shown.ladder}`} className={`${LINK_BTN} ${WIDE}`}>
+            {t('header.activity')}
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="currentColor"><path d="M13 5l7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6z" /></svg>
+          </Link>
         </div>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
-          <span className="flex flex-wrap gap-4 font-mono text-xs text-ink-muted">
-            {season?.sweptThrough ? <span>{t('header.synced', { date: date(season.sweptThrough) })}</span> : null}
-            <Link href={`/statistics/activity?ladder=${shown.ladder}`} className="text-cyan hover:underline">{t('header.activity')}</Link>
-          </span>
-        </div>
-        {fellBack ? <p className="text-sm text-ink-dim">{t('pickers.aggregateEmpty')}</p> : null}
-      </header>
+        <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
+        {fellBack ? <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('pickers.aggregateEmpty')}</p> : null}
+      </section>
 
       {!meta ? (
-        <Panel title={status === 404 ? t('error.notFound') : t('error.title')} meta={status ? String(status) : t('error.offline')}>
-          <p className="text-ink-dim body">{status === 404 ? t('error.notFoundBody') : t('error.body')}</p>
-          <Button size="sm" variant="secondary" href={statisticsHref({ ladder: scope.ladder })} className="mt-4">{t('error.reset')}</Button>
-        </Panel>
+        <Box className="gap-4 p-6">
+          <h2 className="m-0 display-3 text-ink">{status === 404 ? t('error.notFound') : t('error.title')}</h2>
+          <p className="m-0 text-ink-dim">{status === 404 ? t('error.notFoundBody') : t('error.body')}</p>
+          <Button size="signal" variant="secondary" href={statisticsHref({ ladder: scope.ladder })} className="self-start px-5">{t('error.reset')}</Button>
+        </Box>
       ) : (
         <>
           {season?.endsAt ? (
             <div className="cut notch flex items-center gap-3 px-5 py-4 [--cut:var(--cut-md)] [--edge:var(--color-line-mid)] [--fill:var(--color-surface-100)]">
-              <span className="size-2 flex-none bg-gold" />
-              <span className="text-ink-dim body">{t('closed', { label: season.label })}</span>
+              <GoldDot />
+              <span className="text-ink-dim">{t('closed', { label: season.label })}</span>
             </div>
           ) : null}
 
-          <nav aria-label={t('nav.aria')} className="flex flex-wrap gap-x-6 gap-y-2">
-            {SECTIONS.map((id) => <a key={id} href={`#${id}`} className="text-ink-dim signal hover:text-cyan">{t(`nav.${id}`)}</a>)}
-          </nav>
-
           <AdVideo id="ad-video" />
 
-          {/* Keyed by the scope: a picked deck starts over with the new numbers. */}
-          <div key={scopeQuery(shown)} className="flex flex-col gap-10">
-            <Block id="play"><WhatToPlay meta={meta} scope={shown} callout={<Suspense fallback={null}><BestAgainst meta={meta} scope={scope} /></Suspense>} /></Block>
-            <Block id="face"><WhatYouFace meta={meta} scope={shown} /></Block>
-            <Block id="beat"><HowToBeat meta={meta} scope={shown} /></Block>
-            <Block id="me">
-              <Suspense fallback={<Skeleton rows={4} label={t('me.title')} />}><MeSection scope={shown} /></Suspense>
-            </Block>
-            <Panel title={t('method.title')}>
-              <div className="flex max-w-3xl flex-col gap-3 text-sm text-ink-dim">
-                <p>{t('method.model')}</p>
-                <p>{t('method.bands', { floor: meta?.fit.aggregateFloor })}</p>
-                {/* num() lives in the 'use client' shared module, so format inline here */}
-                {dropped ? <p>{t('method.filters', { players: dropped.players.toLocaleString('en-US'), lists: dropped.lists.toLocaleString('en-US'), iron: dropped.iron.toLocaleString('en-US'), total: dropped.total.toLocaleString('en-US') })}</p> : null}
-                <p>{t('method.matchups', { min: MIN_MATCHUP_GAMES })}</p>
-                <p>{t('method.caveats')}</p>
-              </div>
-            </Panel>
+          {/* Keyed by the scope: a picked deck and an open group start over with the new numbers. */}
+          <div key={scopeQuery(shown)} className="flex flex-col gap-8 max-[719px]:gap-5">
+            <SectionTabs
+              label={t('nav.aria')}
+              tabs={[
+                { id: 'play', label: t('nav.play'), panel: <WhatToPlay meta={meta} scope={shown} best={<Suspense fallback={null}><BestAgainst meta={meta} scope={shown} /></Suspense>} /> },
+                { id: 'face', label: t('nav.face'), panel: <WhatYouFace meta={meta} scope={shown} /> },
+                { id: 'beat', label: t('nav.beat'), panel: <HowToBeat meta={meta} scope={shown} /> },
+                { id: 'me', label: t('nav.me'), panel: <Suspense fallback={<p role="status" className="text-[13px] leading-5 text-ink-muted">{t('me.loading')}</p>}><MeSection scope={shown} faces={faces} /></Suspense> },
+              ]}
+            />
             <AdBanner id="ad-bottom" placement="content" />
           </div>
         </>

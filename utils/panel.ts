@@ -401,11 +401,12 @@ export const resetStaple = (card: number) => request<void>(`/panel/staples/${car
  * Settings (section 10) — values staff tune without a deploy
  * ---------------------------------------------------------------- */
 
-export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number }
+/** The `wrExpected` each tier needs, and the floors to get one at all (meta share as a rate, duelists). */
+export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number; minShare: number; minPlayers: number }
 export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
 
 /** What the server falls back to for a key left out. */
-export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5 }
+export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5, minShare: 0.005, minPlayers: 10 }
 export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5 }
 
 /** A key never written is absent. */
@@ -520,6 +521,22 @@ export const ignoreArchetype = (code: number) =>
   request<{ archetypes: IgnoredArchetype[] }>(`/panel/ignored-archetypes/${code}`, json('PUT')).then((page) => page.archetypes)
 
 export const unignoreArchetype = (code: number) => request<void>(`/panel/ignored-archetypes/${code}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
+ * Setcode covers (section 9.2.1): the card that stands for a setcode's deck
+ * ---------------------------------------------------------------- */
+
+/** `cover: null` = the automatic chain (Series cover, sample deck cover, most included card). */
+export type ArchetypeCover = { code: number; name: string; cover: { id: number; name: string | null } | null }
+
+export const listCovers = (signal?: AbortSignal) =>
+  request<{ archetypes: ArchetypeCover[] }>('/panel/archetype-covers', { signal }).then((page) => page.archetypes)
+
+/** Answers the whole list. */
+export const setCover = (code: number, card: number) =>
+  request<{ archetypes: ArchetypeCover[] }>(`/panel/archetype-covers/${code}`, json('PUT', { card })).then((page) => page.archetypes)
+
+export const clearCover = (code: number) => request<void>(`/panel/archetype-covers/${code}`, json('DELETE'))
 
 /* ---------------------------------------------------------------- *
  * Series (section 9.4): archetypes the card database does not have, made of cards

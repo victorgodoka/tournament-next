@@ -7,7 +7,8 @@
     "dev": "next dev -p 5173",
     "build": "next build",
     "start": "next start -p 5173",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tierlist": "WIKI_IMAGE_BASE=http://localhost:5173 npx tsx --tsconfig tsconfig.json scripts/wiki-tier-list.ts"
   },
   "dependencies": {
     "highlight.js": "^11.12.0",

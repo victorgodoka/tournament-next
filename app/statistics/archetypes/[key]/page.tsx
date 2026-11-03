@@ -5,8 +5,9 @@ import { Panel } from '@ui/panel'
 import { cardsByIds } from '@utils/cards'
 import { pageMetadata } from '@utils/metadata'
 import type { WikiCard } from '@utils/wiki'
-import { getDeck, getSeasons, scopeFrom, seasonOf, statisticsHref } from '@utils/statistics'
-import { DeckPage } from '../../DeckPage'
+import { getDeck, getMeta, getSeasons, leadOf, plainDecks, scopeFrom, seasonOf, statisticsHref, type Meta } from '@utils/statistics'
+import { DeckPage, type Family } from '../../DeckPage'
+import { nameOf } from '../../format'
 import { StatsShell } from '../../StatsShell'
 
 type Query = { ladder?: string | string[]; season?: string | string[]; window?: string | string[]; band?: string | string[] }
@@ -37,11 +38,22 @@ export async function generateMetadata(props: DeckRouteProps) {
   return pageMetadata({ title: name ? t('metaTitle', { name }) : t('metaFallback'), path: `/statistics/archetypes/${encodeURIComponent(key)}`, description: t('metaDescription', { name: name ?? 'YGO Omega' }) })
 }
 
+/** The deck's lead row (`A*`) and the plain keys it leads, most played first: its versions. */
+const familyOf = (key: string, meta: Meta | null): Family | null => {
+  if (!meta || !key || key.endsWith('*')) return null
+  const lead = leadOf(key)
+  const row = meta.decks.find((d) => d.key === `${lead}*`)
+  if (!row) return null
+  const members = plainDecks(meta.decks).filter((d) => leadOf(d.key) === lead).sort((a, b) => b.share - a.share)
+  return { key: row.key, name: nameOf(row), share: row.share, members }
+}
+
 const DeckRoute = async (props: DeckRouteProps) => {
   const t = await getTranslations('Statistics')
-  const { scope, result } = await load(props)
-  // The deck's cards come without names, and the season is the one the API read.
-  const [seasons, cards] = await Promise.all([getSeasons(), cardsByIds(result.ok ? result.data.cards.map((c) => c.card) : []).catch(() => new Map<number, WikiCard>())])
+  const { key, scope, result } = await load(props)
+  // The deck's cards come without names or kinds; the season is the one the API read; the meta (cached) has its versions.
+  const ids = result.ok ? [...result.data.cards.map((c) => c.card)] : []
+  const [seasons, cards, meta] = await Promise.all([getSeasons(), cardsByIds(ids).catch(() => new Map<number, WikiCard>()), getMeta(scope)])
   const season = seasonOf(seasons, scope)
   if (!result.ok || !season) {
     const gone = !result.ok && result.status === 404
@@ -54,9 +66,19 @@ const DeckRoute = async (props: DeckRouteProps) => {
       </StatsShell>
     )
   }
+  const fit = meta.ok ? meta.data.fit : null
   return (
     <StatsShell>
-      <DeckPage answer={result.data} season={season} scope={{ ...scope, ladder: season.ladder }} names={Object.fromEntries([...cards].map(([id, card]) => [id, card.name]))} />
+      <DeckPage
+        answer={result.data}
+        season={season}
+        scope={{ ...scope, ladder: season.ladder }}
+        cards={Object.fromEntries([...cards].map(([id, c]) => [id, { name: c.name, kind: c.kind, monsterTypes: c.monsterTypes }]))}
+        family={familyOf(key, meta.ok ? meta.data : null)}
+        builtAt={fit?.builtAt ?? null}
+        tiers={fit?.tiers ?? null}
+        aggregateFloor={fit?.aggregateFloor ?? ''}
+      />
     </StatsShell>
   )
 }

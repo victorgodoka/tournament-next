@@ -4,7 +4,7 @@
  */
 
 import { notFound } from 'next/navigation'
-import { deckFaces, effectPoints, families, familyWeeks, getDeck, getMeta, matchupCall, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
+import { deckFaces, effectPoints, families, familyWeeks, getDeck, getMeta, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
 import { Art, busy, C, Chip, col, Empty, F, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size } from '@omega/infographic/infographic'
 
@@ -189,7 +189,8 @@ const deck = async ({ data, scope, size, t, locale, key }: Ctx) => {
   if (!result.ok) return <Empty>{t('empty')}</Empty>
   const answer: DeckAnswer = result.data
   const a = answer.deck
-  const called = (call: string) => answer.matchups.filter((m) => matchupCall(m) === call).sort((x, y) => (call === 'favorable' ? y.wrAdjusted - x.wrAdjusted : x.wrAdjusted - y.wrAdjusted)).slice(0, 4)
+  // best and worst by who wins the pairing (interval clear of 50%), not by the gap from the prediction
+  const called = (best: boolean) => answer.matchups.filter((m) => (best ? m.wrLo > 0.5 : m.wrHi < 0.5)).sort((x, y) => (best ? y.wrAdjusted - x.wrAdjusted : x.wrAdjusted - y.wrAdjusted)).slice(0, 4)
   const face = deckFaces([answer]).get(a.key)
   const arts = await loadImages([face])
   const first = effectPoints(a.firstEffect)
@@ -227,8 +228,8 @@ const deck = async ({ data, scope, size, t, locale, key }: Ctx) => {
         <Kpi label={t('second')} value={pct(a.secondG1Wr)} color={wrColor(a.secondG1Wr)} size={52} />
       </div>
       <div style={{ ...(wide ? row : col), gap: 16, alignItems: 'stretch', flex: 1 }}>
-        <MatchList n="01" title={t('best')} list={called('favorable')} color={C.win} />
-        <MatchList n="02" title={t('worst')} list={called('unfavorable')} color={C.loss} />
+        <MatchList n="01" title={t('best')} list={called(true)} color={C.win} />
+        <MatchList n="02" title={t('worst')} list={called(false)} color={C.loss} />
       </div>
     </div>
   )

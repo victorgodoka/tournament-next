@@ -26,6 +26,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/admin/cards/decks', label: 'Decks' },
       { href: '/admin/cards/ignored', label: 'Ignored setcodes' },
+      { href: '/admin/cards/covers', label: 'Setcode covers' },
       { href: '/admin/cards/staples', label: 'Staples' },
       { href: '/admin/cards/series', label: 'Series' },
     ],

@@ -50,12 +50,21 @@ export const cardHref = (id: number, scope: StatisticsScope) => `/statistics/car
 export type Season = { id: number; code: string; ladder: RankedLadderId; label: string; startsAt: string; endsAt: string | null; sweptThrough: string | null }
 /** Games each filter removed (on the `all` band only), and the aggregate band's floor tier. */
 export type Dropped = { players: number; lists: number; iron: number; total: number }
-export type Fit = { band: string; players: number; games: number; decks: number; firstEffect: number; ratingEffect: number; matchupStrength: number; cardStrength: number; phiMedian: number; builtAt: string; dropped: Dropped | null; aggregateFloor: string }
+/** The tier marks (min `wrExpected` per tier) and floors the build ran with. */
+export type TierRules = { t1: number; t15: number; t2: number; t3: number; t4: number; minShare: number; minPlayers: number }
+export type Fit = {
+  band: string; players: number; games: number; decks: number; firstEffect: number; ratingEffect: number; matchupStrength: number; cardStrength: number; phiMedian: number
+  builtAt: string; dropped: Dropped | null; aggregateFloor: string
+  /** `null` from a build before 2026-11-03, absent from an older server. */
+  tiers?: TierRules | null
+}
 
 export type DeckStat = {
   /** `''` unknown, `A`, `A>B` (A leads) or `A*` (every key A leads, summed). Use it as the id; `name` is only the label. */
   key: string
   name: string | null
+  /** The card that stands for it (sample-deck cover, else its most included card); absent from an older server. */
+  face?: number | null
   games: number
   matches: number
   players: number
@@ -81,6 +90,9 @@ export type DeckStat = {
   postWr: number | null
   firstG1Wr: number | null
   secondG1Wr: number | null
+  /** Their games; `null` from a build before 2026-11-03, absent from an older server. */
+  firstG1Games?: number | null
+  secondG1Games?: number | null
   pilotShare: number
   mirrorShare: number
 }
@@ -89,6 +101,7 @@ export type Matchup = {
   key: string
   opponent: string
   opponentName: string | null
+  opponentFace?: number | null
   games: number
   wins: number
   losses: number
@@ -125,7 +138,8 @@ export type CardStat = {
   extra: boolean
 }
 
-export type AgainstCard = { id: number; name: string | null; games: number; rate: number; winRate: number | null }
+/** `winRate`: the deck's in the games the card showed up; `winRateWithout`: in the rest (absent from an older server). */
+export type AgainstCard = { id: number; name: string | null; games: number; rate: number; winRate: number | null; winRateWithout?: number | null }
 
 export type Meta = { season: Season; window: Window; band: string; bands: { band: string; games: number }[]; fit: Fit; decks: DeckStat[]; weeks: Week[] }
 export type DeckAnswer = { deck: DeckStat; matchups: Matchup[]; cards: CardStat[]; weeks: Week[]; byBand: (DeckStat & { band: string })[]; against: AgainstCard[]; sampleDeck: SampleDeck | null }
@@ -179,29 +193,41 @@ export const familyWeeks = (weeks: readonly Week[], list: readonly Family[]): Sh
     return [...sums.values()].sort((a, b) => a.week - b.week)
   })
 
-/** The deck with the best share-weighted adjusted rate against the `top` most played; one missing any of them doesn't count. */
-export const bestAgainst = (decks: readonly DeckStat[], matchups: readonly Matchup[], top = 5): { key: string; wr: number } | null => {
+export type BestAgainst = { key: string; wr: number; games: number; opponents: { key: string; wr: number }[] }
+
+/** The deck with the best share-weighted adjusted rate against the `top` most played, with its rate against each; one missing any of them doesn't count. */
+export const bestAgainst = (decks: readonly DeckStat[], matchups: readonly Pick<Matchup, 'key' | 'opponent' | 'wrAdjusted' | 'games'>[], top = 5): BestAgainst | null => {
   const played = [...decks].sort((a, b) => b.share - a.share).slice(0, top)
-  const rate = new Map(matchups.map((m) => [`${m.key}|${m.opponent}`, m.wrAdjusted]))
-  let best: { key: string; wr: number } | null = null
+  const cell = new Map(matchups.map((m) => [`${m.key}|${m.opponent}`, m]))
+  let best: BestAgainst | null = null
   for (const { key } of decks) {
     let sum = 0
     let weight = 0
+    let games = 0
+    const opponents: BestAgainst['opponents'] = []
     let complete = true
     for (const opponent of played) {
       if (opponent.key === key) continue
-      const wr = rate.get(`${key}|${opponent.key}`)
-      if (wr === undefined) {
+      const m = cell.get(`${key}|${opponent.key}`)
+      if (!m) {
         complete = false
         break
       }
-      sum += wr * opponent.share
+      sum += m.wrAdjusted * opponent.share
       weight += opponent.share
+      games += m.games
+      opponents.push({ key: opponent.key, wr: m.wrAdjusted })
     }
-    if (complete && weight && (!best || sum / weight > best.wr)) best = { key, wr: sum / weight }
+    if (complete && weight && (!best || sum / weight > best.wr)) best = { key, wr: sum / weight, games, opponents }
   }
   return best
 }
+
+/** Under the tier floors: the page lists it apart, as untiered. Without the build's rules nothing is set apart. */
+export const underFloors = (d: Pick<DeckStat, 'share' | 'players'>, tiers: TierRules | null | undefined) => !!tiers && (d.share < tiers.minShare || d.players < tiers.minPlayers)
+
+/** The card that stands for a deck: the server's `face`, else nothing (the initial stands in). */
+export const faceCard = (d: { face?: number | null }) => (d.face ? { id: d.face, name: null } : undefined)
 
 const sigma = (x: number) => 1 / (1 + Math.exp(-x))
 const logit = (p: number) => Math.log(p / (1 - p))
