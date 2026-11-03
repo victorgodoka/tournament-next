@@ -12,7 +12,7 @@ import { SectionHead } from '@ui/section-head'
 import { Segmented } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { count, dayTime, timeLabel } from '@utils/format'
-import { buildOpenSeasons, getAnalyticsSync, panelErrorText, rebuildOpenSeasons, startAnalyticsSync, type AnalyticsRun, type Dispatch } from '@utils/panel'
+import { buildOpenSeasons, clearStatisticsCache, getAnalyticsSync, panelErrorText, rebuildOpenSeasons, startAnalyticsSync, type AnalyticsRun, type Dispatch } from '@utils/panel'
 import { LADDERS } from '@utils/ranked'
 import type { RankedLadderId } from '@utils/types'
 
@@ -49,6 +49,7 @@ const JobPage = () => {
   const [notice, setNotice] = useState<{ status: Dispatch; from?: string; to?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [watching, setWatching] = useState(false)
+  const [cache, setCache] = useState<{ busy: boolean; cleared?: number; error?: string }>({ busy: false })
 
   const running = sync.data?.running ?? null
   const last = sync.data?.last ?? null
@@ -76,6 +77,14 @@ const JobPage = () => {
         if (answer.status === 'dispatched' && answer.from) setWatching(true)
       },
       (e) => setError(panelErrorText(e)),
+    )
+  }
+
+  const clearCache = () => {
+    setCache({ busy: true })
+    clearStatisticsCache().then(
+      ({ cleared }) => setCache({ busy: false, cleared }),
+      (e) => setCache({ busy: false, error: panelErrorText(e) }),
     )
   }
 
@@ -150,6 +159,19 @@ const JobPage = () => {
           <div>
             <Button variant="secondary" size="mono-md" onClick={() => start(buildOpenSeasons(ladder || undefined))}>Reclassify open seasons</Button>
           </div>
+        </Panel>
+
+        <Panel label="Statistics cache" className="flex flex-col gap-4.5 [--edge:var(--color-line-mid)]">
+          <SectionHead compact num="04">Statistics cache</SectionHead>
+          <p className="text-sm leading-5.5 text-ink-dim">
+            The API keeps /statistics in memory for hours and refreshes it on its own within a minute of each job finishing, so nobody waits on the database. Clear it after something the job doesn&apos;t
+            rewrite, like a pinned deck cover, or if a page looks stale. It warms the main pages again right after; the site&apos;s own cache can take up to 5 more minutes.
+          </p>
+          <div className="flex flex-wrap items-center gap-3.5">
+            <Button variant="secondary" size="mono-md" disabled={cache.busy} onClick={clearCache}>{cache.busy ? 'Clearing…' : 'Clear statistics cache'}</Button>
+            {cache.cleared !== undefined ? <span className="text-ink-dim caption">Cleared {count(cache.cleared)} answers, warming again.</span> : null}
+          </div>
+          {cache.error ? <Alert tone="negative" title="Couldn't clear the cache">{cache.error}</Alert> : null}
         </Panel>
       </div>
 

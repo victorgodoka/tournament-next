@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { deckHref, effectPoints, plainDecks, underFloors, type DeckStat, type Meta, type Scope, type TierRules } from '@utils/statistics'
-import { Art, at, Box, ci, facesOf, subFace, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, Track, WIDE } from '../kit'
+import { Art, at, Box, ci, DECK_NAME, facesOf, subFace, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, Track, WIDE } from '../kit'
 import { nameOf } from '../shared'
 
 const SHOWN = 30
-const COLS = '56px minmax(200px, 1.4fr) 80px 96px minmax(300px, 2.4fr) 88px 88px 96px'
-const M_COLS = '20px 36px minmax(0, 1fr) 64px'
+const COLS = '56px minmax(240px, 1.4fr) 80px 96px minmax(300px, 2.4fr) 88px 88px 96px'
+const M_COLS = '20px 44px minmax(0, 1fr) 64px'
 const LO = 0.4
 const HI = 0.7
 const TICKS = [45, 50, 55, 60, 65]
@@ -48,7 +48,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
   const shown = all ? ranked : ranked.slice(0, SHOWN)
   const first = effectPoints(meta.fit.firstEffect)
   const stamp = t.rich('stamp', { games: n(meta.fit.games), time: () => <LocalTime iso={meta.fit.builtAt} locale={locale} /> })
-  const link = (d: DeckStat, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge('truncate font-bold hover:text-cyan', className)}>{nameOf(d)}</Link>
+  const link = (d: DeckStat, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge(DECK_NAME, 'font-bold hover:text-cyan', className)}>{nameOf(d)}</Link>
 
   if (!decks.length) {
     return (
@@ -93,7 +93,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
               <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
                 <span role="cell" className="pl-6 font-display text-lg text-ink-muted">{i + 1}</span>
                 <span role="cell" className="flex min-w-0 items-center gap-3">
-                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
+                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} />
                   {link(d, 'text-ink')}
                 </span>
                 <span role="cell"><TierCell deck={d} /></span>
@@ -120,7 +120,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
                   <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
                     <span role="cell" className="pl-6 text-ink-muted signal-sm">–</span>
                     <span role="cell" className="flex min-w-0 items-center gap-3">
-                      <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} dim />
+                      <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} dim />
                       <span className="flex min-w-0 flex-col">
                         {link(d, 'text-ink-dim')}
                         <span className="text-xs leading-4 font-medium text-ink-muted">{shortOf(d, tiers, t)}</span>
@@ -154,7 +154,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
           {shown.map((d, i) => (
             <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
               <span className="font-display text-[15px] text-ink-muted">{i + 1}</span>
-              <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
+              <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} />
               <span className="flex min-w-0 flex-col">
                 {link(d, 'text-ink')}
                 <Small className="truncate">{t('rowMeta', { share: pc(d.share), games: n(d.games), players: n(d.players) })}</Small>
@@ -176,7 +176,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
               {(openRare ? rare : []).map((d) => (
                 <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
                   <span className="text-ink-muted signal-sm">–</span>
-                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} dim />
+                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(d, 'text-ink-dim')}
                     <Small className="truncate">{shortOf(d, tiers, t)}</Small>

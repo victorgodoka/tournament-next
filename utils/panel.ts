@@ -332,6 +332,12 @@ export const rebuildOpenSeasons = () => request<{ status: Dispatch; from: string
 export const buildOpenSeasons = (ladder?: RankedLadderId) =>
   request<{ status: Dispatch; ladder: RankedLadderId | null }>('/panel/analytics/sync/build', json('POST', ladder ? { ladder } : {}))
 
+/**
+ * Empties the API's `/statistics` cache and warms it again in the background. A new build already does this
+ * on its own; this is for what the job doesn't rewrite (a pinned cover) or anything that looks stale.
+ */
+export const clearStatisticsCache = () => request<{ cleared: number }>('/panel/analytics/cache/clear', json('POST', {}))
+
 /* ---------------------------------------------------------------- *
  * Deck classification (section 9) — decks, ignored setcodes, staples
  * ---------------------------------------------------------------- */

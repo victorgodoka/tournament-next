@@ -14,7 +14,7 @@ import { toOmega } from '@utils/deck/codecs/omega'
 import type { WikiCard } from '@utils/wiki'
 import { Pickers } from './Pickers'
 import { SectionTabs } from './SectionTabs'
-import { Art, at, Box, ci, CopyButton, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, span, TH, TierChip, tone, Track, WIDE, type Read } from './kit'
+import { Art, at, Box, ci, CopyButton, DECK_NAME, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, span, TH, TierChip, tone, Track, WIDE, type Read } from './kit'
 import { nameOf } from './shared'
 
 export type CardInfo = Pick<WikiCard, 'name' | 'kind' | 'monsterTypes'>
@@ -404,7 +404,7 @@ const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; ve
           aria-current={m.key === deck.key ? 'page' : undefined}
           className={twMerge('grid grid-cols-[minmax(0,1fr)_auto] items-center border-t border-line pt-2.5 text-inherit no-underline', narrow ? 'min-h-11 gap-x-3 gap-y-0.5' : 'gap-x-3 gap-y-1')}
         >
-          <span className={twMerge('truncate font-bold', m.key === deck.key ? 'text-ink-muted' : 'text-ink')}>{m.key === deck.key ? t('thisPage', { name: nameOf(m) }) : nameOf(m)}</span>
+          <span className={twMerge(DECK_NAME, 'font-bold', m.key === deck.key ? 'text-ink-muted' : 'text-ink')}>{m.key === deck.key ? t('thisPage', { name: nameOf(m) }) : nameOf(m)}</span>
           <span className="font-bold text-ink tabular-nums">{pc(m.wrExpected)}</span>
           <Small className="truncate">{t('meta', { share: pc(m.share), players: n(m.players) })}</Small>
           <span>{m.tier !== null ? <TierChip tier={m.tier} size="sm" /> : <span className="text-ink-muted signal-sm">{note(m)}</span>}</span>
@@ -417,7 +417,7 @@ const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; ve
 
 /* ---------------------------------------------------------------- 02 matchups */
 
-const MU_COLS = 'minmax(220px, 1.3fr) 72px 88px minmax(260px, 2fr) 88px 80px 80px 128px'
+const MU_COLS = 'minmax(240px, 1.3fr) 72px 88px minmax(260px, 2fr) 88px 80px 80px 128px'
 
 const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Matchup[]; scope: Scope; faces: Faces }) => {
   const t = useTranslations('Statistics.deck.matchups')
@@ -434,7 +434,7 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
   const unfavored = reads.filter((r) => r === 'bad').length
   const label = (m: Matchup) => nameOf({ key: m.opponent, name: m.opponentName })
   const link = (m: Matchup, className: string) =>
-    m.opponent ? <Link href={deckHref(m.opponent, scope)} className={twMerge('truncate font-bold hover:text-cyan', className)}>{label(m)}</Link> : <span className={twMerge('truncate font-bold', className)}>{label(m)}</span>
+    m.opponent ? <Link href={deckHref(m.opponent, scope)} className={twMerge(DECK_NAME, 'font-bold hover:text-cyan', className)}>{label(m)}</Link> : <span className={twMerge(DECK_NAME, 'font-bold', className)}>{label(m)}</span>
   const gap = (m: Matchup) => (m.wrAdjusted - m.wrExpected) * 100
   const readText = (r: Read) => t(r === 'good' ? 'favored' : r === 'bad' ? 'unfavored' : 'unclear')
 
@@ -473,7 +473,7 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
             </div>
             {main.map((m, i) => (
               <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-14')} style={{ gridTemplateColumns: MU_COLS }}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} />{link(m, 'text-ink')}</span>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'font-bold text-ink')}>{pc(m.wrAdjusted)}</span>
                 <span role="cell" className="mx-5"><Track value={m.wrAdjusted} low={m.wrLo} high={m.wrHi} lo={lo} hi={hi} h={56} read={reads[i]} expected={m.wrExpected} /></span>
@@ -490,7 +490,7 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
               ? small.map((m) => (
                   <div key={m.opponent} role="row" className="grid min-h-13 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
-                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} dim />
+                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
                       <span className="flex min-w-0 flex-col leading-[18px]">
                         {link(m, 'text-ink-dim')}
                         <span className="text-ink-muted signal-sm">{t('under', { min: MIN_MATCHUP_GAMES })}</span>
@@ -519,8 +519,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
 
         <div role="list" aria-label={t('aria', { name })} className={twMerge(ROWS, NARROW)}>
           {main.map((m, i) => (
-            <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
-              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} />
+            <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
+              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />
               <span className="flex min-w-0 flex-col">
                 {link(m, 'text-ink')}
                 <Small>{t.rich('rowMeta', { rate: pc(m.wrAdjusted), exp: pc(m.wrExpected), games: n(m.games), g: (c) => <span className="text-gold">{c}</span> })}</Small>
@@ -535,8 +535,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           ))}
           {low
             ? small.map((m) => (
-                <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3">
-                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} dim />
+                <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3">
+                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(m, 'text-ink-dim')}
                     <Small>{t('underRow', { min: MIN_MATCHUP_GAMES, games: n(m.games) })}</Small>

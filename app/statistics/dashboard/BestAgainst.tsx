@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { bestAgainst, deckHref, getDeck, plainDecks, type BestAgainst as Best, type DeckStat, type Meta, type Scope } from '@utils/statistics'
 import { at, facesOf, n, nameOf, NARROW, pc, subFace, WIDE } from '../format'
-import { Art, Box, GoldDot } from '../kit'
+import { Art, Box, DECK_NAME, GoldDot } from '../kit'
 
 /** The contenders. Each is a request, and the API's limit is per IP, this server's here. */
 const CONTENDERS = 8
@@ -11,16 +11,16 @@ const HI = 0.7
 
 /** The rate against one of the top 5: the bar from 40% on, the 50% line across it. */
 const Line = ({ deck, wr, sub, narrow }: { deck: DeckStat; wr: number; sub: number | null; narrow?: boolean }) => (
-  <div className="grid items-center gap-2.5 min-[720px]:gap-3" style={{ gridTemplateColumns: narrow ? '28px minmax(0, 1fr) 80px 48px' : 'minmax(0, 1fr) 120px 52px' }}>
+  <div className="grid items-center gap-2.5 min-[720px]:gap-3" style={{ gridTemplateColumns: narrow ? '36px minmax(0, 1fr) 80px 48px' : 'minmax(0, 1fr) 120px 52px' }}>
     {narrow ? (
       <>
-        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={28} className="border-ink/25" />
-        <span className="truncate text-[13px] text-ink">{nameOf(deck)}</span>
+        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={36} className="border-ink/25" />
+        <span className={`${DECK_NAME} text-[13px] leading-4 text-ink`}>{nameOf(deck)}</span>
       </>
     ) : (
       <span className="flex min-w-0 items-center gap-2.5">
-        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={28} className="border-ink/25" />
-        <span className="truncate text-[13px] leading-5 text-ink">{nameOf(deck)} <span className="text-ink-dim">{pc(deck.share)}</span></span>
+        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={36} className="border-ink/25" />
+        <span className={`${DECK_NAME} text-[13px] leading-5 text-ink`}>{nameOf(deck)} <span className="text-ink-dim">{pc(deck.share)}</span></span>
       </span>
     )}
     <span aria-hidden className="relative block h-1.5 bg-space-000/45">
@@ -48,8 +48,8 @@ export const BestCard = async ({ best, decks, scope }: { best: Best; decks: Deck
       </div>
       <div className={`flex items-end justify-between gap-4 ${WIDE}`}>
         <div className="flex min-w-0 items-center gap-4">
-          <Art id={deck.face} sub={sub} name={nameOf(deck)} size={64} className="border-ink/35" />
-          <h3 className="m-0 truncate font-display text-[32px] leading-[1.05] text-ink uppercase">{name}</h3>
+          <Art id={deck.face} sub={sub} name={nameOf(deck)} size={80} className="border-ink/35" />
+          <h3 className={`m-0 ${DECK_NAME} font-display text-[32px] leading-[1.05] text-ink uppercase`}>{name}</h3>
         </div>
         <div className="flex flex-col items-end">
           <span className="font-display text-[40px] leading-none text-ink">{pc(best.wr)}</span>
@@ -57,9 +57,9 @@ export const BestCard = async ({ best, decks, scope }: { best: Best; decks: Deck
         </div>
       </div>
       <div className={`flex items-center gap-3.5 ${NARROW}`}>
-        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={56} className="border-ink/35" />
+        <Art id={deck.face} sub={sub} name={nameOf(deck)} size={64} className="border-ink/35" />
         <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="m-0 truncate font-display text-[26px] leading-none text-ink uppercase">{name}</h3>
+          <h3 className={`m-0 ${DECK_NAME} font-display text-[26px] leading-[1.05] text-ink uppercase`}>{name}</h3>
           <span className="text-[13px] text-ink-dim">{t.rich('vsShort', { rate: pc(best.wr), games: n(best.games), b: (chunks) => <strong className="font-display text-xl font-normal text-ink">{chunks}</strong> })}</span>
         </div>
       </div>

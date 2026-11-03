@@ -8,11 +8,11 @@ import { Button } from '@ui/button'
 import { cardsByIds } from '@utils/cards'
 import { deckHref, effectPoints, getDeck, matchupCall, MIN_MATCHUP_GAMES, plainDecks, scopeFrom, scopeQuery, type AgainstCard, type DeckAnswer, type DeckStat, type Matchup, type Meta, type SampleCard, type SampleDeck, type Scope } from '@utils/statistics'
 import type { WikiCard } from '@utils/wiki'
-import { Art, at, Box, CopyButton, CountLine, facesOf, frameColor, subFace, type Faces, GapTrack, HEAD_ROW, Label, LINK_BTN, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, SelectBox, signed, Small, TH, TierChip, tone, WIDE, ydk, type Read } from '../kit'
+import { Art, at, Box, CopyButton, CountLine, DeckSearch, facesOf, frameColor, subFace, type Faces, GapTrack, HEAD_ROW, DECK_NAME, Label, LINK_BTN, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, tone, WIDE, ydk, type Read } from '../kit'
 import { cardName, nameOf } from '../shared'
 
 const R = 16
-const MU_COLS = 'minmax(200px, 1.2fr) 88px 180px minmax(320px, 2.2fr) 160px'
+const MU_COLS = 'minmax(240px, 1.2fr) 88px 180px minmax(320px, 2.2fr) 160px'
 const CARD_COLS = 'minmax(0, 1fr) 96px 160px'
 const DROP_SCALE = 8
 const READ_OF = { favorable: 'good', unfavorable: 'bad', neutral: 'flat' } as const
@@ -60,7 +60,7 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
 
   const name = nameOf(deck)
   const face = answer?.deck.face ?? deck.face
-  const options = decks.map((d) => ({ value: d.key, label: nameOf(d) }))
+  const options = decks.map((d) => ({ value: d.key, label: nameOf(d), face: d.face, sub: subFace(d.key, faces), hint: pc(d.share) }))
   const stats = [
     { id: 'expected', value: <span className="font-display text-2xl leading-none text-ink">{pc(deck.wrExpected)}</span>, mobile: pc(deck.wrExpected) },
     { id: 'tier', value: deck.tier !== null ? <TierChip tier={deck.tier} /> : <span className="text-ink-muted signal-sm">–</span>, mobile: deck.tier !== null ? `T${deck.tier}` : '–' },
@@ -73,10 +73,10 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
       <SectionHead title={t('title')} lede={<><span className={WIDE}>{t('lede')}</span><span className={NARROW}>{t('ledeShort')}</span></>} />
 
       <Box className={twMerge('flex-row flex-wrap items-end gap-x-8 gap-y-5 px-6 py-5', WIDE)}>
-        <Art id={face} sub={subFace(key, faces)} name={name} size={64} className="self-end" />
-        <div className="flex max-w-85 flex-[1_1_260px] flex-col gap-2">
+        <Art id={face} sub={subFace(key, faces)} name={name} size={80} className="self-end" />
+        <div className="flex max-w-105 flex-[1_1_300px] flex-col gap-2">
           <Label htmlFor="f-deck">{t('deck')}</Label>
-          <SelectBox id="f-deck" value={key} onChange={setKey} options={options} />
+          <DeckSearch id="f-deck" value={key} onChange={setKey} options={options} placeholder={t('search')} empty={t('noMatch')} />
         </div>
         <div className="flex flex-wrap gap-8">
           {stats.map((s) => (
@@ -90,10 +90,10 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
       </Box>
       <Box className={twMerge('gap-3.5 p-4', NARROW)}>
         <div className="flex items-end gap-3">
-          <Art id={face} sub={subFace(key, faces)} name={name} size={56} />
+          <Art id={face} sub={subFace(key, faces)} name={name} size={64} />
           <div className="flex min-w-0 flex-auto flex-col gap-2">
             <Label htmlFor="m-deck">{t('deck')}</Label>
-            <SelectBox id="m-deck" value={key} onChange={setKey} options={options} />
+            <DeckSearch id="m-deck" value={key} onChange={setKey} options={options} placeholder={t('search')} empty={t('noMatch')} />
           </div>
         </div>
         <div className="grid grid-cols-4 gap-px border border-line bg-line">
@@ -151,7 +151,7 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
   const small = byAnswer.filter((m) => m.games < MIN_MATCHUP_GAMES)
   const label = (m: Matchup) => nameOf({ key: m.opponent, name: m.opponentName })
   const link = (m: Matchup, className: string) =>
-    m.opponent ? <Link href={deckHref(m.opponent, scope)} className={twMerge('truncate font-bold hover:text-cyan', className)}>{label(m)}</Link> : <span className={twMerge('truncate font-bold', className)}>{label(m)}</span>
+    m.opponent ? <Link href={deckHref(m.opponent, scope)} className={twMerge(DECK_NAME, 'font-bold hover:text-cyan', className)}>{label(m)}</Link> : <span className={twMerge(DECK_NAME, 'font-bold', className)}>{label(m)}</span>
   const toggle = small.length ? (
     <button type="button" aria-expanded={low} onClick={() => setLow(!low)} className={LINK_BTN}>
       {low ? t('hideLow', { min: MIN_MATCHUP_GAMES }) : t('showLow', { count: small.length, min: MIN_MATCHUP_GAMES })}
@@ -188,8 +188,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           {main.map((m) => {
             const g = sideOf(m)
             return (
-              <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: MU_COLS }}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} />{link(m, 'text-ink')}</span>
+              <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-15')} style={{ gridTemplateColumns: MU_COLS }}>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className="flex items-baseline gap-1.5 pl-6">
                   <span className="font-bold text-ink tabular-nums">{pc(g.wrAdjusted)}</span>
@@ -207,9 +207,9 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
             ? small.map((m) => {
                 const g = sideOf(m)
                 return (
-                  <div key={m.opponent} role="row" className="grid min-h-13 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
+                  <div key={m.opponent} role="row" className="grid min-h-15 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
-                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} dim />
+                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
                       <span className="flex min-w-0 flex-col leading-4.5 text-ink-dim">
                         {link(m, '')}
                         <span className="text-ink-muted signal-sm">{t('under', { min: MIN_MATCHUP_GAMES })}</span>
@@ -233,8 +233,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
         {main.map((m) => {
           const g = sideOf(m)
           return (
-            <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
-              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} />
+            <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
+              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />
               <span className="flex min-w-0 flex-col">
                 {link(m, 'text-ink')}
                 <Small>{t('rowMeta', { act: pc(g.wrAdjusted), exp: pc(g.wrExpected), games: n(m.games) })}</Small>
@@ -251,8 +251,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           ? small.map((m) => {
               const g = sideOf(m)
               return (
-                <div key={m.opponent} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
-                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={36} dim />
+                <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
+                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(m, 'text-ink-dim')}
                     <Small>{t('underRow', { min: MIN_MATCHUP_GAMES, games: n(m.games) })}</Small>
@@ -299,7 +299,7 @@ const UsedAgainst = ({ name, against, cards }: { name: string; against: AgainstC
               <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.win', { name })}</span>
             </div>
             {rows.map(({ c, drop, clear }) => (
-              <div key={c.id} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: CARD_COLS }}>
+              <div key={c.id} role="row" className={twMerge(ROW, 'min-h-15')} style={{ gridTemplateColumns: CARD_COLS }}>
                 <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
                   <span aria-hidden className="h-7 w-1 flex-none" style={{ background: frameColor(cards.get(c.id)) }} />
                   <span className="truncate font-bold text-ink">{cardName(c)}</span>
