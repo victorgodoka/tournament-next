@@ -16,10 +16,16 @@ export const REGION_LABEL: Record<Region, string> = {
 /** Only the owner ever sees this: it is their own privacy setting, not a viewer-facing state. */
 export const VISIBILITY_LABEL: Record<Visibility, string> = {
   everyone: 'Visible to everyone',
-  friends_rivals: 'Visible to friends & rivals',
-  friends: 'Visible to friends',
-  nobody: 'Visible to you only',
+  nobody: 'Private',
 }
+
+export const WINDOW_LABEL = { '7d': 'Last 7 days', '14d': 'Last 14 days', '28d': 'Last 28 days', season: 'This season' } as const
+
+/** `W–L–D`. */
+export const formatRecord = ({ wins, loses, draws }: { wins: number; loses: number; draws: number }) => `${wins}–${loses}–${draws}`
+
+/** One decimal, `53.7%`. `—` without games. */
+export const formatRate = (wins: number, total: number) => (total ? `${(Math.round((wins / total) * 1000) / 10).toFixed(1)}%` : '—')
 
 export const SOCIAL: Record<SocialNetwork, { label: string }> = {
   instagram: { label: 'Instagram' },

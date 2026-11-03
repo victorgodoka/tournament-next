@@ -11,11 +11,6 @@ export type CardArt = {
   name: string | null
 }
 
-type Deck = {
-  name: string | null
-  art: CardArt | null
-}
-
 type Accent = 'green' | 'magenta'
 
 export type Region = 'north_america' | 'latam' | 'brazil' | 'eu_west' | 'eu_east' | 'middle_east' | 'africa' | 'asia' | 'oceania'
@@ -29,7 +24,8 @@ export type ProfileSocial = {
   href: string
 }
 
-export type Visibility = 'everyone' | 'friends_rivals' | 'friends' | 'nobody'
+/** Visible or private. Private is VIP only: a non-VIP profile is always visible. */
+export type Visibility = 'everyone' | 'nobody'
 
 export type Tier = 'Iron' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Master' | 'Omega'
 
@@ -49,10 +45,11 @@ export type LadderSeason = LadderRecord & {
   startsAt: string
   /** `null` on the open season. */
   endsAt: string | null
-  elo: number
-  tier: Tier
-  /** `null` on the open season until the duelist's first game is synced. */
-  rank: number | null
+  /** Absent when the ladder's elo is hidden from this viewer (`eloHidden`). */
+  elo?: number
+  tier?: Tier
+  /** `null` on the open season until the duelist's first game is synced. Absent with `eloHidden`. */
+  rank?: number | null
   /**
    * Open season only: one point per day from the daily ladder sync, oldest first. Today's live value
    * is `elo`, not the last point. `[]` before anything is recorded.
@@ -61,16 +58,18 @@ export type LadderSeason = LadderRecord & {
 }
 
 export type LadderStats = {
+  /** A VIP hides this ladder's elo from this viewer: no `elo`, `tier`, nor per-season elo/tier/rank/eloHistory. */
+  eloHidden?: true
   /** Live rating. Can be negative. */
-  elo: number
-  tier: Tier
+  elo?: number
+  tier?: Tier
   allTime: LadderRecord
   /** Newest first. The open season is always there, even at 0-0-0. */
   seasons: LadderSeason[]
   /** Recent results, oldest first. One character per duel: `W`, `L` or `D`. */
   recent: string | null
-  topDeck: { name: string; art: CardArt } | null
-  topDeckMeta: { duels: number; wins: number } | null
+  topDeck?: { name: string; art: CardArt } | null
+  topDeckMeta?: { duels: number; wins: number } | null
 }
 
 /** Which season is running now on one ladder. Nothing about the duelist. */
@@ -91,8 +90,10 @@ type MatchSide = {
   avatar: string | null
   cosmetics: Cosmetics
   deck: string | null
-  /** 0–3 distinct cards from the deck. */
+  /** 0–2: the main archetype's art, then the secondary one's in a mixed deck (drawn smaller, overlapping). */
   cards: CardArt[]
+  /** `self` only: the VIP hides their decks from this viewer. */
+  deckHidden?: true
 }
 
 /** Always from the profile owner's point of view. */
@@ -107,12 +108,87 @@ export type Match = {
   when: string | null
   self: MatchSide
   opponent: MatchSide
+  /** The play-by-play (`/analytics/matches/{id}/timeline`) answers for this viewer. */
+  timeline: boolean
 }
+
+/** Something that happened between duels, in the span of one page of the history. */
+export type TimelineEvent =
+  | {
+      id: string
+      kind: 'tier'
+      ladder: 'TCG' | 'Genesys'
+      /** `YYYY-MM-DD` (UTC). Day only: the data is the daily sync. */
+      day: string
+      direction: 'up' | 'down'
+      from: Tier
+      to: Tier
+      elo: number
+    }
+  | {
+      id: string
+      kind: 'season'
+      ladder: 'TCG' | 'Genesys'
+      at: string
+      phase: 'start' | 'end'
+      code: string
+      label: string
+      standing?: LadderRecord & { rank?: number; tier?: Tier; elo?: number }
+    }
+  | ({ id: string; kind: 'tournament'; at: string } & PlayerEntry)
+
+/** One ladder's rating change on one UTC day. */
+export type EloDay = { day: string; ladder: 'TCG' | 'Genesys'; elo: number; delta: number }
 
 export type MatchPage = {
   matches: Match[]
   /** `null` is the only stop condition. */
   nextCursor: string | null
+  /** VIP timeline (`view.events`): the events in this page's span, newest first. */
+  events?: TimelineEvent[]
+  /** With `view.charts` too: rating change per day and ladder in this page's span. */
+  eloDays?: EloDay[]
+}
+
+export type MatchWindow = '7d' | '14d' | '28d' | 'season'
+
+/** The VIP's choices about what visitors see. The owner always sees everything. */
+export type ProfilePrivacy = {
+  hideElo: 'none' | 'tcg' | 'genesys' | 'both'
+  showPastSeasons: boolean
+  hideMatches: boolean
+  matchWindow: MatchWindow
+  showPastSeasonMatches: boolean
+  hideTimeline: boolean
+  hideDecks: boolean
+  delayMatches: boolean
+  hideCharts: boolean
+}
+
+/** How this profile shows to this viewer, already applied by the server. */
+export type ProfileView = {
+  vip: boolean
+  matches: boolean
+  /** `null` = no limit (a VIP on their own profile). */
+  matchWindow: MatchWindow | null
+  delayed: boolean
+  pastSeasonMatches: boolean
+  timeline: boolean
+  decks: boolean
+  charts: boolean
+  pastSeasons: boolean
+  customization: boolean
+  events: boolean
+  deckStats: boolean
+}
+
+/** `GET /profiles/{id}/decks`: up to 3 decks per ladder this season, in matches. */
+export type DeckStats = {
+  ladders: {
+    format: 'TCG' | 'Genesys'
+    season: { code: string; label: string } | null
+    decks: { key: string; name: string | null; art: CardArt | null; matches: number; wins: number; loses: number; draws: number }[]
+  }[]
 }
 
 /** Always sent, so a private page still shows whose profile it is. */
@@ -122,7 +198,8 @@ export type ProfileIdentity = {
   displayName: string | null
   handle: string | null
   avatar: string | null
-  lastLogin: string | null
+  /** Absent when the duelist hides their last seen from this viewer. */
+  lastLogin?: string | null
   /** Game `accountrank >= 1`. Staff are VIP too; the raw rank is never exposed. */
   isVip: boolean
   /** @deprecated Alias of `isVip`. */
@@ -144,20 +221,33 @@ export type ProfileSettings = {
   /** Small markdown subset: paragraphs, bullets, bold, italic, strike, code, links. */
   bio: string
   region: Region | null
-  coverImageId: string | null
+  /** Cover URL (VIP). `null` = none. */
+  coverImage: string | null
   visibility: Visibility
+  hideLastSeen: boolean
   favoriteCard: CardArt | null
-  /** `null` when neither part is set. */
-  favoriteDeck: Deck | null
+  /** Free text ("Mitsurugi with Yummy"). */
+  favoriteDeck: string | null
   socials: ProfileSocial[]
+  privacy: ProfilePrivacy
 }
 
 /** `isPrivate` is computed for this viewer: everything but the identity is withheld. */
 export type Profile = ProfileIdentity & (
   | { isPrivate: true }
-  | ({ isPrivate: false } & Omit<ProfileSettings, 'visibility'> & MatchPage & {
+  | ({ isPrivate: false } & Partial<MatchPage> & {
+    /** VIP only (`view.customization`). */
+    bio?: string
+    coverImage?: string | null
+    socials?: ProfileSocial[]
+    region: Region | null
+    favoriteCard: CardArt | null
+    favoriteDeck: string | null
     /** Only present when the viewer owns the profile, which also means they can edit it. */
     visibility?: Visibility
+    hideLastSeen?: boolean
+    privacy?: ProfilePrivacy
+    view: ProfileView
     duelsPlayed: number
     /** The open season of each ladder, same order as `ladders`. Names the season even for an unplayed ladder. */
     currentSeasons: CurrentSeason[]
@@ -174,10 +264,11 @@ export type ProfileSettingsPatch = Partial<{
   region: Region | null
   visibility: Visibility
   coverImageId: string | null
+  hideLastSeen: boolean
   favoriteCardId: number | null
   favoriteDeckName: string | null
-  favoriteDeckCardId: number | null
   socials: ProfileSocial[]
+  privacy: Partial<ProfilePrivacy>
 }>
 
 /* Messenger shapes (see omega-server-v3 MESSENGER.md). */

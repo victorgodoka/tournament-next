@@ -12,7 +12,7 @@ const EditProfileRoute = () => {
       <main className="min-h-dvh bg-space-000 pt-16">
         <EditProfile />
       </main>
-      <Footer className="pb-32 sm:pb-32" />
+      <Footer />
     </>
   )
 }

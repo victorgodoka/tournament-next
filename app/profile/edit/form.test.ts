@@ -5,8 +5,11 @@ const settings = {
   bio: 'Hi',
   region: 'brazil',
   visibility: 'everyone',
+  hideLastSeen: false,
+  coverImage: null,
   favoriteCard: { id: 46986431, name: 'Dark Magician' },
-  favoriteDeck: { name: 'Mitsurugi', art: { id: 13332685, name: 'Ame no Habakiri no Mitsurugi' } },
+  favoriteDeck: 'Mitsurugi with Yummy',
+  privacy: { hideElo: 'none', showPastSeasons: true, hideMatches: false, matchWindow: '14d', showPastSeasonMatches: false, hideTimeline: false, hideDecks: false, delayMatches: false, hideCharts: false },
   socials: [
     { network: 'x', handle: '@marufuji', href: 'https://x.com/marufuji' },
     { network: 'youtube', handle: null, href: 'https://youtube.com/@marufujiduels' },
@@ -28,15 +31,19 @@ describe('edit profile form', () => {
       region: null,
       favoriteCard: null,
       favoriteDeckName: '  ',
-      favoriteDeckArt: null,
+      hideLastSeen: true,
+      cover: { id: 'profile_covers/abc', preview: 'blob:x' },
+      privacy: { ...from.privacy, matchWindow: '28d' as const, delayMatches: true },
       socials: { ...from.socials, x: '@new_handle', website: '' },
     }
 
     expect(diff(from, to)).toEqual({
       region: null,
+      hideLastSeen: true,
       favoriteCardId: null,
       favoriteDeckName: null,
-      favoriteDeckCardId: null,
+      coverImageId: 'profile_covers/abc',
+      privacy: { matchWindow: '28d', delayMatches: true },
       socials: [
         { network: 'x', handle: '@new_handle', href: 'https://x.com/new_handle' },
         { network: 'youtube', handle: '@marufujiduels', href: 'https://youtube.com/@marufujiduels' },
