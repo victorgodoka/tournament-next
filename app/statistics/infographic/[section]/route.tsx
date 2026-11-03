@@ -21,6 +21,12 @@ const range = (lo: number, hi: number) => `${(lo * 100).toFixed(1)}–${(hi * 10
 /** The API's answers for `decks`, for their faces and matchups: any it refuses are left out. */
 const answers = async (decks: DeckStat[], scope: Scope) => (await Promise.all(decks.map((d) => getDeck(d.key, scope)))).flatMap((r) => (r.ok ? [r.data] : []))
 
+/** Each deck's face. A deck the API refuses keeps its panel cover: only the fallbacks need its answer. */
+const facesOf = async (decks: DeckStat[], scope: Scope) => {
+  const found = new Map((await answers(decks, scope)).map((a) => [a.deck.key, a]))
+  return deckFaces(decks.map((deck) => ({ deck, cards: found.get(deck.key)?.cards ?? [], sampleDeck: found.get(deck.key)?.sampleDeck ?? null })))
+}
+
 const TIERS = [1, 1.5, 2, 3, 4] as const
 type PowerTier = (typeof TIERS)[number]
 const ROW_WIDTH = { wide: 1634, tall: 810 }
@@ -54,7 +60,7 @@ const tierList = async ({ data, scope, size, t }: Ctx) => {
     return [{ tier, decks, side, shown: fits ? decks : decks.slice(0, slots - 1), share: decks.reduce((sum, a) => sum + a.share, 0) }]
   })
   if (!rows.length) return <Empty>{t('empty')}</Empty>
-  const faces = deckFaces(await answers(rows.flatMap((r) => r.shown), scope))
+  const faces = await facesOf(rows.flatMap((r) => r.shown), scope)
   const arts = await loadImages([...faces.values()])
   const tierRow = ({ tier, decks, side, shown, share }: (typeof rows)[number], fit: React.CSSProperties = {}) => (
     <div key={tier} style={{ ...row, alignItems: 'stretch', flexShrink: 0, gap: 14, ...fit }}>
@@ -124,7 +130,7 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
   const rising = moves.risers.map(mover)
   const falling = moves.fallers.map(mover)
   const hero = rising[0]
-  const faces = deckFaces(await answers([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope))
+  const faces = await facesOf([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope)
   const arts = await loadImages([...faces.values()])
   const art = (a: DeckStat) => arts.get(faces.get(lead.get(a.key)!.key) ?? -1)
   const list = (n: string, title: string, movers: Mover[]) => (

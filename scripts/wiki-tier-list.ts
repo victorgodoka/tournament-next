@@ -28,7 +28,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
-import { effectPoints, families, matchupCall, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
+import { deckFaces, effectPoints, families, matchupCall, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
 import { and, behind, fallers, gapPoints, leaders, listed, name, pct, risers, rulesOf, T1_SLOTS, tier, type Ladder, type Move, type Tier, type TierRules } from './tier-list'
@@ -90,22 +90,14 @@ const share = (decks: DeckStat[]) => decks.reduce((total, deck) => total + deck.
 const goingFirst = (ladder: Ladder) => pct(0.5 + effectPoints(ladder.meta.fit.firstEffect) / 100)
 const seasonWord = (ladder: Ladder) => ladder.meta.season.label.split(' ')[0]
 
-/**
- * One card per deck, best deck first: the server's `face` (the panel's cover), else the sample-deck cover, else its
- * most included card. Never the same card twice, so two builds of one archetype don't show the same art.
- */
-const facesOf = (ladder: Ladder) => {
-  const taken = new Set<number>()
-  return new Map(
-    ladder.decks.flatMap((deck) => {
+/** One card per deck, best deck first, by the same rule as the infographics: two builds of one archetype never share art. */
+const facesOf = (ladder: Ladder) =>
+  deckFaces(
+    ladder.decks.map((deck) => {
       const answer = ladder.answers.get(deck.key)
-      const face = [deck.face, answer?.sampleDeck?.coverCardId, ...(answer?.cards ?? []).map((c) => c.card)].find((id): id is number => !!id && !taken.has(id))
-      if (!face) return []
-      taken.add(face)
-      return [[deck.key, face] as const]
+      return { deck, cards: answer?.cards ?? [], sampleDeck: answer?.sampleDeck ?? null }
     }),
   )
-}
 
 /** Points under the leader as the articles print them: two decimals at most, the same in tables and prose. */
 const back = (ladder: Ladder, deck: DeckStat) => gapPoints(behind(ladder, deck) / 100)

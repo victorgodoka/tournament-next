@@ -101,6 +101,17 @@ describe('deckFaces', () => {
     expect(faces.get('b')).toBe(8)
     expect(faces.has('c')).toBe(false)
   })
+
+  it("puts the panel's cover first, and skips it when a better deck took it", () => {
+    const faces = deckFaces([
+      { deck: { key: 'a', face: 5 }, cards: [{ card: 1 }], sampleDeck: { coverCardId: 9 } },
+      { deck: { key: 'b', face: 5 }, cards: [{ card: 7 }], sampleDeck: null },
+      { deck: { key: 'c', face: 6 }, cards: [], sampleDeck: null },
+    ])
+    expect(faces.get('a')).toBe(5)
+    expect(faces.get('b')).toBe(7)
+    expect(faces.get('c')).toBe(6)
+  })
 })
 
 describe('name', () => {

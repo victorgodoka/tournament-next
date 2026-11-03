@@ -20,7 +20,7 @@ import {
   type WikiDoc,
 } from '@utils/wiki-doc'
 import { CodeBlock } from './code-block'
-import { Lightbox } from './lightbox'
+import { Lightbox, Zoomable } from './lightbox'
 import { ShareButtons } from './share-buttons'
 import { Video } from './video'
 import { WIKI_TILE } from './wiki'
@@ -168,12 +168,15 @@ const Block = ({ block, assets, html, share, num, first, openFaq }: BlockProps) 
     case 'figure': {
       const asset = assets[block.asset]
       if (!asset) return null
+      const mobile = block.mobileAsset ? assets[block.mobileAsset] : undefined
       const anchor = `figure-${block.id}`
       const floats = block.align === 'left' || block.align === 'right'
       return (
         <figure id={block.share ? anchor : undefined} className={twMerge(ALIGN[block.align], 'flex scroll-mt-24 flex-col gap-2')}>
           {block.share && share ? <ShareButtons url={`${share.url}#${anchor}`} title={block.caption || share.title} label="Share figure" small /> : null}
-          <FigureImage asset={asset} mobile={block.mobileAsset ? assets[block.mobileAsset] : undefined} wide={block.align === 'wide'} />
+          <Zoomable asset={asset} mobile={mobile} caption={block.caption}>
+            <FigureImage asset={asset} mobile={mobile} wide={block.align === 'wide'} />
+          </Zoomable>
           <Caption credit={asset.credit} row={!floats}>
             {block.caption}
           </Caption>

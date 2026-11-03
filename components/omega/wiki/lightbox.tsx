@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
-import { useRef, useState } from 'react'
+import Image, { getImageProps } from 'next/image'
+import { useRef, useState, type RefObject } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
 import { imageSource, type GalleryLayout, type WikiAsset } from '@utils/wiki-doc'
@@ -20,18 +20,128 @@ const focal = (asset: WikiAsset) => (asset.focal ? `${asset.focal.x}% ${asset.fo
 
 const STEP = 'cut flex size-11 shrink-0 cursor-pointer items-center justify-center text-ink [--edge:var(--color-line-strong)] hover:[--fill:var(--color-surface-300)]'
 
+/** One image in the viewer; `mobile`, a phone-shaped version the viewer shows under the `sm` breakpoint. */
+type Slide = { asset: WikiAsset; mobile?: WikiAsset }
+
+const VIEWED = 'h-auto max-h-full w-auto max-w-full border border-line object-contain'
+
+const ViewedImage = ({ asset, mobile }: Slide) => {
+  const image = { ...imageSource(asset, 1920), alt: asset.alt, width: asset.width, height: asset.height, sizes: '100vw', className: VIEWED }
+  if (!mobile) return <Image {...image} alt={asset.alt} />
+  const { props: small } = getImageProps({ ...imageSource(mobile, 1080), alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
+  return (
+    // `contents`: the image sizes against the figure, not an inline box around it.
+    <picture className="contents">
+      <source media="(max-width: 639px)" srcSet={small.srcSet ?? small.src} width={mobile.width} height={mobile.height} />
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- `alt` is in the props. */}
+      <img {...getImageProps(image).props} />
+    </picture>
+  )
+}
+
+type ViewerProps = {
+  dialog: RefObject<HTMLDialogElement | null>
+  slides: Slide[]
+  index: number
+  step: (delta: number) => void
+  caption?: string
+}
+
+/** The modal viewer. Native `<dialog>` owns focus trapping, Escape and the backdrop. One slide hides the stepping. */
+const Viewer = ({ dialog, slides, index, step, caption }: ViewerProps) => {
+  const current = slides[index]
+  const many = slides.length > 1
+  return (
+    <dialog
+      ref={dialog}
+      aria-label={caption ? `${many ? 'Gallery' : 'Image'}: ${caption}` : 'Image viewer'}
+      onKeyDown={(event) => {
+        if (!many) return
+        if (event.key === 'ArrowRight') step(1)
+        if (event.key === 'ArrowLeft') step(-1)
+      }}
+      className="m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0 text-ink-dim backdrop:bg-[rgba(4,5,12,0.86)] backdrop:backdrop-blur-[10px]"
+    >
+      {current ? (
+        <div className="flex h-full flex-col">
+          <div className="flex h-15 shrink-0 items-center gap-5 border-b border-line px-4 sm:h-18 sm:px-8">
+            {many ? (
+              <span className="whitespace-nowrap text-ink signal-strong">
+                {index + 1} / {slides.length}
+              </span>
+            ) : null}
+            {caption ? <span className="min-w-0 truncate text-sm/5">{caption}</span> : null}
+            <span className="ml-auto whitespace-nowrap text-ink-muted signal-sm max-sm:hidden">{many ? '← → move · Esc closes' : 'Esc closes'}</span>
+            <form method="dialog" className="max-sm:ml-auto">
+              <button type="submit" aria-label="Close viewer" className={STEP}>
+                <Icon name="close" size={18} />
+              </button>
+            </form>
+          </div>
+
+          <div className="flex min-h-0 flex-1 items-center justify-between gap-2 px-2 sm:gap-8 sm:px-8">
+            {many ? (
+              <button type="button" onClick={() => step(-1)} aria-label="Previous image" className={twMerge(STEP, 'sm:size-14')}>
+                <Icon name="left" size={22} />
+              </button>
+            ) : null}
+            <figure className="flex h-full min-w-0 flex-1 items-center justify-center py-4">
+              <ViewedImage {...current} />
+            </figure>
+            {many ? (
+              <button type="button" onClick={() => step(1)} aria-label="Next image" className={twMerge(STEP, 'sm:size-14')}>
+                <Icon name="right" size={22} />
+              </button>
+            ) : null}
+          </div>
+
+          <div className="flex min-h-18 shrink-0 items-center gap-6 border-t border-line px-4 py-3 sm:min-h-22 sm:px-8">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="truncate text-[15px]/[22px] font-medium text-ink">{current.asset.alt}</span>
+              {current.asset.credit ? <span className="text-ink-muted signal-sm">{current.asset.credit}</span> : null}
+            </div>
+            {many ? (
+              <div aria-hidden className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5 max-sm:hidden">
+                {slides.map(({ asset }, i) => (
+                  <span key={asset.id} className={twMerge('h-[3px] w-7', i === index ? 'bg-cyan' : 'bg-line-mid')} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </dialog>
+  )
+}
+
+const ZOOM = 'cursor-zoom-in hover:outline-2 hover:outline-offset-2 hover:outline-cyan focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan'
+
+type ZoomableProps = Slide & { caption?: string; children: React.ReactNode }
+
+/** A figure's image that opens, larger, in the gallery's viewer. `children` is the image as the article shows it. */
+export const Zoomable = ({ asset, mobile, caption, children }: ZoomableProps) => {
+  const dialog = useRef<HTMLDialogElement>(null)
+  return (
+    <>
+      <button type="button" onClick={() => dialog.current?.showModal()} aria-label={`Enlarge: ${asset.alt}`} className={twMerge('block w-full', ZOOM)}>
+        {children}
+      </button>
+      <Viewer dialog={dialog} slides={[{ asset, mobile }]} index={0} step={() => {}} caption={caption} />
+    </>
+  )
+}
+
 type LightboxProps = {
   assets: WikiAsset[]
   layout: GalleryLayout
   caption?: string
 }
 
-/** Thumbnails that open a modal viewer. Native `<dialog>` owns focus trapping, Escape and the backdrop. */
+/** Thumbnails that open the viewer. */
 export const Lightbox = ({ assets, layout, caption }: LightboxProps) => {
   const dialog = useRef<HTMLDialogElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const [index, setIndex] = useState(0)
-  const current = assets[index]
   const hidden = assets.length - PHONE_TILES
 
   const open = (i: number) => {
@@ -50,7 +160,7 @@ export const Lightbox = ({ assets, layout, caption }: LightboxProps) => {
               type="button"
               onClick={() => open(i)}
               aria-label={`Enlarge: ${asset.alt}`}
-              className="relative block w-full cursor-zoom-in bg-surface-200 hover:outline-2 hover:outline-offset-2 hover:outline-cyan"
+              className={twMerge('relative block w-full bg-surface-200', ZOOM)}
             >
               <Image
                 {...imageSource(asset, 640)}
@@ -92,63 +202,7 @@ export const Lightbox = ({ assets, layout, caption }: LightboxProps) => {
         )}
       </figcaption>
 
-      <dialog
-        ref={dialog}
-        aria-label={caption ? `Gallery: ${caption}` : 'Image viewer'}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowRight') step(1)
-          if (event.key === 'ArrowLeft') step(-1)
-        }}
-        className="m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0 text-ink-dim backdrop:bg-[rgba(4,5,12,0.86)] backdrop:backdrop-blur-[10px]"
-      >
-        {current ? (
-          <div className="flex h-full flex-col">
-            <div className="flex h-15 shrink-0 items-center gap-5 border-b border-line px-4 sm:h-18 sm:px-8">
-              <span className="whitespace-nowrap text-ink signal-strong">
-                {index + 1} / {assets.length}
-              </span>
-              {caption ? <span className="min-w-0 truncate text-sm/5">{caption}</span> : null}
-              <span className="ml-auto whitespace-nowrap text-ink-muted signal-sm max-sm:hidden">← → move · Esc closes</span>
-              <form method="dialog" className="max-sm:ml-auto">
-                <button type="submit" aria-label="Close viewer" className={STEP}>
-                  <Icon name="close" size={18} />
-                </button>
-              </form>
-            </div>
-
-            <div className="flex min-h-0 flex-1 items-center justify-between gap-2 px-2 sm:gap-8 sm:px-8">
-              <button type="button" onClick={() => step(-1)} aria-label="Previous image" className={twMerge(STEP, 'sm:size-14')}>
-                <Icon name="left" size={22} />
-              </button>
-              <figure className="flex h-full min-w-0 flex-1 items-center justify-center py-4">
-                <Image
-                  {...imageSource(current, 1920)}
-                  alt={current.alt}
-                  width={current.width}
-                  height={current.height}
-                  sizes="100vw"
-                  className="h-auto max-h-full w-auto max-w-full border border-line object-contain"
-                />
-              </figure>
-              <button type="button" onClick={() => step(1)} aria-label="Next image" className={twMerge(STEP, 'sm:size-14')}>
-                <Icon name="right" size={22} />
-              </button>
-            </div>
-
-            <div className="flex min-h-18 shrink-0 items-center gap-6 border-t border-line px-4 py-3 sm:min-h-22 sm:px-8">
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="truncate text-[15px]/[22px] font-medium text-ink">{current.alt}</span>
-                {current.credit ? <span className="text-ink-muted signal-sm">{current.credit}</span> : null}
-              </div>
-              <div aria-hidden className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5 max-sm:hidden">
-                {assets.map((asset, i) => (
-                  <span key={asset.id} className={twMerge('h-[3px] w-7', i === index ? 'bg-cyan' : 'bg-line-mid')} />
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </dialog>
+      <Viewer dialog={dialog} slides={assets.map((asset) => ({ asset }))} index={index} step={step} caption={caption} />
     </>
   )
 }
