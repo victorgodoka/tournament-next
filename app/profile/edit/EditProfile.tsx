@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { twMerge } from "tailwind-merge";
-import { buttonClasses } from "@ui/button";
+import { Button } from "@ui/button";
+import { Chip } from "@ui/chip";
+import { Segmented } from "@ui/choice";
+import { Icon } from "@ui/icon";
 import { CardArt } from "@omega/card-art";
 import { Error as ErrorPage } from "@omega/error";
 import { ProfileBio } from "@omega/profile/profile-bio";
@@ -13,49 +15,89 @@ import { REGION_LABEL, SOCIAL } from "@omega/profile/labels";
 import { useAuth } from "@contexts/auth/auth.context";
 import { useSearch } from "@hooks/index";
 import { signIn } from "@utils/auth";
-import { archetypeCover, searchArchetypes, searchCards } from "@utils/cards";
-import { getProfile, ProfileApiError, updateProfile } from "@utils/profile";
-import type { ProfileIdentity, ProfileSettingsPatch, Region, Visibility } from "@utils/types";
-import { AvatarFrame } from "@ui/avatar";
+import { parseBio } from "@utils/remark";
+import { searchCards } from "@utils/cards";
+import { COVER_MAX_BYTES, getProfile, ProfileApiError, updateProfile, uploadCover } from "@utils/profile";
+import type { MatchWindow, ProfileIdentity, ProfilePrivacy, ProfileSettingsPatch, Region, Visibility } from "@utils/types";
+import { Rail } from "../sections/rail";
 import { bioProblem, BIO_MAX, DECK_NAME_MAX, diff, SOCIAL_FIELDS, toForm, type Form } from "./form";
 
-/** Longest keys first, so `favoriteDeckCardId` is not read as another field. The API message names the field. */
+/** Longest keys first, so `favoriteCardId` is not read as another field. The API message names the field. */
 const FIELD_LABEL: [keyof ProfileSettingsPatch, string][] = [
-  ['favoriteDeckCardId', 'favorite deck art'], ['favoriteDeckName', 'favorite deck'], ['favoriteCardId', 'favorite card'],
-  ['visibility', 'privacy setting'], ['socials', 'socials'], ['region', 'region'], ['bio', 'bio'],
+  ['favoriteDeckName', 'favorite deck'], ['favoriteCardId', 'favorite card'], ['coverImageId', 'cover'],
+  ['visibility', 'visibility'], ['hideLastSeen', 'last seen'], ['privacy', 'privacy settings'],
+  ['socials', 'socials'], ['region', 'region'], ['bio', 'bio'],
 ]
 
 const saveError = (error: unknown) => {
-  if (error instanceof ProfileApiError && error.status === 400) {
-    const field = FIELD_LABEL.find(([key]) => error.message.includes(key))
-    return field ? `Check your ${field[1]} and try again.` : 'Some fields were rejected. Check them and try again.'
+  if (error instanceof ProfileApiError) {
+    if (error.code === 'VIP_REQUIRED') return 'Some of these changes need VIP.'
+    if (error.code === 'TOO_LARGE') return 'The cover must be 2 MB or less.'
+    if (error.status === 422) return 'That cover was rejected by moderation. Pick another image.'
+    if (error.status === 400) {
+      const field = FIELD_LABEL.find(([key]) => error.message.includes(key))
+      return field ? `Check your ${field[1]} and try again.` : 'Some fields were rejected. Check them and try again.'
+    }
   }
   return 'Couldn’t save. Try again in a moment.'
 }
 
-/* ── Debounced lookups ── */
-
 const findCards = (text: string, signal: AbortSignal) => searchCards(text, 6, signal)
-const findArchetypes = async (text: string, signal: AbortSignal) => (await searchArchetypes(text, signal)).slice(0, 5)
 
-/* ── Shared styles ── */
+/* ── Shared pieces ── */
 
-const LABEL = "block text-ink-muted signal-sm"
-const INPUT = "w-full border border-surface-400 bg-surface-200 px-3.5 py-3.25 text-ink body placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
-const MINOR_BUTTON = "inline-flex min-h-11.5 cursor-pointer items-center border border-line px-5 text-ink-muted signal-tab"
-
-const Row = ({ index, title, blurb, className, children }: { index: string; title: string; blurb: string; className?: string; children: React.ReactNode }) => (
-  <section className={twMerge("grid grid-cols-1 gap-4.5 border-b border-line px-5.5 py-8 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-11 lg:p-11", className)}>
-    <div>
-      <p className="font-bold text-cyan signal-lg">{index}</p>
-      <h2 className="mt-3.5 text-ink display-4">{title}</h2>
-      <p className="mt-2.5 max-w-[34ch] text-ink-dim body-sm">{blurb}</p>
-    </div>
-    <div className="min-w-0">{children}</div>
-  </section>
-)
+const LABEL = "font-mono text-[10px] leading-3 tracking-[0.16em] uppercase text-ink-muted"
+const INPUT = "box-border w-full border border-line-mid bg-surface-200 px-3 py-2.25 text-[15px] leading-5.5 text-ink placeholder:text-ink-muted hover:border-ink-muted focus-visible:border-cyan"
 
 type SetForm = (patch: Partial<Form> | ((form: Form) => Partial<Form>)) => void
+
+/** The 48×26 switch of the settings rows. */
+const Toggle = ({ checked, onChange, label, disabled }: { checked: boolean; onChange: (next: boolean) => void; label: string; disabled?: boolean }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={twMerge(
+      'relative h-6.5 w-12 shrink-0 cursor-pointer bg-surface-300 shadow-[inset_0_0_0_1px_var(--color-line-strong)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-cyan disabled:cursor-not-allowed disabled:opacity-(--opacity-dim)',
+      'after:absolute after:top-1 after:left-1 after:size-4.5 after:bg-ink-muted motion-safe:after:transition-transform motion-safe:after:duration-120',
+      checked && 'bg-ground-cyan shadow-[inset_0_0_0_1px_var(--color-cyan)] after:translate-x-5.5 after:bg-cyan',
+    )}
+  />
+)
+
+/** Title and description on the left, the control on the right. */
+const Setting = ({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) => (
+  <div className="flex flex-col gap-1 bg-surface-100 px-4 py-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-6 md:px-5">
+    <b className="text-[15px] font-bold text-ink md:col-start-1 md:row-start-1">{title}</b>
+    <p className="text-[13px] leading-4.75 text-ink-dim md:col-start-1 md:row-start-2">{hint}</p>
+    <div className="max-md:mt-2 md:col-start-2 md:row-span-2 md:row-start-1">{children}</div>
+  </div>
+)
+
+const Group = ({ children }: { children: React.ReactNode }) => <div className="flex flex-col gap-px border border-line bg-line">{children}</div>
+
+/** A VIP section seen by a non-VIP: the controls stay visible, greyed, with the way to VIP. */
+const VipLock = ({ vip, children }: { vip: boolean; children: React.ReactNode }) =>
+  vip ? children : (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3 border border-gold bg-ground-gold px-4 py-3">
+        <Chip tone="vip">VIP</Chip>
+        <span className="text-sm text-ink-dim">This part of your profile is a VIP feature. What you saved before stays stored.</span>
+        <Button size="sm" variant="secondary" href="/download#donations" className="ml-auto">Get VIP</Button>
+      </div>
+      <div inert className="opacity-(--opacity-dim)">{children}</div>
+    </div>
+  )
+
+const Section = ({ id, num, label, stamp, children }: { id: string; num: string; label: string; stamp?: React.ReactNode; children: React.ReactNode }) => (
+  <section id={id} aria-label={label} className="flex scroll-mt-24 flex-col gap-3.5">
+    <Rail num={num} label={label} stamp={stamp} />
+    {children}
+  </section>
+)
 
 /* ── Autocomplete ── */
 
@@ -143,232 +185,354 @@ function Autocomplete<T>({ id, value, onChange, options, optionKey, renderOption
   )
 }
 
-/* ── 01 Favorites ── */
 
-const FavoritesSection = ({ form, set }: { form: Form; set: SetForm }) => {
+/* ── 01 Profile ── */
+
+const ProfileSection = ({ form, set }: { form: Form; set: SetForm }) => {
   const [cardText, setCardText] = useState(form.favoriteCard?.name ?? '')
   const cards = useSearch(cardText, findCards)
-  const archetypes = useSearch(form.favoriteDeckName, findArchetypes)
 
-  const pickDeck = (name: string) => {
-    set({ favoriteDeckName: name, favoriteDeckArt: null })
-    archetypeCover(name)
-      // Only if the name is still the one picked: the duelist may have kept typing.
-      .then((art) => set((current) => (current.favoriteDeckName === name ? { favoriteDeckArt: art } : {})))
-      .catch(() => {})
+  return (
+    <Section id="profile" num="01" label="Profile">
+      <Group>
+        <div className="flex flex-col gap-3 bg-surface-100 px-5 py-4 max-md:px-4">
+          <b className="text-[15px] font-bold text-ink">Region</b>
+          <p className="text-[13px] leading-4.75 text-ink-dim">The server region you usually play from. It shows as a tag next to your name. Pick it again to clear it.</p>
+          <div role="radiogroup" aria-label="Region" className="flex flex-wrap gap-1.5">
+            {(Object.keys(REGION_LABEL) as Region[]).map((id) => {
+              const selected = id === form.region
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => set({ region: selected ? null : id })}
+                  className={twMerge('cut cursor-pointer px-3 py-2 signal-tab [--cut:var(--cut-xs)]', selected ? 'text-ink [--edge:var(--color-cyan)] [--fill:var(--color-ground-cyan)]' : 'text-ink-dim hover:text-ink')}
+                >
+                  {REGION_LABEL[id]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="grid gap-5 bg-surface-100 px-5 py-4 max-md:px-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="fav-card" className={LABEL}>Favorite card</label>
+            <Autocomplete
+              id="fav-card"
+              value={cardText}
+              onChange={(text) => {
+                setCardText(text)
+                if (!text.trim()) set({ favoriteCard: null })
+              }}
+              options={cards}
+              optionKey={(card) => card.id}
+              renderOption={(card) => (
+                <>
+                  <CardArt art={card} alt="" sizes="36px" className="size-9 shrink-0 border border-line" />
+                  <span className="min-w-0 truncate">{card.name ?? `Card ${card.id}`}</span>
+                </>
+              )}
+              onPick={(card) => {
+                set({ favoriteCard: card })
+                setCardText(card.name ?? '')
+              }}
+              placeholder="Search a card…"
+            />
+            {form.favoriteCard ? (
+              <div className="mt-3 flex items-center gap-2.5">
+                <CardArt art={form.favoriteCard} alt="" sizes="36px" className="size-9 border border-cyan" />
+                <p className="text-[13px] text-ink-muted">{form.favoriteCard.name ?? `Card ${form.favoriteCard.id}`}</p>
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <label htmlFor="fav-deck" className={LABEL}>Favorite deck</label>
+            <input
+              id="fav-deck"
+              value={form.favoriteDeckName}
+              onChange={(e) => set({ favoriteDeckName: e.target.value })}
+              placeholder="Mitsurugi with Yummy"
+              maxLength={DECK_NAME_MAX}
+              autoComplete="off"
+              className={twMerge(INPUT, 'mt-2.5')}
+            />
+            <p className="mt-2 text-[13px] text-ink-muted">Write it however you like.</p>
+          </div>
+        </div>
+        <Setting title="Hide last seen" hint="Nobody else sees when you were last online. Open to every duelist.">
+          <Toggle checked={form.hideLastSeen} onChange={(hideLastSeen) => set({ hideLastSeen })} label="Hide last seen" />
+        </Setting>
+      </Group>
+    </Section>
+  )
+}
+
+/* ── 02 Cover ── */
+
+const CoverSection = ({ form, set, vip }: { form: Form; set: SetForm; vip: boolean }) => {
+  const input = useRef<HTMLInputElement>(null)
+  const [state, setState] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null })
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return setState({ busy: false, error: 'Use a JPG, PNG or WebP image.' })
+    if (file.size > COVER_MAX_BYTES) return setState({ busy: false, error: 'The cover must be 2 MB or less.' })
+    setState({ busy: true, error: null })
+    try {
+      const id = await uploadCover(file)
+      set({ cover: { id, preview: URL.createObjectURL(file) } })
+      setState({ busy: false, error: null })
+    } catch (error) {
+      console.error(error)
+      setState({ busy: false, error: 'Upload failed. Try again.' })
+    }
   }
 
   return (
-    <Row index="01" title="Favorites" blurb="Card and deck shown in the band under your name. Search for a card, and pick an archetype or type any deck name.">
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-        <div>
-          <label htmlFor="fav-card" className={LABEL}>Favorite card</label>
-          <Autocomplete
-            id="fav-card"
-            value={cardText}
-            onChange={(text) => {
-              setCardText(text)
-              if (!text.trim()) set({ favoriteCard: null })
-            }}
-            options={cards}
-            optionKey={(card) => card.id}
-            renderOption={(card) => (
-              <>
-                <CardArt art={card} alt="" sizes="36px" className="size-9 shrink-0 border border-line" />
-                <span className="min-w-0 truncate">{card.name ?? `Card ${card.id}`}</span>
-              </>
+    <Section id="cover" num="02" label="Cover" stamp="1500 × 350 · JPG, PNG, WebP · 2 MB">
+      <VipLock vip={vip}>
+        <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_220px]">
+          <div role="img" aria-label={form.cover.preview ? 'Current cover' : 'No cover'} className="relative h-55 overflow-hidden border border-line-mid bg-[#0a1430] max-md:h-30">
+            {form.cover.preview ? <Image src={form.cover.preview} alt="" fill unoptimized className="object-cover" /> : (
+              <span className="grid size-full place-items-center text-ink-muted signal-sm">No cover yet</span>
             )}
-            onPick={(card) => {
-              set({ favoriteCard: card })
-              setCardText(card.name ?? '')
-            }}
-            placeholder="Search a card…"
-          />
-          {form.favoriteCard ? (
-            <div className="mt-3 flex items-center gap-2.5">
-              <CardArt art={form.favoriteCard} alt="" sizes="36px" className="size-9 border border-cyan" />
-              <p className="text-ink-muted mono-note">Selected: {form.favoriteCard.name ?? `card ${form.favoriteCard.id}`}</p>
-            </div>
-          ) : (
-            <p className="mt-3 text-ink-muted mono-note">No favorite card</p>
-          )}
+            <span aria-hidden className="absolute bottom-4.5 left-6 size-18 border-4 border-surface-100 bg-azure max-md:size-12" />
+          </div>
+          <div className="flex flex-col gap-3">
+            <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
+            <Button variant="secondary" disabled={state.busy} onClick={() => input.current?.click()}>
+              <Icon name="plus" />{state.busy ? 'Uploading…' : 'Upload cover'}
+            </Button>
+            <Button variant="ghost" disabled={state.busy || !form.cover.preview} onClick={() => set({ cover: { id: null, preview: null } })}>
+              <Icon name="close" />Remove
+            </Button>
+            <span className="text-[13px] leading-4.75 text-ink-muted">The bottom-left corner sits under your avatar. Keep faces and text out of it. Phones show the middle of the image.</span>
+            {state.error ? <p role="alert" className="text-sm text-loss">{state.error}</p> : null}
+          </div>
         </div>
-
-        <div>
-          <label htmlFor="fav-deck" className={LABEL}>Favorite deck</label>
-          <Autocomplete
-            id="fav-deck"
-            value={form.favoriteDeckName}
-            onChange={(text) => set({ favoriteDeckName: text, favoriteDeckArt: null })}
-            options={archetypes.filter((name) => name !== form.favoriteDeckName)}
-            optionKey={(name) => name}
-            renderOption={(name) => name}
-            onPick={pickDeck}
-            placeholder="Archetype or build name…"
-            maxLength={DECK_NAME_MAX}
-          />
-          {form.favoriteDeckArt ? (
-            <div className="mt-3 flex items-center gap-2.5">
-              <CardArt art={form.favoriteDeckArt} alt="" sizes="36px" className="size-9 border border-line" />
-              <p className="text-ink-muted mono-note">Deck art: {form.favoriteDeckArt.name}</p>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </Row>
+      </VipLock>
+    </Section>
   )
 }
 
-/* ── 02 Bio ── */
+/* ── 03 Bio ── */
 
-const BioSection = ({ bio, set }: { bio: string; set: SetForm }) => {
+/** The bio as the profile renders it. Same pipeline as the server, run here as you type. */
+const useBioHtml = (bio: string) => {
+  const [html, setHtml] = useState('')
+  useEffect(() => {
+    let live = true
+    const timer = setTimeout(() => {
+      parseBio(bio).then((out) => live && setHtml(out)).catch(() => {})
+    }, 150)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [bio])
+  return html
+}
+
+const BioSection = ({ bio, set, vip }: { bio: string; set: SetForm; vip: boolean }) => {
   const problem = bioProblem(bio)
-
+  const html = useBioHtml(bio)
   return (
-    <Row index="02" title="Bio" blurb="Markdown is supported: **bold**, *italic*, ~~strike~~, `code`, [links](https://…) and - lists. No raw HTML.">
-      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-        <div>
-          <div className="flex items-baseline justify-between gap-3">
-            <label htmlFor="bio" className={LABEL}>Markdown source</label>
-            <span className={twMerge("mono-handle", bio.length > BIO_MAX ? "text-cyan" : "text-ink-muted")}>
-              {bio.length} / {BIO_MAX}
-            </span>
+    <Section id="bio" num="03" label="Bio" stamp={`Markdown · ${bio.length} / ${BIO_MAX}`}>
+      <VipLock vip={vip}>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="bio-input" className={LABEL}>Write</label>
+            <textarea
+              id="bio-input"
+              rows={7}
+              value={bio}
+              onChange={(e) => set({ bio: e.target.value })}
+              placeholder="Tell duelists who you are…"
+              aria-invalid={!!problem}
+              aria-describedby={problem ? 'bio-problem' : undefined}
+              className={twMerge(INPUT, 'resize-y font-mono text-sm leading-5.5')}
+            />
+            {problem ? <p id="bio-problem" role="alert" className="text-sm text-loss">{problem}</p> : null}
           </div>
-          <textarea
-            id="bio"
-            rows={12}
-            value={bio}
-            onChange={(e) => set({ bio: e.target.value })}
-            placeholder="Tell duelists who you are…"
-            aria-invalid={!!problem}
-            aria-describedby={problem ? 'bio-problem' : undefined}
-            className={twMerge(INPUT, "mt-2.5 resize-y p-3.5 mono-data leading-relaxed")}
-          />
-          {problem ? <p id="bio-problem" role="alert" className="mt-2 text-loss caption">{problem}</p> : null}
-        </div>
-        <div>
-          <p className="text-cyan signal-sm">Live preview</p>
-          <div className="mt-2.5 min-h-30 border border-line bg-surface-100 p-3.5">
-            {bio.trim() ? <ProfileBio markdown={bio} /> : <p className="text-ink-muted body italic">Nothing written yet.</p>}
+          <div className="flex flex-col gap-1.5">
+            <span className={LABEL}>Preview</span>
+            <div className="grow border border-line bg-surface-100 px-4 py-3 text-[15px] leading-6 text-ink-dim">
+              {bio.trim() ? <ProfileBio markdown={html} /> : <p className="italic text-ink-muted">Nothing written yet.</p>}
+            </div>
           </div>
         </div>
-      </div>
-    </Row>
+      </VipLock>
+    </Section>
   )
 }
 
-/* ── 03 Socials ── */
+/* ── 04 Socials ── */
 
-const SocialsSection = ({ socials, set }: { socials: Form['socials']; set: SetForm }) => (
-  <Row index="03" title="Socials" blurb="Empty fields stay hidden. Your profile shows the handle, and links to the platform.">
-    <div className="grid gap-px border border-line bg-line">
-      {SOCIAL_FIELDS.map(({ network, prefix, placeholder, max }) => (
-        <div key={network} className="flex flex-wrap items-center gap-3 bg-space-000 px-3.5 py-3">
-          <label htmlFor={`social-${network}`} className={twMerge(LABEL, "basis-32.5")}>{SOCIAL[network].label}</label>
-          <span aria-hidden className="text-cyan mono-data">{prefix}</span>
-          <input
-            id={`social-${network}`}
-            value={socials[network]}
-            onChange={(e) => set((current) => ({ socials: { ...current.socials, [network]: e.target.value } }))}
-            placeholder={placeholder}
-            maxLength={max}
-            autoComplete="off"
-            className={twMerge(INPUT, "min-w-0 flex-[1_1_200px] px-3 py-2.5 mono-data")}
-          />
-        </div>
-      ))}
-    </div>
-  </Row>
+const SocialsSection = ({ socials, set, vip }: { socials: Form['socials']; set: SetForm; vip: boolean }) => (
+  <Section id="socials" num="04" label="Socials" stamp="Leave blank to hide">
+    <VipLock vip={vip}>
+      <Group>
+        {SOCIAL_FIELDS.map(({ network, prefix, placeholder, max }) => (
+          <div key={network} className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-4 bg-surface-100 px-5 py-3 max-md:grid-cols-[88px_minmax(0,1fr)] max-md:px-4">
+            <label htmlFor={`s-${network}`} className={LABEL}>{SOCIAL[network].label}</label>
+            <div className="flex items-center gap-2">
+              <span aria-hidden className="font-mono text-sm text-cyan">{prefix}</span>
+              <input
+                id={`s-${network}`}
+                value={socials[network]}
+                onChange={(e) => set((current) => ({ socials: { ...current.socials, [network]: e.target.value } }))}
+                placeholder={placeholder}
+                maxLength={max}
+                autoComplete="off"
+                className={INPUT}
+              />
+            </div>
+          </div>
+        ))}
+      </Group>
+    </VipLock>
+  </Section>
 )
 
-/* ── 04 Privacy ── */
+/* ── 05 Visibility ── */
 
-const PRIVACY: { id: Visibility; label: string; hint: string }[] = [
-  { id: 'nobody', label: 'No one', hint: 'Only you see your full profile.' },
-  { id: 'friends', label: 'Only friends', hint: 'Duelists linked with you as friends see your full profile.' },
-  { id: 'friends_rivals', label: 'Friends and rivals', hint: 'Friends plus duelists linked with you as rivals.' },
-  { id: 'everyone', label: 'Everyone', hint: 'Anyone, signed in or not, sees your full profile.' },
+const VISIBILITY: { value: Visibility; label: string }[] = [
+  { value: 'everyone', label: 'Everyone' },
+  { value: 'nobody', label: 'Only me' },
 ]
 
-const PrivacySection = ({ visibility, set }: { visibility: Visibility; set: SetForm }) => (
-  <Row index="04" title="Privacy" blurb="Controls who sees your bio, favorites, socials, ranked standing and match history. Name, avatar and last login stay public.">
-    <div role="radiogroup" aria-label="Who can see your profile" className="grid gap-px border border-line bg-line">
-      {PRIVACY.map(({ id, label, hint }) => {
-        const selected = id === visibility
-        return (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => set({ visibility: id })}
-            className={twMerge("flex w-full cursor-pointer items-start gap-3 px-4 py-3.75 text-left", selected ? "bg-surface-200 text-ink shadow-selected" : "bg-space-000 text-ink-muted hover:bg-surface-300 hover:text-ink-dim")}
-          >
-            <span aria-hidden className={twMerge("mt-1.25 size-3.25 shrink-0 border", selected ? "border-cyan bg-cyan" : "border-ink-muted")} />
-            <span className="min-w-0">
-              <span className="block action-md">{label}</span>
-              <span className="mt-1 block text-ink-muted caption">{hint}</span>
-            </span>
-          </button>
-        )
-      })}
-    </div>
-    <p className="mt-3.5 text-ink-muted mono-note">
-      Pending friend or rival requests don’t grant access until they’re accepted.
-    </p>
-  </Row>
+const VisibilitySection = ({ visibility, set, vip }: { visibility: Visibility; set: SetForm; vip: boolean }) => (
+  <Section id="visibility" num="05" label="Who sees your profile">
+    <VipLock vip={vip}>
+      <div className="border border-line">
+        <Setting title="Profile visible to" hint="Everyone else sees only your name, avatar and badges.">
+          <Segmented label="Profile visible to" options={VISIBILITY} value={visibility} onChange={(value) => set({ visibility: value })} />
+        </Setting>
+      </div>
+    </VipLock>
+  </Section>
 )
 
-/* ── 05 Region ── */
+/* ── 06 Ranked ── */
 
-const RegionSection = ({ region, set }: { region: Region | null; set: SetForm }) => (
-  <Row index="05" title="Region" blurb="The server region you usually play from. Pick it again to clear it." className="border-line-strong">
-    <div role="radiogroup" aria-label="Region" className="flex flex-wrap gap-2">
-      {(Object.keys(REGION_LABEL) as Region[]).map((id) => {
-        const selected = id === region
-        return (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => set({ region: selected ? null : id })}
-            className={twMerge(
-              "cursor-pointer border px-4 py-3 signal-tab",
-              selected ? "border-cyan bg-cyan text-cyan-on" : "border-surface-400 text-ink-muted hover:border-cyan hover:text-cyan",
-            )}
-          >
-            {REGION_LABEL[id]}
-          </button>
-        )
-      })}
-    </div>
-    <p className="mt-4 text-ink-muted mono-note">
-      {region ? `Region: ${REGION_LABEL[region]}` : 'No region set'}
-    </p>
-  </Row>
+type Privacy = ProfilePrivacy
+
+const eloShown = (hideElo: Privacy['hideElo'], ladder: 'tcg' | 'genesys') => hideElo !== 'both' && hideElo !== ladder
+
+/** The two "Show … Elo" switches written back to the one `hideElo` value. */
+const hideEloOf = (tcg: boolean, genesys: boolean): Privacy['hideElo'] => (tcg && genesys ? 'none' : tcg ? 'genesys' : genesys ? 'tcg' : 'both')
+
+const RankedSection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPrivacy: (patch: Partial<Privacy>) => void; vip: boolean }) => {
+  const tcg = eloShown(privacy.hideElo, 'tcg')
+  const genesys = eloShown(privacy.hideElo, 'genesys')
+  return (
+    <Section id="ranked" num="06" label="Ranked">
+      <VipLock vip={vip}>
+        <Group>
+          <Setting title="Show TCG Elo" hint="Hides Elo, tier and rank for the TCG ladder. Your record stays visible.">
+            <Toggle checked={tcg} onChange={(on) => setPrivacy({ hideElo: hideEloOf(on, genesys) })} label="Show TCG Elo" />
+          </Setting>
+          <Setting title="Show Genesys Elo" hint="Same for the Genesys ladder.">
+            <Toggle checked={genesys} onChange={(on) => setPrivacy({ hideElo: hideEloOf(tcg, on) })} label="Show Genesys Elo" />
+          </Setting>
+          <Setting title="Show past seasons" hint="Final rank, tier and record of every closed season.">
+            <Toggle checked={privacy.showPastSeasons} onChange={(on) => setPrivacy({ showPastSeasons: on })} label="Show past seasons" />
+          </Setting>
+          <Setting title="Show charts" hint="Elo over the season, the daily Elo change and your deck charts.">
+            <Toggle checked={!privacy.hideCharts} onChange={(on) => setPrivacy({ hideCharts: !on })} label="Show charts" />
+          </Setting>
+        </Group>
+      </VipLock>
+    </Section>
+  )
+}
+
+/* ── 07 Duel history ── */
+
+const PERIODS: { value: MatchWindow; label: string }[] = [
+  { value: '7d', label: '7 days' },
+  { value: '14d', label: '14 days' },
+  { value: '28d', label: '28 days' },
+  { value: 'season', label: 'Whole season' },
+]
+
+const HistorySection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPrivacy: (patch: Partial<Privacy>) => void; vip: boolean }) => (
+  <Section id="history" num="07" label="Duel history">
+    <VipLock vip={vip}>
+      <Group>
+        <Setting title="Show duel history" hint="Off hides the whole section, the timeline of events included.">
+          <Toggle checked={!privacy.hideMatches} onChange={(on) => setPrivacy({ hideMatches: !on })} label="Show duel history" />
+        </Setting>
+        <div className="flex items-center gap-2.5 bg-surface-200 px-5 py-2.5"><span className={LABEL}>When it&apos;s on</span></div>
+        <Setting title="Period" hint="How far back visitors can scroll.">
+          <Segmented label="Duel history period" options={PERIODS} value={privacy.matchWindow} onChange={(value) => setPrivacy({ matchWindow: value })} />
+        </Setting>
+        <Setting title="Delay by 24 hours" hint="Duels show up a day after they're played, so nobody can follow your games live.">
+          <Toggle checked={privacy.delayMatches} onChange={(on) => setPrivacy({ delayMatches: on })} label="Delay duel history by 24 hours" />
+        </Setting>
+        <Setting title="History from past seasons" hint="Lets visitors pick a closed season in the duel history.">
+          <Toggle checked={privacy.showPastSeasonMatches} onChange={(on) => setPrivacy({ showPastSeasonMatches: on })} label="Show history from past seasons" />
+        </Setting>
+        <Setting title="Show decks" hint="Your deck name and its art on each duel, and your deck charts. Off also turns the play-by-play off, since it shows the whole decklist.">
+          <Toggle checked={!privacy.hideDecks} onChange={(on) => setPrivacy({ hideDecks: !on })} label="Show decks" />
+        </Setting>
+        <Setting title="Play-by-play timeline" hint="The cards used turn by turn when someone opens one of your duels.">
+          <Toggle checked={!privacy.hideTimeline} onChange={(on) => setPrivacy({ hideTimeline: !on })} label="Show play-by-play timeline" />
+        </Setting>
+      </Group>
+    </VipLock>
+  </Section>
 )
 
 /* ── Editor ── */
 
+const SECTIONS = [
+  ['profile', 'Profile'],
+  ['cover', 'Cover'],
+  ['bio', 'Bio'],
+  ['socials', 'Socials'],
+  ['visibility', 'Visibility'],
+  ['ranked', 'Ranked'],
+  ['history', 'Duel history'],
+] as const
+
 type SaveStatus = { state: 'idle' | 'saving' | 'saved' } | { state: 'error'; message: string }
 
-const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: Form }) => {
-  const { user } = useAuth()
+const Editor = ({ identity, initial, vip }: { identity: ProfileIdentity; initial: Form; vip: boolean }) => {
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const [status, setStatus] = useState<SaveStatus>({ state: 'idle' })
+  const [current, setCurrent] = useState<string>('profile')
   /** Remounts inputs that keep their own text, after a discard or save replaces the form. */
   const [revision, setRevision] = useState(0)
 
   const set: SetForm = (patch) => {
-    setForm((current) => ({ ...current, ...(typeof patch === 'function' ? patch(current) : patch) }))
-    setStatus((current) => (current.state === 'saving' ? current : { state: 'idle' }))
+    setForm((now) => ({ ...now, ...(typeof patch === 'function' ? patch(now) : patch) }))
+    setStatus((now) => (now.state === 'saving' ? now : { state: 'idle' }))
   }
+  const setPrivacy = (patch: Partial<ProfilePrivacy>) => set((now) => ({ privacy: { ...now.privacy, ...patch } }))
+
+  // The side nav follows the section in view.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+        if (top) setCurrent(top.target.id)
+      },
+      { rootMargin: '-96px 0px -60% 0px' },
+    )
+    for (const [id] of SECTIONS) {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [])
 
   const patch = useMemo(() => diff(saved, form), [saved, form])
   const dirty = Object.keys(patch).length > 0
-  const problem = bioProblem(form.bio)
+  const problem = vip ? bioProblem(form.bio) : null
   const canSave = dirty && !problem && status.state !== 'saving'
 
   const replace = (next: Form) => {
@@ -391,71 +555,76 @@ const Editor = ({ identity, initial }: { identity: ProfileIdentity; initial: For
   }
 
   const note =
-    status.state === 'error' ? { text: status.message, className: "text-loss" }
-    : status.state === 'saving' ? { text: 'Saving…', className: "text-ink-muted" }
-    : dirty && problem ? { text: 'Fix your bio before saving', className: "text-loss" }
-    : dirty ? { text: 'Unsaved changes', className: "text-cyan" }
-    : status.state === 'saved' ? { text: 'All changes saved', className: "text-win" }
-    : { text: 'Everything up to date', className: "text-ink-muted" }
-
-  const name = identity.displayName ?? identity.handle ?? 'Duelist'
+    status.state === 'error' ? { text: status.message, className: 'text-loss' }
+    : status.state === 'saving' ? { text: 'Saving…', className: 'text-ink-muted' }
+    : dirty && problem ? { text: 'Fix your bio before saving', className: 'text-loss' }
+    : dirty ? { text: 'Unsaved changes', className: 'text-cyan' }
+    : status.state === 'saved' ? { text: 'All changes saved', className: 'text-win' }
+    : null
 
   return (
-    <>
-      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line-strong px-5.5 py-9 lg:p-11">
-        <div>
-          <p className="text-ink-muted signal-lg">Account settings</p>
-          <h1 className="mt-3 text-ink display-1">Edit profile</h1>
+    <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-4 pt-10 pb-16 min-[1312px]:px-0">
+      <header className="flex flex-wrap items-end gap-6">
+        <div className="flex grow flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            {vip ? <Chip tone="vip">VIP</Chip> : null}
+            <span className={LABEL}>Your profile{identity.handle ? ` · ${identity.handle}` : ''}</span>
+          </div>
+          <h1 className="font-display text-[56px] leading-none uppercase max-md:text-[40px]">Edit profile</h1>
+          <p className="max-w-[64ch] text-base leading-6 text-ink-dim">
+            Changes show on your profile as soon as you save. Hidden sections disappear for everyone else; you always see your full profile.
+          </p>
         </div>
-        <Link href={`/profile/${identity.id}`} className="group flex items-center gap-3">
-          <span className="relative size-14 shrink-0 border border-line bg-surface-200">
-            {identity.avatar ? <Image src={identity.avatar} alt="" fill sizes="56px" className="object-cover duotone" /> : null}
-            <AvatarFrame cosmetics={user?.cosmetics ?? identity.cosmetics} />
-          </span>
-          <span>
-            <span className="block text-ink display-6 group-hover:text-cyan">{name}</span>
-            <span className="mt-1.5 block text-cyan mono-data">{identity.handle ?? 'View public profile'}</span>
-          </span>
-        </Link>
-      </div>
+        <div className="flex flex-wrap items-center gap-3 max-md:w-full max-md:*:grow">
+          <Button variant="secondary" href={`/profile/${identity.id}?as=visitor`}><Icon name="user" />View as visitor</Button>
+          <Button disabled={!canSave} onClick={save}>{status.state === 'saving' ? 'Saving…' : 'Save changes'}</Button>
+        </div>
+        {note ? <p role="status" className={twMerge('w-full signal-nav', note.className)}>{note.text}</p> : null}
+      </header>
 
-      <FavoritesSection key={revision} form={form} set={set} />
-      <BioSection bio={form.bio} set={set} />
-      <SocialsSection socials={form.socials} set={set} />
-      <PrivacySection visibility={form.visibility} set={set} />
-      <RegionSection region={form.region} set={set} />
+      <div className="grid items-start gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <nav aria-label="Profile settings" className="flex flex-col gap-0.5 border-l border-line max-lg:hidden lg:sticky lg:top-24">
+          {SECTIONS.map(([id, label]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              aria-current={current === id ? 'true' : undefined}
+              className="flex items-center gap-2.5 border-l-2 border-transparent px-3.5 py-3 font-mono text-[11px] leading-3.5 font-bold tracking-[0.14em] text-ink-dim uppercase no-underline aria-[current]:border-cyan aria-[current]:bg-surface-100 aria-[current]:text-ink"
+            >
+              {label}
+            </a>
+          ))}
+          <div className="mt-6 flex flex-col gap-2.5 border border-line-strong bg-steel px-3.5 py-4">
+            <span className={twMerge(LABEL, 'text-ink-dim')}>VIP</span>
+            <b className="text-[15px]">Full statistics</b>
+            <span className="text-[13px] leading-4.75 text-ink-dim">Matchups, deck trends and every season in detail.</span>
+            <a href={`/profile/${identity.id}/statistics`} className="font-mono text-[11px] leading-3.5 font-bold tracking-[0.14em] text-cyan uppercase">Open statistics</a>
+          </div>
+        </nav>
 
-      <div className="fixed inset-x-0 bottom-0 z-(--z-dock) flex flex-wrap items-center justify-between gap-4 border-t border-line-strong bg-space-000 px-5.5 py-3 lg:px-11 lg:py-3.5">
-        <p role="status" className={twMerge("signal-nav", note.className)}>{note.text}</p>
-        <div className="flex flex-wrap gap-2.5">
-          <button
-            type="button"
-            disabled={!dirty || status.state === 'saving'}
-            onClick={() => {
-              replace(saved)
-              setStatus({ state: 'idle' })
-            }}
-            className={twMerge(MINOR_BUTTON, "enabled:hover:border-line-strong enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-(--opacity-dim)")}
-          >
-            Discard changes
-          </button>
-          <button
-            type="button"
-            disabled={!canSave}
-            onClick={save}
-            className={buttonClasses({ size: 'sm' })}
-          >
-            {status.state === 'saving' ? 'Saving…' : 'Save changes'}
-          </button>
+        <div className="flex min-w-0 flex-col gap-10">
+          <ProfileSection key={revision} form={form} set={set} />
+          <CoverSection form={form} set={set} vip={vip} />
+          <BioSection bio={form.bio} set={set} vip={vip} />
+          <SocialsSection socials={form.socials} set={set} vip={vip} />
+          <VisibilitySection visibility={form.visibility} set={set} vip={vip} />
+          <RankedSection privacy={form.privacy} setPrivacy={setPrivacy} vip={vip} />
+          <HistorySection privacy={form.privacy} setPrivacy={setPrivacy} vip={vip} />
+          {dirty ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" disabled={status.state === 'saving'} onClick={() => { replace(saved); setStatus({ state: 'idle' }) }}>Discard changes</Button>
+              <Button disabled={!canSave} onClick={save}>{status.state === 'saving' ? 'Saving…' : 'Save changes'}</Button>
+            </div>
+          ) : null}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
 /* ── Page: sign-in gate, then the owner's own profile (PROFILE_API.md §3.3 "Prefilling a settings form") ── */
 
-type Loaded = { identity: ProfileIdentity; initial: Form }
+type Loaded = { identity: ProfileIdentity; initial: Form; vip: boolean }
 
 export const EditProfile = () => {
   const { user } = useAuth()
@@ -473,9 +642,24 @@ export const EditProfile = () => {
     // The form shows no duels, so ask for the smallest page the API allows instead of the default 6.
     getProfile(user.id, null, 1)
       .then((profile) => {
-        // As the owner the API always sends the full profile, `visibility` included.
-        if (!profile || profile.isPrivate || !profile.visibility) throw new Error('Own profile came back without settings')
-        if (active) setLoaded({ identity: profile, initial: toForm({ ...profile, visibility: profile.visibility }) })
+        // As the owner the API always sends the full profile, `visibility` and `privacy` included.
+        if (!profile || profile.isPrivate || !profile.visibility || !profile.privacy) throw new Error('Own profile came back without settings')
+        if (!active) return
+        setLoaded({
+          identity: profile,
+          vip: profile.isVip,
+          initial: toForm({
+            bio: profile.bio ?? '',
+            region: profile.region,
+            coverImage: profile.coverImage ?? null,
+            visibility: profile.visibility,
+            hideLastSeen: profile.hideLastSeen ?? false,
+            favoriteCard: profile.favoriteCard,
+            favoriteDeck: profile.favoriteDeck,
+            socials: profile.socials ?? [],
+            privacy: profile.privacy,
+          }),
+        })
       })
       .catch((error) => {
         console.error(error)
@@ -489,5 +673,5 @@ export const EditProfile = () => {
   if (loaded === 'error') return <ErrorPage />
   if (!loaded) return <p role="status" className="px-5 py-16 text-ink-muted signal-nav sm:px-6 lg:px-11">Loading your profile…</p>
 
-  return <Editor identity={loaded.identity} initial={loaded.initial} />
+  return <Editor identity={loaded.identity} initial={loaded.initial} vip={loaded.vip} />
 }

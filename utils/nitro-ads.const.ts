@@ -141,6 +141,14 @@ export const ASIDE_AD_OPTIONS = {
   report: AD_REPORT,
 } as const satisfies NitroDisplayAdOptions
 
+/** A half page in a side column (the profile's), with the medium rectangle as the fallback. */
+export const ASIDE_TALL_AD_OPTIONS = {
+  sizes: [[300, 600], [300, 250]],
+  renderVisibleOnly: true,
+  mediaQuery: '(min-width: 1024px)',
+  report: AD_REPORT,
+} as const satisfies NitroDisplayAdOptions
+
 /** The article column is about 620px wide on desktop: `fitSizes` drops the 728 there, and keeps it for a wider column. */
 export const ARTICLE_AD_OPTIONS = {
   format: 'article',
