@@ -2321,7 +2321,7 @@
         "core": "Núcleo · {count} cartas",
         "coreLede": "Em {rate} das listas ou mais. Cópias é a média por lista; jogada é a parcela dos games em que ela chegou ao campo ou resolveu.",
         "coreLedeShort": "Em {rate} das listas ou mais.",
-        "copyCore": "Copiar núcleo como .ydk (lista parcial)",
+        "copyCore": "Copiar núcleo como código Omega (lista parcial)",
         "copied": "Copiado",
         "main": "Main deck · {count}",
         "extra": "Extra deck · {count}",

@@ -10,10 +10,11 @@ import { AdBanner } from '@omega/ads/ad-banner'
 import { Button } from '@ui/button'
 import { BANDS, CORE_RATE, deckHref, effectPoints, matchupCall, MIN_MATCHUP_GAMES, statisticsHref, underFloors, type CardStat, type DeckAnswer, type DeckStat, type Matchup, type Scope, type Season, type TierRules } from '@utils/statistics'
 import { cardsByIds } from '@utils/cards'
+import { toOmega } from '@utils/deck/codecs/omega'
 import type { WikiCard } from '@utils/wiki'
 import { Pickers } from './Pickers'
 import { SectionTabs } from './SectionTabs'
-import { Art, at, Box, ci, CopyButton, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, span, TH, TierChip, tone, Track, WIDE, ydk, type Read } from './kit'
+import { Art, at, Box, ci, CopyButton, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, span, TH, TierChip, tone, Track, WIDE, type Read } from './kit'
 import { nameOf } from './shared'
 
 export type CardInfo = Pick<WikiCard, 'name' | 'kind' | 'monsterTypes'>
@@ -582,7 +583,7 @@ const Tile = ({ c, info, name }: { c: CardStat; info?: CardInfo; name: string })
       <div className={twMerge('grid grid-cols-[48px_minmax(0,1fr)] items-center gap-3 bg-surface-100 py-2.5 pr-3 pl-2.5 transition-colors duration-[120ms] hover:bg-surface-300', WIDE)}>
         <span className="relative block size-12"><Art id={c.card} name={name} size={48} />{stripe}</span>
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-sm leading-5 font-bold text-ink">{name}</span>
+          <Link href={`/wiki/card/${c.card}`} className="truncate text-sm leading-5 font-bold text-ink hover:text-cyan">{name}</Link>
           <span className="text-xs leading-4 font-medium whitespace-nowrap text-ink-muted">{t.rich('tileMeta', { copies: c.copies == null ? '–' : c.copies.toFixed(1), ...meta, b: (x) => <strong className="text-ink">{x}</strong> })}</span>
           {bar}
         </span>
@@ -590,7 +591,7 @@ const Tile = ({ c, info, name }: { c: CardStat; info?: CardInfo; name: string })
       <div role="listitem" className={twMerge('grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 bg-surface-100 px-4 py-2.5', NARROW)}>
         <span className="relative block size-12"><Art id={c.card} name={name} size={48} />{stripe}</span>
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-sm leading-5 font-bold text-ink">{name}</span>
+          <Link href={`/wiki/card/${c.card}`} className="truncate text-sm leading-5 font-bold text-ink hover:text-cyan">{name}</Link>
           <Small>{t('tileMetaShort', meta)}</Small>
           {bar}
         </span>
@@ -618,7 +619,9 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
   const sideMax = Math.max(...side.map((c) => c.sideRate), 0.01)
   const top = cards.reduce((a, b) => (b.inclusion > a.inclusion ? b : a))
   const lists = Math.round(top.lists / top.inclusion)
-  const copies = (list: CardStat[]) => list.map((c) => ({ id: c.card, count: Math.max(1, Math.round(c.copies ?? 1)) }))
+  /** Each core card at its usual copies (rounded, at least one), as passcodes. */
+  const ids = (list: CardStat[]) => list.flatMap((c) => Array<number>(Math.max(1, Math.round(c.copies ?? 1))).fill(c.card))
+  const coreCode = () => toOmega({ main: ids(coreMain), extra: ids(coreExtra), side: [] })
   const effectOf = (c: CardStat) => {
     if (c.effect == null || c.effectSe == null) return null
     const e = effectPoints(c.effect)
@@ -661,12 +664,12 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
             <PanelTitle>{t('core', { count: core.length })}</PanelTitle>
             <p className="m-0 text-[13px] leading-5 text-ink-dim max-[719px]:text-xs max-[719px]:leading-4 max-[719px]:font-medium max-[719px]:text-ink-muted"><span className={WIDE}>{t('coreLede', { rate: mark(CORE_RATE) })}</span><span className={NARROW}>{t('coreLedeShort', { rate: mark(CORE_RATE) })}</span></p>
           </div>
-          <CopyButton text={ydk({ main: copies(coreMain), extra: copies(coreExtra) })} label={t('copyCore')} done={t('copied')} className={twMerge('cut inline-flex min-h-10 cursor-pointer items-center px-3.5 text-ink signal-strong [--edge:var(--color-line-strong)] hover:[--fill:var(--color-surface-300)]', WIDE)} />
+          <CopyButton text={coreCode} label={t('copyCore')} done={t('copied')} className={twMerge('cut inline-flex min-h-10 cursor-pointer items-center px-3.5 text-ink signal-strong [--edge:var(--color-line-strong)] hover:[--fill:var(--color-surface-300)]', WIDE)} />
         </div>
         {zone(t('main', { count: coreMain.length }), coreMain)}
         {zone(t('extra', { count: coreExtra.length }), coreExtra)}
         <div className={twMerge('border-t border-line px-4', NARROW)}>
-          <CopyButton text={ydk({ main: copies(coreMain), extra: copies(coreExtra) })} label={t('copyCore')} done={t('copied')} className={LINK_BTN} />
+          <CopyButton text={coreCode} label={t('copyCore')} done={t('copied')} className={LINK_BTN} />
         </div>
       </Box>
 
@@ -696,7 +699,7 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
                     <div key={c.card} role="row" className={twMerge(ROW, 'min-h-12')} style={{ gridTemplateColumns: FLEX_COLS }}>
                       <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
                         <span aria-hidden className="h-6 w-1 flex-none" style={{ background: frameColor(info[c.card]) }} />
-                        <span className="truncate font-bold text-ink">{cardName(c.card)}</span>
+                        <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
                       </span>
                       <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(c.inclusion)}</span>
                       <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{c.copies == null ? '–' : c.copies.toFixed(1)}</span>
@@ -717,7 +720,7 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
                   <div key={c.card} role="listitem" className="grid grid-cols-[4px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
                     <span aria-hidden className="row-span-2 h-7.5 self-start" style={{ background: frameColor(info[c.card]) }} />
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-bold text-ink">{cardName(c.card)}</span>
+                      <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
                       <Small>{t('flexRow', { inc: pc(c.inclusion), copies: c.copies == null ? '–' : c.copies.toFixed(1), played: pc(c.playRate) })}</Small>
                     </span>
                     <span className={twMerge('text-sm font-bold tabular-nums', effectColor(x))}>{x ? signed(x.e) : '–'}</span>
@@ -738,7 +741,7 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
             {side.map((c) => (
               <div key={c.card} className="flex flex-col gap-1.5 border-t border-line pt-2.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="truncate font-bold text-ink">{cardName(c.card)}</span>
+                  <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
                   <span className="font-bold text-ink tabular-nums">{pc(c.sideRate)}</span>
                 </div>
                 <span aria-hidden className="relative block h-1 bg-surface-200">

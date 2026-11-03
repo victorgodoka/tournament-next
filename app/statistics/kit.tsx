@@ -264,10 +264,10 @@ export const CountLine = ({ count, name }: { count: number; name: string }) => (
 )
 
 /** Copies text, and says so on the button for two seconds. */
-export const CopyButton = ({ text, label, done, className }: { text: string; label: string; done: string; className?: string }) => {
+export const CopyButton = ({ text, label, done, className }: { text: string | (() => Promise<string>); label: string; done: string; className?: string }) => {
   const [copied, setCopied] = useState(false)
   const copy = () =>
-    navigator.clipboard.writeText(text).then(() => {
+    (typeof text === 'string' ? Promise.resolve(text) : text()).then((value) => navigator.clipboard.writeText(value)).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })

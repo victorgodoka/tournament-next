@@ -2322,7 +2322,7 @@
         "core": "Core · {count} cards",
         "coreLede": "In {rate} of lists or more. Copies are the average per list, played is the share of games where it hit the field or resolved.",
         "coreLedeShort": "In {rate} of lists or more.",
-        "copyCore": "Copy core as .ydk (partial list)",
+        "copyCore": "Copy core as Omega code (partial list)",
         "copied": "Copied",
         "main": "Main deck · {count}",
         "extra": "Extra deck · {count}",
