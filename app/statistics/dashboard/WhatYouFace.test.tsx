@@ -8,9 +8,10 @@ import { WhatYouFace } from './WhatYouFace'
 vi.mock('@omega/card-art', () => ({ CardArt: () => null }))
 
 const deck = (key: string, name: string | null, share: number) => ({ key, name, share, games: 500, players: 40 }) as DeckStat
-const week = (key: string, n: number, share: number) => ({ key, week: n, firstDay: `2026-10-${12 + n * 7}`, games: 100, share, jump: 0 }) as Week
+const week = (key: string, n: number, share: number) => ({ key, week: n, firstDay: `2026-10-${12 + n * 7}`, games: 100, share, jump: 0, wrExpected: 0.5 }) as Week
 
 const meta = {
+  fit: { builtAt: '2026-11-01T19:42:00.000Z' },
   decks: [deck('1*', 'Snake-Eye', 0.3), deck('1', null, 0.2), deck('1>2', null, 0.1), deck('3*', 'Maliss', 0.25), deck('3', null, 0.25), deck('4*', 'Orcust', 0.05), deck('', null, 0.01)],
   weeks: [week('1', 1, 0.2), week('1', 2, 0.15), week('1>2', 1, 0.05), week('1>2', 2, 0.2), week('3', 1, 0.25), week('3', 2, 0.25)],
 } as unknown as Meta
@@ -23,25 +24,28 @@ const html = renderToStaticMarkup(
   </NextIntlClientProvider>,
 )
 const text = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-const rows = html.split('role="row"').slice(1)
+/** The wide table's body rows (the header is the first). */
+const rows = html.split('role="list"')[0]!.split('role="row"').slice(2)
 
 describe('WhatYouFace', () => {
-  it('lists families with their builds folded under the row', () => {
+  it('lists families with a button for their versions, closed', () => {
     expect(text(rows[0]!)).toContain('Snake-Eye')
     expect(text(rows[0]!)).toContain('30.0%')
-    expect(text(rows[0]!)).toContain('2 builds')
+    expect(text(rows[0]!)).toContain('2 versions')
+    expect(rows[0]).toContain('aria-expanded="false"')
     expect(text(rows[1]!)).toContain('Maliss')
-    expect(text(rows[1]!)).not.toContain('build')
-    expect(rows[0]).toContain('<details')
+    expect(text(rows[1]!)).not.toContain('versions')
   })
 
-  it('moves by family, not by plain key', () => {
+  it('moves a family by its versions summed, week against week', () => {
+    // Snake-Eye: 25% then 35%; Maliss flat
+    expect(text(rows[0]!)).toContain('+10.0 pts')
+    expect(text(rows[1]!)).toContain('±0.0 pts')
     const rising = text(html).split('Rising')[1]!.split('Falling')[0]!
     expect(rising).toContain('Snake-Eye')
-    expect(rising).not.toMatch(/\b1\b/)
   })
 
-  it('links a family to its most played build, or to its own key without one', () => {
+  it('links a family to its most played version, or to its own key without one', () => {
     expect(rows[0]).toContain('href="/statistics/archetypes/1?')
     expect(rows[1]).toContain('href="/statistics/archetypes/3?')
     expect(text(rows[2]!)).toContain('Orcust')

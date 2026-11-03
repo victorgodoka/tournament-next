@@ -4,33 +4,33 @@
   "doc": {
     "v": 1,
     "title": "Yu-Gi-Oh! Genesys Tier List",
-    "summary": "The Yu-Gi-Oh! Genesys tier list, updated October 30, 2026: Blitzclique and Angelechy lead Tier 1. Ranked from 43,069 YGO Omega ladder matches.",
+    "summary": "The Yu-Gi-Oh! Genesys tier list, updated November 3, 2026: Synchron / Kewl Tune, Artmage / Elfnote, Angelechy / Ashtra, Angelechy, Blitzclique, Angelechy / Centur-Ion, Angelechy / Eldlich, Angelechy / White Forest and Blitzclique / Rescue-ACE lead Tier 1. Ranked from 25,655 YGO Omega ladder games.",
     "cover": {
       "asset": "wa-e7694119d6"
     },
     "infobox": {
-      "asset": "card-22912101",
-      "caption": "Surge Blitzclique, the most used card of the top deck",
+      "asset": "card-15665977",
+      "caption": "The most used card of Synchron / Kewl Tune, the top deck",
       "facts": [
         {
           "label": "Updated",
-          "value": "October 30, 2026"
+          "value": "November 3, 2026"
         },
         {
           "label": "Data through",
-          "value": "October 29, 2026"
+          "value": "November 2, 2026"
         },
         {
           "label": "Tier 1",
-          "value": "Blitzclique\nAngelechy"
+          "value": "Synchron / Kewl Tune\nArtmage / Elfnote\nAngelechy / Ashtra\nAngelechy\nBlitzclique\nAngelechy / Centur-Ion\nAngelechy / Eldlich\nAngelechy / White Forest\nBlitzclique / Rescue-ACE"
         },
         {
-          "label": "Matches",
-          "value": "43,069"
+          "label": "Games",
+          "value": "25,655"
         },
         {
           "label": "Players",
-          "value": "4,927"
+          "value": "1,509"
         },
         {
           "label": "Source",
@@ -52,7 +52,7 @@
       {
         "id": "intro",
         "type": "text",
-        "md": "This Yu-Gi-Oh! Genesys tier list ranks the strongest decks on the YGO Omega Genesys ladder by their results, using data through October 29, 2026. **Blitzclique** (4.5% of the meta, 60.7% wins) and **Angelechy** (3.3% of the meta, 60.4% wins) share Tier 1."
+        "md": "This Yu-Gi-Oh! Genesys tier list ranks the strongest decks on the YGO Omega Genesys ladder by their results, using data through November 2, 2026. **Synchron / Kewl Tune** (0.6% of the meta, expected 58.4%), **Artmage / Elfnote** (0.9% of the meta, expected 58.0%), **Angelechy / Ashtra** (1.2% of the meta, expected 57.9%), **Angelechy** (1.8% of the meta, expected 57.0%), **Blitzclique** (5.4% of the meta, expected 56.3%), **Angelechy / Centur-Ion** (0.8% of the meta, expected 56.2%), **Angelechy / Eldlich** (0.7% of the meta, expected 56.1%), **Angelechy / White Forest** (1.4% of the meta, expected 56.0%) and **Blitzclique / Rescue-ACE** (0.8% of the meta, expected 55.7%) share Tier 1."
       },
       {
         "id": "board",
@@ -66,7 +66,7 @@
       {
         "id": "intro-more",
         "type": "text",
-        "md": "A tier here measures **how well a deck wins**, not how much it is played, and a small sample can't lift a deck to the top. For what moved this week, read the [latest meta report](/wiki/yu-gi-oh-meta-report-october-30-2026); for the other ladder, the [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list); for the numbers as they change, the [live statistics page](/statistics?ladder=genesys)."
+        "md": "A tier here measures **how well a deck wins**, not how much it is played, and a small sample can't lift a deck to the top. For what moved this week, read the [latest meta report](/wiki/yu-gi-oh-meta-report-november-3-2026); for the other ladder, the [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list); for the numbers as they change, the [live statistics page](/statistics?ladder=genesys)."
       },
       {
         "id": "h-glance",
@@ -78,7 +78,7 @@
       {
         "id": "glance",
         "type": "text",
-        "md": "| | |\n|---|---|\n| Tier 1 | Blitzclique, Angelechy |\n| Tier 1.5 | None |\n| Tier 2 | Angelechy / Ashtra, Artmage, Centur-Ion / Angelechy |\n| Decks in the tiers | 22 |\n| Matches counted | 43,069 |\n| Players | 4,927 |\n| Going first wins | 56.8% |\n| Season opened | September 20, 2026 |"
+        "md": "| | |\n|---|---|\n| Tier 1 | Synchron / Kewl Tune, Artmage / Elfnote, Angelechy / Ashtra, Angelechy, Blitzclique, Angelechy / Centur-Ion, Angelechy / Eldlich, Angelechy / White Forest, Blitzclique / Rescue-ACE |\n| Tier 1.5 | Angelechy / Rescue-ACE, Hecahands / Archfiend, Invoked / Synchron |\n| Tier 2 | Blitzclique / Performapal, Invoked / Hecahands |\n| Decks in the tiers | 22 |\n| Games counted | 25,655 |\n| Players | 1,509 |\n| Going first wins | 64.9% of game 1 |\n| Season opened | September 20, 2026 |"
       },
       {
         "id": "h-genesys",
@@ -90,7 +90,7 @@
       {
         "id": "genesys-intro",
         "type": "text",
-        "md": "The Genesys ladder is 40 days into the 09.2026 season, with 43,069 matches from 4,927 players. The most played deck, Blitzclique, holds 4.5% of the meta, and the 22 decks in these tiers cover 29% of it. New to the format? The [format primer](/wiki/yu-gi-oh-formats) explains the 100-point rule."
+        "md": "The Genesys ladder is 44 days into the 09.2026 season, with 25,655 games from 1,509 players. The most played deck, Blitzclique, holds 5.4% of the meta, and the 22 decks in these tiers cover 26% of it. New to the format? The [format primer](/wiki/yu-gi-oh-formats) explains the 100-point rule."
       },
       {
         "id": "h-genesys-1",
@@ -104,22 +104,90 @@
         "type": "cards",
         "cards": [
           {
-            "id": 22912101,
-            "name": "Blitzclique",
-            "note": "4.5% · 60.7% WR"
+            "id": 15665977,
+            "name": "Synchron / Kewl Tune",
+            "note": "0.6% · expected 58.4%"
           },
           {
-            "id": 81797573,
+            "id": 1122030,
+            "name": "Artmage / Elfnote",
+            "note": "0.9% · expected 58.0%"
+          },
+          {
+            "id": 17020474,
+            "name": "Angelechy / Ashtra",
+            "note": "1.2% · expected 57.9%"
+          },
+          {
+            "id": 17782288,
             "name": "Angelechy",
-            "note": "3.3% · 60.4% WR"
+            "note": "1.8% · expected 57.0%"
+          },
+          {
+            "id": 11895663,
+            "name": "Blitzclique",
+            "note": "5.4% · expected 56.3%"
+          },
+          {
+            "id": 13068112,
+            "name": "Angelechy / Centur-Ion",
+            "note": "0.8% · expected 56.2%"
+          },
+          {
+            "id": 28904860,
+            "name": "Angelechy / Eldlich",
+            "note": "0.7% · expected 56.1%"
+          },
+          {
+            "id": 23151193,
+            "name": "Angelechy / White Forest",
+            "note": "1.4% · expected 56.0%"
+          },
+          {
+            "id": 433377,
+            "name": "Blitzclique / Rescue-ACE",
+            "note": "0.8% · expected 55.7%"
           }
         ],
-        "caption": "Share of the meta and win rate. Art is the deck's most used card."
+        "caption": "Share of the meta and expected win rate. Art is the deck's most used card."
       },
       {
         "id": "genesys-1",
         "type": "text",
-        "md": "| Deck | Score | Win rate | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Blitzclique** | **59.6%** | **[60.7% ±1.0]{#4fdc8c}** | 4.5% | 336 |\n| **Angelechy** | **59.2%** | **[60.4% ±1.2]{#4fdc8c}** | 3.3% | 225 |\n\nBlitzclique has the best score on the ladder, with 60.7% wins over 9,306 deck-games. It wins 70.5% going first and 52.1% going second. Its share rose 0.1 points over the last 7 days."
+        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Synchron / Kewl Tune** | **58.4%** | 53.1–63.5 | 0.6% | 11 |\n| **Artmage / Elfnote** | **58.0%** | 52.2–63.6 | 0.9% | 19 |\n| **Angelechy / Ashtra** | **57.9%** | 53.9–61.8 | 1.2% | 36 |\n| **Angelechy** | **57.0%** | 53.4–60.4 | 1.8% | 38 |\n| **Blitzclique** | **56.3%** | 53.8–58.7 | 5.4% | 110 |\n| **Angelechy / Centur-Ion** | **56.2%** | 50.8–61.5 | 0.8% | 24 |\n| **Angelechy / Eldlich** | **56.1%** | 51.2–60.9 | 0.7% | 16 |\n| **Angelechy / White Forest** | **56.0%** | 52.1–59.8 | 1.4% | 53 |\n| **Blitzclique / Rescue-ACE** | **55.7%** | 50.8–60.4 | 0.8% | 15 |\n\nSynchron / Kewl Tune has the best expected win rate on the ladder, 58.4% (95% interval 53.1–63.5) over 306 games. In game 1 it wins 72.6% going first and 54.4% going second. Synchron decks as a whole rose 0.2 points of share last week."
+      },
+      {
+        "id": "h-genesys-1-5",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys Tier 1.5",
+        "anchor": "tier-1-5"
+      },
+      {
+        "id": "cards-genesys-1-5",
+        "type": "cards",
+        "cards": [
+          {
+            "id": 31114334,
+            "name": "Angelechy / Rescue-ACE",
+            "note": "0.5% · expected 55.0%"
+          },
+          {
+            "id": 44694191,
+            "name": "Hecahands / Archfiend",
+            "note": "0.8% · expected 54.5%"
+          },
+          {
+            "id": 10673071,
+            "name": "Invoked / Synchron",
+            "note": "0.8% · expected 54.1%"
+          }
+        ]
+      },
+      {
+        "id": "genesys-1-5",
+        "type": "text",
+        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Angelechy / Rescue-ACE** | **55.0%** | 49.3–60.6 | 0.5% | 11 |\n| **Hecahands / Archfiend** | **54.5%** | 49.6–59.2 | 0.8% | 18 |\n| **Invoked / Synchron** | **54.1%** | 48.6–59.6 | 0.8% | 14 |\n\nExpected win rates here run from 54.1% (Invoked / Synchron) to 55.0% (Angelechy / Rescue-ACE)."
       },
       {
         "id": "h-genesys-2",
@@ -133,26 +201,21 @@
         "type": "cards",
         "cards": [
           {
-            "id": 81797573,
-            "name": "Angelechy / Ashtra",
-            "note": "0.8% · 59.9% WR"
+            "id": 11481610,
+            "name": "Blitzclique / Performapal",
+            "note": "1.6% · expected 53.6%"
           },
           {
-            "id": 23829452,
-            "name": "Artmage",
-            "note": "0.7% · 59.9% WR"
-          },
-          {
-            "id": 15005145,
-            "name": "Centur-Ion / Angelechy",
-            "note": "0.6% · 59.7% WR"
+            "id": 11270236,
+            "name": "Invoked / Hecahands",
+            "note": "0.7% · expected 52.6%"
           }
         ]
       },
       {
         "id": "genesys-2",
         "type": "text",
-        "md": "| Deck | Score | Win rate | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Angelechy / Ashtra** | **57.5%** | **[59.9% ±2.4]{#4fdc8c}** | 0.8% | 73 |\n| **Artmage** | **57.3%** | **[59.9% ±2.6]{#4fdc8c}** | 0.7% | 64 |\n| **Centur-Ion / Angelechy** | **56.9%** | **[59.7% ±2.8]{#4fdc8c}** | 0.6% | 67 |\n\nWin rates here run from 59.7% (Centur-Ion / Angelechy) to 59.9% (Angelechy / Ashtra)."
+        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Blitzclique / Performapal** | **53.6%** | 49.0–58.2 | 1.6% | 38 |\n| **Invoked / Hecahands** | **52.6%** | 47.7–57.5 | 0.7% | 10 |\n\nExpected win rates here run from 52.6% (Invoked / Hecahands) to 53.6% (Blitzclique / Performapal)."
       },
       {
         "id": "h-genesys-3",
@@ -166,21 +229,41 @@
         "type": "cards",
         "cards": [
           {
-            "id": 28904860,
-            "name": "White Forest / Angelechy",
-            "note": "1.1% · 57.6% WR"
+            "id": 37432075,
+            "name": "Invoked",
+            "note": "0.7% · expected 52.4%"
           },
           {
-            "id": 19144622,
-            "name": "Witchcrafter / Fairy Tail",
-            "note": "0.7% · 58.1% WR"
+            "id": 4965193,
+            "name": "Dragon Ruler / Armed Dragon",
+            "note": "1.8% · expected 52.2%"
+          },
+          {
+            "id": 875572,
+            "name": "Magistus / Witchcrafter",
+            "note": "0.8% · expected 52.1%"
+          },
+          {
+            "id": 19434243,
+            "name": "Red Dragon Archfiend / Synchron",
+            "note": "1.0% · expected 51.9%"
+          },
+          {
+            "id": 5352328,
+            "name": "Exosister",
+            "note": "1.3% · expected 51.8%"
+          },
+          {
+            "id": 24088928,
+            "name": "Archfiend / Light and Darkness Ritual",
+            "note": "0.8% · expected 51.2%"
           }
         ]
       },
       {
         "id": "genesys-3",
         "type": "text",
-        "md": "| Deck | Score | Win rate | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **White Forest / Angelechy** | **55.6%** | **[57.6% ±2.0]{#4fdc8c}** | 1.1% | 96 |\n| **Witchcrafter / Fairy Tail** | **55.5%** | **[58.1% ±2.6]{#4fdc8c}** | 0.7% | 70 |"
+        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Invoked** | **52.4%** | 47.4–57.4 | 0.7% | 21 |\n| **Dragon Ruler / Armed Dragon** | **52.2%** | 48.6–55.7 | 1.8% | 45 |\n| **Magistus / Witchcrafter** | **52.1%** | 45.5–58.6 | 0.8% | 28 |\n| **Red Dragon Archfiend / Synchron** | **51.9%** | 47.5–56.2 | 1.0% | 28 |\n| **Exosister** | **51.8%** | 47.6–55.9 | 1.3% | 25 |\n| **Archfiend / Light and Darkness Ritual** | **51.2%** | 46.4–56.0 | 0.8% | 25 |"
       },
       {
         "id": "h-genesys-4",
@@ -192,7 +275,7 @@
       {
         "id": "genesys-4",
         "type": "text",
-        "md": "| Deck | Score | Win rate | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Dracotail** | **53.5%** | **[55.3% ±1.8]{#4fdc8c}** | 1.5% | 164 |\n| **Invoked** | **53.5%** | **[55.1% ±1.6]{#4fdc8c}** | 1.9% | 148 |\n| **Dark Time Wizard** | **53.5%** | **[55.3% ±1.8]{#4fdc8c}** | 1.4% | 162 |\n| **Archfiend** | **53.1%** | **[55.9% ±2.8]{#4fdc8c}** | 0.6% | 60 |\n| **Exosister** | **52.8%** | **[54.8% ±2.0]{#4fdc8c}** | 1.2% | 111 |\n| **Hecahands** | **52.7%** | **[54.0% ±1.4]{#4fdc8c}** | 2.6% | 213 |\n| **Darklord** | **52.5%** | **[54.1% ±1.6]{#4fdc8c}** | 1.8% | 116 |\n| **Archfiend / Resonator** | **52.5%** | **[54.4% ±1.9]{#4fdc8c}** | 1.3% | 118 |\n| **Fire King** | **52.3%** | **[54.0% ±1.8]{#4fdc8c}** | 1.5% | 213 |\n| **Ritual Beast** | **52.2%** | **[54.9% ±2.7]{#4fdc8c}** | 0.6% | 61 |\n| **DoomZ** | **51.9%** | **[54.5% ±2.6]{#4fdc8c}** | 0.7% | 71 |\n| **Monarch** | **51.7%** | **[54.4% ±2.7]{#4fdc8c}** | 0.7% | 67 |\n| **Clown Crew** | **51.2%** | **[53.9% ±2.6]{#4fdc8c}** | 0.7% | 69 |\n| **Dragonmaid / Dracotail** | **50.8%** | **[53.4% ±2.5]{#4fdc8c}** | 0.7% | 87 |\n| **Mimighoul** | **50.7%** | **[52.9% ±2.2]{#4fdc8c}** | 0.9% | 85 |"
+        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Apophis / Serket** | **50.9%** | 45.7–56.2 | 0.6% | 16 |\n| **Madolche / Vernusylph** | **50.3%** | 45.1–55.4 | 0.6% | 17 |"
       },
       {
         "id": "h-sleepers",
@@ -204,7 +287,7 @@
       {
         "id": "sleepers",
         "type": "text",
-        "md": "Popularity and results don't always agree. The underplayed decks reach Tier 2 or better on a small share of the meta, though the people playing them may be specialists, so treat them as leads to test. The overplayed decks are among the ten most played without reaching Tier 2.\n\n- **Underplayed:** Centur-Ion / Angelechy (0.6% of the meta, 59.7% wins), Artmage (0.7% of the meta, 59.9% wins) and Angelechy / Ashtra (0.8% of the meta, 59.9% wins)\n- **Overplayed:** Hecahands (2.6% of the meta, 54.0% wins), HERO (2.3% of the meta, 50.2% wins) and Dragon Ruler (2.3% of the meta, 50.5% wins)"
+        "md": "Popularity and results don't always agree. The underplayed decks reach Tier 2 or better on a small share of the meta, though the people playing them may be specialists, so treat them as leads to test. The overplayed decks are among the ten most played without reaching Tier 2.\n\n- **Underplayed:** Angelechy / Rescue-ACE (0.5% of the meta, expected 55.0%), Synchron / Kewl Tune (0.6% of the meta, expected 58.4%) and Angelechy / Eldlich (0.7% of the meta, expected 56.1%)\n- **Overplayed:** HERO (2.9% of the meta, expected 48.9%), Darklord / Artmage (2.5% of the meta, expected 48.8%) and Dracotail / Predap (2.5% of the meta, expected 49.1%)"
       },
       {
         "id": "h-matchups",
@@ -216,46 +299,7 @@
       {
         "id": "matchups",
         "type": "text",
-        "md": "Best and worst matchup for each top deck against Tiers 1 to 3. A matchup is listed only when its whole 95% confidence interval sits on one side of 50%, with at least 80 games.\n\n| Deck | Best matchup | Worst matchup |\n|---|---|---|\n| **Blitzclique** | **[Angelechy, 56.0% (389 games)]{#4fdc8c}** | None clear |\n| **Angelechy** | None clear | **[Blitzclique, 44.0% (389 games)]{#ff8594}** |\n| **Angelechy / Ashtra** | None clear | None clear |\n| **Artmage** | None clear | None clear |\n| **Centur-Ion / Angelechy** | None clear | None clear |\n| **White Forest / Angelechy** | None clear | None clear |"
-      },
-      {
-        "id": "h-staples",
-        "type": "heading",
-        "level": 2,
-        "text": "Most played generic cards",
-        "anchor": "most-played-cards"
-      },
-      {
-        "id": "staples",
-        "type": "text",
-        "md": "Generic Main Deck cards seen across at least two archetypes, by share of deck-games. [Skull Meister](/wiki/card/67750322) shows up in 28.4% of decks, and [Ghost Ogre & Snow Rabbit](/wiki/card/59438930) shows up in 27.1% of decks."
-      },
-      {
-        "id": "cards-staples",
-        "type": "cards",
-        "cards": [
-          {
-            "id": 67750322,
-            "name": "Skull Meister",
-            "note": "in 28.4% of decks"
-          },
-          {
-            "id": 59438930,
-            "name": "Ghost Ogre & Snow Rabbit",
-            "note": "in 27.1% of decks"
-          },
-          {
-            "id": 42141493,
-            "name": "Mulcharmy Fuwalos",
-            "note": "in 21.5% of decks"
-          },
-          {
-            "id": 24508238,
-            "name": "D.D. Crow",
-            "note": "in 13.0% of decks"
-          }
-        ],
-        "caption": "Genesys ladder"
+        "md": "Best and worst matchup for each top deck against Tiers 1 to 3. A matchup is listed only when its 95% interval excludes the rate the two decks' strengths predict, with at least 80 games.\n\n| Deck | Best matchup | Worst matchup |\n|---|---|---|\n| **Synchron / Kewl Tune** | None clear | None clear |\n| **Artmage / Elfnote** | None clear | None clear |\n| **Angelechy / Ashtra** | None clear | None clear |\n| **Angelechy** | None clear | None clear |\n| **Blitzclique** | None clear | None clear |\n| **Angelechy / Centur-Ion** | None clear | None clear |"
       },
       {
         "id": "h-method",
@@ -267,7 +311,7 @@
       {
         "id": "method",
         "type": "text",
-        "md": "Every number comes from ranked matches played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](/statistics?ladder=genesys). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results. The tiers on the statistics page measure something else, how much a deck is played, so the same deck can sit in different tiers on the two pages.\n\n**Each deck gets a score, the Wilson lower bound of its win rate.** That is the low end of the range its true win rate is likely in, so a deck needs both a good record and enough games to score well: 60% over 500 games scores below 58% over 5,000. A tier is how far a deck's score sits below the best deck on the ladder:\n\n| Tier | Points below the best score |\n|---|---|\n| Tier 1 | Up to 1, the best 2 decks only |\n| Tier 1.5 | Up to 1, every other deck |\n| Tier 2 | 1 to 3 |\n| Tier 3 | 3 to 6 |\n| Tier 4 | 6 to 9 |\n\nThe best deck is always Tier 1. Decks past the last band stay outside the tiers. A deck needs at least 0.5% of the meta and 10 players to be ranked at all, because the score corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **Win rate** leaves mirror matches out, because a mirror always wins exactly half. The ± is its 95% confidence interval.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds."
+        "md": "Every number comes from ranked games played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](/statistics?ladder=genesys). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results, and the statistics page shows the same tiers.\n\n**Each deck gets an expected win rate.** One model reads the games of the season between players rated Silver and up, after leaving out players with too few ranked games and one-off decklists: each deck has a strength, and the chance of winning depends on the two strengths, on who went first and on the rating gap. A deck's expected win rate is its strength against the whole field, weighted by how much each deck is played, and a deck with few games is pulled toward the middle. A tier reads that rate against fixed marks:\n\n| Tier | Expected win rate |\n|---|---|\n| Tier 1 | 55% or more |\n| Tier 1.5 | 54% or more |\n| Tier 2 | 52.5% or more |\n| Tier 3 | 51% or more |\n| Tier 4 | 50% or more |\n\nDecks under the last mark stay outside the tiers. A deck needs at least 0.5% of the meta and 10 players to be ranked at all, because the model corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **The 95% interval** is the range the expected win rate is likely in, widened by how much the deck's daily results move beyond chance.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds."
       },
       {
         "id": "limits",
@@ -289,27 +333,27 @@
         "items": [
           {
             "q": "What is the best Genesys deck right now?",
-            "md": "Blitzclique, with a 60.7% win rate at 4.5% of the meta. It has the strongest win rate once sample size is counted."
+            "md": "Synchron / Kewl Tune, with an expected 58.4% win rate (95% interval 53.1–63.5) at 0.6% of the meta."
           },
           {
             "q": "Is this tier list based on tournament results?",
-            "md": "No. It comes from ranked ladder matches on YGO Omega. That gives a far larger sample than tournaments, but it reflects ladder play, not premier events."
+            "md": "No. It comes from ranked ladder games on YGO Omega. That gives a far larger sample than tournaments, but it reflects ladder play, not premier events."
           },
           {
             "q": "How are the tiers decided?",
-            "md": "By score: the Wilson lower bound of a deck's win rate, which rewards a good record over many games. Tiers 1 to 4 are up to 1, 3, 6, 9 points below the best deck. Tier 1 holds 2 decks at most, and any other deck that close goes to Tier 1.5. Decks under 0.5% of the meta or 10 players aren't ranked."
+            "md": "By expected win rate against the field: Tier 1 from 55%, Tier 1.5 from 54%, Tier 2 from 52.5%, Tier 3 from 51%, Tier 4 from 50%. Decks under 0.5% of the meta or 10 players aren't ranked."
           },
           {
             "q": "Does a popular deck get a higher tier?",
-            "md": "No. Tiers follow results. Hecahands holds 2.6% of the meta and sits in Tier 4, while Centur-Ion / Angelechy holds 0.6% and sits in Tier 2."
+            "md": "No. Tiers follow results. HERO holds 2.9% of the meta and sits outside the tiers, while Angelechy / Rescue-ACE holds 0.5% and sits in Tier 1.5."
           },
           {
             "q": "How much does going first matter?",
-            "md": "Going first wins 56.8% of games on the Genesys ladder."
+            "md": "Going first wins 64.9% of game 1 between even decks on the Genesys ladder."
           },
           {
             "q": "How often is the tier list updated?",
-            "md": "Every week, on this same page. Each week also gets its own [meta report](/wiki/yu-gi-oh-meta-report-october-30-2026), and the [statistics page](/statistics?ladder=genesys) shows the current numbers between updates."
+            "md": "Every week, on this same page. Each week also gets its own [meta report](/wiki/yu-gi-oh-meta-report-november-3-2026), and the [statistics page](/statistics?ladder=genesys) shows the current numbers between updates."
           },
           {
             "q": "Where can I see decklists for these decks?",
@@ -329,31 +373,31 @@
       },
       "tier-board-genesys-wide": {
         "id": "tier-board-genesys-wide",
-        "src": "/statistics/infographic/tier-list?ladder=genesys&size=wide&v=2026-10-30",
+        "src": "/wiki-images/tier-list/2026-11-03-genesys-wide.jpg",
         "width": 1920,
         "height": 1080,
-        "alt": "Genesys tier list board with Blitzclique and Angelechy in Tier 1, showing each deck's win rate",
+        "alt": "Genesys tier list board with Synchron / Kewl Tune, Artmage / Elfnote, Angelechy / Ashtra, Angelechy, Blitzclique, Angelechy / Centur-Ion, Angelechy / Eldlich, Angelechy / White Forest and Blitzclique / Rescue-ACE in Tier 1, showing each deck's expected win rate",
         "credit": "Duelists Unite"
       },
       "tier-board-genesys-tall": {
         "id": "tier-board-genesys-tall",
-        "src": "/statistics/infographic/tier-list?ladder=genesys&size=tall&v=2026-10-30",
+        "src": "/wiki-images/tier-list/2026-11-03-genesys-tall.jpg",
         "width": 1080,
         "height": 1920,
-        "alt": "Genesys tier list board with Blitzclique and Angelechy in Tier 1, showing each deck's win rate",
+        "alt": "Genesys tier list board with Synchron / Kewl Tune, Artmage / Elfnote, Angelechy / Ashtra, Angelechy, Blitzclique, Angelechy / Centur-Ion, Angelechy / Eldlich, Angelechy / White Forest and Blitzclique / Rescue-ACE in Tier 1, showing each deck's expected win rate",
         "credit": "Duelists Unite"
       },
-      "card-22912101": {
-        "id": "card-22912101",
-        "src": "https://ygopro.online/assets/card-arts/22912101.jpg",
+      "card-15665977": {
+        "id": "card-15665977",
+        "src": "https://ygopro.online/assets/card-arts/15665977.jpg",
         "width": 624,
         "height": 624,
-        "alt": "Surge Blitzclique card art, the most used card of the Blitzclique deck"
+        "alt": "Card art of the most used card of the Synchron / Kewl Tune deck"
       }
     },
     "seo": {
-      "title": "Yu-Gi-Oh! Genesys Tier List Oct 2026: Best Decks",
-      "description": "Yu-Gi-Oh! Genesys tier list, updated October 30, 2026: Blitzclique leads, ranked from 43,069 ladder matches by win rate and sample size.",
+      "title": "Yu-Gi-Oh! Genesys Tier List Nov 2026: Best Decks",
+      "description": "Yu-Gi-Oh! Genesys tier list, updated November 3, 2026: Synchron / Kewl Tune leads, ranked from 25,655 ladder games by expected win rate.",
       "keyword": "Yu-Gi-Oh! Genesys tier list",
       "keywords": [
         "yugioh tier list",

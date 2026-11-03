@@ -2,69 +2,275 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
-import { Button } from '@ui/button'
-import { Panel } from '@ui/panel'
-import { deckHref, effectPoints, plainDecks, windowDays, type DeckStat, type Meta, type Scope } from '@utils/statistics'
-import { Interval } from '../Interval'
-import { nameOf, NOTE, NUM, num, pct, range, ROW, TierTag } from '../shared'
+import { useLocale, useTranslations } from 'next-intl'
+import { twMerge } from 'tailwind-merge'
+import { deckHref, effectPoints, plainDecks, underFloors, type DeckStat, type Meta, type Scope, type TierRules } from '@utils/statistics'
+import { Art, at, Box, ci, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, Track, WIDE } from '../kit'
+import { nameOf } from '../shared'
 
 const SHOWN = 30
-const COLS = '32px minmax(170px, 1.6fr) 48px 64px 84px minmax(130px, 1.2fr) 64px 72px 72px'
-const HEAD = 'grid min-h-9 items-center gap-x-4 border-b border-line-mid bg-surface-200 px-4 text-ink-muted signal-sm'
+const COLS = '56px minmax(200px, 1.4fr) 80px 96px minmax(300px, 2.4fr) 88px 88px 96px'
+const M_COLS = '20px 36px minmax(0, 1fr) 64px'
+const LO = 0.4
+const HI = 0.7
+const TICKS = [45, 50, 55, 60, 65]
 
-export const BestLine = ({ deck, rate, scope }: { deck: DeckStat; rate: number; scope: Scope }) => {
+/** What a deck under the floors is short of: share, duelists or both. */
+const shortOf = (d: DeckStat, tiers: TierRules, t: ReturnType<typeof useTranslations>) =>
+  [d.share < tiers.minShare ? t('rareShare', { share: pc(d.share) }) : null, d.players < tiers.minPlayers ? t('rarePlayers', { players: n(d.players) }) : null].filter(Boolean).join(' · ')
+
+/** A deck that passes the floors and has no tier sits under the last mark. */
+const TierCell = ({ deck, tiers }: { deck: DeckStat; tiers: TierRules | null | undefined }) => {
   const t = useTranslations('Statistics.play')
+  if (deck.tier !== null) return <TierChip tier={deck.tier} />
+  return <span className="text-ink-muted signal-sm">{tiers ? t('underTier', { rate: mark(tiers.t4) }) : t('noTier')}</span>
+}
+
+/** `signal` on wide screens, `signal-sm` on a phone (component classes take no variants). */
+const STAT_LABEL = 'text-ink-muted signal max-[719px]:text-[10px] max-[719px]:leading-3 max-[719px]:tracking-[0.16em]'
+
+/** Every deck by the win rate the model expects against the field; decks under the tier floors after them, apart. */
+export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; best?: React.ReactNode }) => {
+  const t = useTranslations('Statistics.play')
+  const locale = useLocale()
+  const [all, setAll] = useState(false)
+  const tiers = meta.fit.tiers
+  const decks = plainDecks(meta.decks).sort((a, b) => b.wrExpected - a.wrExpected)
+  const ranked = decks.filter((d) => !underFloors(d, tiers))
+  const rare = decks.filter((d) => underFloors(d, tiers))
+  const shown = all ? ranked : ranked.slice(0, SHOWN)
+  const first = effectPoints(meta.fit.firstEffect)
+  const stamp = t.rich('stamp', { games: n(meta.fit.games), time: () => <LocalTime iso={meta.fit.builtAt} locale={locale} /> })
+  const link = (d: DeckStat, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge('truncate font-bold hover:text-cyan', className)}>{nameOf(d)}</Link>
+
+  if (!decks.length) {
+    return (
+      <>
+        <SectionHead title={t('title')} lede={t('lede')} />
+        <p className="text-[13px] leading-5 text-ink-muted">{t('empty')}</p>
+      </>
+    )
+  }
+
+  const showAll = ranked.length > SHOWN ? (
+    <div className="border-t border-line px-6 py-1.5 max-[719px]:px-4">
+      <button type="button" onClick={() => setAll(!all)} className={LINK_BTN}>{all ? t('showTop', { count: SHOWN }) : t('showAll', { count: n(ranked.length) })}</button>
+    </div>
+  ) : null
+
   return (
-    <p className="border border-line bg-surface-200 px-4 py-3 text-sm text-ink">
-      <Link href={deckHref(deck.key, scope)} className="hover:text-cyan">{t('best', { name: nameOf(deck), rate: pct(rate) })}</Link>
-    </p>
+    <>
+      <SectionHead
+        title={t('title')}
+        lede={<><span className={WIDE}>{t('lede')}</span><span className={NARROW}>{t('ledeShort')}</span></>}
+        stamp={stamp}
+      />
+
+      <Box className="pt-1 max-[719px]:pt-0.5">
+        {/* Wide: the table */}
+        <div className={twMerge('overflow-x-auto', WIDE)}>
+          <div role="table" aria-label={t('aria')} className={twMerge(ROWS, 'min-w-[900px]')}>
+            <div role="row" className={HEAD_ROW} style={{ gridTemplateColumns: COLS }}>
+              <span role="columnheader" className={twMerge(TH, 'pl-6')}>#</span>
+              <span role="columnheader" className={TH}>{t('cols.deck')}</span>
+              <span role="columnheader" className={TH}>{t('cols.tier')}</span>
+              <span role="columnheader" className={TH}>{t('cols.expected')}</span>
+              <span role="columnheader" aria-label={t('axis', { lo: 40, hi: 70 })} className="relative block h-11">
+                {TICKS.map((v) => <span key={v} className="absolute top-4 -translate-x-1/2 text-ink-muted signal-sm" style={{ left: at(v / 100, LO, HI) }}>{v}%</span>)}
+              </span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.meta')}</span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.games')}</span>
+              <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.players')}</span>
+            </div>
+            {shown.map((d, i) => (
+              <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
+                <span role="cell" className="pl-6 font-display text-lg text-ink-muted">{i + 1}</span>
+                <span role="cell" className="flex min-w-0 items-center gap-3">
+                  <Art id={d.face} name={nameOf(d)} size={36} />
+                  {link(d, 'text-ink')}
+                </span>
+                <span role="cell"><TierCell deck={d} tiers={tiers} /></span>
+                <span role="cell" className="flex flex-col">
+                  <span className="font-display text-xl leading-none text-ink">{pc(d.wrExpected)}</span>
+                  <span className="mt-1 tracking-[0.06em] text-ink-muted signal-sm">{ci(d.wrLo, d.wrHi)}</span>
+                </span>
+                <span role="cell"><Track value={d.wrExpected} low={d.wrLo} high={d.wrHi} lo={LO} hi={HI} h={52} /></span>
+                <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(d.share)}</span>
+                <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(d.games)}</span>
+                <span role="cell" className={twMerge(NUMERIC, 'pr-6 text-ink-dim')}>{n(d.players)}</span>
+              </div>
+            ))}
+            {rare.length && tiers ? (
+              <>
+                <div role="row" className="flex flex-wrap items-center gap-3 bg-surface-200 px-6 py-3">
+                  <span className="text-ink-dim signal-strong">{t('untiered')}</span>
+                  <span className="text-[13px] leading-5 text-ink-muted">{t('untieredNote', { share: mark(tiers.minShare), players: tiers.minPlayers })}</span>
+                </div>
+                {rare.map((d) => (
+                  <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
+                    <span role="cell" className="pl-6 text-ink-muted signal-sm">–</span>
+                    <span role="cell" className="flex min-w-0 items-center gap-3">
+                      <Art id={d.face} name={nameOf(d)} size={36} dim />
+                      <span className="flex min-w-0 flex-col">
+                        {link(d, 'text-ink-dim')}
+                        <span className="text-xs leading-4 font-medium text-ink-muted">{shortOf(d, tiers, t)}</span>
+                      </span>
+                    </span>
+                    <span role="cell" className="text-ink-muted signal-sm">{t('noTier')}</span>
+                    <span role="cell" className="flex flex-col">
+                      <span className="font-display text-xl leading-none text-ink-dim">{pc(d.wrExpected)}</span>
+                      <span className="mt-1 tracking-[0.06em] text-ink-muted signal-sm">{ci(d.wrLo, d.wrHi)}</span>
+                    </span>
+                    <span role="cell"><Track value={d.wrExpected} low={d.wrLo} high={d.wrHi} lo={LO} hi={HI} h={52} dim /></span>
+                    <span role="cell" className="text-right text-ink-muted">{pc(d.share)}</span>
+                    <span role="cell" className="text-right text-ink-muted">{n(d.games)}</span>
+                    <span role="cell" className="pr-6 text-right text-ink-muted">{n(d.players)}</span>
+                  </div>
+                ))}
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Narrow: the list */}
+        <div role="list" aria-label={t('aria')} className={twMerge(ROWS, NARROW)}>
+          <div aria-hidden className="grid gap-x-2.5 bg-surface-200 px-4 pt-2.5 pb-1.5" style={{ gridTemplateColumns: M_COLS }}>
+            <span className="text-ink-muted signal-sm">#</span>
+            <span />
+            <span className="relative col-[3/5] h-3">
+              {TICKS.map((v) => <span key={v} className="absolute top-0 -translate-x-1/2 tracking-[0.04em] text-ink-muted signal-sm" style={{ left: at(v / 100, LO, HI) }}>{v}%</span>)}
+            </span>
+          </div>
+          {shown.map((d, i) => (
+            <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
+              <span className="font-display text-[15px] text-ink-muted">{i + 1}</span>
+              <Art id={d.face} name={nameOf(d)} size={36} />
+              <span className="flex min-w-0 flex-col">
+                {link(d, 'text-ink')}
+                <Small className="truncate">{t('rowMeta', { share: pc(d.share), games: n(d.games), players: n(d.players) })}</Small>
+              </span>
+              <span className="flex flex-col items-end gap-1">
+                <span className="font-display text-xl leading-none text-ink">{pc(d.wrExpected)}</span>
+                <TierCell deck={d} tiers={tiers} />
+              </span>
+              <span className="col-[3/5]"><Track value={d.wrExpected} low={d.wrLo} high={d.wrHi} lo={LO} hi={HI} h={16} /></span>
+            </div>
+          ))}
+          {rare.length && tiers ? (
+            <>
+              <div className="flex flex-col gap-0.5 bg-surface-200 px-4 py-3">
+                <span className="text-ink-dim signal-strong">{t('untiered')}</span>
+                <Small>{t('untieredNoteShort', { share: mark(tiers.minShare), players: tiers.minPlayers })}</Small>
+              </div>
+              {rare.map((d) => (
+                <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
+                  <span className="text-ink-muted signal-sm">–</span>
+                  <Art id={d.face} name={nameOf(d)} size={36} dim />
+                  <span className="flex min-w-0 flex-col">
+                    {link(d, 'text-ink-dim')}
+                    <Small className="truncate">{shortOf(d, tiers, t)}</Small>
+                  </span>
+                  <span className="flex flex-col items-end gap-1">
+                    <span className="font-display text-xl leading-none text-ink-dim">{pc(d.wrExpected)}</span>
+                    <span className="text-ink-muted signal-sm">{t('noTier')}</span>
+                  </span>
+                  <span className="col-[3/5]"><Track value={d.wrExpected} low={d.wrLo} high={d.wrHi} lo={LO} hi={HI} h={16} dim /></span>
+                </div>
+              ))}
+            </>
+          ) : null}
+        </div>
+
+        {showAll}
+
+        <div className="grid gap-px border-t border-line bg-line grid-cols-[repeat(auto-fit,minmax(200px,1fr))] max-[719px]:grid-cols-2">
+          <div className="flex flex-col gap-2 bg-surface-100 px-6 py-5 max-[719px]:gap-1.5 max-[719px]:px-4 max-[719px]:py-3.5">
+            <span className={STAT_LABEL}>{t('modelGames')}</span>
+            <span className="font-display text-[40px] leading-none text-ink max-[719px]:text-[28px]">{n(meta.fit.games)}</span>
+            <span className={twMerge('text-[13px] leading-5 text-ink-muted', WIDE)}>{t('modelScope', { ladder: scope.ladder === 'genesys' ? 'Genesys' : 'TCG', window: t(`windowNames.${meta.window}`) })}</span>
+          </div>
+          <div className="flex flex-col gap-2 bg-surface-100 px-6 py-5 max-[719px]:gap-1.5 max-[719px]:px-4 max-[719px]:py-3.5">
+            <span className={STAT_LABEL}><span className={WIDE}>{t('first')}</span><span className={NARROW}>{t('firstShort')}</span></span>
+            <span className={twMerge('font-display text-[40px] leading-none max-[719px]:text-[28px]', first > 0.05 ? 'text-win' : first < -0.05 ? 'text-loss' : 'text-ink')}>{t('pts', { value: signed(first) })}</span>
+            <span className={twMerge('text-[13px] leading-5 text-ink-muted', WIDE)}>{t('firstNote')}</span>
+          </div>
+          <div className={twMerge('flex flex-col gap-2 bg-surface-100 px-6 py-5', WIDE)}>
+            <span className="text-ink-muted signal">{t('ranked')}</span>
+            <span className="font-display text-[40px] leading-none text-ink">{rare.length ? t('rankedValue', { ranked: ranked.length, rare: rare.length }) : ranked.length}</span>
+            <span className="text-[13px] leading-5 text-ink-muted">{rare.length ? t('rankedNote', { rare: rare.length }) : t('rankedAll')}</span>
+          </div>
+        </div>
+      </Box>
+
+      <div className="grid items-stretch gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] max-[719px]:gap-4">
+        {best}
+        <div className={twMerge('flex flex-col gap-6', WIDE)}>
+          {tiers ? <TiersCard tiers={tiers} /> : null}
+          <BarsCard />
+        </div>
+        {tiers ? <TiersCard tiers={tiers} narrow /> : null}
+      </div>
+    </>
   )
 }
 
-/** Every deck by the win rate the model expects against the field. A deck under the floors just has no badge. */
-export const WhatToPlay = ({ meta, scope, callout }: { meta: Meta; scope: Scope; callout?: React.ReactNode }) => {
-  const t = useTranslations('Statistics.play')
-  const [all, setAll] = useState(false)
-  const decks = plainDecks(meta.decks).sort((a, b) => b.wrExpected - a.wrExpected)
-  const first = effectPoints(meta.fit.firstEffect)
+const TIER_ROWS = [1, 1.5, 2, 3, 4] as const
 
+/** The tier marks the build used; on a phone it carries one line on reading the bars. */
+const TiersCard = ({ tiers, narrow }: { tiers: TierRules; narrow?: boolean }) => {
+  const t = useTranslations('Statistics.play')
+  const floor = { 1: tiers.t1, 1.5: tiers.t15, 2: tiers.t2, 3: tiers.t3, 4: tiers.t4 }
+  const ceiling = { 1: null, 1.5: tiers.t1, 2: tiers.t15, 3: tiers.t2, 4: tiers.t3 }
+  const range = (tier: (typeof TIER_ROWS)[number], short: boolean) => {
+    const top = ceiling[tier]
+    if (top === null) return short ? t('tiers.fromShort', { lo: mark(floor[tier]) }) : t('tiers.from', { lo: mark(floor[tier]) })
+    return short ? t('tiers.betweenShort', { lo: mark(floor[tier]).replace('%', ''), hi: mark(top) }) : t('tiers.between', { lo: mark(floor[tier]), hi: mark(top) })
+  }
   return (
-    <Panel title={t('title')} meta={t('meta', { count: num(decks.length) })}>
-      {decks.length ? (
-        <div className="flex flex-col gap-3">
-          {callout}
-          <div className="overflow-x-auto">
-            <div role="table" aria-label={t('title')} className="min-w-[860px] border border-line">
-              <div role="row" className={HEAD} style={{ gridTemplateColumns: COLS }}>
-                <span>#</span><span>{t('cols.deck')}</span><span>{t('cols.tier')}</span><span className={NUM}>{t('cols.expected')}</span><span className={NUM}>{t('cols.interval')}</span><span />
-                <span className={NUM}>{t('cols.share')}</span><span className={NUM}>{t('cols.games')}</span><span className={NUM}>{t('cols.players')}</span>
-              </div>
-              {(all ? decks : decks.slice(0, SHOWN)).map((d, i) => (
-                <div key={d.key} role="row" className={ROW} style={{ gridTemplateColumns: COLS }}>
-                  <span role="cell" className="font-mono text-xs text-ink-muted">{i + 1}</span>
-                  <span role="cell" className="truncate font-bold text-ink"><Link href={deckHref(d.key, scope)} className="hover:text-cyan">{nameOf(d)}</Link></span>
-                  <span role="cell">{d.tier !== null ? <TierTag>{t('tier', { tier: d.tier })}</TierTag> : null}</span>
-                  <span role="cell" className={NUM}><b className="text-ink">{pct(d.wrExpected)}</b></span>
-                  <span role="cell" className={NUM}>{range(d.wrLo, d.wrHi)}</span>
-                  <span role="cell"><Interval lo={d.wrLo} hi={d.wrHi} value={d.wrExpected} /></span>
-                  <span role="cell" className={NUM}>{pct(d.share)}</span>
-                  <span role="cell" className={NUM}>{num(d.games)}</span>
-                  <span role="cell" className={NUM}>{num(d.players)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {decks.length > SHOWN ? (
-            <Button size="sm" variant="secondary" onClick={() => setAll(!all)} className="self-start">
-              {all ? t('showTop', { count: SHOWN }) : t('showAll', { count: num(decks.length) })}
-            </Button>
-          ) : null}
-          <p className={NOTE}>{t('note', { games: num(meta.fit.games), days: windowDays(meta), first: `${first >= 0 ? '+' : '−'}${Math.abs(first).toFixed(1)}` })}</p>
+    <Box className={twMerge('gap-3.5 p-6', narrow ? twMerge(NARROW, 'gap-3 p-5') : undefined)}>
+      <h3 className="m-0 display-3 text-ink max-[719px]:text-xl">{t('tiers.title')}</h3>
+      <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('tiers.lede')}</p>
+      <div className={twMerge('grid items-center gap-x-3.5 gap-y-2', narrow ? 'grid-cols-[auto_1fr_auto_1fr] gap-x-2.5' : 'grid-cols-[auto_1fr]')}>
+        {TIER_ROWS.map((tier) => (
+          <span key={tier} className="contents">
+            <TierChip tier={tier} />
+            <span className="text-[13px] text-ink-dim">{range(tier, !!narrow)}</span>
+          </span>
+        ))}
+      </div>
+      {narrow ? (
+        <div className="flex items-center gap-3 border-t border-line pt-3">
+          <span aria-hidden className="relative h-1.75 w-12 flex-none rounded-xs bg-series-3/75">
+            <span className="absolute -top-1.25 left-5.5 h-4.25 w-0.75 bg-ink" />
+          </span>
+          <span className="text-[13px] leading-5 text-ink-dim">{t('bars.short')}</span>
         </div>
-      ) : (
-        <p className={NOTE}>{t('empty')}</p>
-      )}
-    </Panel>
+      ) : null}
+    </Box>
+  )
+}
+
+const BarsCard = () => {
+  const t = useTranslations('Statistics.play.bars')
+  return (
+    <Box className="gap-3.5 p-6">
+      <h3 className="m-0 display-3 text-ink">{t('title')}</h3>
+      <div className="flex items-center gap-3.5">
+        <span aria-hidden className="relative h-1.75 w-14 flex-none rounded-xs bg-series-3/75">
+          <span className="absolute -top-1.25 left-6.5 h-4.25 w-0.75 bg-ink" />
+        </span>
+        <span className="text-[13px] leading-5 text-ink-dim">{t('tick')}</span>
+      </div>
+      <div className="flex items-center gap-3.5">
+        <span aria-hidden className="h-1.75 w-14 flex-none rounded-xs bg-line-mid" />
+        <span className="text-[13px] leading-5 text-ink-dim">{t('wide')}</span>
+      </div>
+      <div className="flex items-center gap-3.5">
+        <span aria-hidden className="relative h-4.25 w-14 flex-none">
+          <span className="absolute top-0 bottom-0 left-6.75 w-px bg-line-mid" />
+        </span>
+        <span className="text-[13px] leading-5 text-ink-dim">{t('line')}</span>
+      </div>
+    </Box>
   )
 }
