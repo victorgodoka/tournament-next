@@ -3,9 +3,10 @@
  * per-matchup tallies, streaks, and the "performance analysis" lines. Pure, so it has its own test.
  */
 
-import type { EloPoint, Profile, RankedLadderId } from '@utils/types'
+import type { EloPoint, Profile, RankedLadderId, Tier } from '@utils/types'
 import type { Tally3, TimelineRow } from '@utils/statistics'
-import type { LadderStanding } from './RankedDashboard'
+
+export type LadderStanding = { elo: number; tier: Tier; rank: number | null; eloHistory?: EloPoint[] }
 
 /** Rating, tier, rank and the daily Elo points of the pick: a season's own, or the live ladder (open season's points). */
 export const standingOf = (profile: Extract<Profile, { isPrivate: false }>, pick: { season?: string; ladder: RankedLadderId }): LadderStanding | null => {

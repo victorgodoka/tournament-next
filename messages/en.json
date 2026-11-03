@@ -2389,6 +2389,187 @@
     }
   },
   "PlayerStatistics": {
+    "my": {
+      "breadcrumb": "Breadcrumb",
+      "statistics": "Statistics",
+      "head": {
+        "private": "Only you can see this page",
+        "lede": "How you play compared with an average duelist who had your decks, your opponents and your turn order.",
+        "rating": "{ladder} rating",
+        "opponents": "Opponents avg"
+      },
+      "filters": {
+        "ladder": "Ladder",
+        "season": "Season",
+        "period": "Period",
+        "whole": "Whole season",
+        "last7": "Last 7 days",
+        "note": "Season {label} started {date}.",
+        "updated": "Updated <time></time>.",
+        "summary": "{ladder} · Season {season} · {period}",
+        "edit": "Edit",
+        "done": "Done"
+      },
+      "tabs": {
+        "label": "Sections",
+        "overview": "Overview",
+        "decks": "My decks",
+        "matchups": "Matchups",
+        "progress": "Progress"
+      },
+      "verdict": {
+        "above": "Above expected",
+        "below": "Below expected",
+        "unclear": "Can’t tell yet",
+        "aboveShort": "Above",
+        "belowShort": "Below",
+        "unclearShort": "Can’t tell"
+      },
+      "cols": {
+        "games": "Games",
+        "you": "You",
+        "expected": "Expected",
+        "gapAxis": "Gap, minus 20 to plus 20 points",
+        "gap": "Gap",
+        "verdict": "Verdict"
+      },
+      "overview": {
+        "eyebrow": "You versus an average pilot",
+        "headline": {
+          "above": "Ahead of the average pilot",
+          "below": "Behind the average pilot",
+          "unclear": "On par, for now",
+          "few": "Too early to tell"
+        },
+        "body": "You won <b>{you}</b> of {n} benchmarked games. An average pilot in the same games would have won <b>{exp}</b>.",
+        "bodyShort": "You won <b>{you}</b> of {n} benchmarked games. An average pilot would have won <b>{exp}</b>.",
+        "gap": {
+          "unclear": "The gap of <g>{gap} pts</g> still sits inside its interval, so it could be luck.",
+          "above": "The gap of <g>{gap} pts</g> clears its interval.",
+          "below": "The gap of <g>{gap} pts</g> clears its interval.",
+          "few": "The gap of <g>{gap} pts</g> rests on too few games to call."
+        },
+        "gapShort": {
+          "unclear": "The <g>{gap} pts</g> gap could still be luck.",
+          "above": "The <g>{gap} pts</g> gap clears its interval.",
+          "below": "The <g>{gap} pts</g> gap clears its interval.",
+          "few": "Too few games to call the <g>{gap} pts</g> gap."
+        },
+        "carries": "{best} carries you.",
+        "pulls": "{worst} pulls you back.",
+        "axisLow": "−10 pts",
+        "axisMid": "Average pilot",
+        "axisHigh": "+10 pts",
+        "axisLowShort": "−10",
+        "axisMidShort": "Average",
+        "axisHighShort": "+10",
+        "interval": "95% interval <b>{lo} to {hi}</b>",
+        "intervalShort": "Interval <b>{lo} to {hi}</b>",
+        "wins": "<g>{wins} wins</g> over {n} games",
+        "winsShort": "<g>{wins} wins</g>",
+        "summary": {
+          "label": "Season summary",
+          "games": "Games",
+          "matches": "Matches",
+          "rate": "Your win rate",
+          "rateNote": "Benchmarked games",
+          "expected": "Expected",
+          "expectedNote": "Average pilot, same games",
+          "benchmarked": "Benchmarked",
+          "recordOnly": "{n} games count only in the record",
+          "recordOnlyShort": "{n} games benchmarked. {rest} count only in your record."
+        },
+        "highlights": {
+          "bestDeck": "Your best deck",
+          "worstDeck": "Your weakest deck",
+          "bestOpponent": "Best matchup",
+          "toughestOpponent": "Toughest matchup",
+          "meta": "{games} games · {you} vs {exp}",
+          "games": "{games} games",
+          "pts": "{gap} pts",
+          "allDecks": "All your decks",
+          "allMatchups": "All matchups"
+        },
+        "other": "Other decks",
+        "turn": {
+          "title": "Turn order, game 1",
+          "first": "Going first",
+          "second": "Going second",
+          "row": "{you} vs <e>{exp}</e> · {n} games",
+          "none": "No games yet",
+          "note": "Game 1 only. After it, the loser picks who goes first."
+        },
+        "method": {
+          "title": "How this is measured",
+          "expected": "<b>Expected</b> is what an average duelist would win in each of your games: same deck, same opponent deck, same turn order, same opponent rating. Your own rating stays out, so the number measures how you pilot.",
+          "verdict": "<b>Above</b> or <b>below</b> shows up only when the interval leaves the expected. Few games make a wide interval.",
+          "benchmarked": "<b>Benchmarked</b> games have every piece the model needs. The rest still count in your record."
+        }
+      },
+      "decks": {
+        "title": "My decks",
+        "lede": "Each deck you played, your result next to what an average pilot gets with it in the same games.",
+        "ledeShort": "Your result with each deck next to an average pilot's in the same games.",
+        "table": "Your decks",
+        "deck": "Deck",
+        "record": "{w}–{l}–{d} in games",
+        "matches": "{n} matches",
+        "games": "{n} games",
+        "legendPilot": "Average pilot",
+        "legendGap": "Your gap, colored when the interval clears the line",
+        "mirrors": "Mirror games count in your record; for them the expected only weighs turn order and rating.",
+        "legendShort": "Gold line: average pilot. Bars run −20 to +20 pts.",
+        "contribTitle": "Where the gap comes from",
+        "contribLede": "Wins above or below the average pilot, per deck. They add up to your {sum}.",
+        "contribLedeShort": "Wins above or below the average pilot. They add up to {sum}."
+      },
+      "matchups": {
+        "title": "Matchups",
+        "lede": "How you do against each deck, next to what an average pilot gets in the same games.",
+        "ledeShort": "How you do against each deck, next to an average pilot.",
+        "playing": "Playing",
+        "all": "All your decks",
+        "table": "Your matchups",
+        "opponent": "Opponent",
+        "other": "Other decks",
+        "mirrors": "Includes {n} mirror games",
+        "share": "{share} of the meta",
+        "rogue": "Rogue decks, {n} different",
+        "games": "{n} games",
+        "empty": "No benchmarked matchups for this pick yet.",
+        "note": "Other decks groups opponents too rare on the ladder for their own strength. They are benchmarked against the ladder's average rogue deck.",
+        "noteShort": "Other decks are benchmarked against the ladder's average rogue deck."
+      },
+      "progress": {
+        "title": "Progress",
+        "lede": "Whether you are pulling ahead of the average pilot as the season goes.",
+        "ledeShort": "Whether you pull ahead of the average pilot as the season goes.",
+        "runTitle": "Wins above expected, game by game",
+        "runTitleShort": "Wins above expected",
+        "now": "Now <g>{wins}</g> after {n} games",
+        "runAria": "Running total of wins above the average pilot, ending at {wins} after {n} games.",
+        "runNote": "The line climbs when you win games an average pilot would lose. Dashed lines split the season's weeks.",
+        "weeks": "By week",
+        "weeksAria": "Your result by week",
+        "cols": {
+          "week": "Week",
+          "games": "Games",
+          "you": "You",
+          "expected": "Expected",
+          "gap": "Gap"
+        },
+        "week": "Week {n}",
+        "since": "Since {day}",
+        "games": "{n} games",
+        "weeksNote": "Weeks are the season's 7-day blocks, the same ones the Meta uses.",
+        "rating": "{ladder} rating",
+        "ratingDelta": "<b>{elo}</b> · <g>{delta}</g> this season",
+        "ratingNow": "<b>{elo}</b>",
+        "ratingAria": "{ladder} rating from {from} to {to} across the season",
+        "ratingNote": "Rating moves with wins and losses. The line above strips out who you faced and what you played.",
+        "noRating": "No rating history for this season yet."
+      }
+    },
     "infographic": {
       "label": "Infographic",
       "wide": "16:9",
@@ -2401,7 +2582,7 @@
       "notFound": "Profile not found",
       "unknown": "Unknown duelist",
       "title": "{name} · Statistics",
-      "description": "Ranked and tournament statistics for {name}: Elo, decks, matchups and recent matches."
+      "description": "Ranked statistics for {name} against an average pilot in the same games: decks, matchups and progress."
     },
     "unknown": "Unknown duelist",
     "tabs": { "label": "Profile sections", "profile": "Profile", "statistics": "Statistics" },

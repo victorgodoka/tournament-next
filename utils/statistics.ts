@@ -147,12 +147,45 @@ export type CardAnswer = { card: { id: number; name: string | null; extra: boole
 
 export type Tally = { games: number; wins: number; losses: number; draws: number }
 export type Tally3 = Omit<Tally, 'games'>
-type PlayerEstimate = Tally & { name: string | null; wr: number | null; wrLo: number | null; wrHi: number | null; ladder: DeckStat | null }
-export type PlayerDeck = PlayerEstimate & { key: string }
-export type PlayerMatchup = PlayerEstimate & { key: string; opponent: string; opponentName: string | null }
+type PlayerEstimate = Tally & { name: string | null; wr: number | null; wrLo: number | null; wrHi: number | null }
+/**
+ * One slice of the duelist's games against an average pilot in the same games (`xWr`). The verdict and `pveLo`/`pveHi`
+ * are the raw interval; `pveShrunk` only ranks highlights. Rates are null when `n` is 0.
+ */
+export type PlayerSlice = {
+  n: number; wins: number; xWins: number | null; xWr: number | null; pve: number | null; winsAbove: number | null
+  pveShrunk: number | null; pveLo: number | null; pveHi: number | null; deff: number
+  verdict: 'above' | 'below' | 'unclear' | null
+}
+export type PlayerDeck = PlayerEstimate & {
+  key: string; face?: number | null; mirrors: number; ladder: DeckStat | null; selfShare: number | null; performance: PlayerSlice
+  splits: { g1First: PlayerSlice; g1Second: PlayerSlice; g1: PlayerSlice; post: PlayerSlice }
+}
+export type PlayerMatchup = PlayerEstimate & { key: string; opponent: string; opponentName: string | null; face?: number | null; opponentFace?: number | null; ladder: Matchup | null; performance: PlayerSlice }
+/** `opponent: 'other'`: every opponent with no strength of its own on the ladder, `rogue` of them. */
+export type PlayerOpponent = { deck: string | null; opponent: string; name: string | null; face: number | null; games: number; mirrors: number; rogue: number | null; share: number | null; performance: PlayerSlice }
+export const OTHER_OPPONENT = 'other'
 /** One per duel, newest first: [day ISO, duel result, deck key | null, the opponent's, games won, lost, drawn]. */
 export type TimelineRow = [day: string | null, result: 'W' | 'L' | 'D' | null, deck: string | null, opponent: string | null, wins: number, losses: number, draws: number]
-export type PlayerAnswer = { season: Season | null; record: Tally; decks: PlayerDeck[]; matchups: PlayerMatchup[]; timeline: TimelineRow[] }
+export type PlayerPeriod = 'season' | 'last7'
+export type PlayerWeek = PlayerSlice & { week: number; firstDay: string }
+export type PlayerAnswer = {
+  season: Season | null
+  period?: PlayerPeriod
+  since?: string | null
+  record: Tally & { matches?: number; matchWins?: number; matchLosses?: number; matchDraws?: number }
+  performance?: PlayerSlice & { coverage: number }
+  benchmark?: { builtAt: string | null; pilotStrength: number | null; ratingMean: number | null; selfShareWarn: number }
+  opponentRating?: number | null
+  splits?: { g1First: PlayerSlice; g1Second: PlayerSlice }
+  decks: PlayerDeck[]
+  matchups: PlayerMatchup[]
+  opponents?: PlayerOpponent[]
+  running?: number[]
+  highlights?: { bestDeck: string | null; worstDeck: string | null; bestOpponent?: string | null; toughestOpponent?: string | null }
+  progress?: { deck: string | null; weeks: PlayerWeek[] }
+  timeline: TimelineRow[]
+}
 
 export type MatchupCall = 'favorable' | 'neutral' | 'unfavorable'
 /** The API sends no verdict: a matchup is called only when its interval excludes the expected rate. */
@@ -318,8 +351,8 @@ export const getTopDecks = async (ladder: RankedLadderId, top = 10): Promise<Top
 }
 
 /** Owner only (403 otherwise), live from the games: on the server, pass the incoming `cookie`. */
-export const getPlayerStatistics = (id: string, { ladder, season }: Pick<Scope, 'ladder' | 'season'>, cookie: string | null) =>
-  read<PlayerAnswer>(`/statistics/players/${encodeURIComponent(id)}?${scopeQuery({ ladder, season })}`, 'GET /statistics/players/:id', { cache: 'no-store', headers: cookie ? { cookie } : undefined })
+export const getPlayerStatistics = (id: string, { ladder, season, period }: Pick<Scope, 'ladder' | 'season'> & { period?: PlayerPeriod }, cookie: string | null) =>
+  read<PlayerAnswer>(`/statistics/players/${encodeURIComponent(id)}?${scopeQuery({ ladder, season })}${period === 'last7' ? '&period=last7' : ''}`, 'GET /statistics/players/:id', { cache: 'no-store', headers: cookie ? { cookie } : undefined })
 
 /** GET /statistics/omega: logins and ranked activity of the whole game. */
 export type OmegaCard = { current: number; previous: number | null }
