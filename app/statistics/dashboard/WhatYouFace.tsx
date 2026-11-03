@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { deckHref, families, familyWeeks, plainDecks, shareMoves, weekJumps, type DeckStat, type Family, type Meta, type Scope, type ShareWeek } from '@utils/statistics'
-import { Art, Box, GoldDot, HEAD_ROW, LocalTime, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, signed, Small, Spark, TH, tone, WIDE } from '../kit'
+import { Art, Box, facesOf, GoldDot, subFace, type Faces, HEAD_ROW, LocalTime, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, signed, Small, Spark, TH, tone, WIDE } from '../kit'
 import { nameOf } from '../shared'
 
 const TOP = 12
@@ -38,6 +38,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   const locale = useLocale()
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const fams = families(meta.decks)
+  const faces = facesOf(meta.decks)
   const top = fams.slice(0, TOP)
   const famWeeks = familyWeeks(meta.weeks, fams)
   const lastWeek = Math.max(0, ...meta.weeks.map((w) => w.week))
@@ -50,7 +51,9 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   const delta = (d: number | null) => (d === null ? '–' : t('pts', { value: signed(d * 100) }))
   const color = (d: number | null) => (d === null ? 'text-ink-muted' : tone(d * 100))
 
-  const lines = top.map((f) => ({ line: familyLine(f), kids: f.members.length > 1 ? f.members.map(memberLine) : [] }))
+  // a versao abaixo do share minimo do formato (o mesmo piso do tier) nao entra no grupo; sem as regras do build, todas
+  const minShare = meta.fit.tiers?.minShare ?? 0
+  const lines = top.map((f) => ({ line: familyLine(f), kids: f.members.length > 1 ? f.members.filter((m) => m.share >= minShare).map(memberLine) : [] }))
   const lastShare = new Map(famWeeks.filter((w) => w.week === lastWeek).map((w) => [w.key, w.share]))
   const { risers, fallers } = shareMoves(famWeeks, 3)
   const byFamily = new Map(fams.map((f) => [f.family.key, f]))
@@ -136,7 +139,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                         <span role="cell" />
                         <span role="cell" className="flex min-w-0 items-center gap-2.5 text-sm text-ink-dim">
                           <span aria-hidden className="-mt-2 size-3 flex-none border-b border-l border-line-mid" />
-                          <Art id={k.face} name={k.name} size={28} />
+                          <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={28} />
                           {link(k, '')}
                         </span>
                         <span role="cell" />
@@ -171,7 +174,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                 ? kids.map((k) => (
                     <div key={k.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1 bg-surface-200 px-4 py-2.5" style={{ gridTemplateColumns: M_COLS }}>
                       <span />
-                      <Art id={k.face} name={k.name} size={28} className="justify-self-end" />
+                      <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={28} className="justify-self-end" />
                       {link(k, 'text-sm text-ink-dim')}
                       <Spark values={k.values} width={64} height={20} label={sparkLabel(k)} minor />
                       <span className="flex flex-col items-end">
@@ -203,7 +206,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
             )) : <span className="border-t border-line pt-3 text-[13px] leading-5 text-ink-muted">{t('noMoves')}</span>}
           </Box>
         ))}
-        <ChangedCard jumps={jumps} plain={plain} prevRate={prevRate} day={day} scope={scope} />
+        <ChangedCard jumps={jumps} plain={plain} prevRate={prevRate} day={day} scope={scope} faces={faces} />
       </div>
       <div className={twMerge('flex flex-col gap-4', NARROW)}>
         <Box className="gap-3 p-5">
@@ -221,7 +224,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
           ))}
           {partial ? <Small className="border-t border-line pt-2.5">{partial}</Small> : null}
         </Box>
-        <ChangedCard jumps={jumps} plain={plain} prevRate={prevRate} day={day} scope={scope} narrow />
+        <ChangedCard jumps={jumps} plain={plain} prevRate={prevRate} day={day} scope={scope} faces={faces} narrow />
       </div>
     </>
   )
@@ -233,11 +236,12 @@ type ChangedProps = {
   prevRate: Map<string, number>
   day: (iso: string) => string
   scope: Scope
+  faces: Faces
   narrow?: boolean
 }
 
 /** Decks whose strength moved past noise this week, with the expected rate before and after. */
-const ChangedCard = ({ jumps, plain, prevRate, day, scope, narrow }: ChangedProps) => {
+const ChangedCard = ({ jumps, plain, prevRate, day, scope, faces, narrow }: ChangedProps) => {
   const t = useTranslations('Statistics.face')
   return (
     <Box className={narrow ? 'gap-3 p-5' : 'gap-3.5 p-6'}>
@@ -253,7 +257,7 @@ const ChangedCard = ({ jumps, plain, prevRate, day, scope, narrow }: ChangedProp
           <div key={w.key} className={twMerge('flex flex-col gap-1.5 border-t border-line', narrow ? 'pt-2.5' : 'pt-3')}>
             <div className={twMerge('flex items-center gap-3', !narrow && 'justify-between', narrow && 'gap-2.5')}>
               <span className={twMerge('flex min-w-0 items-center gap-3', narrow && 'flex-auto gap-2.5')}>
-                <Art id={deck.face} name={nameOf(deck)} size={28} />
+                <Art id={deck.face} sub={subFace(deck.key, faces)} name={nameOf(deck)} size={28} />
                 <Link href={deckHref(deck.key, scope)} className="truncate font-bold text-ink hover:text-cyan">{nameOf(deck)}</Link>
               </span>
               <ReadChip read={up ? 'good' : 'bad'}>{t(up ? 'stronger' : 'weaker')}{before !== undefined ? ` ${signed((w.wrExpected - before) * 100)}` : ''}</ReadChip>

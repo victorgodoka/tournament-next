@@ -8,8 +8,10 @@ describe('settingsBody', () => {
     expect(settingsBody({ t1: '56', stapleShare: '12.5' })).toEqual({ 'analytics.tiers': { t1: 0.56 }, 'analytics.classification': { stapleShare: 0.125 } })
   })
 
-  it('sends the tier floors with the anchors: the share as a rate, the duelists as a count', () => {
-    expect(settingsBody({ minShare: '0.5', minPlayers: '12' })).toEqual({ 'analytics.tiers': { minShare: 0.005, minPlayers: 12 } })
+  it('sends the tier floors under their format: the share as a rate, the duelists as a count', () => {
+    expect(settingsBody({ 'Genesys.tierShare': '1', 'TCG.tierPlayers': '12' })).toEqual({
+      'analytics.filters': { TCG: { tierPlayers: 12 }, Genesys: { tierShare: 0.01 } },
+    })
   })
 
   it('keeps maxNames an integer, not a rate', () => {
@@ -28,5 +30,16 @@ describe('settingsBody', () => {
 
   it('sends nothing for an untouched form', () => {
     expect(settingsBody({})).toEqual({})
+  })
+
+  it('keeps what is stored under a key it sends: the PATCH replaces the whole value', () => {
+    const stored = {
+      'analytics.tiers': { t1: 0.56, t4: 0.49 },
+      'analytics.filters': { TCG: { aggregateFloor: 'Gold' as const, eloCap: 2800 }, Genesys: { aggregateFloor: 'Silver' as const } },
+    }
+    expect(settingsBody({ 'TCG.aggregateFloor': 'Platinum' }, stored)).toEqual({
+      'analytics.filters': { TCG: { aggregateFloor: 'Platinum', eloCap: 2800 }, Genesys: { aggregateFloor: 'Silver' } },
+    })
+    expect(settingsBody({ t2: '53' }, stored)).toEqual({ 'analytics.tiers': { t1: 0.56, t4: 0.49, t2: 0.53 } })
   })
 })

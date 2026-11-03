@@ -7,7 +7,7 @@ import { pageMetadata } from '@utils/metadata'
 import type { WikiCard } from '@utils/wiki'
 import { getDeck, getMeta, getSeasons, leadOf, plainDecks, scopeFrom, seasonOf, statisticsHref, type Meta } from '@utils/statistics'
 import { DeckPage, type Family } from '../../DeckPage'
-import { nameOf } from '../../format'
+import { facesOf, nameOf } from '../../format'
 import { StatsShell } from '../../StatsShell'
 
 type Query = { ladder?: string | string[]; season?: string | string[]; window?: string | string[]; band?: string | string[] }
@@ -78,6 +78,7 @@ const DeckRoute = async (props: DeckRouteProps) => {
         builtAt={fit?.builtAt ?? null}
         tiers={fit?.tiers ?? null}
         aggregateFloor={fit?.aggregateFloor ?? ''}
+        faces={meta.ok ? facesOf(meta.data.decks) : {}}
       />
     </StatsShell>
   )

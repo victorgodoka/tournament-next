@@ -89,22 +89,42 @@ export const ReadChip = ({ read, children, className }: { read: Read; children: 
 /* ---------------------------------------------------------------- art */
 
 /** A deck's or card's square art, 1px line-mid edge; without a card, its initial on a dotted well. */
-export const Art = ({ id, name, size, dim, fluid, className }: { id?: number | null; name: string; size: number; dim?: boolean; /** Sized by `className`; `size` only picks the image. */ fluid?: boolean; className?: string }) => {
+type ArtProps = {
+  id?: number | null
+  name: string
+  size: number
+  dim?: boolean
+  /** Sized by `className`; `size` only picks the image. */
+  fluid?: boolean
+  /** A mixed deck's second archetype: its card, smaller, over the bottom-right corner. */
+  sub?: number | null
+  className?: string
+}
+
+export const Art = ({ id, name, size, dim, fluid, sub, className }: ArtProps) => {
   const style = fluid ? undefined : { width: size, height: size }
+  const small = Math.round(size * 0.5)
+  const corner = sub ? (
+    <span aria-hidden className="absolute -right-1 -bottom-1 block border border-space-000 outline outline-line-mid" style={{ width: small, height: small }}>
+      <CardArt art={{ id: sub, name: null }} alt="" sizes={`${small}px`} className="size-full" />
+    </span>
+  ) : null
   return id ? (
-    <span style={style} className={twMerge('block flex-none border border-line-mid bg-surface-200', dim && 'opacity-70', className)}>
+    <span style={style} className={twMerge('relative block flex-none border border-line-mid bg-surface-200', dim && 'opacity-70', className)}>
       <CardArt art={{ id, name: null }} alt="" sizes={`${size}px`} className="size-full" />
+      {corner}
     </span>
   ) : (
     <span
       aria-hidden
       style={style}
       className={twMerge(
-        'inline-flex flex-none items-center justify-center border border-line-mid bg-surface-200 bg-[radial-gradient(var(--color-line-mid)_1px,transparent_1px)] bg-size-[6px_6px] font-mono text-[11px] font-bold text-ink-muted',
+        'relative inline-flex flex-none items-center justify-center border border-line-mid bg-surface-200 bg-[radial-gradient(var(--color-line-mid)_1px,transparent_1px)] bg-size-[6px_6px] font-mono text-[11px] font-bold text-ink-muted',
         className,
       )}
     >
       {name.charAt(0)}
+      {corner}
     </span>
   )
 }

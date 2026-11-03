@@ -34,14 +34,14 @@ type FilterDraftKey = `${Format}.${keyof Filters}`
 /** Edits in progress, as typed; a field without one shows the stored value. */
 type Draft = Partial<Record<keyof TierAnchors | keyof Classification | FilterDraftKey, string>>
 
-/** What the form holds, with the percent fields back in rates. A field left alone isn't sent; a format with no edit isn't either. */
-export const settingsBody = (draft: Draft): PanelSettings => {
-  const { minShare, minPlayers, maxNames, stapleShare, stapleForeign } = draft
-  const tiers = {
-    ...Object.fromEntries(TIERS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, fromPercent(draft[key])]]))),
-    ...(minShare === undefined ? {} : { minShare: fromPercent(minShare) }),
-    ...(minPlayers === undefined ? {} : { minPlayers: Number(minPlayers) }),
-  }
+/**
+ * What the form holds, with the percent fields back in rates, laid over what is stored: the PATCH replaces a key's
+ * whole value, so a key sent with only the edited field would drop every other stored field (and the other format's
+ * filters). A key with no edit isn't sent; a field never stored stays absent, on its default.
+ */
+export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSettings => {
+  const { maxNames, stapleShare, stapleForeign } = draft
+  const tiers = Object.fromEntries(TIERS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, fromPercent(draft[key])]])))
   const classification = {
     ...(maxNames === undefined ? {} : { maxNames: Number(maxNames) }),
     ...(stapleShare === undefined ? {} : { stapleShare: fromPercent(stapleShare) }),
@@ -50,17 +50,24 @@ export const settingsBody = (draft: Draft): PanelSettings => {
   const filters = Object.fromEntries(
     FORMATS.flatMap((format) => {
       const floor = draft[`${format}.aggregateFloor`]
+      const share = draft[`${format}.tierShare`]
+      const players = draft[`${format}.tierPlayers`]
       const one = {
         ...Object.fromEntries(FILTER_COUNTS.flatMap(({ key }) => (draft[`${format}.${key}`] === undefined ? [] : [[key, Number(draft[`${format}.${key}`])]]))),
         ...(floor === undefined ? {} : { aggregateFloor: floor as Filters['aggregateFloor'] }),
+        ...(share === undefined ? {} : { tierShare: fromPercent(share) }),
+        ...(players === undefined ? {} : { tierPlayers: Number(players) }),
       }
       return Object.keys(one).length ? [[format, one]] : []
     }),
   )
+  const storedFilters = stored['analytics.filters'] ?? {}
   return {
-    ...(Object.keys(tiers).length ? { 'analytics.tiers': tiers } : {}),
-    ...(Object.keys(classification).length ? { 'analytics.classification': classification } : {}),
-    ...(Object.keys(filters).length ? { 'analytics.filters': filters } : {}),
+    ...(Object.keys(tiers).length ? { 'analytics.tiers': { ...stored['analytics.tiers'], ...tiers } } : {}),
+    ...(Object.keys(classification).length ? { 'analytics.classification': { ...stored['analytics.classification'], ...classification } } : {}),
+    ...(Object.keys(filters).length
+      ? { 'analytics.filters': { ...storedFilters, ...Object.fromEntries(Object.entries(filters).map(([f, one]) => [f, { ...storedFilters[f as Format], ...one }])) } }
+      : {}),
   }
 }
 
@@ -91,6 +98,7 @@ const useDropped = () => {
 }
 
 const FILTER_COLS = 'minmax(220px, 1.3fr) minmax(140px, 1fr) minmax(140px, 1fr)'
+const FLOOR_COLS = 'minmax(160px, 1.4fr) minmax(100px, 1fr) minmax(100px, 1fr)'
 
 export const SettingsPanel = () => {
   const settings = useResource('settings', () => getSettings())
@@ -109,7 +117,7 @@ export const SettingsPanel = () => {
 
   const save = () => {
     setError(null)
-    updateSettings(settingsBody(draft)).then(
+    updateSettings(settingsBody(draft, settings.data ?? {})).then(
       (next) => {
         settings.setData(() => next)
         setDraft({})
@@ -135,20 +143,39 @@ export const SettingsPanel = () => {
             ))}
           </div>
           <div className="flex flex-col gap-3 border-t border-line pt-4">
-            <span className="text-ink signal-strong">Who gets a tier</span>
-            <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
-              <div className="flex flex-col gap-1">
-                <Field label="Minimum meta share" htmlFor="tier-minShare">
-                  <TextInput id="tier-minShare" inputMode="decimal" suffix="%" value={draft.minShare ?? toPercent(tiers.minShare)} onChange={set('minShare')} plateClassName={edited('minShare')} />
-                </Field>
-                <Hint>Share of the window’s deck-games. Under it, no tier.</Hint>
+            <span className="text-ink signal-strong">Who gets a tier · per format</span>
+            <div role="table" aria-label="Tier floors by format" className="grid gap-px border border-line bg-line">
+              <div role="row" className="grid min-h-9 items-center bg-surface-200" style={{ gridTemplateColumns: FLOOR_COLS }}>
+                <span role="columnheader" className="px-3 text-ink-muted signal">Floor</span>
+                {FORMATS.map((f) => <span key={f} role="columnheader" className="px-3 text-ink signal-strong">{f}</span>)}
               </div>
-              <div className="flex flex-col gap-1">
-                <Field label="Minimum duelists" htmlFor="tier-minPlayers">
-                  <TextInput id="tier-minPlayers" inputMode="numeric" value={draft.minPlayers ?? String(tiers.minPlayers)} onChange={set('minPlayers')} plateClassName={edited('minPlayers')} />
-                </Field>
-                <Hint>Different duelists who played it. Under it, no tier.</Hint>
-              </div>
+              {([
+                ['tierShare', 'Minimum meta share', 'Share of the window’s deck-games.'],
+                ['tierPlayers', 'Minimum duelists', 'Different duelists who played it.'],
+              ] as const).map(([key, label, hint]) => (
+                <div key={key} role="row" className="grid items-center bg-surface-100" style={{ gridTemplateColumns: FLOOR_COLS }}>
+                  <span role="rowheader" className="flex flex-col gap-0.5 px-3 py-2.5">
+                    <label htmlFor={`floor-TCG-${key}`} className="font-bold text-ink">{label}</label>
+                    <Hint>{hint} Under it, no tier.</Hint>
+                  </span>
+                  {FORMATS.map((format) => {
+                    const stored = filtersOf(format)[key]
+                    return (
+                      <span key={format} role="cell" className="px-3 py-2.5">
+                        <TextInput
+                          id={`floor-${format}-${key}`}
+                          aria-label={`${label} (${format})`}
+                          inputMode={key === 'tierShare' ? 'decimal' : 'numeric'}
+                          suffix={key === 'tierShare' ? '%' : undefined}
+                          value={draft[`${format}.${key}`] ?? (key === 'tierShare' ? toPercent(stored) : String(stored))}
+                          onChange={set(`${format}.${key}`)}
+                          plateClassName={edited(`${format}.${key}`)}
+                        />
+                      </span>
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </Group>

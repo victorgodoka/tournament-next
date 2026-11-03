@@ -2088,7 +2088,7 @@
       "stamp": "Last {weeks} weeks · Updated <time></time>",
       "aria": "Most common decks",
       "cols": { "deck": "Deck", "versions": "Versions", "meta": "Meta", "weeks": "{count} weeks", "delta": "vs last wk" },
-      "versions": "{count} versions",
+      "versions": "{count, plural, one {# version} other {# versions}}",
       "sparkLabel": "{name} meta share over {weeks} weeks, {from} to {to}",
       "pts": "{value} pts",
       "note": "Versions of one deck share a row. Open the group to see each version.",

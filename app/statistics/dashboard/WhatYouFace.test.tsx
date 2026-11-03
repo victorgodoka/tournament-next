@@ -37,6 +37,17 @@ describe('WhatYouFace', () => {
     expect(text(rows[1]!)).not.toContain('versions')
   })
 
+  it('leaves out the versions under the format’s minimum meta share', () => {
+    const strict = { ...meta, fit: { ...meta.fit, tiers: { minShare: 0.15 } } } as unknown as Meta
+    const out = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+        <WhatYouFace meta={strict} scope={scope} />
+      </NextIntlClientProvider>,
+    )
+    // Snake-Eye: 1 at 20% stays, 1>2 at 10% goes
+    expect(text(out.split('role="list"')[0]!.split('role="row"')[2]!)).toContain('1 version')
+  })
+
   it('moves a family by its versions summed, week against week', () => {
     // Snake-Eye: 25% then 35%; Maliss flat
     expect(text(rows[0]!)).toContain('+10.0 pts')

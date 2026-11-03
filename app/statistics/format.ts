@@ -29,6 +29,17 @@ export const mark = (r: number) => `${Number((r * 100).toFixed(1))}%`
 /** `name` is `null` for a setcode without a name: the key stands in. */
 export const nameOf = (a: { key: string; name: string | null }) => a.name ?? ((a.key.endsWith('*') ? leadOf(a.key) : a.key) || '?')
 
+export type Faces = Record<string, number | null>
+
+/** Each deck's card by key, from the meta rows (`face`). */
+export const facesOf = (decks: readonly { key: string; face?: number | null }[]): Faces => Object.fromEntries(decks.map((d) => [d.key, d.face ?? null]))
+
+/** A mixed deck's second archetype's card: the face of its own deck (`B`), else of its lead row (`B*`). `A` alone has none. */
+export const subFace = (key: string, faces: Faces): number | null => {
+  const second = key.split('>')[1]
+  return second ? (faces[second] ?? faces[`${second}*`] ?? null) : null
+}
+
 /** Grid table: 1px line between rows. */
 export const ROWS = 'grid gap-px bg-line'
 export const HEAD_ROW = 'grid min-h-11 items-center bg-surface-200'

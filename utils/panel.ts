@@ -401,19 +401,20 @@ export const resetStaple = (card: number) => request<void>(`/panel/staples/${car
  * Settings (section 10) — values staff tune without a deploy
  * ---------------------------------------------------------------- */
 
-/** The `wrExpected` each tier needs, and the floors to get one at all (meta share as a rate, duelists). */
-export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number; minShare: number; minPlayers: number }
+/** The `wrExpected` each tier needs, the same for both formats (the floors to get one are per format, in `Filters`). */
+export type TierAnchors = { t1: number; t15: number; t2: number; t3: number; t4: number }
 export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
 
 /** What the server falls back to for a key left out. */
-export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5, minShare: 0.005, minPlayers: 10 }
+export const DEFAULT_TIERS: TierAnchors = { t1: 0.55, t15: 0.54, t2: 0.525, t3: 0.51, t4: 0.5 }
 export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5 }
 
 /** A key never written is absent. */
 /** The seven tiers, lowest first; `aggregateFloor` is one of them. */
 export const BAND_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Omega'] as const
-export type Filters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: (typeof BAND_NAMES)[number] }
-export const DEFAULT_FILTERS: Filters = { minPlayerGames: 10, minListGames: 5, minKeyGames: 30, eloCap: 3000, aggregateFloor: 'Gold' }
+/** `tierShare` (a rate) and `tierPlayers`: what a deck needs to get a tier at all, in that format. */
+export type Filters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: (typeof BAND_NAMES)[number]; tierShare: number; tierPlayers: number }
+export const DEFAULT_FILTERS: Filters = { minPlayerGames: 10, minListGames: 5, minKeyGames: 30, eloCap: 3000, aggregateFloor: 'Gold', tierShare: 0.005, tierPlayers: 10 }
 
 export const FORMATS = ['TCG', 'Genesys'] as const
 export type Format = (typeof FORMATS)[number]

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { deckHref, effectPoints, plainDecks, underFloors, type DeckStat, type Meta, type Scope, type TierRules } from '@utils/statistics'
-import { Art, at, Box, ci, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, Track, WIDE } from '../kit'
+import { Art, at, Box, ci, facesOf, subFace, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, ROW, ROWS, SectionHead, signed, Small, TH, TierChip, Track, WIDE } from '../kit'
 import { nameOf } from '../shared'
 
 const SHOWN = 30
@@ -18,6 +18,10 @@ const TICKS = [45, 50, 55, 60, 65]
 /** What a deck under the floors is short of: share, duelists or both. */
 const shortOf = (d: DeckStat, tiers: TierRules, t: ReturnType<typeof useTranslations>) =>
   [d.share < tiers.minShare ? t('rareShare', { share: pc(d.share) }) : null, d.players < tiers.minPlayers ? t('rarePlayers', { players: n(d.players) }) : null].filter(Boolean).join(' · ')
+
+const Caret = ({ open }: { open: boolean }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden fill="currentColor" className={twMerge('flex-none text-ink-muted transition-transform duration-[120ms]', open && 'rotate-90')}><path d="M9 6l6 6-6 6z" /></svg>
+)
 
 /** A deck that passes the floors and has no tier sits under the last mark. */
 const TierCell = ({ deck, tiers }: { deck: DeckStat; tiers: TierRules | null | undefined }) => {
@@ -34,7 +38,9 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
   const t = useTranslations('Statistics.play')
   const locale = useLocale()
   const [all, setAll] = useState(false)
+  const [openRare, setOpenRare] = useState(false)
   const tiers = meta.fit.tiers
+  const faces = facesOf(meta.decks)
   const decks = plainDecks(meta.decks).sort((a, b) => b.wrExpected - a.wrExpected)
   const ranked = decks.filter((d) => !underFloors(d, tiers))
   const rare = decks.filter((d) => underFloors(d, tiers))
@@ -86,7 +92,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
               <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
                 <span role="cell" className="pl-6 font-display text-lg text-ink-muted">{i + 1}</span>
                 <span role="cell" className="flex min-w-0 items-center gap-3">
-                  <Art id={d.face} name={nameOf(d)} size={36} />
+                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
                   {link(d, 'text-ink')}
                 </span>
                 <span role="cell"><TierCell deck={d} tiers={tiers} /></span>
@@ -102,15 +108,18 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
             ))}
             {rare.length && tiers ? (
               <>
-                <div role="row" className="flex flex-wrap items-center gap-3 bg-surface-200 px-6 py-3">
-                  <span className="text-ink-dim signal-strong">{t('untiered')}</span>
-                  <span className="text-[13px] leading-5 text-ink-muted">{t('untieredNote', { share: mark(tiers.minShare), players: tiers.minPlayers })}</span>
+                <div role="row" className="bg-surface-200">
+                  <button type="button" aria-expanded={openRare} onClick={() => setOpenRare(!openRare)} className="flex w-full cursor-pointer flex-wrap items-center gap-3 px-6 py-3 text-left hover:bg-surface-300 focus-visible:shadow-focus-ring focus-visible:outline-none">
+                    <Caret open={openRare} />
+                    <span className="text-ink-dim signal-strong">{t('untiered')} · {rare.length}</span>
+                    <span className="text-[13px] leading-5 text-ink-muted">{t('untieredNote', { share: mark(tiers.minShare), players: tiers.minPlayers })}</span>
+                  </button>
                 </div>
-                {rare.map((d) => (
+                {(openRare ? rare : []).map((d) => (
                   <div key={d.key} role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
                     <span role="cell" className="pl-6 text-ink-muted signal-sm">–</span>
                     <span role="cell" className="flex min-w-0 items-center gap-3">
-                      <Art id={d.face} name={nameOf(d)} size={36} dim />
+                      <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} dim />
                       <span className="flex min-w-0 flex-col">
                         {link(d, 'text-ink-dim')}
                         <span className="text-xs leading-4 font-medium text-ink-muted">{shortOf(d, tiers, t)}</span>
@@ -144,7 +153,7 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
           {shown.map((d, i) => (
             <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
               <span className="font-display text-[15px] text-ink-muted">{i + 1}</span>
-              <Art id={d.face} name={nameOf(d)} size={36} />
+              <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
               <span className="flex min-w-0 flex-col">
                 {link(d, 'text-ink')}
                 <Small className="truncate">{t('rowMeta', { share: pc(d.share), games: n(d.games), players: n(d.players) })}</Small>
@@ -158,14 +167,15 @@ export const WhatToPlay = ({ meta, scope, best }: { meta: Meta; scope: Scope; be
           ))}
           {rare.length && tiers ? (
             <>
-              <div className="flex flex-col gap-0.5 bg-surface-200 px-4 py-3">
-                <span className="text-ink-dim signal-strong">{t('untiered')}</span>
-                <Small>{t('untieredNoteShort', { share: mark(tiers.minShare), players: tiers.minPlayers })}</Small>
-              </div>
-              {rare.map((d) => (
+              <button type="button" aria-expanded={openRare} onClick={() => setOpenRare(!openRare)} className="grid w-full cursor-pointer grid-cols-[auto_1fr] items-center gap-x-2.5 gap-y-0.5 bg-surface-200 px-4 py-3 text-left focus-visible:shadow-focus-ring focus-visible:outline-none">
+                <Caret open={openRare} />
+                <span className="text-ink-dim signal-strong">{t('untiered')} · {rare.length}</span>
+                <Small className="col-start-2">{t('untieredNoteShort', { share: mark(tiers.minShare), players: tiers.minPlayers })}</Small>
+              </button>
+              {(openRare ? rare : []).map((d) => (
                 <div key={d.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1.5 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
                   <span className="text-ink-muted signal-sm">–</span>
-                  <Art id={d.face} name={nameOf(d)} size={36} dim />
+                  <Art id={d.face} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(d, 'text-ink-dim')}
                     <Small className="truncate">{shortOf(d, tiers, t)}</Small>

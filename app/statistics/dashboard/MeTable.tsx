@@ -7,7 +7,7 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { signIn } from '@utils/auth'
 import { deckHref, meVerdict, type PlayerDeck, type Scope } from '@utils/statistics'
-import { Art, at, Box, ci, HEAD_ROW, n, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, span, Small, TH, WIDE, type Read } from '../kit'
+import { Art, at, Box, ci, subFace, HEAD_ROW, n, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, span, Small, TH, WIDE, type Read } from '../kit'
 import { nameOf } from '../shared'
 
 const COLS = 'minmax(200px, 1.2fr) 88px 140px 96px minmax(320px, 2.2fr) 176px'
@@ -108,7 +108,7 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
             </div>
             {rows.map(({ d, read, verdict }) => (
               <div key={d.key} role="row" className={twMerge(ROW, 'min-h-15')} style={{ gridTemplateColumns: COLS }}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={faces[d.key]} name={nameOf(d)} size={36} />{link(d, '')}</span>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />{link(d, '')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(d.games)}</span>
                 <span role="cell" className="flex flex-col pl-6">
                   <span className="font-bold text-ink tabular-nums">{pc(d.wr)}</span>
@@ -129,7 +129,7 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
         <div role="list" aria-label={t('aria')} className={twMerge(ROWS, NARROW)}>
           {rows.map(({ d, read, verdict }) => (
             <div key={d.key} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
-              <Art id={faces[d.key]} name={nameOf(d)} size={36} />
+              <Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
               <span className="flex min-w-0 flex-col">
                 {link(d, '')}
                 <Small>{t('rowMeta', { you: pc(d.wr), ladder: pc(d.ladder?.wrExpected), games: n(d.games) })}</Small>

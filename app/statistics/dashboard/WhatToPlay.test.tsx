@@ -48,11 +48,12 @@ describe('WhatToPlay', () => {
     expect(out.match(/High/g)).toHaveLength(1)
   })
 
-  it('sets the decks under the floors apart, after the ranked ones, and says what they lack', () => {
-    const out = table(render(meta(TIERS)))
-    expect(out.indexOf('Untiered')).toBeGreaterThan(out.indexOf('Low'))
-    expect(out.indexOf('Rare')).toBeGreaterThan(out.indexOf('Untiered'))
-    expect(out).toContain('0.3% of the meta · 9 players')
+  it('sets the decks under the floors apart, after the ranked ones, folded until asked for', () => {
+    const html = render(meta(TIERS))
+    const out = table(html)
+    expect(out.indexOf('Untiered · 1')).toBeGreaterThan(out.indexOf('Low'))
+    expect(html).toContain('aria-expanded="false"')
+    expect(out).not.toContain('Rare')
     expect(out).toContain('Under 50%')
     expect(text(render(meta(TIERS)))).toContain('3 + 1')
   })
