@@ -42,7 +42,7 @@ const Entry = ({ entry: { tournament, standing } }: { entry: PlayerEntry }) => {
  * Swiss-tournament record. The profile embeds the 3 latest entries; "see all" pages through
  * `GET /tournaments/players/{id}`, whose first page repeats those three, so it replaces the list.
  */
-export const TournamentRecord = ({ profileId, tournaments }: { profileId: string; tournaments: PlayerTournaments }) => {
+export const TournamentRecord = ({ profileId, tournaments, num }: { profileId: string; tournaments: PlayerTournaments; num: string }) => {
   const t = useTranslations('Tournaments.record')
   const locale = useLocale()
   const [entries, setEntries] = useState(tournaments.recent)
@@ -67,7 +67,7 @@ export const TournamentRecord = ({ profileId, tournaments }: { profileId: string
 
   return (
     <>
-      <Rail num="04" label={t('label')} stamp={t('stamp')} />
+      <Rail num={num} label={t('label')} stamp={t('stamp')} />
       <Panel label={t('label')} className="flex flex-col gap-5">
         <StatGrid
           columns={2}
@@ -93,3 +93,14 @@ export const TournamentRecord = ({ profileId, tournaments }: { profileId: string
     </>
   )
 }
+
+/** Free layout: the totals already sit in the card up top, so only the latest entries. */
+export const RecentTournaments = ({ tournaments, num }: { tournaments: PlayerTournaments; num: string }) =>
+  tournaments.recent.length ? (
+    <>
+      <Rail num={num} label="Recent tournaments" />
+      <div className="flex flex-col gap-px border border-line bg-line">
+        {tournaments.recent.map((entry) => <Entry key={entry.tournament.id} entry={entry} />)}
+      </div>
+    </>
+  ) : null

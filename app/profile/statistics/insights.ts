@@ -15,9 +15,10 @@ export const standingOf = (profile: Extract<Profile, { isPrivate: false }>, pick
   const open = ladder.seasons.find((s) => s.open)
   if (pick.season) {
     const season = ladder.seasons.find((s) => s.code === pick.season)
-    return season ? { elo: season.elo, tier: season.tier, rank: season.rank, eloHistory: season.eloHistory } : null
+    // Owner only: elo is never hidden from them, the fallbacks only satisfy the type.
+    return season ? { elo: season.elo ?? 0, tier: season.tier ?? 'Iron', rank: season.rank ?? null, eloHistory: season.eloHistory } : null
   }
-  return { elo: ladder.elo, tier: ladder.tier, rank: open?.rank ?? null, eloHistory: open?.eloHistory }
+  return { elo: ladder.elo ?? 0, tier: ladder.tier ?? 'Iron', rank: open?.rank ?? null, eloHistory: open?.eloHistory }
 }
 
 export type Period = 7 | 14 | 30 | null
