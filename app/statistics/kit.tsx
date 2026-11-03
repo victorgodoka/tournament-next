@@ -2,7 +2,7 @@
 
 /** The statistics pages' building blocks: cards, tier and verdict chips, deck art, filter controls, tracks. */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CardArt } from '@omega/card-art'
 import { frameOf } from '@utils/deck/model'
@@ -134,6 +134,9 @@ export const frameColor = (card: Pick<WikiCard, 'kind' | 'monsterTypes'> | undef
 
 /* ---------------------------------------------------------------- filters */
 
+/** A deck name: wraps to two lines before it cuts. `A / B` names don't fit one line in a table cell or on a phone. */
+export const DECK_NAME = 'line-clamp-2 [overflow-wrap:anywhere]'
+
 export const Label = ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) =>
   htmlFor ? <label htmlFor={htmlFor} className="text-ink-muted signal">{children}</label> : <span className="text-ink-muted signal">{children}</span>
 
@@ -172,6 +175,106 @@ export const SelectBox = ({ id, value, onChange, options }: { id: string; value:
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="var(--color-ink-muted)" className="pointer-events-none absolute right-3.5"><path d="M7 9l5 6 5-6z" /></svg>
   </div>
 )
+
+export type DeckOption = { value: string; label: string; face?: number | null; sub?: number | null; hint?: string }
+
+/** Lowercase, no accents: `é` finds `e`, `Ébauche` finds `ebau`. */
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+/**
+ * A deck picker you type into: the list narrows to names holding every word typed, in any order. Closed,
+ * it shows the picked deck; Escape or leaving puts it back. The list keeps the order it is given.
+ */
+export const DeckSearch = ({ id, value, onChange, options, placeholder, empty }: { id: string; value: string; onChange: (value: string) => void; options: DeckOption[]; placeholder: string; empty: string }) => {
+  const list = `${id}-${useId()}-list`
+  const picked = options.find((o) => o.value === value)
+  const [text, setText] = useState<string | null>(null)
+  const [active, setActive] = useState(0)
+  const open = text !== null
+  const words = fold(text ?? '').split(/\s+/).filter(Boolean)
+  const shown = open ? options.filter((o) => words.every((w) => fold(o.label).includes(w))) : []
+  const current = Math.min(active, shown.length - 1)
+
+  const close = () => setText(null)
+  const pick = (o: DeckOption) => {
+    onChange(o.value)
+    close()
+  }
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') return close()
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!open) return setText('')
+      if (shown.length) setActive((current + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length)
+    } else if (e.key === 'Enter' && open && shown[current]) {
+      e.preventDefault()
+      pick(shown[current]!)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <div className="cut relative flex min-h-10 items-center [--edge:var(--color-line-mid)] [--fill:var(--color-surface-200)] focus-within:[--edge:var(--color-cyan)] hover:[--edge:var(--color-line-strong)] max-[719px]:min-h-11">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="none" stroke="var(--color-ink-muted)" strokeWidth="2.25" className="pointer-events-none absolute left-3.5">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M16 16l4.5 4.5" strokeLinecap="round" />
+        </svg>
+        <input
+          id={id}
+          type="text"
+          role="combobox"
+          autoComplete="off"
+          spellCheck={false}
+          aria-expanded={open}
+          aria-controls={list}
+          aria-autocomplete="list"
+          aria-activedescendant={open && shown[current] ? `${list}-${current}` : undefined}
+          placeholder={open ? (picked?.label ?? placeholder) : placeholder}
+          value={open ? text : (picked?.label ?? '')}
+          onFocus={() => {
+            setText('')
+            setActive(0)
+          }}
+          onBlur={close}
+          onChange={(e) => {
+            setText(e.target.value)
+            setActive(0)
+          }}
+          onKeyDown={onKeyDown}
+          className="min-h-10 w-full bg-transparent pr-10 pl-10 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none max-[719px]:min-h-11 max-[719px]:text-base"
+        />
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="var(--color-ink-muted)" className="pointer-events-none absolute right-3.5"><path d="M7 9l5 6 5-6z" /></svg>
+      </div>
+      {open ? (
+        <ul id={list} role="listbox" aria-label={placeholder} className="absolute inset-x-0 top-full z-30 mt-1 max-h-[min(22rem,60vh)] overflow-y-auto border border-line-mid bg-surface-100 shadow-lg">
+          {shown.length ? (
+            shown.map((o, i) => (
+              <li
+                key={o.value}
+                id={`${list}-${i}`}
+                role="option"
+                aria-selected={o.value === value}
+                // mousedown, not click: the input's blur would close the list first
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  pick(o)
+                }}
+                onMouseEnter={() => setActive(i)}
+                className={twMerge('flex cursor-pointer items-center gap-3 px-3 py-2 text-ink-dim', i === current && 'bg-surface-300 text-ink', o.value === value && 'text-cyan')}
+              >
+                <Art id={o.face} sub={o.sub} name={o.label} size={36} />
+                <span className="min-w-0 flex-auto text-sm leading-5 font-bold [overflow-wrap:anywhere]">{o.label}</span>
+                {o.hint ? <span className="flex-none text-[13px] text-ink-muted tabular-nums">{o.hint}</span> : null}
+              </li>
+            ))
+          ) : (
+            <li role="presentation" className="px-3.5 py-3 text-[13px] text-ink-muted">{empty}</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
 
 /** Mobile: the filters fold behind one button that says what they are set to. */
 export const FilterFold = ({ summary, edit, done, children }: { summary: string; edit: string; done: string; children: React.ReactNode }) => {

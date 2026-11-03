@@ -5,13 +5,13 @@ import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { deckHref, families, familyWeeks, plainDecks, shareMoves, weekJumps, type DeckStat, type Family, type Meta, type Scope, type ShareWeek } from '@utils/statistics'
-import { Art, Box, facesOf, GoldDot, subFace, type Faces, HEAD_ROW, LocalTime, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, signed, Small, Spark, TH, tone, WIDE } from '../kit'
+import { Art, Box, DECK_NAME, facesOf, GoldDot, subFace, type Faces, HEAD_ROW, LocalTime, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, signed, Small, Spark, TH, tone, WIDE } from '../kit'
 import { nameOf } from '../shared'
 
 const TOP = 12
 const SPAN = 8
 const COLS = '56px minmax(220px, 1.2fr) 140px 96px minmax(240px, 1.4fr) 120px'
-const M_COLS = '20px 36px minmax(0, 1fr) 64px 56px'
+const M_COLS = '20px 44px minmax(0, 1fr) 64px 56px'
 
 type Line = { key: string; name: string; face?: number | null; href: string; share: number; values: number[]; delta: number | null }
 
@@ -67,7 +67,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
   const swept = meta.season?.sweptThrough
   const sofar = lastDay && swept ? Math.round((Date.parse(swept.slice(0, 10)) - Date.parse(lastDay)) / 86_400_000) + 1 : 7
   const partial = sofar < 7 ? t('partial', { days: sofar }) : null
-  const link = (l: Line, className: string) => <Link href={l.href} className={twMerge('truncate hover:text-cyan', className)}>{l.name}</Link>
+  const link = (l: Line, className: string) => <Link href={l.href} className={twMerge(DECK_NAME, 'hover:text-cyan', className)}>{l.name}</Link>
 
   if (!top.length) {
     return (
@@ -125,7 +125,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                 <div role="row" className={twMerge(ROW, 'min-h-13')} style={{ gridTemplateColumns: COLS }}>
                   <span role="cell" className="pl-6 font-display text-lg text-ink-muted">{i + 1}</span>
                   <span role="cell" className="flex min-w-0 items-center gap-3">
-                    <Art id={line.face} name={line.name} size={36} />
+                    <Art id={line.face} name={line.name} size={44} />
                     {link(line, 'font-bold text-ink')}
                   </span>
                   <span role="cell">{kids.length ? versions(line.key, kids.length, 'md') : null}</span>
@@ -139,7 +139,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                         <span role="cell" />
                         <span role="cell" className="flex min-w-0 items-center gap-2.5 text-sm text-ink-dim">
                           <span aria-hidden className="-mt-2 size-3 flex-none border-b border-l border-line-mid" />
-                          <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={28} />
+                          <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={36} />
                           {link(k, '')}
                         </span>
                         <span role="cell" />
@@ -159,7 +159,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
             <div key={line.key} className="contents">
               <div role="listitem" className="grid items-center gap-x-2.5 gap-y-1 bg-surface-100 px-4 py-3" style={{ gridTemplateColumns: M_COLS }}>
                 <span className="font-display text-[15px] text-ink-muted">{i + 1}</span>
-                <Art id={line.face} name={line.name} size={36} />
+                <Art id={line.face} name={line.name} size={44} />
                 <span className="flex min-w-0 flex-col items-start gap-0.5">
                   {link(line, 'max-w-full font-bold text-ink')}
                   {kids.length ? versions(line.key, kids.length, 'sm') : null}
@@ -174,7 +174,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
                 ? kids.map((k) => (
                     <div key={k.key} role="listitem" className="grid items-center gap-x-2.5 gap-y-1 bg-surface-200 px-4 py-2.5" style={{ gridTemplateColumns: M_COLS }}>
                       <span />
-                      <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={28} className="justify-self-end" />
+                      <Art id={k.face} sub={subFace(k.key, faces)} name={k.name} size={36} className="justify-self-end" />
                       {link(k, 'text-sm text-ink-dim')}
                       <Spark values={k.values} width={64} height={20} label={sparkLabel(k)} minor />
                       <span className="flex flex-col items-end">
@@ -200,7 +200,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
             <span className="flex items-center gap-1.5 text-ink signal-strong"><Triangle up={up} />{t(id)}</span>
             {list.length ? moveList(list).map(({ l, d, now }) => (
               <div key={l.key} className="flex items-baseline justify-between gap-3 border-t border-line pt-3">
-                <span className="flex min-w-0 items-center gap-3"><Art id={l.face} name={l.name} size={28} />{link(l, 'font-bold text-ink')}</span>
+                <span className="flex min-w-0 items-center gap-3"><Art id={l.face} name={l.name} size={36} />{link(l, 'font-bold text-ink')}</span>
                 <span className="text-[13px] leading-5 whitespace-nowrap text-ink-dim"><strong className={tone(d * 100)}>{delta(d)}</strong> · {t('now', { share: pc(now) })}</span>
               </div>
             )) : <span className="border-t border-line pt-3 text-[13px] leading-5 text-ink-muted">{t('noMoves')}</span>}
@@ -215,7 +215,7 @@ export const WhatYouFace = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
               <span className={twMerge('flex items-center gap-1.5 text-ink signal-strong', !up && 'mt-2')}><Triangle up={up} />{t(id)}</span>
               {list.length ? moveList(list).map(({ l, d, now }) => (
                 <div key={l.key} className="flex items-center gap-2.5 border-t border-line pt-2.5">
-                  <Art id={l.face} name={l.name} size={28} />
+                  <Art id={l.face} name={l.name} size={36} />
                   {link(l, 'flex-auto font-bold text-ink')}
                   <span className="text-[13px] whitespace-nowrap"><strong className={tone(d * 100)}>{delta(d)}</strong> · {pc(now)}</span>
                 </div>
@@ -257,8 +257,8 @@ const ChangedCard = ({ jumps, plain, prevRate, day, scope, faces, narrow }: Chan
           <div key={w.key} className={twMerge('flex flex-col gap-1.5 border-t border-line', narrow ? 'pt-2.5' : 'pt-3')}>
             <div className={twMerge('flex items-center gap-3', !narrow && 'justify-between', narrow && 'gap-2.5')}>
               <span className={twMerge('flex min-w-0 items-center gap-3', narrow && 'flex-auto gap-2.5')}>
-                <Art id={deck.face} sub={subFace(deck.key, faces)} name={nameOf(deck)} size={28} />
-                <Link href={deckHref(deck.key, scope)} className="truncate font-bold text-ink hover:text-cyan">{nameOf(deck)}</Link>
+                <Art id={deck.face} sub={subFace(deck.key, faces)} name={nameOf(deck)} size={36} />
+                <Link href={deckHref(deck.key, scope)} className={`${DECK_NAME} font-bold text-ink hover:text-cyan`}>{nameOf(deck)}</Link>
               </span>
               <ReadChip read={up ? 'good' : 'bad'}>{t(up ? 'stronger' : 'weaker')}{before !== undefined ? ` ${signed((w.wrExpected - before) * 100)}` : ''}</ReadChip>
             </div>

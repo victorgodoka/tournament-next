@@ -9,6 +9,7 @@ import { Panel } from '@ui/panel'
 import { StatGrid } from '@ui/stat-grid'
 import { deckHref, statisticsHref, type CardAnswer, type Season, type StatisticsScope } from '@utils/statistics'
 import { EffectBar } from './EffectBar'
+import { DECK_NAME } from './kit'
 import { Art, Bar, cardName, fixed, nameOf, NOTE, NUM, num, pct, ROW } from './shared'
 
 const COLS = 'minmax(180px, 1.6fr) minmax(120px, 1fr) 64px 64px minmax(150px, 1.2fr)'
@@ -56,7 +57,7 @@ export const CardPage = ({ answer, season, scope }: { answer: CardAnswer; season
                 </div>
                 {byDeck.map((d) => (
                   <div key={d.key} role="row" className={ROW} style={{ gridTemplateColumns: COLS }}>
-                    <span role="cell" className="truncate font-bold text-ink"><Link href={deckHref(d.key, scope)} className="hover:text-cyan">{nameOf({ key: d.key, name: d.name ?? null })}</Link></span>
+                    <span role="cell" className={`${DECK_NAME} font-bold text-ink`}><Link href={deckHref(d.key, scope)} className="hover:text-cyan">{nameOf({ key: d.key, name: d.name ?? null })}</Link></span>
                     <span role="cell"><Bar value={d.inclusion} label={pct(d.inclusion)} w={52} /></span>
                     <span role="cell" className={NUM}>{fixed(d.copies, 1)}</span>
                     <span role="cell" className={NUM}>{pct(d.playRate)}</span>

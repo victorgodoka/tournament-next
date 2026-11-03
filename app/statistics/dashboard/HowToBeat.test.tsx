@@ -63,9 +63,30 @@ describe('HowToBeat', () => {
   })
 
   it('reads the picked deck, and says so when it can not be read', async () => {
-    vi.stubGlobal('fetch', respond({}, 500))
+    const fetchMock = respond({}, 500)
+    vi.stubGlobal('fetch', fetchMock)
     show()
-    fireEvent.change(screen.getAllByRole('combobox')[0]!, { target: { value: '2' } })
+    const box = screen.getAllByRole('combobox')[0]!
+    fireEvent.focus(box)
+    fireEvent.change(box, { target: { value: 'labr' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+    await waitFor(() => expect((fetchMock.mock.calls as unknown[][]).some(([url]) => String(url).includes('/statistics/decks/2?'))).toBe(true))
     await waitFor(() => screen.getByText(messages.Statistics.beat.failed))
+  })
+
+  it('searches the decks by name: shows the picked one closed, narrows the list as you type', async () => {
+    vi.stubGlobal('fetch', respond(answer))
+    show()
+    const box = screen.getAllByRole('combobox')[0]! as HTMLInputElement
+    expect(box.value).toBe('Snake-Eye')
+    fireEvent.focus(box)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['SSnake-Eye20.0%', 'LLabrynth10.0%']) // the art's letter, the name, the share
+    fireEvent.change(box, { target: { value: 'eye snake' } })
+    expect(screen.getAllByRole('option')).toHaveLength(1)
+    fireEvent.change(box, { target: { value: 'tenpai' } })
+    expect(screen.queryAllByRole('option')).toHaveLength(0)
+    screen.getByText(messages.Statistics.beat.noMatch)
+    fireEvent.keyDown(box, { key: 'Escape' })
+    expect(box.value).toBe('Snake-Eye')
   })
 })

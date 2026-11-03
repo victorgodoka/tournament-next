@@ -7,10 +7,10 @@ import { twMerge } from 'tailwind-merge'
 import { Button } from '@ui/button'
 import { signIn } from '@utils/auth'
 import { deckHref, meVerdict, type PlayerDeck, type Scope } from '@utils/statistics'
-import { Art, at, Box, ci, subFace, HEAD_ROW, n, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, span, Small, TH, WIDE, type Read } from '../kit'
+import { Art, at, Box, ci, subFace, DECK_NAME, HEAD_ROW, n, NARROW, NUMERIC, pc, ReadChip, ROW, ROWS, SectionHead, span, Small, TH, WIDE, type Read } from '../kit'
 import { nameOf } from '../shared'
 
-const COLS = 'minmax(200px, 1.2fr) 88px 140px 96px minmax(320px, 2.2fr) 176px'
+const COLS = 'minmax(240px, 1.2fr) 88px 140px 96px minmax(320px, 2.2fr) 176px'
 const LO = 0.3
 const HI = 0.8
 const TICKS = [35, 45, 50, 55, 65, 75]
@@ -72,7 +72,7 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
   })
   const verdictText = (v: ReturnType<typeof meVerdict>) => t(`verdicts.${v ?? 'same'}`)
   const tally = (['good', 'bad', 'flat'] as const).map((r) => ({ read: r, count: rows.filter((x) => x.read === r).length }))
-  const link = (d: PlayerDeck, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge('truncate font-bold text-ink hover:text-cyan', className)}>{nameOf(d)}</Link>
+  const link = (d: PlayerDeck, className: string) => <Link href={deckHref(d.key, scope)} className={twMerge(DECK_NAME, 'font-bold text-ink hover:text-cyan', className)}>{nameOf(d)}</Link>
   const legendText = t.rich('legendText', {
     up: (c) => <span className="text-win">{c}</span>,
     down: (c) => <span className="text-loss">{c}</span>,
@@ -108,7 +108,7 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
             </div>
             {rows.map(({ d, read, verdict }) => (
               <div key={d.key} role="row" className={twMerge(ROW, 'min-h-15')} style={{ gridTemplateColumns: COLS }}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />{link(d, '')}</span>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} />{link(d, '')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(d.games)}</span>
                 <span role="cell" className="flex flex-col pl-6">
                   <span className="font-bold text-ink tabular-nums">{pc(d.wr)}</span>
@@ -128,8 +128,8 @@ export const MeTable = ({ decks, scope, faces = {}, who = null, games = 0 }: { d
 
         <div role="list" aria-label={t('aria')} className={twMerge(ROWS, NARROW)}>
           {rows.map(({ d, read, verdict }) => (
-            <div key={d.key} role="listitem" className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
-              <Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={36} />
+            <div key={d.key} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
+              <Art id={faces[d.key]} sub={subFace(d.key, faces)} name={nameOf(d)} size={44} />
               <span className="flex min-w-0 flex-col">
                 {link(d, '')}
                 <Small>{t('rowMeta', { you: pc(d.wr), ladder: pc(d.ladder?.wrExpected), games: n(d.games) })}</Small>

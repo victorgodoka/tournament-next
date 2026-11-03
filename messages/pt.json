@@ -2121,6 +2121,8 @@
       "ledeShort": "Escolha um deck para ver os matchups e o que funciona contra ele.",
       "empty": "Nenhum deck tem games suficientes aqui ainda.",
       "deck": "Deck",
+      "search": "Buscar um deck",
+      "noMatch": "Nenhum deck com esse nome.",
       "stats": { "expected": "Esperado", "tier": "Tier", "meta": "Meta", "games": "Games", "expectedShort": "Esp.", "tierShort": "Tier", "metaShort": "Meta", "gamesShort": "Games" },
       "open": "Abrir página do deck",
       "loading": "Carregando o deck…",
