@@ -1,0 +1,484 @@
+{
+  "issue": "2026-11-06",
+  "rebuilt": true,
+  "ladders": {
+    "TCG": {
+      "season": "tcg-3",
+      "band": "aggregate",
+      "floor": "Gold",
+      "rules": {
+        "t1Gap": 0.005,
+        "t2Gap": 0.03,
+        "t3Gap": 0.045,
+        "minShare": 0.01,
+        "minPlayers": 25
+      },
+      "filters": {
+        "eloCap": 3000,
+        "tierShare": 0.01,
+        "minKeyGames": 30,
+        "tierPlayers": 25,
+        "minListGames": 0,
+        "aggregateFloor": "Gold",
+        "minPlayerGames": 5
+      },
+      "decks": {
+        "8": {
+          "name": "HERO",
+          "tier": 3,
+          "share": 0.0649,
+          "wrExpected": 0.5059
+        },
+        "244": {
+          "name": "Invoked",
+          "tier": 4,
+          "share": 0.0227,
+          "wrExpected": 0.4909
+        },
+        "277": {
+          "name": "Sky Striker",
+          "tier": 4,
+          "share": 0.0226,
+          "wrExpected": 0.4888
+        },
+        "349": {
+          "name": "Branded",
+          "tier": 3,
+          "share": 0.0121,
+          "wrExpected": 0.4996
+        },
+        "465": {
+          "name": "Radiant Typhoon",
+          "tier": 2,
+          "share": 0.0378,
+          "wrExpected": 0.5308
+        },
+        "476": {
+          "name": "Clown Crew",
+          "tier": 4,
+          "share": 0.0173,
+          "wrExpected": 0.4667
+        },
+        "479": {
+          "name": "Blitzclique",
+          "tier": 2,
+          "share": 0.0457,
+          "wrExpected": 0.5188
+        },
+        "482": {
+          "name": "Angelechy",
+          "tier": 1,
+          "share": 0.1327,
+          "wrExpected": 0.5396
+        },
+        "472>462": {
+          "name": "Elfnote / Power Patron / Ars Magna",
+          "tier": 2,
+          "share": 0.0827,
+          "wrExpected": 0.5309
+        },
+        "462>461": {
+          "name": "Power Patron / Ars Magna / Artmage",
+          "tier": 2,
+          "share": 0.0779,
+          "wrExpected": 0.5264
+        },
+        "462>65537": {
+          "name": "Power Patron / Ars Magna / Light and Darkness Ritual",
+          "tier": 2,
+          "share": 0.0187,
+          "wrExpected": 0.5232
+        },
+        "349>65537": {
+          "name": "Branded / Light and Darkness Ritual",
+          "tier": 2,
+          "share": 0.021,
+          "wrExpected": 0.5151
+        },
+        "447>309": {
+          "name": "Maliss / @Ignister",
+          "tier": 2,
+          "share": 0.0158,
+          "wrExpected": 0.5146
+        },
+        "349>457": {
+          "name": "Branded / Dracotail",
+          "tier": 2,
+          "share": 0.0124,
+          "wrExpected": 0.5132
+        },
+        "466>462": {
+          "name": "DoomZ / Power Patron / Ars Magna",
+          "tier": 3,
+          "share": 0.015,
+          "wrExpected": 0.5041
+        },
+        "475>298": {
+          "name": "Fairy Tail / Endymion",
+          "tier": 3,
+          "share": 0.0165,
+          "wrExpected": 0.5016
+        },
+        "116>119": {
+          "name": "Mermail / Atlantean",
+          "tier": 4,
+          "share": 0.0164,
+          "wrExpected": 0.4937
+        },
+        "65567>459": {
+          "name": "Dark Time Wizard / K9",
+          "tier": 4,
+          "share": 0.0248,
+          "wrExpected": 0.4931
+        },
+        "277>465": {
+          "name": "Sky Striker / Radiant Typhoon",
+          "tier": 4,
+          "share": 0.01,
+          "wrExpected": 0.4895
+        },
+        "65561>65537": {
+          "name": "Dark Magician / Light and Darkness Ritual",
+          "tier": 4,
+          "share": 0.0163,
+          "wrExpected": 0.4823
+        },
+        "221>441": {
+          "name": "Blue-Eyes / Primite",
+          "tier": 4,
+          "share": 0.0159,
+          "wrExpected": 0.4548
+        }
+      }
+    },
+    "Genesys": {
+      "season": "genesys-1",
+      "band": "aggregate",
+      "floor": "Silver",
+      "rules": {
+        "t1Gap": 0.005,
+        "t2Gap": 0.03,
+        "t3Gap": 0.045,
+        "minShare": 0.005,
+        "minPlayers": 1
+      },
+      "filters": {
+        "eloCap": 3000,
+        "tierShare": 0.005,
+        "minKeyGames": 15,
+        "tierPlayers": 1,
+        "minListGames": 0,
+        "aggregateFloor": "Silver",
+        "minPlayerGames": 3
+      },
+      "decks": {
+        "8": {
+          "name": "HERO",
+          "tier": 4,
+          "share": 0.0312,
+          "wrExpected": 0.4915
+        },
+        "157": {
+          "name": "Shaddoll",
+          "tier": 4,
+          "share": 0.0057,
+          "wrExpected": 0.4818
+        },
+        "190": {
+          "name": "Monarch",
+          "tier": 4,
+          "share": 0.0054,
+          "wrExpected": 0.4838
+        },
+        "243": {
+          "name": "Predaplant",
+          "tier": 4,
+          "share": 0.008,
+          "wrExpected": 0.515
+        },
+        "244": {
+          "name": "Invoked",
+          "tier": 4,
+          "share": 0.0129,
+          "wrExpected": 0.532
+        },
+        "262": {
+          "name": "Vendread",
+          "tier": 4,
+          "share": 0.0071,
+          "wrExpected": 0.4774
+        },
+        "320": {
+          "name": "Adamancipator",
+          "tier": 4,
+          "share": 0.0053,
+          "wrExpected": 0.4176
+        },
+        "370": {
+          "name": "Exosister",
+          "tier": 4,
+          "share": 0.0133,
+          "wrExpected": 0.5277
+        },
+        "382": {
+          "name": "Labrynth",
+          "tier": 4,
+          "share": 0.0111,
+          "wrExpected": 0.4182
+        },
+        "394": {
+          "name": "Ghoti",
+          "tier": 4,
+          "share": 0.0059,
+          "wrExpected": 0.4839
+        },
+        "439": {
+          "name": "Mimighoul",
+          "tier": 4,
+          "share": 0.0142,
+          "wrExpected": 0.4934
+        },
+        "456": {
+          "name": "Apophis",
+          "tier": 4,
+          "share": 0.0085,
+          "wrExpected": 0.5037
+        },
+        "479": {
+          "name": "Blitzclique",
+          "tier": 3,
+          "share": 0.068,
+          "wrExpected": 0.5714
+        },
+        "482": {
+          "name": "Angelechy",
+          "tier": 2,
+          "share": 0.0345,
+          "wrExpected": 0.5869
+        },
+        "4157": {
+          "name": "Six-Samurai",
+          "tier": 4,
+          "share": 0.007,
+          "wrExpected": 0.4472
+        },
+        "65553": {
+          "name": "Red Dragon Archfiend",
+          "tier": 4,
+          "share": 0.0117,
+          "wrExpected": 0.53
+        },
+        "65554": {
+          "name": "Archfiend",
+          "tier": 3,
+          "share": 0.0054,
+          "wrExpected": 0.5711
+        },
+        "469>65541": {
+          "name": "Kewl Tune / Synchron",
+          "tier": 1,
+          "share": 0.0073,
+          "wrExpected": 0.6027
+        },
+        "482>65567": {
+          "name": "Angelechy / Dark Time Wizard",
+          "tier": 2,
+          "share": 0.0063,
+          "wrExpected": 0.5961
+        },
+        "65541>472": {
+          "name": "Synchron / Elfnote",
+          "tier": 2,
+          "share": 0.0083,
+          "wrExpected": 0.5729
+        },
+        "482>65562": {
+          "name": "Angelechy / Centur-Ion",
+          "tier": 3,
+          "share": 0.0084,
+          "wrExpected": 0.571
+        },
+        "479>395": {
+          "name": "Blitzclique / Rescue-ACE",
+          "tier": 3,
+          "share": 0.0072,
+          "wrExpected": 0.5657
+        },
+        "482>395": {
+          "name": "Angelechy / Rescue-ACE",
+          "tier": 3,
+          "share": 0.005,
+          "wrExpected": 0.5607
+        },
+        "482>484": {
+          "name": "Angelechy / Ashtra",
+          "tier": 3,
+          "share": 0.0142,
+          "wrExpected": 0.5607
+        },
+        "482>433": {
+          "name": "Angelechy / White Forest",
+          "tier": 4,
+          "share": 0.0154,
+          "wrExpected": 0.5487
+        },
+        "65573>244": {
+          "name": "Chimera / Invoked",
+          "tier": 4,
+          "share": 0.0145,
+          "wrExpected": 0.5474
+        },
+        "482>479": {
+          "name": "Angelechy / Blitzclique",
+          "tier": 4,
+          "share": 0.0064,
+          "wrExpected": 0.5431
+        },
+        "465>65567": {
+          "name": "Radiant Typhoon / Dark Time Wizard",
+          "tier": 4,
+          "share": 0.0085,
+          "wrExpected": 0.543
+        },
+        "65567>65573": {
+          "name": "Dark Time Wizard / Chimera",
+          "tier": 4,
+          "share": 0.0055,
+          "wrExpected": 0.5383
+        },
+        "475>296": {
+          "name": "Fairy Tail / Witchcrafter",
+          "tier": 4,
+          "share": 0.0168,
+          "wrExpected": 0.538
+        },
+        "466>462": {
+          "name": "DoomZ / Power Patron / Ars Magna",
+          "tier": 4,
+          "share": 0.0078,
+          "wrExpected": 0.5277
+        },
+        "452>273": {
+          "name": "Dragon Ruler / Armed Dragon",
+          "tier": 4,
+          "share": 0.0173,
+          "wrExpected": 0.5276
+        },
+        "456>484": {
+          "name": "Apophis / Ashtra",
+          "tier": 4,
+          "share": 0.0053,
+          "wrExpected": 0.5254
+        },
+        "484>65567": {
+          "name": "Ashtra / Dark Time Wizard",
+          "tier": 4,
+          "share": 0.0053,
+          "wrExpected": 0.5214
+        },
+        "467>65573": {
+          "name": "Hecahands / Chimera",
+          "tier": 4,
+          "share": 0.0348,
+          "wrExpected": 0.5213
+        },
+        "219>352": {
+          "name": "Phantom Knights / Materiactor",
+          "tier": 4,
+          "share": 0.007,
+          "wrExpected": 0.5144
+        },
+        "116>119": {
+          "name": "Mermail / Atlantean",
+          "tier": 4,
+          "share": 0.0107,
+          "wrExpected": 0.5113
+        },
+        "239>349": {
+          "name": "Darklord / Branded",
+          "tier": 4,
+          "share": 0.0056,
+          "wrExpected": 0.5086
+        },
+        "307>457": {
+          "name": "Dragonmaid / Dracotail",
+          "tier": 4,
+          "share": 0.0075,
+          "wrExpected": 0.5046
+        },
+        "457>243": {
+          "name": "Dracotail / Predaplant",
+          "tier": 4,
+          "share": 0.0221,
+          "wrExpected": 0.4985
+        },
+        "312>65550": {
+          "name": "Megalith / Magnet Warrior",
+          "tier": 4,
+          "share": 0.0067,
+          "wrExpected": 0.4968
+        },
+        "239>462": {
+          "name": "Darklord / Power Patron / Ars Magna",
+          "tier": 4,
+          "share": 0.0224,
+          "wrExpected": 0.4908
+        },
+        "129>34": {
+          "name": "Fire King / Jurrac",
+          "tier": 4,
+          "share": 0.0054,
+          "wrExpected": 0.4865
+        },
+        "129>412": {
+          "name": "Fire King / Snake-Eye",
+          "tier": 4,
+          "share": 0.0103,
+          "wrExpected": 0.4767
+        },
+        "113>386": {
+          "name": "Madolche / Vernusylph",
+          "tier": 4,
+          "share": 0.0064,
+          "wrExpected": 0.4676
+        },
+        "484>363": {
+          "name": "Ashtra / Swordsoul",
+          "tier": 4,
+          "share": 0.0092,
+          "wrExpected": 0.4588
+        },
+        "47>364": {
+          "name": "Ice Barrier / Icejade",
+          "tier": 4,
+          "share": 0.0054,
+          "wrExpected": 0.4537
+        },
+        "221>441": {
+          "name": "Blue-Eyes / Primite",
+          "tier": 4,
+          "share": 0.005,
+          "wrExpected": 0.4518
+        },
+        "484>382": {
+          "name": "Ashtra / Labrynth",
+          "tier": 4,
+          "share": 0.008,
+          "wrExpected": 0.4498
+        },
+        "433>444": {
+          "name": "White Forest / Azamina",
+          "tier": 4,
+          "share": 0.0078,
+          "wrExpected": 0.4483
+        },
+        "484>65541": {
+          "name": "Ashtra / Synchron",
+          "tier": 4,
+          "share": 0.0069,
+          "wrExpected": 0.4461
+        }
+      }
+    }
+  }
+}

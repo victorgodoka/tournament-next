@@ -82,8 +82,8 @@ export const Progress = ({ data, ladder, history }: { data: PlayerAnswer; ladder
             {weeks.map((w) => {
               const g = gap(w)
               return (
-                <div key={w.week} role="row" className="grid min-h-13 items-center bg-surface-100 transition-colors duration-[120ms] ease-out hover:bg-surface-300" style={{ gridTemplateColumns: WEEK_COLS }}>
-                  <span role="cell" className="flex flex-col pl-6">
+                <div key={w.week} role="row" className="grid min-h-16 items-center bg-surface-100 py-2 transition-colors duration-[120ms] ease-out hover:bg-surface-300" style={{ gridTemplateColumns: WEEK_COLS }}>
+                  <span role="cell" className="flex flex-col gap-1 pl-6">
                     <span className="font-bold text-ink">{t('week', { n: w.week })}</span>
                     <Small>{dates(w.firstDay)}</Small>
                   </span>
@@ -100,7 +100,7 @@ export const Progress = ({ data, ladder, history }: { data: PlayerAnswer; ladder
             {weeks.map((w) => {
               const g = gap(w)
               return (
-                <div key={w.week} role="listitem" className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
+                <div key={w.week} role="listitem" className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 bg-surface-100 px-4 py-4">
                   <span className="flex flex-col">
                     <span className="font-bold text-ink">{t('week', { n: w.week })}</span>
                     <Small>{dates(w.firstDay)} · {t('games', { n: n(w.n) })}</Small>

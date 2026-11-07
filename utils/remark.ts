@@ -7,6 +7,8 @@ import rehypeStringify from 'rehype-stringify';
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { createElement, Fragment, type ReactNode } from 'react';
+import { ArticlePreview } from '@omega/wiki/article-preview'
+import { loadArticlePreview, type WikiArticlePreview } from './wiki-article-preview'
 
 /** A tag's own `className` rule beats `*`: the defaults' would strip our classes from a, code, ol, ul and li. */
 const defaultRules = Object.fromEntries(
@@ -25,10 +27,44 @@ const customSanitizeSchema = {
     span: [...(defaultSchema.attributes?.span || []), ['dataColor', /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i] as [string, RegExp]],
     // Nothing but a frame name reaches a CSS variable: see `toReact`.
     a: [...(defaultRules.a ?? []), ['dataFrame', /^[a-z]+$/] as [string, RegExp]],
+    div: [...(defaultRules.div ?? []), ['dataArticle', /^[a-z0-9]+(?:-[a-z0-9]+)*$/] as [string, RegExp]],
   },
 };
 
 type MdNode = { type: string; value?: string; children?: MdNode[]; data?: Record<string, unknown> }
+
+/** Split paragraphs at article tags, keeping code spans, fences and links literal. Cards never nest inside <p>. */
+const remarkArticlePreviews = () => (tree: MdNode) => {
+  const walk = (node: MdNode) => {
+    if (!node.children || ['code', 'inlineCode', 'link', 'linkReference'].includes(node.type)) return
+    node.children = node.children.flatMap((child) => {
+      if (child.type !== 'paragraph') { walk(child); return [child] }
+      const result: MdNode[] = []
+      let words: MdNode[] = []
+      const flush = () => {
+        if (words.some((word) => word.type !== 'text' || word.value?.trim())) result.push({ ...child, children: words })
+        words = []
+      }
+      for (const inline of child.children ?? []) {
+        if (inline.type !== 'text') { words.push(inline); continue }
+        const value = inline.value ?? ''
+        let at = 0
+        for (const match of value.matchAll(/\[article=([a-z0-9]+(?:-[a-z0-9]+)*)\]/g)) {
+          const slug = match[1]!
+          if (slug.length > 80) continue
+          if (match.index > at) words.push({ type: 'text', value: value.slice(at, match.index) })
+          flush()
+          result.push({ type: 'articlePreview', data: { hName: 'div', hProperties: { dataArticle: slug } } })
+          at = match.index + match[0].length
+        }
+        if (at < value.length) words.push({ type: 'text', value: value.slice(at) })
+      }
+      flush()
+      return result
+    })
+  }
+  walk(tree)
+}
 
 /** A single newline is a line break, not a soft wrap — people type in textareas, not Markdown. Code nodes aren't `text`, so they keep theirs. */
 const remarkBreaks = () => (tree: MdNode) => {
@@ -249,10 +285,12 @@ const propName = (name: string) => {
  * Sanitized hast → React elements. Only what `rehype-sanitize` let through reaches here, and it becomes
  * elements and text nodes, never an HTML string: nothing can be re-parsed into markup (REVISAO_WIKI §3).
  */
-const toReact = (node: HastNode, key?: number): ReactNode => {
+const toReact = (node: HastNode, key?: number, previews?: ReadonlyMap<string, WikiArticlePreview | null>): ReactNode => {
   if (node.type === 'text') return node.value
+  const slug = node.tagName === 'div' ? node.properties?.dataArticle : undefined
+  if (typeof slug === 'string') return createElement(ArticlePreview, { key, slug, article: previews?.get(slug) })
   const kids = NO_TEXT.has(node.tagName ?? '') ? node.children?.filter((child) => child.type !== 'text' || child.value?.trim()) : node.children
-  const children = kids?.map(toReact) ?? []
+  const children = kids?.map((child, i) => toReact(child, i, previews)) ?? []
   if (node.type === 'root') return createElement(Fragment, { key }, ...children)
   if (node.type !== 'element' || !node.tagName) return null
 
@@ -292,6 +330,7 @@ const toNodes = async (markdownText: string, classes: Record<string, string>, fr
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
+    .use(remarkArticlePreviews)
     .use(remarkBreaks)
     .use(remarkColor)
     .use(remarkRehype)
@@ -300,7 +339,23 @@ const toNodes = async (markdownText: string, classes: Record<string, string>, fr
     .use(rehypeClassNames, classes)
     .use(rehypeSanitize, customSanitizeSchema)
   const tree = await processor.run(processor.parse(markdownText))
-  return toReact(tree as HastNode)
+  const slugs = new Set<string>()
+  const findArticles = (node: HastNode) => {
+    const slug = node.properties?.dataArticle
+    if (typeof slug === 'string') slugs.add(slug)
+    node.children?.forEach(findArticles)
+  }
+  findArticles(tree as HastNode)
+  const previews = new Map<string, WikiArticlePreview | null>()
+  // Bound concurrent API reads when an author includes several previews.
+  const queue = [...slugs]
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => {
+    while (queue.length) {
+      const slug = queue.shift()!
+      previews.set(slug, await loadArticlePreview(slug))
+    }
+  }))
+  return toReact(tree as HastNode, undefined, previews)
 }
 
 /** Wiki Markdown (text, callout, FAQ answers, legacy bodies) as React nodes. `frames`: card frames by passcode, for card links. */

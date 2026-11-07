@@ -8,7 +8,7 @@ import { Frame, INPUT } from './ui'
 type Answer = { query: string; articles: ArticleSummary[]; failed: boolean }
 
 /** Debounced `GET /wiki?search=`. Answers are tagged with their query, so a stale one never shows. */
-export const useArticleSearch = (query: string) => {
+export const useArticleSearch = (query: string, publishedOnly = false) => {
   const [answer, setAnswer] = useState<Answer | null>(null)
   const text = query.trim()
   const ready = text.length >= 2
@@ -17,7 +17,7 @@ export const useArticleSearch = (query: string) => {
     if (!ready) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
-      listArticles({ search: text.slice(0, 100), limit: 8 }, undefined, controller.signal)
+      listArticles({ search: text.slice(0, 100), limit: 8, ...(publishedOnly ? { status: 'published' as const } : {}) }, undefined, controller.signal)
         .then(({ articles }) => setAnswer({ query: text, articles, failed: false }))
         .catch((error: Error) => {
           if (error.name !== 'AbortError') setAnswer({ query: text, articles: [], failed: true })
@@ -27,7 +27,7 @@ export const useArticleSearch = (query: string) => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [text, ready])
+  }, [text, ready, publishedOnly])
 
   return ready ? (answer?.query === text ? answer : 'loading') : null
 }
@@ -41,14 +41,16 @@ export const ArticlePicker = ({
   exclude,
   onPick,
   disabled,
+  publishedOnly = false,
 }: {
   label: string
   exclude: string[]
   onPick: (article: ArticleSummary) => void
   disabled?: boolean
+  publishedOnly?: boolean
 }) => {
   const [query, setQuery] = useState('')
-  const answer = useArticleSearch(query)
+  const answer = useArticleSearch(query, publishedOnly)
   const rows = answer && answer !== 'loading' ? answer.articles.filter((article) => !exclude.includes(article.slug)) : []
 
   return (

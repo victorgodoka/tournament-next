@@ -99,7 +99,7 @@ export const BlockList = (props: BlockListProps) => {
                     ⋮⋮
                   </span>
                   <span className="text-cyan signal-sm">{no(i + 1)}</span>
-                  <span className={twMerge('shrink-0 text-ink signal-strong', !isOpen && 'w-16')}>{label}</span>
+                  <span className={twMerge('shrink-0 text-ink signal-strong', !isOpen && (['statistics-deck', 'article-preview'].includes(block.type) ? 'w-28' : 'w-16'))}>{label}</span>
                   {block.type === 'faq' ? <Flag>New block</Flag> : null}
                   {isOpen ? (
                     <span className="flex-1" />

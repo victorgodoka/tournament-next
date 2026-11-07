@@ -1,5 +1,7 @@
 # Revisão estatística do analytics (2026-11-01)
 
+> Historical review of the previous engine. Its recommendations describe the November 1 findings, not the final implementation. The current model uses individual games, adjusted strength and relative tier gaps with at most two Tier 1 decks. See [STATISTICS_EDITORIAL.md](./STATISTICS_EDITORIAL.md) for current editorial rules and [the methodology article](./wiki-pages/ygo-omega-statistics-methodology.json) for the public explanation.
+
 Escopo: `GET /statistics` e tudo que ele alimenta (omega-server-v3 `src/modules/analytics/*`, front `app/statistics/*`, `utils/statistics.ts`, `utils/power-tier.ts`, `scripts/wiki-tier-list.ts`), mais `/top-decks` e as estatísticas de torneio. Dados usados: o `/statistics` de produção de 2026-11-01 (TCG `tcg-3`, 13 dias, 645 070 deck-games; Genesys `genesys-1`, 42 dias, 214 454 deck-games), lido com `?archetypes=100`.
 
 ## Veredito

@@ -4,33 +4,40 @@
   "doc": {
     "v": 1,
     "title": "Yu-Gi-Oh! TCG Tier List",
-    "summary": "The Yu-Gi-Oh! TCG tier list, updated November 3, 2026: Angelechy leads with no deck in Tier 1. Ranked from 75,365 YGO Omega ladder games.",
+    "summary": "The Yu-Gi-Oh! TCG tier list, updated November 6, 2026: Angelechy holds Tier 1 alone. Ranked from 123,146 YGO Omega ladder games.",
     "cover": {
-      "asset": "wa-e7694119d6"
+      "asset": "article-cover"
     },
     "infobox": {
-      "asset": "card-28904860",
-      "caption": "The most used card of Angelechy, the top deck",
+      "statisticsDeck": {
+        "key": "482",
+        "name": "Angelechy",
+        "ladder": "tcg",
+        "faces": [
+          80565021
+        ]
+      },
+      "caption": "Angelechy, the leading deck",
       "facts": [
         {
           "label": "Updated",
-          "value": "November 3, 2026"
+          "value": "November 6, 2026"
         },
         {
           "label": "Data through",
-          "value": "November 2, 2026"
+          "value": "November 6, 2026"
         },
         {
           "label": "Tier 1",
-          "value": "None"
+          "value": "Angelechy"
         },
         {
           "label": "Games",
-          "value": "75,365"
+          "value": "123,146"
         },
         {
           "label": "Players",
-          "value": "5,348"
+          "value": "6,833"
         },
         {
           "label": "Source",
@@ -52,7 +59,14 @@
       {
         "id": "intro",
         "type": "text",
-        "md": "This Yu-Gi-Oh! TCG tier list ranks the strongest decks on the YGO Omega TCG ladder by their results, using data through November 2, 2026. No deck reaches Tier 1 this week; Angelechy leads."
+        "md": "This Yu-Gi-Oh! TCG tier list ranks the decks on the YGO Omega TCG ladder by expected win rate, from ranked games through November 6, 2026. **Angelechy** holds Tier 1 alone, with an expected 54.0% win rate and 13.3% of the meta."
+      },
+      {
+        "id": "limits",
+        "type": "callout",
+        "tone": "cyan",
+        "title": "What this list can't tell you",
+        "md": "We rank TCG decks from ranked YGO Omega games in the Gold+ band, set by each pair's average rating. We adjust for rating gaps and turn order. Specialist pilots, deck choices and anything the game log doesn't record can still move a deck's number, and tournament fields can differ from the ladder."
       },
       {
         "id": "board",
@@ -61,12 +75,12 @@
         "mobileAsset": "tier-board-tcg-tall",
         "share": true,
         "align": "wide",
-        "caption": "The TCG tier list at a glance"
+        "caption": "TCG tiers for November 6, 2026: Angelechy leads at 54.0% expected win rate. Tier 4 shows its top five builds; Others counts the rest."
       },
       {
         "id": "intro-more",
         "type": "text",
-        "md": "A tier here measures **how well a deck wins**, not how much it is played, and a small sample can't lift a deck to the top. For what moved this week, read the [latest meta report](/wiki/yu-gi-oh-meta-report-november-3-2026); for the other ladder, the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list); for the numbers as they change, the [live statistics page](/statistics)."
+        "md": "A deck's tier says how many points of expected win rate it gives up to the leader. For what moved this week, read the [latest meta report](/wiki/yu-gi-oh-meta-report-november-6-2026). For the other ladder, see the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list), and between updates, the [live statistics page](/statistics)."
       },
       {
         "id": "h-glance",
@@ -78,7 +92,7 @@
       {
         "id": "glance",
         "type": "text",
-        "md": "| | |\n|---|---|\n| Tier 1 | None |\n| Tier 1.5 | None |\n| Tier 2 | Angelechy, Radiant Typhoon / Noble Knight, Dracotail / Branded, Artmage / Elfnote |\n| Decks in the tiers | 16 |\n| Games counted | 75,365 |\n| Players | 5,348 |\n| Going first wins | 57.8% of game 1 |\n| Season opened | October 19, 2026 |"
+        "md": "| | |\n|---|---|\n| Leader | Angelechy, expected 54.0% |\n| Tier 1 | Angelechy |\n| Tier 1.5 | None |\n| Tier 2 | Elfnote / Power Patron / Ars Magna, Radiant Typhoon, Power Patron / Ars Magna / Artmage, Power Patron / Ars Magna / Light and Darkness Ritual, Blitzclique, Branded / Light and Darkness Ritual, Maliss / @Ignister, Branded / Dracotail |\n| Builds shown | 18 (Tier 4 limited to five) |\n| Builds eligible for a tier | 21 |\n| Games counted | 123,146 |\n| Players | 6,833 |\n| Modelled going-first win probability | 57.2% between equal decks and ratings |\n| Season opened | October 19, 2026 |"
       },
       {
         "id": "h-tcg",
@@ -90,7 +104,31 @@
       {
         "id": "tcg-intro",
         "type": "text",
-        "md": "The TCG ladder is 15 days into the 10.2026 season, with 75,365 games from 5,348 players. The most played deck, Angelechy, holds 14.5% of the meta, and the 16 decks in these tiers cover 50% of it."
+        "md": "The TCG ladder is 19 days into the 10.2026 season, with 123,146 games from 6,833 players. The most played deck, Angelechy, holds 13.3% of the meta. The 18 builds shown below cover 65% of it. We show Tiers 1–3 and the five highest-ranked Tier 4 builds; the [statistics page](/statistics) lists the rest."
+      },
+      {
+        "id": "h-tcg-1",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG Tier 1",
+        "anchor": "tier-1"
+      },
+      {
+        "id": "deck-tcg-1-0",
+        "type": "statistics-deck",
+        "deck": {
+          "key": "482",
+          "name": "Angelechy",
+          "ladder": "tcg",
+          "faces": [
+            80565021
+          ]
+        }
+      },
+      {
+        "id": "tcg-1",
+        "type": "text",
+        "md": "| Deck | Expected win rate | Behind the leader | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|---:|\n| [**Angelechy**](/statistics/archetypes/482?ladder=tcg) | **54.0%** | Leader | 52.6–55.3 | 13.3% | 924 |\n\nAngelechy has the best expected win rate on the ladder, 54.0% (95% interval 52.6–55.3) over 30,512 games. In game 1 it wins 62.4% going first and 50.0% going second. Angelechy decks as a whole lost 1.6 points of share last week."
       },
       {
         "id": "h-tcg-2",
@@ -100,35 +138,9 @@
         "anchor": "tier-2"
       },
       {
-        "id": "cards-tcg-2",
-        "type": "cards",
-        "cards": [
-          {
-            "id": 28904860,
-            "name": "Angelechy",
-            "note": "14.5% · expected 53.3%"
-          },
-          {
-            "id": 5318639,
-            "name": "Radiant Typhoon / Noble Knight",
-            "note": "3.1% · expected 53.1%"
-          },
-          {
-            "id": 1498449,
-            "name": "Dracotail / Branded",
-            "note": "0.6% · expected 52.9%"
-          },
-          {
-            "id": 34541940,
-            "name": "Artmage / Elfnote",
-            "note": "9.2% · expected 52.6%"
-          }
-        ]
-      },
-      {
         "id": "tcg-2",
         "type": "text",
-        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Angelechy** | **53.3%** | 51.7–54.9 | 14.5% | 736 |\n| **Radiant Typhoon / Noble Knight** | **53.1%** | 50.7–55.4 | 3.1% | 216 |\n| **Dracotail / Branded** | **52.9%** | 49.8–56.0 | 0.6% | 77 |\n| **Artmage / Elfnote** | **52.6%** | 51.1–54.0 | 9.2% | 497 |\n\nExpected win rates here run from 52.6% (Artmage / Elfnote) to 53.3% (Angelechy)."
+        "md": "| Deck | Expected win rate | Behind the leader | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|---:|\n| [**Elfnote / Power Patron / Ars Magna**](/statistics/archetypes/472%3E462?ladder=tcg) | **53.1%** | 0.87 pts | 52.0–54.2 | 8.3% | 544 |\n| [**Radiant Typhoon**](/statistics/archetypes/465?ladder=tcg) | **53.1%** | 0.88 pts | 51.7–54.5 | 3.8% | 330 |\n| [**Power Patron / Ars Magna / Artmage**](/statistics/archetypes/462%3E461?ladder=tcg) | **52.6%** | 1.32 pts | 51.3–53.9 | 7.8% | 600 |\n| [**Power Patron / Ars Magna / Light and Darkness Ritual**](/statistics/archetypes/462%3E65537?ladder=tcg) | **52.3%** | 1.64 pts | 50.4–54.3 | 1.9% | 148 |\n| [**Blitzclique**](/statistics/archetypes/479?ladder=tcg) | **51.9%** | 2.08 pts | 50.2–53.5 | 4.6% | 385 |\n| [**Branded / Light and Darkness Ritual**](/statistics/archetypes/349%3E65537?ladder=tcg) | **51.5%** | 2.45 pts | 49.3–53.7 | 2.1% | 199 |\n| [**Maliss / @Ignister**](/statistics/archetypes/447%3E309?ladder=tcg) | **51.5%** | 2.5 pts | 48.7–54.2 | 1.6% | 176 |\n| [**Branded / Dracotail**](/statistics/archetypes/349%3E457?ladder=tcg) | **51.3%** | 2.64 pts | 49.3–53.3 | 1.2% | 195 |\n\nTier 2 holds the decks more than 0.5 and up to 3 points under the leader. Among the displayed builds, Elfnote / Power Patron / Ars Magna has an expected 53.1% win rate, 0.87 points back; Branded / Dracotail has 51.3%, 2.64 back."
       },
       {
         "id": "h-tcg-3",
@@ -138,40 +150,9 @@
         "anchor": "tier-3"
       },
       {
-        "id": "cards-tcg-3",
-        "type": "cards",
-        "cards": [
-          {
-            "id": 13597785,
-            "name": "Elfnote / Artmage",
-            "note": "8.3% · expected 52.4%"
-          },
-          {
-            "id": 42141493,
-            "name": "Light and Darkness Ritual",
-            "note": "1.1% · expected 52.0%"
-          },
-          {
-            "id": 20508881,
-            "name": "Radiant Typhoon",
-            "note": "0.9% · expected 51.8%"
-          },
-          {
-            "id": 22912101,
-            "name": "Blitzclique",
-            "note": "4.9% · expected 51.7%"
-          },
-          {
-            "id": 24088928,
-            "name": "Light and Darkness Ritual / Dogmatika",
-            "note": "0.8% · expected 51.5%"
-          }
-        ]
-      },
-      {
         "id": "tcg-3",
         "type": "text",
-        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Elfnote / Artmage** | **52.4%** | 51.1–53.7 | 8.3% | 426 |\n| **Light and Darkness Ritual** | **52.0%** | 48.6–55.4 | 1.1% | 68 |\n| **Radiant Typhoon** | **51.8%** | 48.8–54.7 | 0.9% | 96 |\n| **Blitzclique** | **51.7%** | 49.8–53.7 | 4.9% | 286 |\n| **Light and Darkness Ritual / Dogmatika** | **51.5%** | 48.1–54.8 | 0.8% | 63 |"
+        "md": "| Deck | Expected win rate | Behind the leader | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|---:|\n| [**HERO**](/statistics/archetypes/8?ladder=tcg) | **50.6%** | 3.37 pts | 49.2–52.0 | 6.5% | 411 |\n| [**DoomZ / Power Patron / Ars Magna**](/statistics/archetypes/466%3E462?ladder=tcg) | **50.4%** | 3.55 pts | 48.6–52.2 | 1.5% | 147 |\n| [**Fairy Tail / Endymion**](/statistics/archetypes/475%3E298?ladder=tcg) | **50.2%** | 3.8 pts | 48.4–51.9 | 1.7% | 205 |\n| [**Branded**](/statistics/archetypes/349?ladder=tcg) | **50.0%** | 4 pts | 47.1–52.8 | 1.2% | 180 |\n\nTier 3 holds the decks more than 3 and up to 4.5 points under the leader. Among the displayed builds, HERO has an expected 50.6% win rate, 3.37 points back; Branded has 50.0%, 4 back."
       },
       {
         "id": "h-tcg-4",
@@ -183,7 +164,7 @@
       {
         "id": "tcg-4",
         "type": "text",
-        "md": "| Deck | Expected win rate | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|\n| **Angelechy / Ashtra** | **50.9%** | 47.5–54.3 | 0.5% | 36 |\n| **Despia / Branded** | **50.6%** | 46.9–54.3 | 1.1% | 111 |\n| **Magistus / Fairy Tail** | **50.5%** | 48.3–52.8 | 1.4% | 138 |\n| **Angelechy / Light and Darkness Ritual** | **50.5%** | 47.2–53.9 | 0.6% | 46 |\n| **Crystron / Scrap** | **50.3%** | 47.0–53.6 | 0.5% | 24 |\n| **DoomZ / Artmage** | **50.0%** | 47.7–52.3 | 1.4% | 86 |\n| **Maliss / @Ignister** | **50.0%** | 47.8–52.3 | 1.4% | 97 |"
+        "md": "| Deck | Expected win rate | Behind the leader | 95% interval | Meta share | Players |\n|---|---:|---:|---:|---:|---:|\n| [**Mermail / Atlantean**](/statistics/archetypes/116%3E119?ladder=tcg) | **49.4%** | 4.59 pts | 47.6–51.1 | 1.6% | 160 |\n| [**Dark Time Wizard / K9**](/statistics/archetypes/65567%3E459?ladder=tcg) | **49.3%** | 4.65 pts | 47.5–51.2 | 2.5% | 299 |\n| [**Invoked**](/statistics/archetypes/244?ladder=tcg) | **49.1%** | 4.87 pts | 47.1–51.1 | 2.3% | 269 |\n| [**Sky Striker / Radiant Typhoon**](/statistics/archetypes/277%3E465?ladder=tcg) | **48.9%** | 5.01 pts | 46.5–51.4 | 1.0% | 130 |\n| [**Sky Striker**](/statistics/archetypes/277?ladder=tcg) | **48.9%** | 5.08 pts | 47.2–50.5 | 2.3% | 380 |\n\nTier 4 holds the decks more than 4.5 points under the leader. We show the five highest-ranked builds in this tier. Among the displayed builds, Mermail / Atlantean has an expected 49.4% win rate, 4.59 points back; Sky Striker has 48.9%, 5.08 back."
       },
       {
         "id": "h-sleepers",
@@ -195,19 +176,19 @@
       {
         "id": "sleepers",
         "type": "text",
-        "md": "Popularity and results don't always agree. The underplayed decks reach Tier 2 or better on a small share of the meta, though the people playing them may be specialists, so treat them as leads to test. The overplayed decks are among the ten most played without reaching Tier 2.\n\n- **Underplayed:** Dracotail / Branded (0.6% of the meta, expected 52.9%), Radiant Typhoon / Noble Knight (3.1% of the meta, expected 53.1%) and Artmage / Elfnote (9.2% of the meta, expected 52.6%)\n- **Overplayed:** Elfnote / Artmage (8.3% of the meta, expected 52.4%), HERO (6.6% of the meta, expected 49.8%) and Blitzclique (4.9% of the meta, expected 51.7%)"
+        "md": "The underplayed decks reach Tier 2 or better on a small share of the meta. Specialists may pilot most of their games, so test one before you trust its number. The overplayed decks sit among the ten most played and land in Tier 3 or lower.\n\n- **Underplayed:** Branded / Dracotail (1.2% of the meta, expected 51.3%), Maliss / @Ignister (1.6% of the meta, expected 51.5%) and Power Patron / Ars Magna / Light and Darkness Ritual (1.9% of the meta, expected 52.3%)\n- **Overplayed:** HERO (6.5% of the meta, expected 50.6%), Dark Time Wizard / K9 (2.5% of the meta, expected 49.3%) and Invoked (2.3% of the meta, expected 49.1%)"
       },
       {
         "id": "h-matchups",
         "type": "heading",
         "level": 2,
-        "text": "What beats the top decks?",
+        "text": "Matchups above and below expectation",
         "anchor": "matchups"
       },
       {
         "id": "matchups",
         "type": "text",
-        "md": "Best and worst matchup for each top deck against Tiers 1 to 3. A matchup is listed only when its 95% interval excludes the rate the two decks' strengths predict, with at least 300 games.\n\n| Deck | Best matchup | Worst matchup |\n|---|---|---|\n| **Angelechy** | **[Artmage / Elfnote, 52.5% (1,939 games)]{#4fdc8c}** | **[Radiant Typhoon / Noble Knight, 46.8% (663 games)]{#ff8594}** |\n| **Radiant Typhoon / Noble Knight** | **[Angelechy, 53.2% (663 games)]{#4fdc8c}** | None clear |\n| **Dracotail / Branded** | None clear | None clear |\n| **Artmage / Elfnote** | None clear | **[Angelechy, 47.4% (1,939 games)]{#ff8594}** |\n| **Elfnote / Artmage** | None clear | None clear |\n| **Light and Darkness Ritual** | None clear | None clear |"
+        "md": "We show matchups that outperform or underperform the model's expectation for the six highest-ranked builds against Tiers 1–3. We require a 95% interval clear of that expectation and at least 300 games. An above-expected matchup can still have a win rate below 50%.\n\n| Deck | Above expectation | Below expectation |\n|---|---|---|\n| **Angelechy** | **[Power Patron / Ars Magna / Artmage, 54.2% (2,470 games)]{#4fdc8c}** | **[Blitzclique, 47.7% (1,624 games)]{#ff8594}** |\n| **Elfnote / Power Patron / Ars Magna** | None clear | None clear |\n| **Radiant Typhoon** | **[Angelechy, 52.2% (1,228 games)]{#4fdc8c}** | None clear |\n| **Power Patron / Ars Magna / Artmage** | None clear | **[Angelechy, 45.8% (2,470 games)]{#ff8594}** |\n| **Power Patron / Ars Magna / Light and Darkness Ritual** | None clear | None clear |\n| **Blitzclique** | **[Angelechy, 52.3% (1,624 games)]{#4fdc8c}** | **[HERO, 45.0% (705 games)]{#ff8594}** |"
       },
       {
         "id": "h-method",
@@ -219,20 +200,61 @@
       {
         "id": "method",
         "type": "text",
-        "md": "Every number comes from ranked games played on [YGO Omega](/wiki/ygo-omega-wiki), the same data behind our [statistics page](/statistics). Nothing is voted on or picked by hand.\n\nThese are **power tiers**: they rank results, and the statistics page shows the same tiers.\n\n**Each deck gets an expected win rate.** One model reads the games of the season between players rated Gold and up, after leaving out players with too few ranked games and one-off decklists: each deck has a strength, and the chance of winning depends on the two strengths, on who went first and on the rating gap. A deck's expected win rate is its strength against the whole field, weighted by how much each deck is played, and a deck with few games is pulled toward the middle. A tier reads that rate against fixed marks:\n\n| Tier | Expected win rate |\n|---|---|\n| Tier 1 | 55% or more |\n| Tier 1.5 | 54% or more |\n| Tier 2 | 52.5% or more |\n| Tier 3 | 51% or more |\n| Tier 4 | 50% or more |\n\nDecks under the last mark stay outside the tiers. A deck needs at least 0.5% of the meta and 10 players to be ranked at all, because the model corrects for few games, not for few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, and mirror matches count.\n- **The 95% interval** is the range the expected win rate is likely in, widened by how much the deck's daily results move beyond chance.\n- **Decks** are grouped by the archetypes they run, so a hybrid counts apart from pure builds."
+        "md": "Every number comes from ranked games on [YGO Omega](/wiki/ygo-omega-wiki), the same data as the [statistics page](/statistics). Below are the settings behind this week's TCG list. The [statistics methodology](/wiki/ygo-omega-statistics-methodology) explains the model and why we replaced the old ranking score."
       },
       {
-        "id": "limits",
-        "type": "callout",
-        "tone": "cyan",
-        "title": "What this list can't tell you",
-        "md": "This is ladder play on a simulator, not tournament results. Players of every level are in it, and a deck played mostly by specialists can score above what it would do in most hands. It shows what wins on the ladder, which is not always what wins a premier event."
+        "id": "h-method-games",
+        "type": "heading",
+        "level": 3,
+        "text": "Which games count",
+        "anchor": "which-games-count"
+      },
+      {
+        "id": "method-games",
+        "type": "text",
+        "md": "We fit the model on Gold+ games. A game's band comes from the average of both players' previous-day ratings, each capped at 3,000, so a Gold+ game can include one player below Gold. Both players need 5 ranked games this season, or we leave the game out. Decklists need no minimum number of games. A deck needs 30 deck-games for its own estimate and a row; smaller decks share one pooled estimate and stay off the list. So far this season, these rules removed 4,978 games for player activity and 74,255 in the Iron band, where the pair averages under Bronze or one side has no rating, out of 469,858 games."
+      },
+      {
+        "id": "h-method-number",
+        "type": "heading",
+        "level": 3,
+        "text": "How a deck gets its number",
+        "anchor": "expected-win-rate"
+      },
+      {
+        "id": "method-number",
+        "type": "text",
+        "md": "For each decisive game, we fit both deck strengths, the going-first effect and the rating-gap effect. Expected win rate is a deck's predicted result against the field, weighted by meta share, with equal ratings and no first-turn edge. Decks with little evidence shrink toward the ladder mean."
+      },
+      {
+        "id": "h-method-tiers",
+        "type": "heading",
+        "level": 3,
+        "text": "How tiers work",
+        "anchor": "how-tiers-work"
+      },
+      {
+        "id": "method-tiers",
+        "type": "text",
+        "md": "The deck with the best expected win rate leads. Every other deck takes its tier from how many points it sits under the leader:\n\n| Tier | Points under the leader |\n|---|---|\n| Tier 1 | The leader, plus the next deck within 0.5 |\n| Tier 1.5 | Within 0.5, once Tier 1 is full |\n| Tier 2 | Up to 3 |\n| Tier 3 | Up to 4.5 |\n| Tier 4 | More than 4.5 |\n\nTier 1 holds two decks at most. When the leader's rate moves, the boundaries move with it, so a deck can change tier in a week its own rate held still. A deck needs 1% of the meta and 25 different players before it gets a tier. The model already corrects for small samples; the player floor keeps out decks that a few specialists carry."
+      },
+      {
+        "id": "h-method-terms",
+        "type": "heading",
+        "level": 3,
+        "text": "Terms in this list",
+        "anchor": "terms"
+      },
+      {
+        "id": "method-terms",
+        "type": "text",
+        "md": "- **Meta share** is a deck's share of deck-games. Each game counts once per player, mirrors included.\n- **Raw win rate** is wins divided by wins, losses and draws. Draws stay in the denominator, games without a result stay out of rates, and the strength fit skips draws.\n- **Mirrors** count toward meta share and help estimate the rating and turn-order effects. Raw win rates and matchups leave them out.\n- **The 95% interval** shows the uncertainty around expected win rate. We widen it when daily results swing more than sampling noise explains.\n- **Decks** take up to 2 archetype names, lead archetype first. A card in at least 10% of decklists counts as a staple, and names no deck, when 50% or more of the lists running it hold no other card of its archetype. We merge equivalent hybrid orders into one key and keep hybrids apart from pure builds."
       },
       {
         "id": "h-faq",
         "type": "heading",
         "level": 2,
-        "text": "Frequently asked questions",
+        "text": "Yu-Gi-Oh! TCG tier list FAQ",
         "anchor": "faq"
       },
       {
@@ -240,28 +262,40 @@
         "type": "faq",
         "items": [
           {
-            "q": "What is the best TCG deck right now?",
-            "md": "Angelechy, with an expected 53.3% win rate (95% interval 51.7–54.9) at 14.5% of the meta."
+            "q": "What is the best Yu-Gi-Oh! TCG deck right now?",
+            "md": "Angelechy, with an expected 54.0% win rate (95% interval 52.6–55.3) at 13.3% of the meta, from ladder games through November 6, 2026."
           },
           {
-            "q": "Is this tier list based on tournament results?",
-            "md": "No. It comes from ranked ladder games on YGO Omega. That gives a far larger sample than tournaments, but it reflects ladder play, not premier events."
+            "q": "What are the Tier 1 decks in TCG?",
+            "md": "Angelechy (expected 54.0%)."
+          },
+          {
+            "q": "What is the most played deck in the TCG meta?",
+            "md": "Angelechy, at 13.3% of the meta. It has an expected 54.0% win rate and leads the tier list too."
           },
           {
             "q": "How are the tiers decided?",
-            "md": "By expected win rate against the field: Tier 1 from 55%, Tier 1.5 from 54%, Tier 2 from 52.5%, Tier 3 from 51%, Tier 4 from 50%. Decks under 0.5% of the meta or 10 players aren't ranked."
+            "md": "By distance from the leader in expected win rate. Tier 1 is the leader plus one deck within 0.5 points; further decks within that gap go to Tier 1.5. Tier 2 reaches 3 points under the leader and Tier 3 reaches 4.5; Tier 4 takes the rest. A deck needs 1% of the meta and 25 different players to be ranked."
+          },
+          {
+            "q": "Why did a deck change tier when its win rate barely moved?",
+            "md": "The tiers count from the leader. When the leader's expected win rate rises or falls, every tier boundary moves with it, and decks near a boundary cross it."
+          },
+          {
+            "q": "Is this tier list based on tournament results?",
+            "md": "No. It uses ranked games on YGO Omega. Tournament players can face a different field, so treat the list as a ladder benchmark."
           },
           {
             "q": "Does a popular deck get a higher tier?",
-            "md": "No. Tiers follow results. Elfnote / Artmage holds 8.3% of the meta and sits in Tier 3, while Dracotail / Branded holds 0.6% and sits in Tier 2."
+            "md": "No. HERO holds 6.5% of the meta and sits in Tier 3. Branded / Dracotail holds 1.2% and sits in Tier 2."
           },
           {
             "q": "How much does going first matter?",
-            "md": "Going first wins 57.8% of game 1 between even decks on the TCG ladder."
+            "md": "The model estimates a 57.2% win probability going first between equal decks and player ratings on the TCG ladder. This coefficient uses the games in the fit, including post-side games."
           },
           {
             "q": "How often is the tier list updated?",
-            "md": "Every week, on this same page. Each week also gets its own [meta report](/wiki/yu-gi-oh-meta-report-november-3-2026), and the [statistics page](/statistics) shows the current numbers between updates."
+            "md": "Every week, on this same page. Each week also gets its own [meta report](/wiki/yu-gi-oh-meta-report-november-6-2026), and the [statistics page](/statistics) shows the current numbers between updates."
           },
           {
             "q": "Where can I see decklists for these decks?",
@@ -271,41 +305,42 @@
       }
     ],
     "assets": {
-      "wa-e7694119d6": {
-        "id": "wa-e7694119d6",
-        "src": "https://res.cloudinary.com/dtmg8vjff/image/upload/wiki_assets/e7694119d6edfd945a9bf07ffa2b353e",
+      "article-cover": {
+        "id": "article-cover",
+        "src": "/wiki-images/article-cover.png",
         "width": 1920,
-        "height": 1008,
-        "alt": "Glowing blue and purple YGO Omega emblem on a black background",
+        "height": 420,
+        "alt": "YGO Omega article cover",
+        "credit": "Duelists Unite"
+      },
+      "article-seo-preview": {
+        "id": "article-seo-preview",
+        "src": "/wiki-images/article-seo-preview.png",
+        "width": 1200,
+        "height": 630,
+        "alt": "YGO Omega article preview",
         "credit": "Duelists Unite"
       },
       "tier-board-tcg-wide": {
         "id": "tier-board-tcg-wide",
-        "src": "/wiki-images/tier-list/2026-11-03-tcg-wide.jpg",
+        "src": "/wiki-images/tier-list/2026-11-06-tcg-wide.jpg",
         "width": 1920,
         "height": 1080,
-        "alt": "TCG tier list board with  in Tier 1, showing each deck's expected win rate",
+        "alt": "TCG tier list board with Angelechy in Tier 1, showing each deck's expected win rate",
         "credit": "Duelists Unite"
       },
       "tier-board-tcg-tall": {
         "id": "tier-board-tcg-tall",
-        "src": "/wiki-images/tier-list/2026-11-03-tcg-tall.jpg",
+        "src": "/wiki-images/tier-list/2026-11-06-tcg-tall.jpg",
         "width": 1080,
         "height": 1920,
-        "alt": "TCG tier list board with  in Tier 1, showing each deck's expected win rate",
+        "alt": "TCG tier list board with Angelechy in Tier 1, showing each deck's expected win rate",
         "credit": "Duelists Unite"
-      },
-      "card-28904860": {
-        "id": "card-28904860",
-        "src": "https://ygopro.online/assets/card-arts/28904860.jpg",
-        "width": 624,
-        "height": 624,
-        "alt": "Card art of the most used card of the Angelechy deck"
       }
     },
     "seo": {
       "title": "Yu-Gi-Oh! TCG Tier List Nov 2026: Best Decks",
-      "description": "Yu-Gi-Oh! TCG tier list, updated November 3, 2026: Angelechy leads, ranked from 75,365 ladder games by expected win rate.",
+      "description": "Yu-Gi-Oh! TCG tier list, updated November 6, 2026: Angelechy leads, ranked from 123,146 ladder games by expected win rate.",
       "keyword": "Yu-Gi-Oh! TCG tier list",
       "keywords": [
         "yugioh tier list",
@@ -313,7 +348,7 @@
         "best tcg decks",
         "yugioh meta"
       ],
-      "image": "tier-board-tcg-wide",
+      "image": "article-seo-preview",
       "schema": "Article"
     },
     "hub": "ygo-omega-wiki",

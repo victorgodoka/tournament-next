@@ -188,8 +188,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           {main.map((m) => {
             const g = sideOf(m)
             return (
-              <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-15')} style={{ gridTemplateColumns: MU_COLS }}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />{link(m, 'text-ink')}</span>
+              <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-16')} style={{ gridTemplateColumns: MU_COLS }}>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className="flex items-baseline gap-1.5 pl-6">
                   <span className="font-bold text-ink tabular-nums">{pc(g.wrAdjusted)}</span>
@@ -207,9 +207,9 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
             ? small.map((m) => {
                 const g = sideOf(m)
                 return (
-                  <div key={m.opponent} role="row" className="grid min-h-15 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
+                  <div key={m.opponent} role="row" className="grid min-h-16 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
-                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
+                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} dim />
                       <span className="flex min-w-0 flex-col leading-4.5 text-ink-dim">
                         {link(m, '')}
                         <span className="text-ink-muted signal-sm">{t('under', { min: MIN_MATCHUP_GAMES })}</span>
@@ -233,8 +233,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
         {main.map((m) => {
           const g = sideOf(m)
           return (
-            <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
-              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />
+            <div key={m.opponent} role="listitem" className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
+              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} />
               <span className="flex min-w-0 flex-col">
                 {link(m, 'text-ink')}
                 <Small>{t('rowMeta', { act: pc(g.wrAdjusted), exp: pc(g.wrExpected), games: n(m.games) })}</Small>
@@ -251,8 +251,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           ? small.map((m) => {
               const g = sideOf(m)
               return (
-                <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
-                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
+                <div key={m.opponent} role="listitem" className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
+                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(m, 'text-ink-dim')}
                     <Small>{t('underRow', { min: MIN_MATCHUP_GAMES, games: n(m.games) })}</Small>

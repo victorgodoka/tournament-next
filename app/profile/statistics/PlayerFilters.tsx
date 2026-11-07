@@ -35,15 +35,18 @@ export const PlayerFilters = ({ base, choices, season, ladder, period, startsAt,
   const seasons = choices.filter((c) => c.format === format)
   const current = seasons.find((c) => c.code === season) ?? seasons.find((c) => c.open) ?? seasons[0]
   const go = (params: Record<string, string>) => start(() => router.push(`${base}?${new URLSearchParams(params)}`, { scroll: false }))
-  const keepPeriod: Record<string, string> = period === 'last7' ? { period } : {}
+  // The last 7 days only mean something in the open season; a closed one reads whole.
+  const live = current?.open ?? true
+  const shown: PlayerPeriod = live ? period : 'season'
+  const keepPeriod = (open = true): Record<string, string> => (shown === 'last7' && open ? { period: shown } : {})
   const pickLadder = (id: RankedLadderId) => {
     const f = LADDERS.find((l) => l.id === id)!.format
     const open = choices.find((c) => c.format === f && c.open) ?? choices.find((c) => c.format === f)
-    go(open ? { season: open.code, ...keepPeriod } : { ladder: id, ...keepPeriod })
+    go(open ? { season: open.code, ...keepPeriod(open.open) } : { ladder: id, ...keepPeriod() })
   }
-  const pickSeason = (code: string) => go({ season: code, ...keepPeriod })
+  const pickSeason = (code: string) => go({ season: code, ...keepPeriod(seasons.find((c) => c.code === code)?.open) })
   const pickPeriod = (p: PlayerPeriod) => go({ ...(current ? { season: current.code } : { ladder }), ...(p === 'last7' ? { period: p } : {}) })
-  const periodLabel = period === 'last7' ? t('last7') : t('whole')
+  const periodLabel = shown === 'last7' ? t('last7') : t('whole')
   const started = startsAt ? new Date(startsAt).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' }) : null
 
   const ladderGroup = (
@@ -66,8 +69,8 @@ export const PlayerFilters = ({ base, choices, season, ladder, period, startsAt,
     <div className="flex flex-col gap-2">
       <Label>{t('period')}</Label>
       <div role="group" aria-label={t('period')} className="flex gap-1">
-        <Seg pressed={period === 'season'} onClick={() => period !== 'season' && pickPeriod('season')}>{t('whole')}</Seg>
-        <Seg pressed={period === 'last7'} onClick={() => period !== 'last7' && pickPeriod('last7')}>{t('last7')}</Seg>
+        <Seg pressed={shown === 'season'} onClick={() => shown !== 'season' && pickPeriod('season')}>{t('whole')}</Seg>
+        <Seg pressed={shown === 'last7'} disabled={!live} onClick={() => shown !== 'last7' && pickPeriod('last7')} className="disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-ink-muted">{t('last7')}</Seg>
       </div>
     </div>
   )

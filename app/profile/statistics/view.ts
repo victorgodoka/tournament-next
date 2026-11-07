@@ -19,10 +19,12 @@ export const headlineOf = (verdict: PlayerSlice['verdict']) => (verdict === 'abo
 
 export type DeckRecord = { wins: number; losses: number; draws: number; matches: number }
 
-/** Games won, lost and drawn and matches per deck, mirrors included: the duelist's record, not the comparison. */
-export const deckRecords = (timeline: readonly TimelineRow[]): Record<string, DeckRecord> => {
+/** Games won, lost and drawn and matches per deck (or per opponent deck), mirrors included: the duelist's record, not the comparison. */
+export const deckRecords = (timeline: readonly TimelineRow[], side: 'deck' | 'opponent' = 'deck'): Record<string, DeckRecord> => {
   const out: Record<string, DeckRecord> = {}
-  for (const [, , deck, , w, l, d] of timeline) {
+  for (const row of timeline) {
+    const [, , , , w, l, d] = row
+    const deck = row[side === 'deck' ? 2 : 3]
     if (!deck) continue
     const r = (out[deck] ??= { wins: 0, losses: 0, draws: 0, matches: 0 })
     r.wins += w

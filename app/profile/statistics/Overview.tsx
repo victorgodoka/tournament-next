@@ -5,12 +5,13 @@
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
-import { Art, n, NARROW, pc, ReadChip, signed, Small, tone, WIDE, type Read } from '@app/statistics/kit'
+import { Art, DECK_NAME, n, NARROW, pc, ReadChip, signed, Small, tone, WIDE, type Read } from '@app/statistics/kit'
 import { OTHER_OPPONENT, type PlayerAnswer, type PlayerSlice } from '@utils/statistics'
+import type { DeckArt } from './MySections'
 import { GapLine, HeroLine } from './tracks'
-import { gap, headlineOf, readOf } from './view'
+import { deckRecords, gap, headlineOf, readOf } from './view'
 
-type Props = { data: PlayerAnswer; name: (key: string) => string; face: (key: string) => number | null }
+type Props = { data: PlayerAnswer; name: (key: string) => string; art: DeckArt }
 
 const PANEL = 'cut notch [--cut:var(--cut-lg)] [--edge:var(--color-line-mid)] [--fill:var(--color-surface-100)]'
 
@@ -19,6 +20,25 @@ export const Verdict = ({ slice, short, className }: { slice: PlayerSlice; short
   const t = useTranslations('PlayerStatistics.my.verdict')
   const v = slice.verdict === 'above' || slice.verdict === 'below' ? slice.verdict : 'unclear'
   return <ReadChip read={readOf(slice)} className={className}>{t(short ? `${v}Short` : v)}</ReadChip>
+}
+
+const ARROW = { above: 'M6 15l6-6 6 6', below: 'M6 9l6 6 6-6', unclear: 'M6 12h12' }
+
+/** The verdict as an icon; hover or focus tells what it means. The tip opens to the left so a scrolling table doesn't clip it. */
+export const VerdictIcon = ({ slice }: { slice: PlayerSlice }) => {
+  const t = useTranslations('PlayerStatistics.my.verdict')
+  const v = slice.verdict === 'above' || slice.verdict === 'below' ? slice.verdict : 'unclear'
+  return (
+    <span tabIndex={0} aria-label={`${t(v)}. ${t(`${v}Hint`)}`} className="group relative inline-flex outline-none">
+      <ReadChip read={readOf(slice)} className="size-7 justify-center px-0 group-focus-visible:outline-2 group-focus-visible:outline-cyan max-[719px]:size-6 max-[719px]:px-0">
+        <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="square"><path d={ARROW[v]} /></svg>
+      </ReadChip>
+      <span role="tooltip" className="pointer-events-none absolute top-1/2 right-full z-10 mr-2 hidden w-60 -translate-y-1/2 border border-line-mid bg-surface-300 px-3 py-2 text-left text-xs leading-4 text-ink-dim shadow-lg group-hover:block group-focus-visible:block">
+        <strong className="block text-ink">{t(v)}</strong>
+        {t(`${v}Hint`)}
+      </span>
+    </span>
+  )
 }
 
 const Tile = ({ label, value, note, gold }: { label: string; value: string; note?: React.ReactNode; gold?: boolean }) => (
@@ -33,9 +53,10 @@ const Record = ({ w, l, d }: { w: number; l: number; d: number }) => (
   <Small><span className="text-win">{w} W</span> · <span className="text-loss">{l} L</span> · {d} D</Small>
 )
 
-export const Overview = ({ data, name, face }: Props) => {
+export const Overview = ({ data, name, art }: Props) => {
   const t = useTranslations('PlayerStatistics.my.overview')
   const tv = useTranslations('PlayerStatistics.my.verdict')
+  const tc = useTranslations('PlayerStatistics.my.cols')
   const perf = data.performance
   const g = perf ? gap(perf) : null
   const read: Read = perf ? readOf(perf) : 'flat'
@@ -49,17 +70,70 @@ export const Overview = ({ data, name, face }: Props) => {
   const bestOpp = oppOf(data.highlights?.bestOpponent)
   const toughOpp = oppOf(data.highlights?.toughestOpponent)
   const oppName = (key: string) => (key === OTHER_OPPONENT ? t('other') : name(key))
+  const deckRec = deckRecords(data.timeline)
+  const oppRec = deckRecords(data.timeline, 'opponent')
 
   const cards = [
-    best && { label: t('highlights.bestDeck'), key: best.key, name: name(best.key), slice: best.performance, games: best.games, link: t('highlights.allDecks'), tab: 'decks' },
-    worst && { label: t('highlights.worstDeck'), key: worst.key, name: name(worst.key), slice: worst.performance, games: worst.games, link: t('highlights.allDecks'), tab: 'decks' },
-    bestOpp && { label: t('highlights.bestOpponent'), key: bestOpp.opponent, name: oppName(bestOpp.opponent), slice: bestOpp.performance, games: bestOpp.games, link: t('highlights.allMatchups'), tab: 'matchups' },
-    toughOpp && { label: t('highlights.toughestOpponent'), key: toughOpp.opponent, name: oppName(toughOpp.opponent), slice: toughOpp.performance, games: toughOpp.games, link: t('highlights.allMatchups'), tab: 'matchups' },
+    best && { label: t('highlights.bestDeck'), key: best.key, name: name(best.key), slice: best.performance, games: best.games, record: deckRec[best.key], link: t('highlights.allDecks'), tab: 'decks' },
+    worst && { label: t('highlights.worstDeck'), key: worst.key, name: name(worst.key), slice: worst.performance, games: worst.games, record: deckRec[worst.key], link: t('highlights.allDecks'), tab: 'decks' },
+    bestOpp && { label: t('highlights.bestOpponent'), key: bestOpp.opponent, name: oppName(bestOpp.opponent), slice: bestOpp.performance, games: bestOpp.games, record: oppRec[bestOpp.opponent], link: t('highlights.allMatchups'), tab: 'matchups' },
+    toughOpp && { label: t('highlights.toughestOpponent'), key: toughOpp.opponent, name: oppName(toughOpp.opponent), slice: toughOpp.performance, games: toughOpp.games, record: oppRec[toughOpp.opponent], link: t('highlights.allMatchups'), tab: 'matchups' },
   ].filter((c) => !!c)
 
   const turn = data.splits
     ? ([['first', data.splits.g1First], ['second', data.splits.g1Second]] as const).map(([id, slice]) => ({ id, slice, g: gap(slice) }))
     : []
+
+  const wideCard = (c: (typeof cards)[number]) => {
+    const cg = gap(c.slice)
+    const wins = c.slice.winsAbove
+    return (
+      <div key={c.label} className={`${PANEL} gap-5 p-6 ${WIDE}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-ink-muted signal">{c.label}</span>
+          <Verdict slice={c.slice} />
+        </div>
+        <div className="flex min-w-0 items-center gap-4 py-2">
+          <Art {...art(c.key)} name={c.name} size={72} />
+          <span className="flex min-w-0 flex-col gap-2.5">
+            <span className={`text-lg leading-6 font-bold text-ink ${DECK_NAME}`}>{c.name}</span>
+            <span className={twMerge('font-display text-[32px] leading-none', cg ? tone(cg.gap) : 'text-draw')}>{cg ? t('highlights.pts', { gap: signed(cg.gap) }) : '–'}</span>
+          </span>
+        </div>
+        {cg ? (
+          <div className="flex flex-col gap-1.5 border border-line bg-space-000/35 px-3 pt-2 pb-2.5">
+            <div className="flex justify-between signal-sm">
+              <span className="text-ink-muted">−20</span>
+              <span className="text-gold">{t('axisMid')}</span>
+              <span className="text-ink-muted">+20 pts</span>
+            </div>
+            <GapLine gap={cg.gap} lo={cg.lo} hi={cg.hi} read={readOf(c.slice)} range={20} size="turn" />
+          </div>
+        ) : null}
+        <dl className="m-0 grid grid-cols-4 gap-px border border-line bg-line">
+          {[
+            [tc('games'), n(c.games), 'text-ink'],
+            [tc('you'), cg ? pc(cg.you) : '–', 'text-ink'],
+            [tc('expected'), cg ? pc(cg.exp) : '–', 'text-gold'],
+            [tc('wins'), wins !== null ? signed(wins) : '–', wins !== null ? tone(wins) : 'text-draw'],
+          ].map(([label, value, color]) => (
+            <div key={label} className="flex flex-col gap-1.5 bg-surface-200 px-3 py-2.5">
+              <dt className={twMerge('signal-sm', color === 'text-gold' ? 'text-gold' : 'text-ink-muted')}>{label}</dt>
+              <dd className={twMerge('m-0 text-lg leading-none font-bold tabular-nums', color)}>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <Small>
+            {c.record ? <Record w={c.record.wins} l={c.record.losses} d={c.record.draws} /> : null}
+            {c.record && cg ? ' · ' : null}
+            {cg ? t('highlights.interval', { lo: signed(cg.lo), hi: signed(cg.hi) }) : null}
+          </Small>
+          <a href={`#${c.tab}`} className="inline-flex min-h-8 items-center gap-2 text-cyan signal-strong hover:text-ink">{c.link}</a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -130,35 +204,13 @@ export const Overview = ({ data, name, face }: Props) => {
 
       {cards.length ? (
         <>
-          <div className={`grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-6 ${WIDE}`}>
-            {cards.map((c) => {
-              const cg = gap(c.slice)
-              return (
-                <div key={c.label} className={`${PANEL} gap-3.5 p-5`}>
-                  <span className="text-ink-muted signal">{c.label}</span>
-                  <div className="flex min-w-0 items-center gap-3">
-                    <Art id={face(c.key)} name={c.name} size={48} />
-                    <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-bold text-ink">{c.name}</span>
-                      <Small>{cg ? t('highlights.meta', { games: n(c.games), you: pc(cg.you), exp: pc(cg.exp) }) : t('highlights.games', { games: n(c.games) })}</Small>
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={twMerge('font-display text-[28px] leading-none', cg ? tone(cg.gap) : 'text-draw')}>{cg ? t('highlights.pts', { gap: signed(cg.gap) }) : '–'}</span>
-                    <Verdict slice={c.slice} />
-                  </div>
-                  <a href={`#${c.tab}`} className="inline-flex min-h-8 items-center gap-2 text-cyan signal-strong hover:text-ink">{c.link}</a>
-                </div>
-              )
-            })}
-          </div>
           <div className={`flex flex-col gap-4 ${NARROW}`}>
             {cards.map((c) => {
               const cg = gap(c.slice)
               return (
                 <a key={c.label} href={`#${c.tab}`} className={`${PANEL} grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3.5 text-left`}>
                   <span className="col-span-3 text-ink-muted signal-sm">{c.label}</span>
-                  <Art id={face(c.key)} name={c.name} size={36} />
+                  <Art {...art(c.key)} name={c.name} size={36} />
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate font-bold text-ink">{c.name}</span>
                     <Small>{cg ? t('highlights.meta', { games: n(c.games), you: pc(cg.you), exp: pc(cg.exp) }) : t('highlights.games', { games: n(c.games) })}</Small>
@@ -174,9 +226,9 @@ export const Overview = ({ data, name, face }: Props) => {
         </>
       ) : null}
 
-      <AdBanner id="ad-profile-overview" placement="content" className="mx-auto w-full max-w-[970px]" />
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,480px),1fr))] gap-6 max-[719px]:gap-4">
+      {/* Desktop: one 2-column flow, your best deck next to turn order, the method last. */}
+      <div className="grid grid-cols-2 gap-6 max-[1023px]:grid-cols-1 max-[719px]:gap-4">
+        {cards[0] ? wideCard(cards[0]) : null}
         {turn.length ? (
           <div className={`${PANEL} gap-4 p-6 max-[719px]:gap-3 max-[719px]:px-4 max-[719px]:py-5`}>
             <h3 className="m-0 font-display text-[22px] leading-[1.1] tracking-[0.01em] text-ink uppercase">{t('turn.title')}</h3>
@@ -191,7 +243,7 @@ export const Overview = ({ data, name, face }: Props) => {
                 <div className={`flex items-center gap-3 ${WIDE}`}>
                   {tg ? <GapLine gap={tg.gap} lo={tg.lo} hi={tg.hi} read={readOf(slice)} range={20} size="turn" gold={false} className="flex-auto" /> : <span className="flex-auto" />}
                   <span className={twMerge('w-16 text-right font-bold', tg ? tone(tg.gap) : 'text-draw')}>{tg ? signed(tg.gap) : '–'}</span>
-                  <Verdict slice={slice} className="w-32 justify-center" />
+                  <VerdictIcon slice={slice} />
                 </div>
                 <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 ${NARROW}`}>
                   <span className="flex flex-col">
@@ -200,7 +252,7 @@ export const Overview = ({ data, name, face }: Props) => {
                   </span>
                   <span className="flex flex-col items-end gap-1">
                     <span className={twMerge('font-bold', tg ? tone(tg.gap) : 'text-draw')}>{tg ? signed(tg.gap) : '–'}</span>
-                    <Verdict slice={slice} short />
+                    <VerdictIcon slice={slice} />
                   </span>
                   {tg ? <GapLine gap={tg.gap} lo={tg.lo} hi={tg.hi} read={readOf(slice)} range={20} size="list" className="col-span-2" /> : null}
                 </div>
@@ -209,15 +261,18 @@ export const Overview = ({ data, name, face }: Props) => {
             <Small className={WIDE}>{t('turn.note')}</Small>
           </div>
         ) : null}
-        <div className={`${PANEL} gap-3.5 p-6 max-[719px]:gap-2.5 max-[719px]:px-4 max-[719px]:py-5`}>
+        {cards.slice(1).map(wideCard)}
+        <div className={`${PANEL} gap-4 p-6 max-[719px]:gap-3 max-[719px]:px-4 max-[719px]:py-5`}>
           <h3 className="m-0 font-display text-[22px] leading-[1.1] tracking-[0.01em] text-ink uppercase">{t('method.title')}</h3>
-          <div className="flex flex-col gap-3 text-sm leading-[22px] text-ink-dim">
+          <div className="flex flex-col gap-4 text-sm leading-6 text-ink-dim">
             <p className="m-0">{t.rich('method.expected', { b: (c) => <strong className="text-ink">{c}</strong> })}</p>
             <p className="m-0">{t.rich('method.verdict', { b: (c) => <strong className="text-ink">{c}</strong> })}</p>
             <p className={`m-0 ${WIDE}`}>{t.rich('method.benchmarked', { b: (c) => <strong className="text-ink">{c}</strong> })}</p>
           </div>
         </div>
       </div>
+
+      <AdBanner id="ad-profile-overview" placement="content" className="mx-auto w-full max-w-[970px]" />
     </>
   )
 }

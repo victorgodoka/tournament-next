@@ -2432,7 +2432,10 @@
         "unclear": "Ainda incerto",
         "aboveShort": "Acima",
         "belowShort": "Abaixo",
-        "unclearShort": "Incerto"
+        "unclearShort": "Incerto",
+        "aboveHint": "Você vence mais que um piloto médio nos mesmos jogos, além do intervalo.",
+        "belowHint": "Você vence menos que um piloto médio nos mesmos jogos, além do intervalo.",
+        "unclearHint": "A diferença ainda cabe no intervalo: pode ser sorte."
       },
       "cols": {
         "games": "Games",
@@ -2440,6 +2443,7 @@
         "expected": "Esperado",
         "gapAxis": "Diferença, de menos 20 a mais 20 pontos",
         "gap": "Dif.",
+        "wins": "Vitórias +/-",
         "verdict": "Veredito"
       },
       "overview": {
@@ -2497,7 +2501,8 @@
           "games": "{games} games",
           "pts": "{gap} pts",
           "allDecks": "Todos os seus decks",
-          "allMatchups": "Todos os matchups"
+          "allMatchups": "Todos os matchups",
+          "interval": "Intervalo de 95%: {lo} a {hi}"
         },
         "other": "Outros decks",
         "turn": {
@@ -2510,9 +2515,9 @@
         },
         "method": {
           "title": "Como isto é medido",
-          "expected": "<b>Esperado</b> é o que um duelista médio venceria em cada um dos seus games: mesmo deck, mesmo deck do oponente, mesma ordem de turno, mesmo rating do oponente. O seu rating fica de fora, então o número mede como você pilota.",
-          "verdict": "<b>Acima</b> ou <b>abaixo</b> só aparece quando o intervalo sai do esperado. Poucos games deixam o intervalo largo.",
-          "benchmarked": "Games <b>comparados</b> têm tudo de que o modelo precisa. Os outros continuam contando no seu histórico."
+          "expected": "<b>Esperado</b> é o que um piloto médio venceria em cada um dos seus games: os dois decks e o matchup entre eles, quem começou e o rating do oponente. O seu rating é trocado pela média da ladder, então a diferença mede como você pilota.",
+          "verdict": "<b>Acima</b> (↑) ou <b>abaixo</b> (↓) só aparece quando o intervalo de 95% sai do esperado; senão fica <b>ainda incerto</b> (—). Poucos games deixam o intervalo largo, e games do mesmo match o alargam um pouco mais. Cerca de 1 veredito em 20 ainda pode vir da sorte.",
+          "benchmarked": "Games <b>comparados</b> têm um vencedor, rating do oponente conhecido, um oponente com games suficientes na season e dois decks que o modelo já avaliou. Games Iron e empates ficam fora da comparação, mas continuam contando no seu histórico."
         }
       },
       "decks": {
@@ -2528,7 +2533,6 @@
         "legendGap": "Sua diferença, colorida quando o intervalo passa da linha",
         "mirrors": "Games de espelho contam no seu histórico; neles o esperado só pesa ordem de turno e rating.",
         "legendShort": "Linha dourada: piloto médio. Barras de −20 a +20 pts.",
-        "contribTitle": "De onde vem a diferença",
         "contribLede": "Vitórias acima ou abaixo do piloto médio, por deck. Somam o seu {sum}.",
         "contribLedeShort": "Vitórias acima ou abaixo do piloto médio. Somam {sum}."
       },

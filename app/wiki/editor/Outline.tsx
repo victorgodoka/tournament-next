@@ -20,6 +20,10 @@ const outlineLabel = (block: WikiBlock, first: boolean) => {
       return `Gallery · ${block.assets.length}`
     case 'cards':
       return `Cards · ${block.cards.length}`
+    case 'statistics-deck':
+      return `Statistics Deck · ${block.deck.name || 'unselected'}`
+    case 'article-preview':
+      return `Article Preview · ${block.slug || 'unselected'}`
     case 'callout':
       return `Callout · ${TONE[block.tone]}`
     case 'quote':

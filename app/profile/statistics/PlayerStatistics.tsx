@@ -7,7 +7,8 @@ import { AvatarFrame } from "@ui/avatar";
 import { EmptyBox } from "@omega/profile/empty-box";
 import { PrivateNotice } from "@omega/profile/private-notice";
 import { AdBanner } from "@omega/ads/ad-banner";
-import { getPlayerStatistics, type PlayerPeriod } from "@utils/statistics";
+import { getMeta, getPlayerStatistics, type PlayerPeriod } from "@utils/statistics";
+import { facesOf } from "@app/statistics/format";
 import type { Profile, RankedLadderId, Tier } from "@utils/types";
 import { MySections } from "./MySections";
 import { PlayerFilters } from "./PlayerFilters";
@@ -81,7 +82,11 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
   // Owner-only, even on a public profile: only the self profile carries `visibility`. The API checks too.
   const visible = !profile.isPrivate && profile.visibility !== undefined ? profile : null
   const format = LADDER[selection.ladder]
-  const result = visible && choices.length ? await getPlayerStatistics(profile.id, selection, cookie) : null
+  // The meta knows every deck's card: a mixed deck's second archetype often never shows up alone in the duelist's games.
+  const [result, meta] = visible && choices.length
+    ? await Promise.all([getPlayerStatistics(profile.id, selection, cookie), getMeta({ ladder: selection.ladder, season: selection.season, window: 'season', band: 'all' })])
+    : [null, null]
+  const metaFaces = meta?.ok ? facesOf(meta.data.decks) : {}
   const data = result?.ok ? result.data : null
   const pick = data?.season ? { ladder: data.season.ladder, season: data.season.code } : selection
   const standing = visible ? standingOf(visible, pick) : null
@@ -164,7 +169,7 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
               ) : !data!.record.games ? (
                 <EmptyBox title={t('errors.noGames')}>{t('errors.noGamesBody')}</EmptyBox>
               ) : (
-                <MySections data={data!} ladder={format} history={standing?.eloHistory ?? []} />
+                <MySections data={data!} ladder={format} history={standing?.eloHistory ?? []} metaFaces={metaFaces} />
               )}
               <AdBanner id="ad-profile-bottom" placement="content" className={`mx-auto w-full max-w-[728px] pt-2 ${WIDE}`} />
             </>

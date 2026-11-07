@@ -23,6 +23,7 @@ import { CodeBlock } from './code-block'
 import { Lightbox, Zoomable } from './lightbox'
 import { ShareButtons } from './share-buttons'
 import { Video } from './video'
+import { StatisticsDeck } from './statistics-deck'
 import { WIKI_TILE } from './wiki'
 
 /** Floats sit beside the text that follows; everything wider clears them first. */
@@ -164,6 +165,11 @@ const Block = ({ block, assets, html, share, num, first, openFaq }: BlockProps) 
 
     case 'heading':
       return <Heading block={block} num={num} />
+
+    case 'statistics-deck':
+      return <StatisticsDeck deck={block.deck} caption={block.caption} />
+    case 'article-preview':
+      return <Markdown html={html[block.id]} />
 
     case 'figure': {
       const asset = assets[block.asset]

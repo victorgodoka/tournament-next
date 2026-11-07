@@ -40,6 +40,13 @@
     ],
     "blocks": [
       {
+        "id": "historical-method",
+        "type": "callout",
+        "tone": "cyan",
+        "title": "Historical report: previous calculation",
+        "md": "This October 30 report preserves the results and comparison periods from our previous calculation. Its win rates, tiers and shift signals do not use the current strength model. Compare later issues only when their season, band and tier rules match. The [current statistics methodology](/wiki/ygo-omega-statistics-methodology) explains the replacement and the reasons for it."
+      },
+      {
         "id": "intro",
         "type": "text",
         "md": "This Yu-Gi-Oh! meta report covers what moved on the YGO Omega ranked ladders, using data through October 29, 2026. Power Patron / Light and Darkness Ritual rose fastest in TCG, and Invoked rose fastest in Genesys."

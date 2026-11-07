@@ -58,15 +58,3 @@ export const HeroLine = ({ gap, lo, hi, read, compact }: { gap: number; lo: numb
     </span>
   )
 }
-
-/** One deck's wins above expected on ±`range`, from the middle. */
-export const WinsBar = ({ wins, range, compact, className }: { wins: number; range: number; compact?: boolean; className?: string }) => {
-  const a = Math.min(0, wins)
-  const b = Math.max(0, wins)
-  return (
-    <span aria-hidden className={twMerge('relative block', compact ? 'h-2' : 'h-3', className)}>
-      <span className={twMerge('absolute left-1/2 w-px bg-line-mid', compact ? '-inset-y-0.5' : '-inset-y-0.75')} />
-      <span className={twMerge('absolute inset-y-0 rounded-xs', wins > 0 ? 'bg-win' : 'bg-loss')} style={{ left: at(a, -range, range), width: span(a, b, -range, range) }} />
-    </span>
-  )
-}

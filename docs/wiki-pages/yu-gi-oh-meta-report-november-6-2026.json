@@ -1,0 +1,298 @@
+{
+  "slug": "yu-gi-oh-meta-report-november-6-2026",
+  "published": false,
+  "doc": {
+    "v": 1,
+    "title": "Yu-Gi-Oh! Meta Report: November 6, 2026",
+    "summary": "The Yu-Gi-Oh! meta report for November 6, 2026: Power Patron / Ars Magna led TCG share gains, and Angelechy led Genesys share gains. What moved on the YGO Omega ranked ladders this week.",
+    "cover": {
+      "asset": "article-cover"
+    },
+    "infobox": {
+      "facts": [
+        {
+          "label": "Issue",
+          "value": "November 6, 2026"
+        },
+        {
+          "label": "Data through",
+          "value": "November 6, 2026"
+        },
+        {
+          "label": "TCG riser",
+          "value": "Power Patron / Ars Magna"
+        },
+        {
+          "label": "Genesys riser",
+          "value": "Angelechy"
+        },
+        {
+          "label": "Source",
+          "value": "YGO Omega ranked ladders"
+        }
+      ]
+    },
+    "tags": [
+      "meta-report",
+      "tcg",
+      "genesys",
+      "deck-trends"
+    ],
+    "blocks": [
+      {
+        "id": "intro",
+        "type": "text",
+        "md": "This Yu-Gi-Oh! meta report covers what moved on the YGO Omega ranked ladders, from games through November 6, 2026. Power Patron / Ars Magna led TCG share gains, and Angelechy led Genesys share gains. At the top, Angelechy holds Tier 1 alone in TCG and Kewl Tune / Synchron holds Tier 1 alone in Genesys."
+      },
+      {
+        "id": "report-board-tcg",
+        "type": "figure",
+        "asset": "report-tcg-wide",
+        "mobileAsset": "report-tcg-tall",
+        "share": true,
+        "align": "wide",
+        "caption": "TCG meta share, latest season week against the one before: Power Patron / Ars Magna gained the most (+1.2 points). Families with a Tier 1–3 build only."
+      },
+      {
+        "id": "report-board-genesys",
+        "type": "figure",
+        "asset": "report-genesys-wide",
+        "mobileAsset": "report-genesys-tall",
+        "share": true,
+        "align": "wide",
+        "caption": "Genesys meta share, latest season week against the one before: Angelechy gained the most (+1.1 points). Families with a Tier 1–3 build only."
+      },
+      {
+        "id": "intro-more",
+        "type": "text",
+        "md": "For where every deck stands, see the [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list). This report covers the changes."
+      },
+      {
+        "id": "h-moves",
+        "type": "heading",
+        "level": 2,
+        "text": "Yu-Gi-Oh! meta report: which decks moved?",
+        "anchor": "which-decks-moved"
+      },
+      {
+        "id": "moves",
+        "type": "text",
+        "md": "Share changes compare the latest two seven-day blocks, counted from each season's first day. The latest block may still be filling up, and the blocks don't line up with report dates. Tier changes compare this issue with the last saved snapshot that shares its season, rating band, sample filters and tier rules. Season share and expected win rate cover the whole season. The report covers current Tiers 1–3, including decks that rose from Tier 4."
+      },
+      {
+        "id": "h-moves-tcg",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG movers",
+        "anchor": "tcg-movers"
+      },
+      {
+        "id": "moves-tcg",
+        "type": "text",
+        "md": "We compare the latest season-week block with the one before. The tables cover families whose most played tiered build sits in Tiers 1–3.\n\n**Rising**\n\n| Family | Tier | Season share | Change | Expected win rate |\n|---|---:|---:|---:|---:|\n| **Power Patron / Ars Magna** | 2 | 10.0% | **[+1.2]{#4fdc8c}** | 52.6% |\n| **Elfnote** | 2 | 8.6% | **[+0.6]{#4fdc8c}** | 53.1% |\n| **Radiant Typhoon** | 2 | 5.0% | **[+0.5]{#4fdc8c}** | 53.1% |\n| **Branded** | 2 | 5.8% | **[+0.2]{#4fdc8c}** | 51.5% |\n| **HERO** | 3 | 6.6% | **[+0.1]{#4fdc8c}** | 50.6% |\n\n**Falling**\n\n| Family | Tier | Season share | Change | Expected win rate |\n|---|---:|---:|---:|---:|\n| **Angelechy** | 1 | 15.5% | **[−1.6]{#ff8594}** | 54.0% |\n| **Blitzclique** | 2 | 5.2% | **[−0.5]{#ff8594}** | 51.9% |\n| **Fairy Tail** | 3 | 2.1% | **[−0.2]{#ff8594}** | 50.2% |\n| **Maliss** | 2 | 1.9% | **[−0.2]{#ff8594}** | 51.5% |\n| **DoomZ** | 3 | 1.5% | **[−0.0]{#ff8594}** | 50.4% |"
+      },
+      {
+        "id": "h-moves-genesys",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys movers",
+        "anchor": "genesys-movers"
+      },
+      {
+        "id": "moves-genesys",
+        "type": "text",
+        "md": "We compare the latest season-week block with the one before. The tables cover families whose most played tiered build sits in Tiers 1–3.\n\n**Rising**\n\n| Family | Tier | Season share | Change | Expected win rate |\n|---|---:|---:|---:|---:|\n| **Angelechy** | 2 | 10.6% | **[+1.1]{#4fdc8c}** | 58.7% |\n\n**Falling**\n\n| Family | Tier | Season share | Change | Expected win rate |\n|---|---:|---:|---:|---:|\n| **Blitzclique** | 3 | 8.1% | **[−1.0]{#ff8594}** | 57.1% |\n| **Kewl Tune** | 1 | 0.8% | **[−0.3]{#ff8594}** | 60.3% |\n| **Synchron** | 2 | 1.4% | **[−0.1]{#ff8594}** | 57.3% |"
+      },
+      {
+        "id": "tier-comparison",
+        "type": "text",
+        "md": "TCG: no earlier snapshot shares this season, band, sample filters and tier rules, so we skip tier changes. Genesys: no earlier snapshot shares this season, band, sample filters and tier rules, so we skip tier changes."
+      },
+      {
+        "id": "h-events",
+        "type": "heading",
+        "level": 2,
+        "text": "Biggest shifts in the numbers",
+        "anchor": "biggest-shifts"
+      },
+      {
+        "id": "events",
+        "type": "text",
+        "md": "We flag current Tier 1–3 decks when their fitted strength changes by more than 3.5 combined standard errors between consecutive season-week blocks. This threshold reduces false signals across repeated comparisons; it does not rule them out.\n\nNo covered deck crossed that bar this week."
+      },
+      {
+        "id": "h-spotlight",
+        "type": "heading",
+        "level": 2,
+        "text": "Decks to watch",
+        "anchor": "decks-to-watch"
+      },
+      {
+        "id": "h-spotlight-tcg",
+        "type": "heading",
+        "level": 3,
+        "text": "TCG: Power Patron / Ars Magna",
+        "anchor": "spotlight-tcg"
+      },
+      {
+        "id": "spotlight-tcg",
+        "type": "text",
+        "md": "Power Patron / Ars Magna gained 1.2 points of meta share last week, the most among covered families, for 10.0% of the season so far. Its most played build, Power Patron / Ars Magna / Artmage, has an expected win rate of 52.6% (95% interval 51.3–53.9); in game 1 it wins 62.5% going first and 43.1% going second.\n- **Below-expected matchup:** Angelechy, 45.8% (2,470 games)\n- **Most used against it:** [Ash Blossom & Joyous Spring](/wiki/card/14558127), [Ghost Ogre & Snow Rabbit](/wiki/card/59438930) and [Mulcharmy Fuwalos](/wiki/card/42141493)"
+      },
+      {
+        "id": "deck-spotlight-tcg",
+        "type": "statistics-deck",
+        "deck": {
+          "key": "462>461",
+          "name": "Power Patron / Ars Magna / Artmage",
+          "ladder": "tcg",
+          "faces": [
+            90875418
+          ]
+        },
+        "caption": "Open the matchups, card usage and sample deck for Power Patron / Ars Magna / Artmage."
+      },
+      {
+        "id": "h-spotlight-genesys",
+        "type": "heading",
+        "level": 3,
+        "text": "Genesys: Angelechy",
+        "anchor": "spotlight-genesys"
+      },
+      {
+        "id": "spotlight-genesys",
+        "type": "text",
+        "md": "Angelechy gained 1.1 points of meta share last week, the most among covered families, for 10.6% of the season so far. Its core build has an expected win rate of 58.7% (95% interval 56.3–61.1); in game 1 it wins 73.1% going first and 48.2% going second.\n- **Most used against it:** [Ghost Ogre & Snow Rabbit](/wiki/card/59438930), [Cosmic Cyclone](/wiki/card/8267140) and [Skull Meister](/wiki/card/67750322)"
+      },
+      {
+        "id": "deck-spotlight-genesys",
+        "type": "statistics-deck",
+        "deck": {
+          "key": "482",
+          "name": "Angelechy",
+          "ladder": "genesys",
+          "faces": [
+            17782288,
+            80565021
+          ]
+        },
+        "caption": "Open the matchups, card usage and sample deck for Angelechy."
+      },
+      {
+        "id": "limits",
+        "type": "callout",
+        "tone": "cyan",
+        "title": "Where these numbers come from",
+        "md": "These numbers come from ranked YGO Omega games; tournament results play no part. Each ladder runs its own season, so TCG and Genesys cover different dates. The [statistics methodology](/wiki/ygo-omega-statistics-methodology) explains the model and lists the current settings."
+      },
+      {
+        "id": "h-faq",
+        "type": "heading",
+        "level": 2,
+        "text": "Yu-Gi-Oh! meta report FAQ",
+        "anchor": "faq"
+      },
+      {
+        "id": "faq",
+        "type": "faq",
+        "items": [
+          {
+            "q": "What changed in the Yu-Gi-Oh! meta this week?",
+            "md": "Power Patron / Ars Magna led TCG share gains, and Angelechy led Genesys share gains. The tables above list every top mover."
+          },
+          {
+            "q": "What is the best Yu-Gi-Oh! deck this week?",
+            "md": "In TCG, Angelechy leads with an expected 54.0% win rate. In Genesys, Kewl Tune / Synchron leads with 60.3%. The [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list) rank the rest."
+          },
+          {
+            "q": "Which Yu-Gi-Oh! decks are rising right now?",
+            "md": "In TCG, Power Patron / Ars Magna (+1.2), Elfnote (+0.6) and Radiant Typhoon (+0.5), in points of meta share. In Genesys, Angelechy (+1.1), in points of meta share."
+          },
+          {
+            "q": "Does this meta report compare with the previous report?",
+            "md": "Tier changes use the last saved snapshot with the same season, band, sample filters and tier rules, and we skip them when none matches. Share changes and strength shifts compare the latest two season-week blocks, which may not match the dates between reports."
+          },
+          {
+            "q": "Which decks does this report cover?",
+            "md": "Current Tiers 1–3, including promotions from Tier 4. The tier lists also show the five highest-ranked Tier 4 builds; the statistics page has the full list."
+          },
+          {
+            "q": "What is the difference between this report and the tier lists?",
+            "md": "The [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and the [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list) show the current rankings and update in place. Each dated report records share changes and tier moves among the covered decks."
+          },
+          {
+            "q": "How often is the meta report published?",
+            "md": "Every week, with data from the ranked ladders up to the day before."
+          }
+        ]
+      }
+    ],
+    "assets": {
+      "article-cover": {
+        "id": "article-cover",
+        "src": "/wiki-images/article-cover.png",
+        "width": 1920,
+        "height": 420,
+        "alt": "YGO Omega article cover",
+        "credit": "Duelists Unite"
+      },
+      "article-seo-preview": {
+        "id": "article-seo-preview",
+        "src": "/wiki-images/article-seo-preview.png",
+        "width": 1200,
+        "height": 630,
+        "alt": "YGO Omega article preview",
+        "credit": "Duelists Unite"
+      },
+      "report-tcg-wide": {
+        "id": "report-tcg-wide",
+        "src": "/wiki-images/meta-report/2026-11-06-tcg-wide.jpg",
+        "width": 1920,
+        "height": 1080,
+        "alt": "TCG meta share gains and losses among Tier 1–3 builds, comparing the latest two season-week blocks for November 6, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-tcg-tall": {
+        "id": "report-tcg-tall",
+        "src": "/wiki-images/meta-report/2026-11-06-tcg-tall.jpg",
+        "width": 1080,
+        "height": 1920,
+        "alt": "TCG meta share gains and losses among Tier 1–3 builds, comparing the latest two season-week blocks for November 6, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-genesys-wide": {
+        "id": "report-genesys-wide",
+        "src": "/wiki-images/meta-report/2026-11-06-genesys-wide.jpg",
+        "width": 1920,
+        "height": 1080,
+        "alt": "Genesys meta share gains and losses among Tier 1–3 builds, comparing the latest two season-week blocks for November 6, 2026",
+        "credit": "Duelists Unite"
+      },
+      "report-genesys-tall": {
+        "id": "report-genesys-tall",
+        "src": "/wiki-images/meta-report/2026-11-06-genesys-tall.jpg",
+        "width": 1080,
+        "height": 1920,
+        "alt": "Genesys meta share gains and losses among Tier 1–3 builds, comparing the latest two season-week blocks for November 6, 2026",
+        "credit": "Duelists Unite"
+      }
+    },
+    "seo": {
+      "title": "Yu-Gi-Oh! Meta Report Nov 6, 2026: What Moved",
+      "description": "Yu-Gi-Oh! meta report for November 6, 2026: the decks rising and falling on the TCG and Genesys ladders, with expected win rates and decks to watch.",
+      "keyword": "Yu-Gi-Oh! meta report",
+      "keywords": [
+        "yugioh meta report",
+        "yugioh meta this week",
+        "rising yugioh decks"
+      ],
+      "image": "article-seo-preview",
+      "schema": "Article"
+    },
+    "hub": "yu-gi-oh-tcg-tier-list",
+    "related": [
+      "yu-gi-oh-genesys-tier-list",
+      "yu-gi-oh-meta-report-october-30-2026"
+    ]
+  }
+}

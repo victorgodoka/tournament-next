@@ -473,8 +473,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
               <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.read')}</span>
             </div>
             {main.map((m, i) => (
-              <div key={m.opponent} role="row" className={twMerge(ROW, 'col-span-full min-h-14 grid-cols-subgrid')}>
-                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />{link(m, 'text-ink')}</span>
+              <div key={m.opponent} role="row" className={twMerge(ROW, 'col-span-full min-h-16 grid-cols-subgrid')}>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'font-bold text-ink')}>{pc(m.wrAdjusted)}</span>
                 <span role="cell" className="mx-5"><Track value={m.wrAdjusted} low={m.wrLo} high={m.wrHi} lo={lo} hi={hi} h={56} read={reads[i]} expected={m.wrExpected} /></span>
@@ -489,9 +489,9 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
             ))}
             {low
               ? small.map((m) => (
-                  <div key={m.opponent} role="row" className="col-span-full grid min-h-13 grid-cols-subgrid items-center bg-surface-100">
+                  <div key={m.opponent} role="row" className="col-span-full grid min-h-16 grid-cols-subgrid items-center bg-surface-100">
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
-                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
+                      <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} dim />
                       <span className="flex min-w-0 flex-col leading-[18px]">
                         {link(m, 'text-ink-dim')}
                         <span className="text-ink-muted signal-sm">{t('under', { min: MIN_MATCHUP_GAMES })}</span>
@@ -520,8 +520,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
 
         <div role="list" aria-label={t('aria', { name })} className={twMerge(ROWS, NARROW)}>
           {main.map((m, i) => (
-            <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
-              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />
+            <div key={m.opponent} role="listitem" className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
+              <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} />
               <span className="flex min-w-0 flex-col">
                 {link(m, 'text-ink')}
                 <Small>{t.rich('rowMeta', { rate: pc(m.wrAdjusted), exp: pc(m.wrExpected), games: n(m.games), g: (c) => <span className="text-gold">{c}</span> })}</Small>
@@ -536,8 +536,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
           ))}
           {low
             ? small.map((m) => (
-                <div key={m.opponent} role="listitem" className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3">
-                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
+                <div key={m.opponent} role="listitem" className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3">
+                  <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={52} dim />
                   <span className="flex min-w-0 flex-col">
                     {link(m, 'text-ink-dim')}
                     <Small>{t('underRow', { min: MIN_MATCHUP_GAMES, games: n(m.games) })}</Small>

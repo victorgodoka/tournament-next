@@ -11,6 +11,8 @@ import { cardLoader } from '@utils/image-loader'
 import { CODE_LANGUAGES, DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type CodeLanguage, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
 import { Check, FieldHead, Frame, Help, INPUT, type Tone } from './ui'
+import { StatisticsDeckPicker } from './StatisticsDeckPicker'
+import { ArticlePreviewFields } from './ArticlePreviewFields'
 
 export const MINI = 'inline-flex min-h-8 min-w-8 items-center justify-center border border-line bg-surface-100 px-2 text-ink-dim signal-sm hover:border-cyan hover:text-cyan disabled:pointer-events-none disabled:opacity-40'
 
@@ -264,7 +266,7 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
   )
 }
 
-const MD_HELP = 'Markdown · no raw HTML · links must be full http(s) or a /wiki/ path · [card:passcode] shows the card name linked to its page · [text]{#4fdc8c} colours text.'
+const MD_HELP = 'Markdown · no raw HTML · [card:passcode] links a card · [article=article-slug] in plain text shows an article preview · [text]{#4fdc8c} colours text.'
 
 /** Wrap the selection (or a placeholder) in Markdown, then put the caret back inside it. */
 type Edit = (text: string, start: number, end: number) => { text: string; start: number; end: number }
@@ -295,6 +297,7 @@ const TOOLS: { label: string; aria?: string; className?: string; edit: Edit }[] 
   { label: 'Link', edit: wrap('[', '](https://)', 'text') },
   { label: 'Wiki link', edit: wrap('[', '](/wiki/)', 'article') },
   { label: 'Card', edit: wrap('[card:', ']', 'passcode') },
+  { label: 'Article', edit: insert('[article=article-slug]') },
   { label: 'List', edit: listLines },
   { label: 'Table', edit: insert('| Column | Column |\n| --- | --- |\n| Cell | Cell |\n') },
 ]
@@ -422,6 +425,17 @@ export const BlockFields = ({ block, assets, onChange, keepAnchor }: BlockFields
             onChange={(layout) => onChange({ ...block, layout })}
           />
           <AssetPicker multiple label={`Images (${block.assets.length}) — in the order you pick them`} assets={assets} selected={block.assets} onChange={(ids) => onChange({ ...block, assets: ids })} />
+          <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
+        </div>
+      )
+
+    case 'article-preview':
+      return <ArticlePreviewFields slug={block.slug} onChange={(slug) => onChange({ ...block, slug })} />
+
+    case 'statistics-deck':
+      return (
+        <div className="flex flex-col gap-4">
+          <StatisticsDeckPicker value={block.deck} onChange={(deck) => onChange({ ...block, deck: deck ?? { key: '', name: '', ladder: block.deck.ladder, faces: [] } })} />
           <TextField label="Caption" value={block.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...block, caption: caption || undefined })} />
         </div>
       )
@@ -673,6 +687,10 @@ export const blockSummary = (block: WikiBlock) => {
       return [block.asset || 'no image', block.align, block.mobileAsset && 'mobile image', block.share && 'share'].filter(Boolean).join(' · ')
     case 'gallery':
       return `${block.assets.length} images · ${block.layout}`
+    case 'statistics-deck':
+      return block.deck.name || 'Select an archetype or deck'
+    case 'article-preview':
+      return block.slug || 'Select an article'
     case 'cards':
       return block.cards.map((card) => card.name).filter(Boolean).join(', ')
     case 'video':

@@ -127,6 +127,7 @@ export const DocEditor = ({ article, converted = false }: DocEditorProps) => {
   const [liveDays, setLiveDays] = useState(0)
   const [tab, setTab] = useState<Tab>('write')
   const [rail, setRail] = useState<Rail>('seo')
+  const [leftTab, setLeftTab] = useState<'outline' | 'add'>('outline')
   const [selected, setSelected] = useState<string | null>('header')
   // A new article opens every block; an existing one opens collapsed, one line per block.
   const [open, setOpen] = useState<Set<string>>(() => new Set())
@@ -585,20 +586,26 @@ export const DocEditor = ({ article, converted = false }: DocEditorProps) => {
       <div {...tabPanelProps('doc-editor', tab)} className={twMerge('py-6 pb-10', WIKI_PAD)}>
         {tab === 'write' ? (
           <div className="grid items-start gap-6 xl:grid-cols-[248px_minmax(0,1fr)_380px]">
-            <aside className="flex flex-col gap-5 xl:sticky xl:top-48">
-              <Outline blocks={doc.blocks} selected={selected} onSelect={select} changed={changed} />
-              <Palette
-                onAdd={(type) => insert(type)}
-                onDragStart={(type, event) => {
-                  drag.current = { kind: 'new', type }
-                  event.dataTransfer.effectAllowed = 'copy'
-                  event.dataTransfer.setData('text/plain', type)
-                }}
-                onDragEnd={() => {
-                  drag.current = null
-                  setOver(null)
-                }}
-              />
+            <aside className="min-w-0 xl:sticky xl:top-48">
+              <TabBar label="Article blocks" idPrefix="doc-blocks" active={leftTab} onSelect={setLeftTab} tabs={[{ id: 'outline', label: 'Outline' }, { id: 'add', label: 'Add block' }]} />
+              <div {...tabPanelProps('doc-blocks', leftTab)}>
+                {leftTab === 'outline' ? (
+                  <Outline blocks={doc.blocks} selected={selected} onSelect={select} changed={changed} />
+                ) : (
+                  <Palette
+                    onAdd={(type) => insert(type)}
+                    onDragStart={(type, event) => {
+                      drag.current = { kind: 'new', type }
+                      event.dataTransfer.effectAllowed = 'copy'
+                      event.dataTransfer.setData('text/plain', type)
+                    }}
+                    onDragEnd={() => {
+                      drag.current = null
+                      setOver(null)
+                    }}
+                  />
+                )}
+              </div>
             </aside>
 
             <main className="flex min-w-0 flex-col gap-6">

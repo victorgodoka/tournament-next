@@ -2433,7 +2433,10 @@
         "unclear": "Can’t tell yet",
         "aboveShort": "Above",
         "belowShort": "Below",
-        "unclearShort": "Can’t tell"
+        "unclearShort": "Can’t tell",
+        "aboveHint": "You win more than an average pilot in the same games, beyond the interval.",
+        "belowHint": "You win less than an average pilot in the same games, beyond the interval.",
+        "unclearHint": "The gap still sits inside its interval: it could be luck."
       },
       "cols": {
         "games": "Games",
@@ -2441,6 +2444,7 @@
         "expected": "Expected",
         "gapAxis": "Gap, minus 20 to plus 20 points",
         "gap": "Gap",
+        "wins": "Wins +/-",
         "verdict": "Verdict"
       },
       "overview": {
@@ -2498,7 +2502,8 @@
           "games": "{games} games",
           "pts": "{gap} pts",
           "allDecks": "All your decks",
-          "allMatchups": "All matchups"
+          "allMatchups": "All matchups",
+          "interval": "95% interval {lo} to {hi}"
         },
         "other": "Other decks",
         "turn": {
@@ -2511,9 +2516,9 @@
         },
         "method": {
           "title": "How this is measured",
-          "expected": "<b>Expected</b> is what an average duelist would win in each of your games: same deck, same opponent deck, same turn order, same opponent rating. Your own rating stays out, so the number measures how you pilot.",
-          "verdict": "<b>Above</b> or <b>below</b> shows up only when the interval leaves the expected. Few games make a wide interval.",
-          "benchmarked": "<b>Benchmarked</b> games have every piece the model needs. The rest still count in your record."
+          "expected": "<b>Expected</b> is what an average pilot would win in each of your games: both decks and how they match up, who went first and your opponent's rating. Your own rating is swapped for the ladder average, so the gap measures how you pilot.",
+          "verdict": "<b>Above</b> (↑) or <b>below</b> (↓) shows up only when the 95% interval leaves the expected; otherwise it reads <b>can't tell yet</b> (—). Few games make a wide interval, and games of the same match widen it a little more. About 1 verdict in 20 can still come from luck.",
+          "benchmarked": "<b>Benchmarked</b> games have a winner, a known opponent rating, an opponent with enough games this season and two decks the model has rated. Iron games and draws stay out of the comparison but still count in your record."
         }
       },
       "decks": {
@@ -2529,7 +2534,6 @@
         "legendGap": "Your gap, colored when the interval clears the line",
         "mirrors": "Mirror games count in your record; for them the expected only weighs turn order and rating.",
         "legendShort": "Gold line: average pilot. Bars run −20 to +20 pts.",
-        "contribTitle": "Where the gap comes from",
         "contribLede": "Wins above or below the average pilot, per deck. They add up to your {sum}.",
         "contribLedeShort": "Wins above or below the average pilot. They add up to {sum}."
       },

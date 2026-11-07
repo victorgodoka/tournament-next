@@ -8,6 +8,7 @@ import { SNIPPET_CHARS } from '@utils/wiki-seo'
 import { FIELD, LABEL } from '../ArticleForm'
 import { AssetPicker, MINI, TextField } from './fields'
 import { Check, FieldHead, Frame, Help, INPUT, Meter, Panel, Pill } from './ui'
+import { StatisticsDeckPicker } from './StatisticsDeckPicker'
 
 /** What `GET /wiki/{slug}` said about the address being typed (WIKI_API §4.2). */
 export type SlugStatus = 'current' | 'free' | 'taken' | 'moved' | 'checking' | 'invalid' | 'empty' | 'error'
@@ -164,10 +165,26 @@ export const TagInput = ({
   )
 }
 
+/** Library image or Statistics Deck. Its own radio group name, so two infobox forms on one page never share a group. */
+const ImageSource = ({ infobox, onChange }: { infobox: WikiInfobox; onChange: (infobox: WikiInfobox) => void }) => {
+  const name = useId()
+  return (
+    <fieldset>
+      <legend className={LABEL}>Infobox image source</legend>
+      <div className="mt-2 flex gap-4 text-ink body-sm">
+        <label><input type="radio" name={name} checked={!infobox.statisticsDeck} onChange={() => onChange({ ...infobox, statisticsDeck: undefined })} className="mr-2 accent-cyan" />Library image</label>
+        <label><input type="radio" name={name} checked={!!infobox.statisticsDeck} onChange={() => onChange({ ...infobox, asset: undefined, statisticsDeck: { key: '', name: '', ladder: 'tcg', faces: [] } })} className="mr-2 accent-cyan" />Statistics Deck</label>
+      </div>
+    </fieldset>
+  )
+}
+
 /** The infobox's image, caption and facts. A fact's several values live in its one `value`, a line each. */
-const InfoboxFields = ({ infobox, assets, onChange }: { infobox: WikiInfobox; assets: WikiAsset[]; onChange: (infobox: WikiInfobox) => void }) => (
+export const InfoboxFields = ({ infobox, assets, onChange }: { infobox: WikiInfobox; assets: WikiAsset[]; onChange: (infobox: WikiInfobox) => void }) => (
   <div className="flex flex-col gap-4 border-t border-line p-4">
-    <AssetPicker optional label="Infobox image" assets={assets} selected={infobox.asset ? [infobox.asset] : []} onChange={([asset]) => onChange({ ...infobox, asset })} />
+    <ImageSource infobox={infobox} onChange={onChange} />
+    {infobox.statisticsDeck ? <StatisticsDeckPicker value={infobox.statisticsDeck} onChange={(statisticsDeck) => onChange({ ...infobox, asset: undefined, statisticsDeck: statisticsDeck ?? { key: '', name: '', ladder: infobox.statisticsDeck!.ladder, faces: [] } })} /> :
+      <AssetPicker optional label="Infobox image" assets={assets} selected={infobox.asset ? [infobox.asset] : []} onChange={([asset]) => onChange({ ...infobox, asset })} />}
     <TextField label="Image caption" value={infobox.caption ?? ''} maxLength={DOC_LIMITS.short} onChange={(caption) => onChange({ ...infobox, caption: caption || undefined })} />
     <div>
       <p className={LABEL}>Facts</p>
@@ -387,7 +404,7 @@ export const HeaderPanel = ({ doc, edit, assets, slugProps, autoSlug, selected, 
               {infobox
                 ? [
                     `${infobox.facts.length} fact${infobox.facts.length === 1 ? '' : 's'}`,
-                    infobox.asset ? `image ${infobox.asset}` : 'no image',
+                    infobox.statisticsDeck ? `deck ${infobox.statisticsDeck.name || 'unselected'}` : infobox.asset ? `image ${infobox.asset}` : 'no image',
                     infobox.facts.map((fact) => fact.label).filter(Boolean).join(', '),
                   ]
                     .filter(Boolean)

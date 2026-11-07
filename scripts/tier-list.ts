@@ -1,5 +1,5 @@
 /** The pure part of scripts/wiki-tier-list.ts: which decks a weekly article lists and how it says it. */
-import { leadOf, plainDecks, reportMoves, type DeckAnswer, type DeckStat, type Family, type Meta } from '@utils/statistics'
+import { leadOf, plainDecks, reportMoves, type DeckAnswer, type DeckStat, type Dropped, type Family, type Meta } from '@utils/statistics'
 
 /**
  * The tier rules a build ran with (`fit.tiers`, from 2026-11-03 on): how far under the leader's expected win rate a deck
@@ -8,8 +8,8 @@ import { leadOf, plainDecks, reportMoves, type DeckAnswer, type DeckStat, type F
  */
 export type TierRules = { t1Gap: number; t2Gap: number; t3Gap: number; minShare: number; minPlayers: number }
 
-/** `decks` come from `listed`: best expected rate first, every one of them tiered. */
-export type Ladder = { label: 'TCG' | 'Genesys'; prefix: 'tcg' | 'genesys'; meta: Meta; rules: TierRules; decks: DeckStat[]; families: Family[]; answers: Map<string, DeckAnswer> }
+/** `decks` come from `listed`: best expected rate first, every one of them tiered. `dropped`: the season's games each filter removed (the `all` band's fit). */
+export type Ladder = { label: 'TCG' | 'Genesys'; prefix: 'tcg' | 'genesys'; meta: Meta; rules: TierRules; decks: DeckStat[]; families: Family[]; answers: Map<string, DeckAnswer>; dropped?: Dropped | null }
 export type Tier = 1 | 1.5 | 2 | 3 | 4
 
 /** Decks in Tier 1 at most: the leader and one more. The server's `T1_SLOTS`. */
@@ -36,6 +36,10 @@ export const listed = (meta: Pick<Meta, 'decks'>) =>
 export const pct = (rate: number | null | undefined, digits = 1) => `${((rate ?? 0) * 100).toFixed(digits)}%`
 /** A gap in rate as points, without trailing zeros: 0.0075 is "0.75", 0.025 is "2.5". */
 export const gapPoints = (gap: number) => String(Number((gap * 100).toFixed(2)))
+/** A floor or cut-off rate as a percentage without trailing zeros: 0.005 is "0.5%". */
+export const ratePct = (rate: number) => `${Number((rate * 100).toFixed(2))}%`
+/** "1 player", "25 players". */
+export const plural = (n: number, word: string) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`
 export const and = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
 /** Without `<` or `>`: the wiki refuses raw HTML, and a setcode name can carry them, as card names do. */
 export const name = (deck: Pick<DeckStat, 'key' | 'name'>) => (deck.name ?? `Archetype ${deck.key.endsWith('*') ? leadOf(deck.key) : deck.key}`).replace(/[<>]/g, '')

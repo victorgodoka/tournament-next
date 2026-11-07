@@ -55,6 +55,11 @@ const blockText = (block: WikiBlock): string => {
       return block.text
     case 'faq':
       return block.items.map((item) => `${item.q} ${plainText(item.md)}`).join(' ')
+    case 'statistics-deck':
+      return `${block.deck.name} ${block.caption ?? ''}`
+    // The card shows the linked article's title and summary, which aren't this article's words.
+    case 'article-preview':
+      return ''
     case 'figure':
     case 'gallery':
     case 'cards':
@@ -71,8 +76,12 @@ export const docWords = (doc: WikiDoc) => countWords([doc.summary, ...doc.blocks
 export const internalLinks = (doc: WikiDoc) => {
   let count = 0
   for (const block of doc.blocks) {
+    if (block.type === 'article-preview') count++
     const texts = block.type === 'text' || block.type === 'callout' ? [block.md] : block.type === 'faq' ? block.items.map((item) => item.md) : []
-    for (const md of texts) count += md.match(/\]\(\/(?!\/)[^)\s]*\)/g)?.length ?? 0
+    for (const md of texts) {
+      count += md.match(/\]\(\/(?!\/)[^)\s]*\)/g)?.length ?? 0
+      count += md.match(/\[article=[a-z0-9]+(?:-[a-z0-9]+)*\]/g)?.length ?? 0
+    }
   }
   return count
 }

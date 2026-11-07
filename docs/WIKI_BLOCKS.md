@@ -12,7 +12,7 @@
 - A página pública renderiza **só** a partir do JSON. Mesmo JSON ⇒ mesma página, pixel a pixel. Não existe estado de layout fora dele.
 - O Markdown não sumiu: ele vive **dentro** dos blocos `text` e `callout`, com as mesmas regras de hoje (sem HTML cru, links só `http(s)` ou caminho interno).
 - Artigos antigos (só `body`) continuam funcionando: `doc: null` ⇒ o front usa o renderer de Markdown de sempre. O `/edit` deles tem um botão que converte para blocos no navegador (§10.1).
-- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `callout`, `quote`, `code`, `video`.
+- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `statistics-deck`, `article-preview`, `callout`, `quote`, `code`, `video`, `faq`. Os dois novos blocos e o atalho `[article=slug]` estão em [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md).
 - O rascunho automático fica no navegador e não exige nada do back (§10.2).
 
 ---

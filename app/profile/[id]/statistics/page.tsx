@@ -47,10 +47,10 @@ const StatisticsRoute = async ({ params, searchParams }: StatisticsRouteProps) =
   const ladderOf = (format?: 'TCG' | 'Genesys'): 'tcg' | 'genesys' => (format === 'Genesys' ? 'genesys' : 'tcg')
   const period = one(q.period) === 'last7' ? 'last7' : 'season'
   const selection: StatisticsSelection = picked
-    ? { season: picked.code, ladder: ladderOf(picked.format), period }
+    ? { season: picked.code, ladder: ladderOf(picked.format), period: picked.open ? period : 'season' }
     : ladderParam === 'tcg' || ladderParam === 'genesys'
       ? { ladder: ladderParam, period }
-      : { season: first?.code, ladder: ladderOf(first?.format), period }
+      : { season: first?.code, ladder: ladderOf(first?.format), period: first && !first.open ? 'season' : period }
 
   return <PlayerStatistics profile={profile} choices={choices} selection={selection} cookie={(await headers()).get('cookie')} />
 }

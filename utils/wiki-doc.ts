@@ -43,6 +43,9 @@ export type CardsAlign = 'left' | 'center' | 'right'
 
 export type WikiCardRef = { id: number; name: string; note?: string }
 
+/** A saved selection: covers stay stable in a dated article; the link opens the current deck statistics. */
+export type WikiStatisticsDeck = { key: string; name: string; ladder: 'tcg' | 'genesys'; faces: number[] }
+
 /** What a code block can be coloured as, in the order the editor lists them. `text` stays plain. */
 export const CODE_LANGUAGES = {
   bash: 'Bash',
@@ -65,6 +68,8 @@ export type WikiBlock =
   | { id: string; type: 'gallery'; layout: GalleryLayout; assets: string[]; caption?: string }
   /** `perRow` 2–6 from 640px (absent = 4; phones show 2). `align` absent = `left`. */
   | { id: string; type: 'cards'; cards: WikiCardRef[]; perRow?: number; align?: CardsAlign; caption?: string }
+  | { id: string; type: 'statistics-deck'; deck: WikiStatisticsDeck; caption?: string }
+  | { id: string; type: 'article-preview'; slug: string }
   | { id: string; type: 'callout'; tone: CalloutTone; title?: string; md: string }
   | { id: string; type: 'quote'; text: string; cite?: string }
   /** Literal text, never Markdown: `<` and backticks are fine here. */
@@ -97,7 +102,7 @@ export type WikiSeo = {
   schema?: WikiSchema
 }
 
-export type WikiInfobox = { asset?: string; caption?: string; facts: { label: string; value: string }[] }
+export type WikiInfobox = { asset?: string; statisticsDeck?: WikiStatisticsDeck; caption?: string; facts: { label: string; value: string }[] }
 
 /** The article's content. The slug is not in here: it is the article's address, not its content. */
 export type WikiDoc = {
@@ -154,6 +159,8 @@ export const BLOCK_CATALOG: { type: WikiBlockType; label: string; hint: string }
   { type: 'figure', label: 'Image', hint: 'Float · wide' },
   { type: 'gallery', label: 'Gallery', hint: '2–24 images' },
   { type: 'cards', label: 'Cards', hint: 'Card links' },
+  { type: 'statistics-deck', label: 'Statistics Deck', hint: 'Deck covers · statistics' },
+  { type: 'article-preview', label: 'Article Preview', hint: 'Wiki article card' },
   { type: 'callout', label: 'Callout', hint: 'Rule · warning' },
   { type: 'quote', label: 'Quote', hint: 'With source' },
   { type: 'code', label: 'Code', hint: 'Coloured by language' },
@@ -175,6 +182,10 @@ export const emptyBlock = (type: WikiBlockType, id: string): WikiBlock => {
       return { id, type, layout: 'grid', assets: [] }
     case 'cards':
       return { id, type, cards: [] }
+    case 'statistics-deck':
+      return { id, type, deck: { key: '', name: '', ladder: 'tcg', faces: [] } }
+    case 'article-preview':
+      return { id, type, slug: '' }
     case 'callout':
       return { id, type, tone: 'gold', md: '' }
     case 'quote':
@@ -353,6 +364,16 @@ export const validateDoc = (doc: WikiDoc): string[] => {
     if (RAW_HTML.test(text)) problems.push(`The ${where} contains raw HTML.`)
   }
 
+  const statisticsDeck = (deck: WikiStatisticsDeck, where: string) => {
+    if (!/^(?:\d+(?:>\d+)*|\d+\*)$/.test(deck.key)) problems.push(`${where} needs a statistics deck selection.`)
+    if (!deck.name.trim()) problems.push(`${where} needs a deck name.`)
+    plain(deck.name, `${where} deck name`, DOC_LIMITS.short)
+    if (!['tcg', 'genesys'].includes(deck.ladder)) problems.push(`${where} needs a ranked ladder.`)
+    if (!Array.isArray(deck.faces) || deck.faces.length > 5 || deck.faces.some((id) => !Number.isInteger(id) || id <= 0 || id > 99_999_999))
+      problems.push(`${where} has invalid cover cards.`)
+    else if (new Set(deck.faces).size !== deck.faces.length) problems.push(`${where} repeats a cover card.`)
+  }
+
   if (!doc.title.trim()) problems.push('Give the article a title.')
   if (doc.title.length > DOC_LIMITS.title) problems.push(`Keep the title under ${DOC_LIMITS.title} characters.`)
   if (doc.summary.length > DOC_LIMITS.summary) problems.push(`Keep the summary under ${DOC_LIMITS.summary} characters.`)
@@ -363,6 +384,8 @@ export const validateDoc = (doc: WikiDoc): string[] => {
   }
   if (doc.cover && !has(doc.cover.asset)) problems.push('The cover image is missing from the library.')
   if (doc.infobox) {
+    if (doc.infobox.statisticsDeck) statisticsDeck(doc.infobox.statisticsDeck, 'The infobox')
+    if (doc.infobox.asset && doc.infobox.statisticsDeck) problems.push('Choose either a library image or a Statistics Deck for the infobox.')
     if (doc.infobox.asset && !has(doc.infobox.asset)) problems.push('The infobox image is missing from the library.')
     if (doc.infobox.facts.length > DOC_LIMITS.facts) problems.push(`The infobox has more than ${DOC_LIMITS.facts} facts.`)
     // A fact's values are its lines, so an empty line is an empty value.
@@ -435,6 +458,13 @@ export const validateDoc = (doc: WikiDoc): string[] => {
         if (!block.cards.length || block.cards.length > DOC_LIMITS.cards) problems.push(`${where} needs 1–${DOC_LIMITS.cards} cards.`)
         if (block.cards.some((card) => !Number.isInteger(card.id) || card.id <= 0 || !card.name.trim()))
           problems.push(`${where} has a card without a passcode or a name.`)
+        return
+      case 'statistics-deck':
+        statisticsDeck(block.deck, where)
+        plain(block.caption, `${where} caption`, DOC_LIMITS.short)
+        return
+      case 'article-preview':
+        if (!isSlug(block.slug)) problems.push(`${where} needs an article slug.`)
         return
       case 'quote':
         if (!block.text.trim()) problems.push(`${where} has no text.`)
@@ -513,6 +543,7 @@ export const renderDocHtml = async (doc: WikiDoc): Promise<DocHtml> => {
   const entries = await Promise.all([
     ...sources.map(([key, md]) => renderArticle(linkCards(md), frames).then((html) => [key, html] as const)),
     ...doc.blocks.flatMap((block) => (block.type === 'code' ? [renderCode(block.code, block.lang).then((html) => [block.id, html] as const)] : [])),
+    ...doc.blocks.flatMap((block) => block.type === 'article-preview' ? [renderArticle(`[article=${block.slug}]`).then((html) => [block.id, html] as const)] : []),
   ])
   return Object.fromEntries([...entries, ...[...frames].map(([id, frame]) => [frameKey(id), frame] as const)])
 }

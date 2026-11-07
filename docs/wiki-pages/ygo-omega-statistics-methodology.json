@@ -1,0 +1,238 @@
+{
+  "slug": "ygo-omega-statistics-methodology",
+  "published": false,
+  "doc": {
+    "v": 1,
+    "title": "YGO Omega Statistics: How We Calculate Deck Strength",
+    "summary": "We rank YGO Omega decks by expected win rate. See how we adjust for opponents, player ratings and turn order, the current settings for TCG and Genesys, and why we replaced the old ranking score.",
+    "tags": [
+      "statistics",
+      "methodology",
+      "deck-rankings",
+      "ygo-omega"
+    ],
+    "cover": {
+      "asset": "cover"
+    },
+    "assets": {
+      "cover": {
+        "id": "cover",
+        "src": "/wiki-images/article-cover.png",
+        "width": 1920,
+        "height": 420,
+        "alt": "YGO Omega article banner",
+        "credit": "Duelists Unite"
+      },
+      "preview": {
+        "id": "preview",
+        "src": "/wiki-images/article-seo-preview.png",
+        "width": 1200,
+        "height": 630,
+        "alt": "YGO Omega statistics methodology article",
+        "credit": "Duelists Unite"
+      }
+    },
+    "infobox": {
+      "facts": [
+        {
+          "label": "Source",
+          "value": "YGO Omega ranked games"
+        },
+        {
+          "label": "Ranking measure",
+          "value": "Expected win rate against the field"
+        },
+        {
+          "label": "Tier reference",
+          "value": "The leading eligible deck"
+        },
+        {
+          "label": "Settings from",
+          "value": "Builds of November 7, 2026"
+        },
+        {
+          "label": "Updated",
+          "value": "November 7, 2026"
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "id": "intro",
+        "type": "text",
+        "md": "Two decks can each win 55% of their games against different opponents and rating gaps. Our YGO Omega statistics estimate each deck’s strength from the games behind that percentage, then calculate its expected win rate against the field with equal player ratings and no first-turn edge. That estimate ranks the decks and sets their tiers. The [settings table](#current-settings) lists every value behind the current TCG and Genesys builds."
+      },
+      {
+        "id": "h-before",
+        "type": "heading",
+        "level": 2,
+        "text": "The old score rewarded larger samples",
+        "anchor": "old-calculation"
+      },
+      {
+        "id": "before",
+        "type": "text",
+        "md": "We used to count wins, losses and draws, rank decks by the lower bound of a Wilson confidence interval, and assign tiers by distance from the leader’s score.\n\nThat lower bound rises as the sample grows. Two decks with the same observed win rate could land in different tiers because one had more games, so a small deck paid a ranking penalty even when its results matched a popular deck.\n\nThe old score also ignored who each deck faced, the rating gap and who went first. Our November 1 review found one more problem: daily results varied more than a calculation built on independent games assumes. Repeat pilots, games within one match and changes over a season make narrow intervals hard to defend."
+      },
+      {
+        "id": "h-comparison",
+        "type": "heading",
+        "level": 2,
+        "text": "The changes at a glance",
+        "anchor": "before-and-now"
+      },
+      {
+        "id": "comparison",
+        "type": "text",
+        "md": "| Measure | Previous calculation | Current calculation |\n|---|---|---|\n| Deck ranking | Wilson lower confidence bound | Expected win rate from fitted deck strength |\n| Opponents, rating and turn order | No joint adjustment in the ranking score | Both deck strengths, the rating gap and who went first |\n| Small samples | A lower confidence bound cut the ranking score | Estimates shrink toward the ladder mean and show their uncertainty |\n| Tiers | Distance from the leader’s Wilson score | Distance from the leader’s expected win rate |\n| Matchup signals | Interval above or below 50% | Adjusted results against the model’s matchup expectation |\n| Weekly strength shifts | Sliding comparisons prone to repeat false signals | Fixed season-week blocks and a 3.5 combined-standard-error threshold |\n| Stored data | Daily aggregated counts | Individual games and registered decklists |"
+      },
+      {
+        "id": "h-model",
+        "type": "heading",
+        "level": 2,
+        "text": "We estimate strength from individual games",
+        "anchor": "current-calculation"
+      },
+      {
+        "id": "model",
+        "type": "text",
+        "md": "For each decisive game, we fit the chance that one side wins from the gap between the two deck strengths, who went first and the players’ rating gap. We use each player’s rating from the day before the game, so a player’s current rank never rewrites older games.\n\nRegularization pulls estimates with little evidence toward the ladder mean, which limits what a short winning streak can do. A deck with 200 games still carries less evidence than one with 20,000, and its interval shows it.\n\nExpected win rate is a deck’s predicted result against the other decks in the field, weighted by meta share, with the rating gap and the first-turn term set to zero. A 55% describes what the model expects under those conditions. It makes no promise about your next 100 games."
+      },
+      {
+        "id": "h-settings",
+        "type": "heading",
+        "level": 2,
+        "text": "Current settings for TCG and Genesys",
+        "anchor": "current-settings"
+      },
+      {
+        "id": "settings",
+        "type": "text",
+        "md": "Staff set these values per format in the statistics panel. The API returns the values each build ran with, and we regenerate this table with the weekly tier lists. These are the builds of November 7, 2026.\n\n| Setting | TCG | Genesys |\n|---|---:|---:|\n| Rating band ranked | Gold+ | Silver+ |\n| Rating cap per player | 3,000 | 3,000 |\n| Ranked games a player needs | 5 | 3 |\n| Games a decklist needs | Off (0) | Off (0) |\n| Deck-games for a row | 30 | 15 |\n| Meta share for a tier | 1% | 0.5% |\n| Different players for a tier | 25 | None |\n| Tier 1 gap for the second deck | 0.5 pts | 0.5 pts |\n| Tier 2 reaches | 3 pts | 3 pts |\n| Tier 3 reaches | 4.5 pts | 4.5 pts |\n\nBoth formats name decks the same way. A deck takes up to 2 archetype names, lead archetype first. A card counts as a staple when it appears in at least 10% of decklists and 50% or more of the lists running it hold no other card of its archetype. Staples never name a deck."
+      },
+      {
+        "id": "h-sample",
+        "type": "heading",
+        "level": 2,
+        "text": "Which games count",
+        "anchor": "sample-and-filters"
+      },
+      {
+        "id": "sample",
+        "type": "text",
+        "md": "Each format builds from its own ranked season. One game is one observation, so a best-of-three match adds up to three. Each side of a match stores one registered decklist. Casual and tournament games stay out.\n\nBefore fitting, we apply four filters. A game that fails one on either side leaves the sample:\n\n- **Player activity.** Both players need 5 ranked games in the TCG season, or 3 games in Genesys.\n- **Decklist activity.** Both decklists need a minimum number of games. Both formats set it to 0 right now, so it removes nothing.\n- **Iron band.** We drop games where the pair averages under Bronze or either player has no rating.\n- **Rating band.** Each game takes the band of its two players’ previous-day ratings, each capped at 3,000 first. The tier lists rank from the format’s floor up: Gold+ in TCG, Silver+ in Genesys. A Gold+ game means the pair averages Gold or higher, so one player can sit below Gold.\n\nAfter the filters, a deck needs 30 deck-games in TCG or 15 in Genesys to get its own estimate and a row. Smaller decks share one pooled estimate, help fit everyone else, and stay off the list."
+      },
+      {
+        "id": "h-counts",
+        "type": "heading",
+        "level": 2,
+        "text": "Raw win rate and meta share still describe the games",
+        "anchor": "raw-win-rate-and-share"
+      },
+      {
+        "id": "counts",
+        "type": "text",
+        "md": "Raw win rate is wins divided by wins, losses and draws. Draws stay in the denominator as zero wins. Games without a result count toward games played and stay out of win rates. The strength fit skips draws.\n\nRaw deck win rates and matchup counts leave out mirror matches, since both sides play the same deck. Mirrors still count toward meta share and help estimate the rating and first-turn effects. Each game adds two deck-games to share, one per side.\n\nWe show a 95% interval next to expected win rate. When a deck’s daily results swing more than sampling noise explains, we widen its interval. That covers the extra variation without treating repeat games or pilots as independent."
+      },
+      {
+        "id": "h-tiers",
+        "type": "heading",
+        "level": 2,
+        "text": "We assign tiers relative to the leader",
+        "anchor": "tier-rules"
+      },
+      {
+        "id": "tiers",
+        "type": "text",
+        "md": "The leader is the deck with the best expected win rate among those that clear the format’s floors. TCG asks for 1% of the meta and 25 different players; Genesys asks for 0.5% of the meta and no player minimum. The leader takes Tier 1. The next deck joins it if it sits within 0.5 points. Tier 1 holds two decks at most; further decks inside that gap take Tier 1.5. Tier 2 reaches 3 points under the leader, Tier 3 reaches 4.5, and Tier 4 takes the remaining eligible decks. A deck under the floors gets no tier and appears apart as untiered.\n\nPopularity decides eligibility and weights the field. It adds nothing to a deck’s strength. Because tiers count from the leader, a leader that moves can shift another deck’s tier while that deck’s own rate holds still.\n\nOur tier-list articles and boards show Tiers 1–3 and the five highest-ranked Tier 4 builds; the live statistics page lists every deck. Reports cover current Tiers 1–3 and can record a promotion from Tier 4."
+      },
+      {
+        "id": "h-matchups",
+        "type": "heading",
+        "level": 2,
+        "text": "We compare matchups with their expected results",
+        "anchor": "matchups-and-cards"
+      },
+      {
+        "id": "matchups",
+        "type": "text",
+        "md": "For each pairing, we calculate an expected result from the deck strengths, rating gaps and turn order of its recorded games. We pull the observed matchup rate toward that expectation, harder when evidence is thin. We flag a deviation when its adjusted interval excludes the expected rate.\n\n“Above expectation” and “above 50%” mean different things. A deck can beat a hard matchup’s expectation and still lose more games than it wins. Read the adjusted rate, interval and sample size together.\n\nFor card analysis, we estimate associations within a deck after accounting for each game’s baseline expectation. An association can’t prove that adding a card caused more wins. Card choices can track pilot skill, other deck changes or the opponents a player expects."
+      },
+      {
+        "id": "h-reports",
+        "type": "heading",
+        "level": 2,
+        "text": "Reports use two comparison periods",
+        "anchor": "report-comparisons"
+      },
+      {
+        "id": "reports",
+        "type": "text",
+        "md": "Tier changes compare an issue with the last saved report snapshot that shares its season, band, aggregate floor, sample filters and tier rules. Snapshots keep Tier 4, so a report can catch a promotion. A snapshot records a generation run; the script can’t confirm publication.\n\nShare changes and flagged strength shifts use the latest two seven-day blocks, counted from the season’s first day. The current block can be incomplete, and the blocks can cover different dates from the gap between published reports. We flag strength shifts beyond 3.5 combined standard errors to limit false signals across repeat comparisons."
+      },
+      {
+        "id": "h-use",
+        "type": "heading",
+        "level": 2,
+        "text": "Use the estimate with its limits",
+        "anchor": "using-the-statistics"
+      },
+      {
+        "id": "use",
+        "type": "text",
+        "md": "We adjust for recorded rating gaps, opponents and turn order. Deck mastery, pilot selection and anything the game log doesn’t record stay in the numbers. Tournament fields can also differ from the ranked ladder.\n\nCheck the interval and game count before you pick a deck, and compare its matchups with the field you expect. The [ranked statistics page](/statistics) has the current samples; the [TCG tier list](/wiki/yu-gi-oh-tcg-tier-list) and [Genesys tier list](/wiki/yu-gi-oh-genesys-tier-list) rank each format."
+      },
+      {
+        "id": "h-faq",
+        "type": "heading",
+        "level": 2,
+        "text": "YGO Omega statistics FAQ",
+        "anchor": "faq"
+      },
+      {
+        "id": "faq",
+        "type": "faq",
+        "items": [
+          {
+            "q": "Why did you change the statistics calculation?",
+            "md": "The Wilson lower bound gave larger samples a ranking edge, and the old score didn’t adjust for opponent decks, rating gaps or turn order. We now fit deck strength from individual games and rank decks by expected win rate against the field."
+          },
+          {
+            "q": "Is expected win rate the same as raw win rate?",
+            "md": "No. Raw win rate is recorded wins divided by wins, losses and draws. Expected win rate estimates a deck’s result against the selected field with equal ratings and the first-turn term set to zero."
+          },
+          {
+            "q": "What are the current tier cut-offs?",
+            "md": "Tier 1 is the leader plus one deck within 0.5 points; further decks within that gap take Tier 1.5. Tier 2 reaches 3 points under the leader and Tier 3 reaches 4.5. To get a tier, a TCG deck needs 1% of the meta and 25 different players; a Genesys deck needs 0.5% of the meta and no player minimum."
+          },
+          {
+            "q": "Why is my deck missing from the tier list?",
+            "md": "A deck needs 30 deck-games in TCG or 15 in Genesys for its own row, and the tier floors above for a tier. The tier lists also show only the five highest Tier 4 builds; the [statistics page](/statistics) lists the rest."
+          },
+          {
+            "q": "Does the model remove player skill from deck performance?",
+            "md": "It adjusts for the recorded rating gap. Deck mastery, specialist pilots and other unrecorded differences can still shape a deck’s estimated strength."
+          }
+        ]
+      }
+    ],
+    "seo": {
+      "title": "YGO Omega Statistics: Deck Strength and Tiers",
+      "description": "How YGO Omega statistics work: expected win rate, tier cut-offs, sample filters and matchup adjustments, with the current TCG and Genesys settings.",
+      "keyword": "YGO Omega statistics",
+      "keywords": [
+        "expected win rate",
+        "deck strength",
+        "Yu-Gi-Oh tier methodology"
+      ],
+      "image": "preview",
+      "schema": "Article"
+    },
+    "hub": "ygo-omega-wiki",
+    "related": [
+      "yu-gi-oh-tcg-tier-list",
+      "yu-gi-oh-genesys-tier-list",
+      "yu-gi-oh-formats"
+    ]
+  }
+}

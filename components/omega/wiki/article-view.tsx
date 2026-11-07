@@ -8,6 +8,18 @@ import { headingNumbers, WikiBlocks } from './blocks'
 import { articleShareUrl } from './share'
 import { Toc, TocDisclosure, type TocItem } from './toc'
 import { WIKI_ASIDE, WIKI_CARD, WIKI_RAIL, WIKI_SCROLL_ROW, WIKI_TILE } from './wiki'
+import { StatisticsDeckArt } from './statistics-deck'
+import { statisticsDeckHref } from '@utils/wiki-statistics-deck'
+
+/** The infobox's deck covers open the deck's statistics, as the Statistics Deck block does. */
+const InfoboxDeck = ({ deck }: { deck: NonNullable<WikiInfobox['statisticsDeck']> }) =>
+  deck.key ? (
+    <a href={statisticsDeckHref(deck)} aria-label={`${deck.name} statistics`} className="block hover:opacity-90">
+      <StatisticsDeckArt deck={deck} />
+    </a>
+  ) : (
+    <StatisticsDeckArt deck={deck} />
+  )
 
 type ArticleViewProps = {
   doc: WikiDoc
@@ -54,17 +66,11 @@ const FactValue = ({ value }: { value: string }) =>
 const Infobox = ({ title, infobox, asset }: { title: string; infobox: WikiInfobox; asset?: WikiAsset }) => (
   <div className={twMerge(WIKI_CARD, 'flex flex-col')}>
     <span className="px-5 pt-4 text-ink-muted signal">{title}</span>
-    {asset ? (
+    {infobox.statisticsDeck || asset ? (
       <figure className="flex flex-col gap-2 px-5 pt-3 pb-4">
-        <Image
-          {...imageSource(asset, 700)}
-          alt={asset.alt}
-          width={asset.width}
-          height={asset.height}
-          sizes="240px"
-          style={{ objectPosition: focal(asset) }}
-          className="aspect-[4/5] w-full object-cover"
-        />
+        {infobox.statisticsDeck ? <InfoboxDeck deck={infobox.statisticsDeck} /> : asset ? (
+          <Image {...imageSource(asset, 700)} alt={asset.alt} width={asset.width} height={asset.height} sizes="240px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
+        ) : null}
         {infobox.caption ? <figcaption className="text-ink-dim body-sm">{infobox.caption}</figcaption> : null}
       </figure>
     ) : (
@@ -85,17 +91,9 @@ const Infobox = ({ title, infobox, asset }: { title: string; infobox: WikiInfobo
 
 /** The infobox over the article on a phone: art beside the facts. */
 const CompactInfobox = ({ infobox, asset }: { infobox: WikiInfobox; asset?: WikiAsset }) => (
-  <div className={twMerge(WIKI_CARD, 'grid gap-3.5 p-3.5', asset && 'grid-cols-[112px_minmax(0,1fr)]')}>
-    {asset ? (
-      <Image
-        {...imageSource(asset, 320)}
-        alt={asset.alt}
-        width={asset.width}
-        height={asset.height}
-        sizes="112px"
-        style={{ objectPosition: focal(asset) }}
-        className="aspect-[4/5] w-full object-cover"
-      />
+  <div className={twMerge(WIKI_CARD, 'grid gap-3.5 p-3.5', (infobox.statisticsDeck || asset) && 'grid-cols-[112px_minmax(0,1fr)]')}>
+    {infobox.statisticsDeck ? <InfoboxDeck deck={infobox.statisticsDeck} /> : asset ? (
+      <Image {...imageSource(asset, 320)} alt={asset.alt} width={asset.width} height={asset.height} sizes="112px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
     ) : null}
     <dl className="flex min-w-0 flex-col">
       {infobox.facts.map(({ label, value }) => (

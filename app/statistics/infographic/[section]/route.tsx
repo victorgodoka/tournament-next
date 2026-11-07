@@ -120,7 +120,7 @@ const points = (delta: number) => `${delta >= 0 ? '+' : '−'}${Math.abs(delta *
 type Mover = { a: DeckStat; build: DeckStat | null; delta: number }
 
 const MoverRow = ({ m: { a, build, delta }, src, subSrc, t }: { m: Mover; src?: string; subSrc?: string; t: T }) => (
-  <div style={{ ...row, gap: 16 }}>
+  <div style={{ ...row, gap: 16, flexShrink: 0 }}>
     <Art src={src} subSrc={subSrc} size={64} />
     <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
       <div style={{ display: 'flex', fontSize: 23, fontWeight: 700, flexWrap: 'wrap' }}>{nameOf(a, t)}</div>
@@ -146,15 +146,15 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
   const art = (a: DeckStat) => arts.get(faces.get(lead.get(a.key)!.key) ?? -1)
   const secondary = (a: DeckStat) => arts.get(subFace(lead.get(a.key)!.key, Object.fromEntries(faces)) ?? -1)
   const list = (n: string, title: string, movers: Mover[]) => (
-    <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
-      <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
+    <Panel n={n} title={title} style={{ ...(wide ? { flex: 1, flexBasis: 0 } : {}), minWidth: 0 }}>
+      <div style={{ ...col, gap: 16 }}>
         {movers.length ? movers.map((m) => <MoverRow key={m.a.key} m={m} src={art(m.a)} subSrc={secondary(m.a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}
       </div>
     </Panel>
   )
   return (
     <div style={{ ...col, flex: 1, gap: 16 }}>
-      <div style={{ ...(wide ? row : col), flex: 1, alignItems: 'stretch', gap: 20 }}>
+      <div style={{ ...(wide ? row : col), ...(wide ? { flex: 1 } : { flexShrink: 0 }), alignItems: 'stretch', gap: 20 }}>
         {hero ? (
           <Panel n="01" title={t('fastestRiser')} style={wide ? { width: 460 } : undefined}>
             <div style={{ ...(wide ? col : row), alignItems: 'stretch', gap: 18 }}>

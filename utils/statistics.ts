@@ -57,7 +57,13 @@ export type Fit = {
   builtAt: string; dropped: Dropped | null; aggregateFloor: string
   /** `null` from a build before 2026-11-03, absent from an older server. */
   tiers?: TierRules | null
+  /** The sample filters the build ran with; absent from an older server. */
+  filters?: BuildFilters
 }
+/** Games per duelist, per decklist and per deck key a build needs (0 turns one off), and the rating cap. */
+export type BuildFilters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: string }
+/** Names a deck can hold and the staple cut-offs, as set when the answer was read. */
+export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
 
 export type DeckStat = {
   /** `''` unknown, `A`, `A>B` (A leads) or `A*` (every key A leads, summed). Use it as the id; `name` is only the label. */
@@ -141,7 +147,7 @@ export type CardStat = {
 /** `winRate`: the deck's in the games the card showed up; `winRateWithout`: in the rest (absent from an older server). */
 export type AgainstCard = { id: number; name: string | null; games: number; rate: number; winRate: number | null; winRateWithout?: number | null }
 
-export type Meta = { season: Season; window: Window; band: string; bands: { band: string; games: number }[]; fit: Fit; decks: DeckStat[]; weeks: Week[] }
+export type Meta = { season: Season; window: Window; band: string; bands: { band: string; games: number }[]; fit: Fit; decks: DeckStat[]; weeks: Week[]; classification?: Classification }
 export type DeckAnswer = { deck: DeckStat; matchups: Matchup[]; cards: CardStat[]; weeks: Week[]; byBand: (DeckStat & { band: string })[]; against: AgainstCard[]; sampleDeck: SampleDeck | null }
 export type CardAnswer = { card: { id: number; name: string | null; extra: boolean }; all: CardStat; byDeck: CardStat[] }
 
