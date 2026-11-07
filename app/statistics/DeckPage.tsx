@@ -8,13 +8,13 @@ import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { Button } from '@ui/button'
-import { BANDS, CORE_RATE, deckHref, effectPoints, matchupCall, MIN_MATCHUP_GAMES, statisticsHref, underFloors, type CardStat, type DeckAnswer, type DeckStat, type Matchup, type Scope, type Season, type TierRules } from '@utils/statistics'
+import { BANDS, CORE_RATE, deckHref, effectPoints, leadOf, matchupCall, MIN_MATCHUP_GAMES, statisticsHref, underFloors, type CardStat, type DeckAnswer, type DeckStat, type Matchup, type Scope, type Season, type TierRules } from '@utils/statistics'
 import { cardsByIds } from '@utils/cards'
 import { toOmega } from '@utils/deck/codecs/omega'
 import type { WikiCard } from '@utils/wiki'
 import { Pickers } from './Pickers'
 import { SectionTabs } from './SectionTabs'
-import { Art, at, Box, ci, CopyButton, DECK_NAME, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, signed, Small, span, TH, TierChip, tone, Track, WIDE, type Read } from './kit'
+import { Art, at, Box, ci, CopyButton, DECK_NAME, frameColor, subFace, type Faces, GoldDot, HEAD_ROW, LINK_BTN, LocalTime, mark, n, NARROW, NUMERIC, pc, PanelTitle, ReadChip, ROW, ROWS, SectionHead, Seg, signed, Small, span, TH, TierChip, tone, Track, WIDE, type Read } from './kit'
 import { nameOf } from './shared'
 
 export type CardInfo = Pick<WikiCard, 'name' | 'kind' | 'monsterTypes'>
@@ -143,6 +143,8 @@ export const DeckPage = ({ answer, season, scope, cards: serverCards, family, bu
         tabs={[
           { id: 'strength', label: t('tabs.strength'), panel: <Strength answer={answer} season={season} scope={scope} bands={bands} versions={versions} tiers={tiers} /> },
           { id: 'matchups', label: t('tabs.matchups'), panel: <Matchups name={name} matchups={answer.matchups} scope={scope} faces={faces} /> },
+          // only the lead's own page (`A`, not `A>B`) lists every version
+          ...(versions && !deck.key.includes('>') ? [{ id: 'versions', label: t('tabs.versions'), panel: <VersionsTable deck={deck} versions={versions} scope={scope} tiers={tiers} faces={faces} /> }] : []),
           { id: 'build', label: t('tabs.build'), panel: <Build name={name} cards={answer.cards} info={cards} cardName={cardName} /> },
         ]}
       />
@@ -388,12 +390,17 @@ const ByBand = ({ rows, tiers }: { rows: Band[]; tiers: TierRules | null }) => {
   )
 }
 
+const VER_COLS = 'minmax(240px, 1.6fr) 80px minmax(180px, 1fr) 72px 80px 80px minmax(110px, max-content)'
+
 /** Other builds of the same lead: the two most played, then this one. */
 const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; versions: Family; scope: Scope; tiers: TierRules | null; narrow?: boolean }) => {
   const t = useTranslations('Statistics.deck.versions')
   const others = versions.members.filter((m) => m.key !== deck.key).slice(0, 2)
   const self = versions.members.find((m) => m.key === deck.key) ?? deck
   const note = (m: DeckStat) => (underFloors(m, tiers) ? t('tooRare') : t('noTier'))
+  const lead = leadOf(deck.key)
+  const leadPage = versions.members.some((m) => m.key === lead)
+  const all = t('all', { count: versions.members.length })
   return (
     <Box className={narrow ? 'gap-2.5 px-4 py-5' : 'gap-3 p-6'}>
       <PanelTitle>{t('title')}</PanelTitle>
@@ -410,8 +417,77 @@ const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; ve
           <span>{m.tier !== null ? <TierChip tier={m.tier} size="sm" /> : <span className="text-ink-muted signal-sm">{note(m)}</span>}</span>
         </Link>
       ))}
-      <Link href={`${statisticsHref(scope)}#face`} className={twMerge(LINK_BTN, !narrow && 'min-h-9')}>{t('all', { count: versions.members.length })}</Link>
+      {lead === deck.key ? (
+        // same page: a plain anchor fires hashchange, which the section tabs listen to
+        <a href="#versions" className={twMerge(LINK_BTN, !narrow && 'min-h-9')}>{all}</a>
+      ) : (
+        <Link href={leadPage ? `${deckHref(lead, scope)}#versions` : `${statisticsHref(scope)}#face`} className={twMerge(LINK_BTN, !narrow && 'min-h-9')}>{all}</Link>
+      )}
     </Box>
+  )
+}
+
+/** Every version of the lead side by side, most played first; only on the lead's own page. */
+const VersionsTable = ({ deck, versions, scope, tiers, faces }: { deck: DeckStat; versions: Family; scope: Scope; tiers: TierRules | null; faces: Faces }) => {
+  const t = useTranslations('Statistics.deck.versions')
+  const rows = versions.members
+  const lo = Math.floor(Math.min(0.5, ...rows.map((m) => m.wrLo)) * 10) / 10
+  const hi = Math.ceil(Math.max(0.5, ...rows.map((m) => m.wrHi)) * 10) / 10
+  const note = (m: DeckStat) => <span className="text-ink-muted signal-sm">{underFloors(m, tiers) ? t('tooRare') : t('noTier')}</span>
+  const label = (m: DeckStat) => (m.key === deck.key ? t('thisPage', { name: nameOf(m) }) : nameOf(m))
+  const link = (m: DeckStat) => (
+    <Link href={deckHref(m.key, scope)} aria-current={m.key === deck.key ? 'page' : undefined} className={twMerge(DECK_NAME, 'font-bold hover:text-cyan', m.key === deck.key ? 'text-ink-muted' : 'text-ink')}>{label(m)}</Link>
+  )
+  return (
+    <>
+      <SectionHead title={t('tableTitle')} lede={<span className={WIDE}>{t('tableLede', { name: versions.name })}</span>} stamp={t('all', { count: rows.length })} />
+      <Box className="pt-1 max-[719px]:pt-0.5">
+        <div className={twMerge('overflow-x-auto', WIDE)}>
+          <div role="table" aria-label={t('tableTitle')} className={twMerge(ROWS, 'min-w-[900px]')}>
+            <div role="row" className={HEAD_ROW} style={{ gridTemplateColumns: VER_COLS }}>
+              <span role="columnheader" className={twMerge(TH, 'pl-6')}>{t('cols.deck')}</span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.expected')}</span>
+              <span role="columnheader" aria-label={t('axis', { lo: Math.round(lo * 100), hi: Math.round(hi * 100) })} className="relative mx-5 block h-11">
+                <span className="absolute top-4 left-0 text-ink-muted signal-sm">{Math.round(lo * 100)}</span>
+                <span className="absolute top-4 -translate-x-1/2 text-ink-muted signal-sm" style={{ left: at(0.5, lo, hi) }}>50</span>
+                <span className="absolute top-4 right-0 text-ink-muted signal-sm">{Math.round(hi * 100)}%</span>
+              </span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.share')}</span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.games')}</span>
+              <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.players')}</span>
+              <span role="columnheader" className={twMerge(TH, 'pr-6 pl-4')}>{t('cols.tier')}</span>
+            </div>
+            {rows.map((m) => (
+              <div key={m.key} role="row" className={twMerge(ROW, 'min-h-16')} style={{ gridTemplateColumns: VER_COLS }}>
+                <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.face ?? faces[m.key]} sub={subFace(m.key, faces)} name={nameOf(m)} size={52} />{link(m)}</span>
+                <span role="cell" className={twMerge(NUMERIC, 'font-bold text-ink')}>{pc(m.wrExpected)}</span>
+                <span role="cell" className="mx-5"><Track value={m.wrExpected} low={m.wrLo} high={m.wrHi} lo={lo} hi={hi} h={46} /></span>
+                <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(m.share)}</span>
+                <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
+                <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.players)}</span>
+                <span role="cell" className="pr-6 pl-4">{m.tier !== null ? <TierChip tier={m.tier} /> : note(m)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div role="list" aria-label={t('tableTitle')} className={twMerge(ROWS, NARROW)}>
+          {rows.map((m) => (
+            <div key={m.key} role="listitem" className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 bg-surface-100 px-4 py-3.5">
+              <Art id={m.face ?? faces[m.key]} sub={subFace(m.key, faces)} name={nameOf(m)} size={52} />
+              <span className="flex min-w-0 flex-col">
+                {link(m)}
+                <Small>{t('row', { share: pc(m.share), games: n(m.games), players: n(m.players) })}</Small>
+              </span>
+              <span className="flex flex-col items-end gap-1">
+                <span className="font-bold text-ink tabular-nums">{pc(m.wrExpected)}</span>
+                {m.tier !== null ? <TierChip tier={m.tier} size="sm" /> : note(m)}
+              </span>
+              <span className="col-[2/4]"><Track value={m.wrExpected} low={m.wrLo} high={m.wrHi} lo={lo} hi={hi} h={14} /></span>
+            </div>
+          ))}
+        </div>
+      </Box>
+    </>
   )
 }
 
@@ -569,6 +645,16 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
 
 const FLEX_COLS = 'minmax(220px, 1.4fr) 72px 64px 72px minmax(200px, 1.4fr)'
 const ER = 25
+const FLEX_TABS = ['main', 'extra', 'spell', 'trap'] as const
+type FlexTab = (typeof FLEX_TABS)[number]
+
+/** A 40px art with the card's frame color along its bottom edge. */
+const CardThumb = ({ c, info, name }: { c: CardStat; info?: CardInfo; name: string }) => (
+  <span className="relative block size-10 flex-none">
+    <Art id={c.card} name={name} size={40} />
+    <span aria-hidden className="absolute bottom-0 left-0 h-0.75 w-10" style={{ background: frameColor(info) }} />
+  </span>
+)
 
 const Tile = ({ c, info, name }: { c: CardStat; info?: CardInfo; name: string }) => {
   const t = useTranslations('Statistics.deck.build')
@@ -604,6 +690,7 @@ const Tile = ({ c, info, name }: { c: CardStat; info?: CardInfo; name: string })
 
 const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[]; info: Record<number, CardInfo>; cardName: (id: number) => string }) => {
   const t = useTranslations('Statistics.deck.build')
+  const [flexTab, setFlexTab] = useState<FlexTab>('main')
   if (!cards.length) {
     return (
       <>
@@ -615,7 +702,12 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
   const core = cards.filter((c) => c.inclusion >= CORE_RATE)
   const coreMain = core.filter((c) => !c.extra)
   const coreExtra = core.filter((c) => c.extra)
-  const flex = cards.filter((c) => c.inclusion < CORE_RATE).sort((a, b) => b.inclusion - a.inclusion)
+  const allFlex = cards.filter((c) => c.inclusion < CORE_RATE).sort((a, b) => b.inclusion - a.inclusion)
+  // cards whose kind hasn't landed yet sit under Main until it does
+  const tabOf = (c: CardStat): FlexTab => (c.extra ? 'extra' : info[c.card]?.kind === 'spell' ? 'spell' : info[c.card]?.kind === 'trap' ? 'trap' : 'main')
+  const flexTabs = FLEX_TABS.map((id) => ({ id, list: allFlex.filter((c) => tabOf(c) === id) })).filter((g) => g.list.length)
+  const openTab = flexTabs.find((g) => g.id === flexTab) ?? flexTabs[0]
+  const flex = openTab?.list ?? []
   const side = cards.filter((c) => c.sideRate > 0).sort((a, b) => b.sideRate - a.sideRate).slice(0, 7)
   const sideMax = Math.max(...side.map((c) => c.sideRate), 0.01)
   const top = cards.reduce((a, b) => (b.inclusion > a.inclusion ? b : a))
@@ -680,6 +772,11 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
             <div className="flex flex-col gap-1 px-6 pb-4 max-[719px]:px-4 max-[719px]:pb-3">
               <PanelTitle>{t('flex')}</PanelTitle>
               <p className="m-0 text-[13px] leading-5 text-ink-dim max-[719px]:text-xs max-[719px]:leading-4 max-[719px]:font-medium max-[719px]:text-ink-muted"><span className={WIDE}>{t('flexLede', { name })}</span><span className={NARROW}>{t('flexLedeShort')}</span></p>
+              <div role="group" aria-label={t('flexAria')} className="mt-2.5 flex flex-wrap gap-2">
+                {flexTabs.map((g) => (
+                  <Seg key={g.id} pressed={g.id === openTab?.id} onClick={() => setFlexTab(g.id)}>{t(`flexTabs.${g.id}`, { count: g.list.length })}</Seg>
+                ))}
+              </div>
             </div>
             <div className={twMerge('overflow-x-auto', WIDE)}>
               <div role="table" aria-label={t('flexAria')} className={twMerge(ROWS, 'min-w-[680px] border-t border-line')}>
@@ -697,9 +794,9 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
                 {flex.map((c) => {
                   const x = effectOf(c)
                   return (
-                    <div key={c.card} role="row" className={twMerge(ROW, 'min-h-12')} style={{ gridTemplateColumns: FLEX_COLS }}>
+                    <div key={c.card} role="row" className={twMerge(ROW, 'min-h-14')} style={{ gridTemplateColumns: FLEX_COLS }}>
                       <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
-                        <span aria-hidden className="h-6 w-1 flex-none" style={{ background: frameColor(info[c.card]) }} />
+                        <CardThumb c={c} info={info[c.card]} name={cardName(c.card)} />
                         <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
                       </span>
                       <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(c.inclusion)}</span>
@@ -718,8 +815,8 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
               {flex.map((c) => {
                 const x = effectOf(c)
                 return (
-                  <div key={c.card} role="listitem" className="grid grid-cols-[4px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
-                    <span aria-hidden className="row-span-2 h-7.5 self-start" style={{ background: frameColor(info[c.card]) }} />
+                  <div key={c.card} role="listitem" className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 bg-surface-100 px-4 py-3">
+                    <span className="row-span-2 self-start"><CardThumb c={c} info={info[c.card]} name={cardName(c.card)} /></span>
                     <span className="flex min-w-0 flex-col">
                       <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
                       <Small>{t('flexRow', { inc: pc(c.inclusion), copies: c.copies == null ? '–' : c.copies.toFixed(1), played: pc(c.playRate) })}</Small>
@@ -740,14 +837,17 @@ const Build = ({ name, cards, info, cardName }: { name: string; cards: CardStat[
               <p className="m-0 text-[13px] leading-5 text-ink-dim max-[719px]:text-xs max-[719px]:leading-4 max-[719px]:font-medium max-[719px]:text-ink-muted"><span className={WIDE}>{t('sideLede')}</span><span className={NARROW}>{t('sideLedeShort')}</span></p>
             </div>
             {side.map((c) => (
-              <div key={c.card} className="flex flex-col gap-1.5 border-t border-line pt-2.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
-                  <span className="font-bold text-ink tabular-nums">{pc(c.sideRate)}</span>
+              <div key={c.card} className="flex items-center gap-3 border-t border-line pt-2.5">
+                <CardThumb c={c} info={info[c.card]} name={cardName(c.card)} />
+                <div className="flex min-w-0 flex-auto flex-col gap-1.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <Link href={`/wiki/card/${c.card}`} className="truncate font-bold text-ink hover:text-cyan">{cardName(c.card)}</Link>
+                    <span className="font-bold text-ink tabular-nums">{pc(c.sideRate)}</span>
+                  </div>
+                  <span aria-hidden className="relative block h-1 bg-surface-200">
+                    <span className="absolute top-0 bottom-0 left-0 rounded-r-xs bg-series-3" style={{ width: `${(c.sideRate / sideMax) * 100}%` }} />
+                  </span>
                 </div>
-                <span aria-hidden className="relative block h-1 bg-surface-200">
-                  <span className="absolute top-0 bottom-0 left-0 rounded-r-xs bg-series-3" style={{ width: `${(c.sideRate / sideMax) * 100}%` }} />
-                </span>
               </div>
             ))}
           </Box>

@@ -2231,7 +2231,7 @@
       "publicDecks": "Public {name} decks",
       "versionOf": "{index} of {count} versions",
       "tabsAria": "Sections",
-      "tabs": { "strength": "Strength", "matchups": "Matchups", "build": "Build" },
+      "tabs": { "strength": "Strength", "matchups": "Matchups", "versions": "Versions", "build": "Build" },
       "stats": {
         "aria": "Summary",
         "expected": "Expected win chance",
@@ -2292,7 +2292,12 @@
         "noTier": "No tier",
         "thisPage": "{name} (this page)",
         "meta": "{share} of the meta · {players} duelists",
-        "all": "All {count} versions"
+        "all": "All {count} versions",
+        "tableTitle": "Every version",
+        "tableLede": "Each {name} build the season has, most played first.",
+        "axis": "Expected win chance, {lo} to {hi} percent",
+        "row": "{share} of the meta · {games} games · {players} duelists",
+        "cols": { "deck": "Version", "expected": "Expected", "share": "Meta", "games": "Games", "players": "Duelists", "tier": "Tier" }
       },
       "matchups": {
         "title": "Who does it beat?",
@@ -2334,6 +2339,7 @@
         "flexLede": "Cards in some lists and not others. Effect is how much more or less {name} lists with the card win than lists without it: an association, not proof the card is the reason. Color only when the interval clears zero.",
         "flexLedeShort": "Effect: how much more or less lists with the card win. An association, not proof. Color only when the interval clears zero.",
         "flexAria": "Flex cards",
+        "flexTabs": { "main": "Main · {count}", "extra": "Extra · {count}", "spell": "Spell · {count}", "trap": "Trap · {count}" },
         "cols": { "card": "Card", "inLists": "In lists", "copies": "Copies", "played": "Played" },
         "effectAxis": "Effect, minus {r} to plus {r} points",
         "effectEnd": "+{r} pts",

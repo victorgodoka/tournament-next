@@ -2230,7 +2230,7 @@
       "publicDecks": "Decks públicos de {name}",
       "versionOf": "{index} de {count} versões",
       "tabsAria": "Seções",
-      "tabs": { "strength": "Força", "matchups": "Matchups", "build": "Montagem" },
+      "tabs": { "strength": "Força", "matchups": "Matchups", "versions": "Versões", "build": "Montagem" },
       "stats": {
         "aria": "Resumo",
         "expected": "Chance de vitória esperada",
@@ -2291,7 +2291,12 @@
         "noTier": "Sem tier",
         "thisPage": "{name} (esta página)",
         "meta": "{share} do meta · {players} duelistas",
-        "all": "Todas as {count} versões"
+        "all": "Todas as {count} versões",
+        "tableTitle": "Todas as versões",
+        "tableLede": "Cada build de {name} na temporada, da mais jogada à menos.",
+        "axis": "Chance de vitória esperada, de {lo} a {hi} por cento",
+        "row": "{share} do meta · {games} games · {players} duelistas",
+        "cols": { "deck": "Versão", "expected": "Esperado", "share": "Meta", "games": "Games", "players": "Duelistas", "tier": "Tier" }
       },
       "matchups": {
         "title": "Contra quem ele vence?",
@@ -2333,6 +2338,7 @@
         "flexLede": "Cartas que estão em algumas listas e em outras não. Efeito é quanto as listas de {name} com a carta vencem a mais ou a menos que as listas sem ela: uma associação, não prova de que a carta é o motivo. Cor só quando o intervalo passa do zero.",
         "flexLedeShort": "Efeito: quanto as listas com a carta vencem a mais ou a menos. Associação, não prova. Cor só quando o intervalo passa do zero.",
         "flexAria": "Cartas flex",
+        "flexTabs": { "main": "Main · {count}", "extra": "Extra · {count}", "spell": "Magia · {count}", "trap": "Armadilha · {count}" },
         "cols": { "card": "Carta", "inLists": "Nas listas", "copies": "Cópias", "played": "Jogada" },
         "effectAxis": "Efeito, de menos {r} a mais {r} pontos",
         "effectEnd": "+{r} pts",
