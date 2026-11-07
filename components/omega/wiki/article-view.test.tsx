@@ -2,6 +2,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { emptyDoc } from '@utils/wiki-doc'
+import { SITE_URL } from '@utils/config'
 import { ArticleView } from './article-view'
 
 vi.mock('next/image', () => ({ default: () => null }))
@@ -11,6 +12,23 @@ afterEach(cleanup)
 const doc = { ...emptyDoc(), title: 'Fire King' }
 
 describe('ArticleView', () => {
+  it('updates figure sharing after a slug change despite a stale SEO canonical', () => {
+    const illustrated = {
+      ...doc,
+      seo: { canonical: '/wiki/old-title' },
+      assets: { art: { id: 'art', src: '/art.jpg', width: 624, height: 624, alt: 'Dragon artwork' } },
+      blocks: [{ id: 'dragon', type: 'figure', asset: 'art', align: 'wide', share: true }],
+    } as typeof doc
+    const { container, rerender } = render(<ArticleView doc={illustrated} slug="old-title" html={{}} />)
+    const sharedUrls = () => Array.from(container.querySelectorAll('a[aria-label^="Share on"]'), (link) => decodeURIComponent(link.getAttribute('href')!))
+    expect(sharedUrls()).toHaveLength(4)
+    expect(sharedUrls().every((url) => url.includes(`${SITE_URL}/wiki/old-title#figure-dragon`))).toBe(true)
+
+    rerender(<ArticleView doc={illustrated} slug="new-title" html={{}} />)
+    expect(sharedUrls().every((url) => url.includes(`${SITE_URL}/wiki/new-title#figure-dragon`))).toBe(true)
+    expect(sharedUrls().some((url) => url.includes('/wiki/old-title'))).toBe(false)
+  })
+
   it('puts the lead right after the opening paragraph, in the article the bodyId names', () => {
     const opening = { ...doc, blocks: [{ id: 'one', type: 'text', md: 'x' }, { id: 'two', type: 'text', md: 'y' }] } as typeof doc
     const { container } = render(

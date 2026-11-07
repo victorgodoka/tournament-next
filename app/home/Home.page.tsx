@@ -119,7 +119,7 @@ const CardFan = ({ cards = [] }: { cards?: Card[] }) => (
 )
 
 const LiveCardFan = async ({ ranked }: { ranked: Ranked }) => {
-  const cards = (await ranked)?.[0]?.topCards
+  const cards = ((await ranked) ?? []).flatMap(({ topCards, name }) => topCards.map((card) => ({ ...card, name }))).slice(0, 3)
   return <CardFan cards={cards?.length === 3 ? cards : HERO_FALLBACK} />
 }
 
@@ -457,9 +457,9 @@ const Tools = () => (
       <div className="flex flex-col gap-4">
         <BuilderPreview />
         <ul className="flex flex-col gap-px border border-line bg-line">
-          {HOME_TOOLS.map(({ title, text }) => (
+          {HOME_TOOLS.map(({ title, text, to }) => (
             <li key={title}>
-              <a href={DECK_BUILDER_URL} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 bg-surface-100 px-5.5 py-5 text-ink hover:bg-surface-300">
+              <a href={to} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 bg-surface-100 px-5.5 py-5 text-ink hover:bg-surface-300">
                 <span className="flex flex-col gap-1">
                   <b className="text-[17px] leading-6">{title}</b>
                   <span className="text-sm leading-normal text-ink-dim">{text}</span>

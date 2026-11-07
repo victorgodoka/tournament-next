@@ -27,8 +27,8 @@ type ArticleListProps = {
   empty: { title: string; note: string; clear?: boolean }
   num: string
   heading: string
-  /** Everything readable, for "Showing x of y". */
-  total: number
+  /** Matching count when known; filtered API pages do not expose their total. */
+  total?: number
   topics: ListOption[]
   sorts: ListOption[]
   /** The Filters form, and whether an active filter keeps it open. */
@@ -89,7 +89,7 @@ export const ArticleList = ({ first, query, empty, num, heading, total, topics, 
         end={
           <span className="flex items-center gap-2.5 sm:gap-3">
             <span className="max-sm:hidden">
-              Showing {articles.length} of {Math.max(total, articles.length)}
+              Showing {articles.length}{total === undefined ? ' articles' : ` of ${Math.max(total, articles.length)}`}
             </span>
             <SortSelect sorts={sorts} />
             <button

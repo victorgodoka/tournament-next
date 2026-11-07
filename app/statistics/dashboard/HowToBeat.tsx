@@ -72,7 +72,7 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
     <>
       <SectionHead title={t('title')} lede={<><span className={WIDE}>{t('lede')}</span><span className={NARROW}>{t('ledeShort')}</span></>} />
 
-      <Box className={twMerge('flex-row flex-wrap items-end gap-x-8 gap-y-5 px-6 py-5', WIDE)}>
+      <Box className={twMerge('flex-row flex-wrap items-end gap-x-8 gap-y-5 px-6 py-5 focus-within:z-10', WIDE)}>
         <Art id={face} sub={subFace(key, faces)} name={name} size={80} className="self-end" />
         <div className="flex max-w-105 flex-[1_1_300px] flex-col gap-2">
           <Label htmlFor="f-deck">{t('deck')}</Label>
@@ -88,7 +88,7 @@ export const HowToBeat = ({ meta, scope }: { meta: Meta; scope: Scope }) => {
         </div>
         <Button variant="secondary" size="signal" href={deckHref(key, scope)} className="ml-auto px-5">{t('open')}</Button>
       </Box>
-      <Box className={twMerge('gap-3.5 p-4', NARROW)}>
+      <Box className={twMerge('gap-3.5 p-4 focus-within:z-10', NARROW)}>
         <div className="flex items-end gap-3">
           <Art id={face} sub={subFace(key, faces)} name={name} size={64} />
           <div className="flex min-w-0 flex-auto flex-col gap-2">

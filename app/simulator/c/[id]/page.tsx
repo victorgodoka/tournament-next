@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { Breadcrumbs } from '@ui/breadcrumbs'
 import { API_URL } from '@utils/auth'
 import type { SharedCombo } from '@utils/combos'
 import { metaDescription, pageMetadata } from '@utils/metadata'
@@ -28,11 +29,13 @@ export async function generateMetadata({ params }: Props) {
 
 const ComboPlayerPage = async ({ params }: Props) => {
   const { id } = await params
+  const t = await getTranslations('Simulator')
   return (
     <>
       <Header />
       {/* As the simulator's page: clipped sideways at the viewport edge, for a card sliding in from a pile. */}
       <main data-clear-gutters className="min-h-dvh overflow-x-clip pt-16">
+        <Breadcrumbs className="mx-auto w-[min(var(--container-page),calc(100%-32px))] py-4" items={[{ label: 'Home', href: '/' }, { label: t('browse.title'), href: '/simulator/combos' }, { label: t('title') }]} />
         <ComboPlayerLoader id={id} />
         <AdBanner id="ad-bottom" placement="content" className="mx-auto mb-12 w-[min(var(--container-page),calc(100%-32px))]" />
       </main>

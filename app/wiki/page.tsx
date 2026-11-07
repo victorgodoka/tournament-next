@@ -8,7 +8,7 @@ import { WikiSearch } from '@omega/wiki/wiki-search'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
 import { buttonClasses } from '@ui/button'
-import { can, listArticles, listAuthors, type ArticleQuery } from '@utils/articles'
+import { can, listAllArticles, listArticles, listAuthors, type ArticleQuery } from '@utils/articles'
 import { getMeServer } from '@utils/auth'
 import { log } from '@utils/log'
 import { pageMetadata } from '@utils/metadata'
@@ -89,20 +89,20 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
   /** Neither a topic nor views exist in the API: both need the whole list here, so they don't paginate. */
   const whole = !!topic || sortKey === 'most-read'
 
-  // ponytail: 100 is the wiki's whole index today. Counts and Most read would undercount past it.
+  // Topic counts and local sorting need every cursor page, not just the API's first 100 rows.
   const [index, page, authors] = await Promise.all([
-    listArticles({ limit: 100 }, cookie).catch((error) => {
+    listAllArticles({}, cookie).catch((error) => {
       log('error', 'API_ERROR', { call: 'GET /wiki', page: '/wiki', err: error })
       return null
     }),
-    listArticles({ ...query, limit: whole ? 100 : 24 }, cookie).catch((error) => {
+    (whole ? listAllArticles(query, cookie) : listArticles({ ...query, limit: 24 }, cookie)).catch((error) => {
       log('error', 'API_ERROR', { call: 'GET /wiki', page: '/wiki', query, err: error })
       return null
     }),
     authorsLoad,
   ])
   const published = (index?.articles ?? []).filter((article) => article.publishedAt)
-  const listed = (page?.articles ?? []).filter((article) => !topic || topicOf(article.slug) === topic)
+  const listed = (page?.articles ?? []).filter((article) => !topic || topicOf(article) === topic)
   const first = {
     articles: sortKey === 'most-read' ? listed.toSorted((a, b) => (b.views ?? 0) - (a.views ?? 0)) : listed,
     nextCursor: whole ? null : (page?.nextCursor ?? null),
@@ -271,7 +271,7 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
           query={query}
           num={hasMetaSection(published) ? '03' : '02'}
           heading={query.search ? `Titles matching “${query.search}”` : 'All articles'}
-          total={published.length}
+          total={whole ? listed.length : filtered || isEditor ? undefined : index ? published.length : undefined}
           topics={topics}
           sorts={sorts}
           filters={filters}

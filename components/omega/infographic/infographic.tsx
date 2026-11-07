@@ -113,8 +113,15 @@ const loadFonts = () =>
   })())
 
 /** A square of card art; a plain tile when the art didn't load. */
-export const Art = ({ src, size, radius = 0, edge = C.line }: { src?: string; size: number; radius?: number; edge?: string }) =>
-  src ? (
+export const Art = ({ src, subSrc, size, radius = 0, edge = C.line }: { src?: string; subSrc?: string; size: number; radius?: number; edge?: string }) =>
+  subSrc ? (
+    <div style={{ display: 'flex', position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <Art src={src} size={size} radius={radius} edge={edge} />
+      <div style={{ display: 'flex', position: 'absolute', bottom: 0, right: 0, padding: 3, background: C.bg }}>
+        <Art src={subSrc} size={Math.round(size * 0.46)} edge={C.lineMid} />
+      </div>
+    </div>
+  ) : src ? (
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     <img src={src} width={size} height={size} style={{ width: size, height: size, objectFit: 'cover', borderRadius: radius, border: `2px solid ${edge}`, flexShrink: 0 }} />
   ) : (
@@ -239,7 +246,7 @@ export const Donut = ({ slices, size, hole, center }: { slices: Slice[]; size: n
 }
 
 /** The frame: eyebrow row, Anton title, chips, the body, the Omega Hub footer and the spine. `subtitle` is the first chip. */
-export const render = async ({ size, eyebrow, aside, title, subtitle, chips = [], footer, body, cache }: {
+export const render = async ({ size, eyebrow, aside, title, subtitle, chips = [], footer, body, cache, compact = false }: {
   size: Size
   /** "Ranked statistics": the mono line over the title. */
   eyebrow?: string
@@ -252,6 +259,8 @@ export const render = async ({ size, eyebrow, aside, title, subtitle, chips = []
   body: ReactNode
   /** `Cache-Control` of the PNG. */
   cache: string
+  /** More room for a board with several rows and multiline deck names. */
+  compact?: boolean
 }) => {
   const { width, height } = SIZES[size]
   const wide = size === 'wide'
@@ -265,15 +274,15 @@ export const render = async ({ size, eyebrow, aside, title, subtitle, chips = []
       <div style={{ ...col, position: 'relative', width, height, background: C.bg, color: C.ink, fontFamily: F.sans }}>
         {glow('22%', '0,253,255', 0.07, 900)}
         {glow('78%', '74,111,216', 0.13, 800)}
-        <div style={{ ...col, position: 'absolute', left: 0, top: 0, width, height, padding: `${pad - 8}px ${pad}px ${pad - 16}px`, gap: 28 }}>
-          <div style={{ ...col, gap: 16, flexShrink: 0 }}>
+        <div style={{ ...col, position: 'absolute', left: 0, top: 0, width, height, padding: `${compact ? 40 : pad - 8}px ${pad}px ${pad - 16}px`, gap: compact ? 20 : 28 }}>
+          <div style={{ ...col, gap: compact ? 12 : 16, flexShrink: 0 }}>
             <div style={{ ...row, gap: 12 }}>
               <div style={{ display: 'flex', width: 12, height: 12, background: C.gold }} />
               <Label color={C.ink} size={16} weight={700}>{eyebrow ?? BRAND}</Label>
               <div style={{ display: 'flex', flex: 1, height: 1, background: C.line }} />
               {aside ? <Label size={16}>{aside}</Label> : null}
             </div>
-            <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 76 : 68, lineHeight: 1, textTransform: 'uppercase' }}>{title}</div>
+            <div style={{ display: 'flex', fontFamily: F.display, fontSize: compact ? 60 : wide ? 76 : 68, lineHeight: 1, textTransform: 'uppercase' }}>{title}</div>
             <div style={{ ...row, gap: 10, flexWrap: 'wrap' }}>
               <Chip color={C.cyan} edge={C.cyan}>{subtitle}</Chip>
               {chips.map((c) => <Chip key={c}>{c}</Chip>)}

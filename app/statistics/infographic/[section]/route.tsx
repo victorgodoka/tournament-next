@@ -6,6 +6,7 @@
 import { notFound } from 'next/navigation'
 import { deckFaces, effectPoints, families, familyWeeks, getDeck, getMeta, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
+import { facesOf as metaFaces, subFace } from '../../format'
 import { Art, busy, C, Chip, col, Empty, F, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size } from '@omega/infographic/infographic'
 
 const SECTIONS = ['tier-list', 'meta-report', 'deck'] as const
@@ -21,30 +22,42 @@ const range = (lo: number, hi: number) => `${(lo * 100).toFixed(1)}–${(hi * 10
 /** The API's answers for `decks`, for their faces and matchups: any it refuses are left out. */
 const answers = async (decks: DeckStat[], scope: Scope) => (await Promise.all(decks.map((d) => getDeck(d.key, scope)))).flatMap((r) => (r.ok ? [r.data] : []))
 
-/** Each deck's face. A deck the API refuses keeps its panel cover: only the fallbacks need its answer. */
-const facesOf = async (decks: DeckStat[], scope: Scope) => {
-  const found = new Map((await answers(decks, scope)).map((a) => [a.deck.key, a]))
-  return deckFaces(decks.map((deck) => ({ deck, cards: found.get(deck.key)?.cards ?? [], sampleDeck: found.get(deck.key)?.sampleDeck ?? null })))
+/** Resolve the displayed decks and their component archetypes; an API miss keeps the meta's panel cover. */
+const facesOf = async (decks: DeckStat[], scope: Scope, meta: DeckStat[] = []) => {
+  const parts = new Set(decks.flatMap((deck) => deck.key.split('>')))
+  const needed = [...new Map([...decks, ...meta.filter((deck) => parts.has(deck.key.replace(/\*$/, '')))].map((deck) => [deck.key, deck])).values()]
+  const found = new Map((await answers(needed, scope)).map((a) => [a.deck.key, a]))
+  const resolved = deckFaces(needed.map((deck) => ({ deck, cards: found.get(deck.key)?.cards ?? [], sampleDeck: found.get(deck.key)?.sampleDeck ?? null })))
+  const faces = { ...Object.fromEntries(resolved), ...Object.fromEntries(Object.entries(metaFaces(needed)).filter(([, face]) => face != null)) }
+  // Mixed decks use the first archetype's own artwork when it is available.
+  for (const deck of decks) {
+    if (!deck.key.includes('>')) continue
+    const first = deck.key.split('>')[0]!
+    faces[deck.key] = faces[first] ?? faces[`${first}*`] ?? faces[deck.key] ?? null
+  }
+  return new Map(Object.entries(faces).filter((entry): entry is [string, number] => entry[1] != null))
 }
 
 const TIERS = [1, 1.5, 2, 3, 4] as const
 type PowerTier = (typeof TIERS)[number]
 const ROW_WIDTH = { wide: 1634, tall: 810 }
 /** Art side by tier, and how many lines of tiles a tier may take. */
-const TILE = { wide: { 1: 130, 1.5: 130, 2: 114, 3: 100, 4: 90 }, tall: { 1: 176, 1.5: 146, 2: 146, 3: 146, 4: 146 } } as const
+const TILE = { wide: { 1: 130, 1.5: 130, 2: 106, 3: 92, 4: 64 }, tall: { 1: 176, 1.5: 146, 2: 146, 3: 146, 4: 100 } } as const
+const tileWidth = (size: Size, tier: PowerTier) => size === 'wide' ? 154 : tier === 1 ? 176 : 146
 const LINES = { wide: 1, tall: 2 } as const
 const TILE_GAP = 10
 /** Wide only: Tier 1 sits beside Tier 1.5 on one line, which is what keeps five tiers from shrinking the art. */
-const TIER_1_WIDTH = 128 + 14 + 2 * 130 + TILE_GAP
+const TIER_1_WIDTH = 128 + 14 + 2 * 154 + TILE_GAP
 const TIER_ROW_GAP = 20
 const rowWidth = (size: Size, tier: PowerTier) => (size === 'wide' && tier === 1.5 ? ROW_WIDTH.wide - TIER_1_WIDTH - TIER_ROW_GAP - 128 - 14 : ROW_WIDTH[size])
 
 /** A deck on the board: its art, name and expected win rate. */
-const Tile = ({ a, src, side, t }: { a: DeckStat; src?: string; side: number; t: T }) => (
-  <div style={{ ...col, width: side, gap: 5, flexShrink: 0 }}>
-    <Art src={src} size={side} />
-    {/* `block`, not flex: Satori only draws the ellipsis on a block. */}
-    <div style={{ display: 'block', fontSize: 14, lineHeight: 1.1, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a, t)}</div>
+const Tile = ({ a, src, subSrc, side, width, t }: { a: DeckStat; src?: string; subSrc?: string; side: number; width: number; t: T }) => (
+  <div style={{ ...col, width, gap: 5, flexShrink: 0 }}>
+    <Art src={src} subSrc={subSrc} size={side} />
+    <div style={{ ...col, fontSize: 18, lineHeight: 1.1, fontWeight: 700 }}>
+      {nameOf(a, t).split(' / ').map((part, i) => <div key={i} style={{ display: 'flex', flexWrap: 'wrap' }}>{part}</div>)}
+    </div>
     <div style={{ display: 'flex', ...mono, fontSize: 13, lineHeight: 1, letterSpacing: 1, color: wrColor(a.wrExpected) }}>{pct(a.wrExpected)}</div>
   </div>
 )
@@ -55,25 +68,28 @@ const tierList = async ({ data, scope, size, t }: Ctx) => {
     const decks = ranked.filter((a) => a.tier === tier)
     if (!decks.length) return []
     const side = TILE[size][tier]
-    const slots = Math.floor((rowWidth(size, tier) + TILE_GAP) / (side + TILE_GAP)) * LINES[size]
+    const width = tileWidth(size, tier)
+    const slots = Math.floor((rowWidth(size, tier) + TILE_GAP) / (width + TILE_GAP)) * LINES[size]
     const fits = decks.length <= slots
-    return [{ tier, decks, side, shown: fits ? decks : decks.slice(0, slots - 1), share: decks.reduce((sum, a) => sum + a.share, 0) }]
+    const shown = tier === 4 ? decks.slice(0, 9) : fits ? decks : decks.slice(0, slots - 1)
+    return [{ tier, decks, side, width, shown, share: decks.reduce((sum, a) => sum + a.share, 0) }]
   })
   if (!rows.length) return <Empty>{t('empty')}</Empty>
-  const faces = await facesOf(rows.flatMap((r) => r.shown), scope)
+  const faces = await facesOf(rows.flatMap((r) => r.shown), scope, data.decks)
   const arts = await loadImages([...faces.values()])
-  const tierRow = ({ tier, decks, side, shown, share }: (typeof rows)[number], fit: React.CSSProperties = {}) => (
+  const secondary = (a: DeckStat) => arts.get(subFace(a.key, Object.fromEntries(faces)) ?? -1)
+  const tierRow = ({ tier, decks, side, width, shown, share }: (typeof rows)[number], fit: React.CSSProperties = {}) => (
     <div key={tier} style={{ ...row, alignItems: 'stretch', flexShrink: 0, gap: 14, ...fit }}>
       <div style={{ ...col, width: 128, flexShrink: 0, justifyContent: 'center', gap: 4, padding: '0 14px', background: C.surface, borderLeft: `6px solid ${C.tier[tier]}` }}>
         <div style={{ display: 'flex', fontFamily: F.display, fontSize: tier === 1.5 ? 50 : 58, lineHeight: 1, color: C.tier[tier] }}>{`T${tier}`}</div>
         <Label size={13}>{pct(share)}</Label>
       </div>
       <div style={{ ...row, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, gap: TILE_GAP }}>
-        {shown.map((a) => <Tile key={a.key} a={a} src={arts.get(faces.get(a.key) ?? -1)} side={side} t={t} />)}
+        {shown.map((a) => <Tile key={a.key} a={a} src={arts.get(faces.get(a.key) ?? -1)} subSrc={secondary(a)} side={side} width={width} t={t} />)}
         {shown.length < decks.length ? (
-          <div style={{ ...col, width: side, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
+          <div style={{ ...col, width, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
             <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
-            <Label size={12}>{t('more')}</Label>
+            <Label size={12}>{t(tier === 4 ? 'others' : 'more')}</Label>
           </div>
         ) : null}
       </div>
@@ -101,11 +117,11 @@ const points = (delta: number) => `${delta >= 0 ? '+' : '−'}${Math.abs(delta *
 /** `build` is the family's most played member: its tier and rate stand for the family, never the `A*` row's. */
 type Mover = { a: DeckStat; build: DeckStat | null; delta: number }
 
-const MoverRow = ({ m: { a, build, delta }, src, t }: { m: Mover; src?: string; t: T }) => (
+const MoverRow = ({ m: { a, build, delta }, src, subSrc, t }: { m: Mover; src?: string; subSrc?: string; t: T }) => (
   <div style={{ ...row, gap: 16 }}>
-    <Art src={src} size={64} />
+    <Art src={src} subSrc={subSrc} size={64} />
     <div style={{ ...col, flex: 1, gap: 4, minWidth: 0 }}>
-      <div style={{ display: 'block', fontSize: 21, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a, t)}</div>
+      <div style={{ display: 'flex', fontSize: 23, fontWeight: 700, flexWrap: 'wrap' }}>{nameOf(a, t)}</div>
       <div style={{ ...row, gap: 12 }}>
         {build?.tier ? <Label size={13} color={C.tier[build.tier]} weight={700}>{`T${build.tier}`}</Label> : null}
         {build ? <Label size={13}>{t('winRateShort', { rate: pct(build.wrExpected) })}</Label> : null}
@@ -130,13 +146,14 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
   const rising = moves.risers.map(mover)
   const falling = moves.fallers.map(mover)
   const hero = rising[0]
-  const faces = await facesOf([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope)
+  const faces = await facesOf([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope, data.decks)
   const arts = await loadImages([...faces.values()])
   const art = (a: DeckStat) => arts.get(faces.get(lead.get(a.key)!.key) ?? -1)
+  const secondary = (a: DeckStat) => arts.get(subFace(lead.get(a.key)!.key, Object.fromEntries(faces)) ?? -1)
   const list = (n: string, title: string, movers: Mover[]) => (
     <Panel n={n} title={title} style={{ flex: 1, flexBasis: 0, minWidth: 0 }}>
       <div style={{ ...col, flex: 1, justifyContent: 'space-around', gap: 12 }}>
-        {movers.length ? movers.map((m) => <MoverRow key={m.a.key} m={m} src={art(m.a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}
+        {movers.length ? movers.map((m) => <MoverRow key={m.a.key} m={m} src={art(m.a)} subSrc={secondary(m.a)} t={t} />) : <Empty>{t('noMovers')}</Empty>}
       </div>
     </Panel>
   )
@@ -146,7 +163,7 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
         {hero ? (
           <Panel n="01" title={t('fastestRiser')} style={wide ? { width: 460 } : undefined}>
             <div style={{ ...(wide ? col : row), alignItems: 'stretch', gap: 18 }}>
-              <Art src={art(hero.a)} size={wide ? 280 : 260} edge={C.gold} />
+              <Art src={art(hero.a)} subSrc={secondary(hero.a)} size={wide ? 280 : 260} edge={C.gold} />
               {/* A column inside a column must not take `flex: 1`: its basis of 0 collapses it over the art. */}
               <div style={{ ...col, ...(wide ? {} : { flex: 1 }), gap: 14 }}>
                 <div style={{ display: 'flex', fontFamily: F.display, fontSize: 40, lineHeight: 1.1, textTransform: 'uppercase' }}>{nameOf(hero.a, t)}</div>
@@ -197,8 +214,10 @@ const deck = async ({ data, scope, size, t, locale, key }: Ctx) => {
   const a = answer.deck
   // best and worst by who wins the pairing (interval clear of 50%), not by the gap from the prediction
   const called = (best: boolean) => answer.matchups.filter((m) => (best ? m.wrLo > 0.5 : m.wrHi < 0.5)).sort((x, y) => (best ? y.wrAdjusted - x.wrAdjusted : x.wrAdjusted - y.wrAdjusted)).slice(0, 4)
-  const face = deckFaces([answer]).get(a.key)
-  const arts = await loadImages([face])
+  const faces = await facesOf([a], scope, data.decks)
+  const face = faces.get(a.key)
+  const secondary = subFace(a.key, Object.fromEntries(faces))
+  const arts = await loadImages([face, secondary])
   const first = effectPoints(a.firstEffect)
   const MatchList = ({ n, title, list, color }: { n: string; title: string; list: Matchup[]; color: string }) => (
     <Panel n={n} title={title} style={{ flex: 1, gap: 12 }}>
@@ -214,7 +233,7 @@ const deck = async ({ data, scope, size, t, locale, key }: Ctx) => {
   return (
     <div style={{ ...col, gap: 20, flex: 1 }}>
       <div style={{ ...row, gap: 28, flexShrink: 0 }}>
-        <Art src={arts.get(face ?? -1)} size={wide ? 176 : 220} edge={C.cyan} />
+        <Art src={arts.get(face ?? -1)} subSrc={arts.get(secondary ?? -1)} size={wide ? 176 : 220} edge={C.cyan} />
         <div style={{ ...col, gap: 14, flex: 1, minWidth: 0 }}>
           <div style={{ ...row, gap: 18 }}>
             <div style={{ display: 'flex', fontFamily: F.display, fontSize: wide ? 80 : 64, lineHeight: 1, textTransform: 'uppercase' }}>{nameOf(a, t)}</div>
@@ -269,6 +288,7 @@ const draw = async (request: Request, { params }: Route) => {
     chips: [data.season.label, t('gamesCount', { count: num(data.fit.games, locale) }), t('playersCount', { count: num(data.fit.players, locale) })],
     footer: t('footer', { days: windowDays(data) }),
     body,
+    compact: section === 'tier-list' && size === 'wide',
     // The statistics endpoint's own 5 minutes.
     cache: 'public, max-age=300, s-maxage=300',
   })

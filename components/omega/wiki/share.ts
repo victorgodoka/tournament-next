@@ -1,4 +1,8 @@
 import type { IconName } from '@ui/icon'
+import { SITE_URL } from '@utils/config'
+
+/** Sharing follows the saved slug even when the document still has an older SEO canonical. */
+export const articleShareUrl = (slug: string) => new URL(`/wiki/${slug}`, SITE_URL).toString()
 
 export type ShareLink = { id: 'x' | 'facebook' | 'reddit' | 'whatsapp'; label: string; href: string; icon: IconName }
 

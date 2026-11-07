@@ -37,13 +37,21 @@ import { and, behind, fallers, gapPoints, leaders, listed, name, pct, risers, ru
 const API = process.env.WIKI_API ?? 'https://godokaapi.duelistsunite.org'
 const SITE = 'https://omega.duelistsunite.org'
 const IMAGE_BASE = process.env.WIKI_IMAGE_BASE ?? SITE
-/** The articles' shared cover: wide enough for a 1200×630 share image. */
+/** Shared article artwork, with separate dimensions for the cover and SEO preview. */
 const COVER = {
-  id: 'wa-e7694119d6',
-  src: 'https://res.cloudinary.com/dtmg8vjff/image/upload/wiki_assets/e7694119d6edfd945a9bf07ffa2b353e',
+  id: 'article-cover',
+  src: '/wiki-images/meta-report/article-cover.png',
   width: 1920,
-  height: 1008,
-  alt: 'Glowing blue and purple YGO Omega emblem on a black background',
+  height: 420,
+  alt: 'YGO Omega article cover',
+  credit: 'Duelists Unite',
+}
+const SEO_PREVIEW = {
+  id: 'article-seo-preview',
+  src: '/wiki-images/meta-report/article-seo-preview.png',
+  width: 1200,
+  height: 630,
+  alt: 'YGO Omega article preview',
   credit: 'Duelists Unite',
 }
 const PAGES = 'docs/wiki-pages'
@@ -424,6 +432,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
     blocks,
     assets: {
       [COVER.id]: COVER,
+      [SEO_PREVIEW.id]: SEO_PREVIEW,
       [board.wide.id]: board.wide,
       [board.tall.id]: board.tall,
       ...(faceId
@@ -444,7 +453,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
       description: `Yu-Gi-Oh! ${label} tier list, updated ${issueDay}: ${name(leader)} leads, ranked from ${num(meta.fit.games)} ladder games by expected win rate.`,
       keyword: `Yu-Gi-Oh! ${label} tier list`,
       keywords: ['yugioh tier list', `yugioh ${prefix} tier list`, `best ${prefix} decks`, 'yugioh meta'],
-      image: board.wide.id,
+      image: SEO_PREVIEW.id,
       schema: 'Article',
     },
     hub: 'ygo-omega-wiki',
@@ -649,6 +658,7 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
     blocks,
     assets: {
       [COVER.id]: COVER,
+      [SEO_PREVIEW.id]: SEO_PREVIEW,
       [tcgImages.wide.id]: tcgImages.wide,
       [tcgImages.tall.id]: tcgImages.tall,
       [genesysImages.wide.id]: genesysImages.wide,
@@ -660,7 +670,7 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
       description: `Yu-Gi-Oh! meta report for ${issueDay}: the decks rising and falling on the TCG and Genesys ladders, with expected win rates and decks to watch.`,
       keyword: 'Yu-Gi-Oh! meta report',
       keywords: ['yugioh meta report', 'yugioh meta this week', 'rising yugioh decks'],
-      image: tcgImages.wide.id,
+      image: SEO_PREVIEW.id,
       schema: 'Article',
     },
     hub: tierListSlug(tcg),

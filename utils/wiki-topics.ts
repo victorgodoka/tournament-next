@@ -40,8 +40,8 @@ export const TOPIC_IDS = Object.keys(WIKI_TOPICS) as WikiTopic[]
 
 export const isWikiTopic = (value: string | undefined): value is WikiTopic => !!value && Object.hasOwn(WIKI_TOPICS, value)
 
-// ponytail: `GET /wiki` returns no tags, so topics are this slug list. A new article has no topic, and stays
-// under All, until it is added here. Read `tags` from the index once the API sends them.
+// Preserve established editorial assignments. New articles fall back to their index title/summary
+// until the API exposes editorial topics; no extra article-body requests are needed.
 const TOPIC_BY_SLUG: Record<string, WikiTopic> = {
   'omega-install-guide': 'start',
   'beginner-s-guide-to-ygo-omega': 'start',
@@ -58,5 +58,23 @@ const TOPIC_BY_SLUG: Record<string, WikiTopic> = {
 /** Weekly reports get a new dated address, so they go by prefix. */
 export const META_REPORT_PREFIX = 'yu-gi-oh-meta-report-'
 
-export const topicOf = (slug: string): WikiTopic | undefined =>
-  slug.startsWith(META_REPORT_PREFIX) ? 'meta' : TOPIC_BY_SLUG[slug]
+type TopicArticle = { slug: string; title?: string; summary?: string }
+
+/** Specific tasks win over broad deck/meta words. Unrecognized content remains in All. */
+const TOPIC_PATTERNS: [WikiTopic, RegExp][] = [
+  ['support', /\b(troubleshoot\w*|crash\w*|bug reports?|report (?:a )?bug|faq|support|solucionar|erro|erros)\b/i],
+  ['start', /\b(install\w*|installation|getting started|beginner\w*|first duel|instala\w*|iniciantes?)\b/i],
+  ['formats', /\b(formats?|rules?|rulings?|banlists?|forbidden|limited list|regras?|formatos?)\b/i],
+  ['meta', /\b(meta|tier lists?|decks?|archetypes?|combos?|matchups?|competitive|estrat[eé]gias?)\b/i],
+]
+
+export const topicOf = (article: string | TopicArticle): WikiTopic | undefined => {
+  const { slug, title = '', summary = '' } = typeof article === 'string' ? { slug: article } : article
+  if (Object.hasOwn(TOPIC_BY_SLUG, slug)) return TOPIC_BY_SLUG[slug]
+  if (slug.startsWith(META_REPORT_PREFIX)) return 'meta'
+  // A focused title is stronger evidence than a summary mentioning several other tasks.
+  for (const text of [title, summary, slug.replaceAll('-', ' ')]) {
+    const match = TOPIC_PATTERNS.find(([, pattern]) => pattern.test(text))
+    if (match) return match[0]
+  }
+}

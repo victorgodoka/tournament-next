@@ -14,6 +14,7 @@ import { Comments } from '@omega/wiki/comments'
 import { Alert } from '@ui/alert'
 import { Avatar } from '@ui/avatar'
 import { Button, buttonClasses } from '@ui/button'
+import { Breadcrumbs } from '@ui/breadcrumbs'
 import { Chip } from '@ui/chip'
 import { Eyebrow } from '@ui/eyebrow'
 import { SectionHead } from '@ui/section-head'
@@ -104,6 +105,7 @@ export const DeckView = ({ deck, social }: Props) => {
 
   return (
     <div className="flex flex-col gap-8">
+      <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: t('browse.title'), href: '/decks' }, { label: deck.name }]} />
       <header className="flex flex-col gap-6 border-b border-line pb-6 md:flex-row md:items-start">
         <span className="relative aspect-[16/9] w-full shrink-0 bg-surface-300 md:w-80">
           {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill priority sizes="(min-width: 768px) 320px, 100vw" className="object-cover" /> : null}

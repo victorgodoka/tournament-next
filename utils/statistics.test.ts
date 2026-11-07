@@ -244,26 +244,34 @@ describe('seasonOf', () => {
 
 describe('getTopDecks', () => {
   const season = { id: 14, ladder: 'tcg' }
-  const row = (key: string, name: string, share: number) => ({ key, name, share })
+  const row = (key: string, name: string, share: number, face?: number | null) => ({ key, name, share, face })
 
-  it('takes the most played plain decks, with cards from the sample deck or the list', async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      if (url.includes('/statistics/meta')) return new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1), row('2', 'Two', 0.3), row('2*', 'Two', 0.4), row('', 'x', 0.5), row('3', 'Three', 0.05)] }))
-      if (url.includes('/decks/2?')) return new Response(JSON.stringify({ sampleDeck: { main: [{ id: 7, name: 'Seven', count: 3 }] }, cards: [] }))
-      if (url.includes('/decks/1?')) return new Response(JSON.stringify({ sampleDeck: null, cards: [{ card: 8 }, { card: 9 }] }))
-      return new Response('{}', { status: 500 })
+  it('takes the most played plain decks and artwork with a single meta request', async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1, 8), row('2', 'Two', 0.3, 7), row('2*', 'Two', 0.4, 7), row('', 'x', 0.5), row('3', 'Three', 0.05)] }))
     })
     vi.stubGlobal('fetch', fetchMock)
     expect(await getTopDecks('tcg', 2)).toEqual([
-      { key: '2', name: 'Two', share: 0.3, topCards: [{ id: 7, name: 'Seven' }] },
-      { key: '1', name: 'One', share: 0.1, topCards: [{ id: 8, name: null }, { id: 9, name: null }] },
+      { key: '2', name: 'Two', share: 0.3, topCards: [{ id: 7, name: null }] },
+      { key: '1', name: 'One', share: 0.1, topCards: [{ id: 8, name: null }] },
     ])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(urlOf(fetchMock).pathname).toBe('/statistics/meta')
+    expect(urlOf(fetchMock).search).toBe('?ladder=tcg&band=all')
   })
 
-  it('is null without a meta, and a deck it can not read has no cards', async () => {
+  it('is null without a meta, and leaves artwork empty on older servers without faces', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 404 })))
     expect(await getTopDecks('tcg')).toBeNull()
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.includes('/meta') ? new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1)] })) : new Response('{}', { status: 429 }))))
     expect(await getTopDecks('tcg')).toEqual([{ key: '1', name: 'One', share: 0.1, topCards: [] }])
+  })
+
+  it('leaves artwork empty for a null face and respects the requested ladder', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ season, decks: [row('1', 'One', 0.1, null)] })))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await getTopDecks('genesys')).toEqual([{ key: '1', name: 'One', share: 0.1, topCards: [] }])
+    expect(urlOf(fetchMock).searchParams.get('ladder')).toBe('genesys')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

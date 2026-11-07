@@ -124,7 +124,7 @@ export const TopicsSection = ({ articles }: { articles: ArticleSummary[] }) => (
     </WikiHead>
     <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
       {TOPIC_IDS.map((topic) => (
-        <TopicTile key={topic} topic={topic} articles={articles.filter((article) => topicOf(article.slug) === topic)} />
+        <TopicTile key={topic} topic={topic} articles={articles.filter((article) => topicOf(article) === topic)} />
       ))}
     </div>
 

@@ -86,7 +86,7 @@ export const ARTICLE_LIST = 'grid gap-px border border-line bg-line'
 
 /** Index row: cover or topic glyph, topic, title, summary, then who and when. A phone keeps the title and the stamp. */
 export const ArticleRow = ({ article }: { article: ArticleSummary }) => {
-  const topic = topicOf(article.slug)
+  const topic = topicOf(article)
   return (
     <li>
       <Link

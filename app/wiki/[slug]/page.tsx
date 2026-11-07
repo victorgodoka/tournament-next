@@ -9,6 +9,7 @@ import { WIKI_ASIDE, WIKI_CARD, WIKI_PAD } from '@omega/wiki'
 import { ARTICLE_DATE_TIME, ArticleBody, ArticleByline, Byline, StatusChip, userName } from '@omega/wiki/article'
 import { ArticleView } from '@omega/wiki/article-view'
 import { ArticleBar } from '@omega/wiki/article-bar'
+import { articleShareUrl } from '@omega/wiki/share'
 import { ArticleComments } from '@omega/wiki/comments'
 import { HeaderSearch } from '@omega/wiki/wiki-search'
 import { AdArticle } from '@omega/ads/ad-article'
@@ -17,8 +18,9 @@ import { AdVideo } from '@omega/ads/ad-video'
 import { WIKI_BODY_ID } from '@utils/nitro-ads.const'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { Breadcrumbs } from '@ui/breadcrumbs'
 import { getArticle, getSocial } from '@utils/articles'
-import { SITE_NAME, SITE_URL } from '@utils/config'
+import { SITE_NAME } from '@utils/config'
 import { jsonLd, pageMetadata } from '@utils/metadata'
 import { renderArticle } from '@utils/remark'
 import type { Article, ArticleSeo, ArticleSocial } from '@utils/types'
@@ -36,13 +38,10 @@ const loadArticle = cache(async (slug: string) => getArticle(slug, (await header
 /** Views, likes and comments, read beside the article. `null` for a draft, or when the API didn't answer. */
 const loadSocial = cache(async (slug: string) => getSocial(slug, (await headers()).get('cookie')))
 
-/** What a share points at: the canonical address, absolute. */
-const shareUrl = (article: Article) => new URL(article.seo?.canonical ?? `/wiki/${article.slug}`, SITE_URL).toString()
-
 type SocialProps = { article: Article; social: ArticleSocial | null }
 
 const Bar = ({ article, social }: SocialProps) => (
-  <ArticleBar slug={article.slug} url={shareUrl(article)} title={article.title} social={social} />
+  <ArticleBar slug={article.slug} url={articleShareUrl(article.slug)} title={article.title} social={social} />
 )
 
 /** The banner sits between the article and the conversation, never inside either. */
@@ -136,12 +135,7 @@ const MarkdownArticle = async ({ article, social }: SocialProps) => {
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className={twMerge('min-w-0 py-[clamp(24px,3vw,40px)]', WIKI_PAD)}>
         <article id={WIKI_BODY_ID}>
-          <nav aria-label="Breadcrumb" className="text-ink-muted signal-sm">
-            <Link href="/wiki" className="text-ink-muted hover:text-cyan">
-              Omega Wiki
-            </Link>{' '}
-            / {article.slug}
-          </nav>
+          <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Omega Wiki', href: '/wiki' }, { label: article.title }]} />
 
           <div className="mt-3 flex flex-wrap items-center gap-2.5">
             <StatusChip publishedAt={article.publishedAt} />

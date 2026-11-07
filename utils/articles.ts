@@ -93,6 +93,27 @@ export type ArticleQuery = {
 export const listArticles = (query: ArticleQuery = {}, cookie?: string | null, signal?: AbortSignal) =>
   request<ArticleIndex>(`/wiki${search(query)}`, { ...withCookie(cookie), signal })
 
+/** Complete index for local topic filters, counts and view sorting until the API supports them. */
+export const listAllArticles = async (
+  query: Omit<ArticleQuery, 'cursor' | 'limit'> = {},
+  cookie?: string | null,
+  signal: AbortSignal = AbortSignal.timeout(15_000),
+): Promise<ArticleIndex> => {
+  const articles = new Map<number, ArticleSummary>()
+  const cursors = new Set<string>()
+  let cursor: string | undefined
+  do {
+    const page = await listArticles({ ...query, limit: 100, cursor }, cookie, signal)
+    for (const article of page.articles) articles.set(article.id, article)
+    cursor = page.nextCursor ?? undefined
+    if (cursor) {
+      if (cursors.has(cursor)) throw new WikiApiError(502, 'INVALID_CURSOR', 'The wiki returned a repeated pagination cursor.')
+      cursors.add(cursor)
+    }
+  } while (cursor)
+  return { articles: [...articles.values()], nextCursor: null }
+}
+
 /**
  * Newest published articles for the landing and /welcome. No cookie, so never a draft, and cached like the
  * rest of those pages instead of `no-store`. Capped at 3 s so a slow API never holds the page: `[]` hides the block.

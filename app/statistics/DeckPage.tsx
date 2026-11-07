@@ -417,7 +417,8 @@ const Versions = ({ deck, versions, scope, tiers, narrow }: { deck: DeckStat; ve
 
 /* ---------------------------------------------------------------- 02 matchups */
 
-const MU_COLS = 'minmax(240px, 1.3fr) 72px 88px minmax(260px, 2fr) 88px 80px 80px 128px'
+// Share intrinsic column widths across rows so translated verdicts cannot overlap the G1 rates.
+const MU_COLS = 'minmax(240px, 1.3fr) 72px 88px minmax(260px, 2fr) 88px 80px 80px minmax(200px, max-content)'
 
 const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Matchup[]; scope: Scope; faces: Faces }) => {
   const t = useTranslations('Statistics.deck.matchups')
@@ -458,8 +459,8 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
 
       <Box className="pt-1 max-[719px]:pt-0.5">
         <div className={twMerge('overflow-x-auto', WIDE)}>
-          <div role="table" aria-label={t('aria', { name })} className={twMerge(ROWS, 'min-w-[900px]')}>
-            <div role="row" className={HEAD_ROW} style={{ gridTemplateColumns: MU_COLS }}>
+          <div role="table" aria-label={t('aria', { name })} className={twMerge(ROWS, 'min-w-[1108px] gap-x-0')} style={{ gridTemplateColumns: MU_COLS }}>
+            <div role="row" className={twMerge(HEAD_ROW, 'col-span-full grid-cols-subgrid')}>
               <span role="columnheader" className={twMerge(TH, 'pl-6')}>{t('cols.opponent')}</span>
               <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.games')}</span>
               <span role="columnheader" className={twMerge(TH, 'text-right')}>{t('cols.result')}</span>
@@ -472,7 +473,7 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
               <span role="columnheader" className={twMerge(TH, 'pr-6 text-right')}>{t('cols.read')}</span>
             </div>
             {main.map((m, i) => (
-              <div key={m.opponent} role="row" className={twMerge(ROW, 'min-h-14')} style={{ gridTemplateColumns: MU_COLS }}>
+              <div key={m.opponent} role="row" className={twMerge(ROW, 'col-span-full min-h-14 grid-cols-subgrid')}>
                 <span role="cell" className="flex min-w-0 items-center gap-3 pl-6"><Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} />{link(m, 'text-ink')}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{n(m.games)}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'font-bold text-ink')}>{pc(m.wrAdjusted)}</span>
@@ -480,15 +481,15 @@ const Matchups = ({ name, matchups, scope, faces }: { name: string; matchups: Ma
                 <span role="cell" className={twMerge(NUMERIC, 'text-gold')}>{pc(m.wrExpected)}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(m.firstWr)}</span>
                 <span role="cell" className={twMerge(NUMERIC, 'text-ink-dim')}>{pc(m.secondWr)}</span>
-                <span role="cell" className="flex items-center justify-end gap-2 pr-6">
-                  <span className={twMerge('text-[13px] font-bold tabular-nums', tone(gap(m)))}>{signed(gap(m))}</span>
+                <span role="cell" className="flex items-center justify-end gap-2 pr-6 pl-4 whitespace-nowrap">
+                  <span className={twMerge('shrink-0 text-[13px] font-bold tabular-nums', tone(gap(m)))}>{signed(gap(m))}</span>
                   <ReadChip read={reads[i]!} className="px-2">{readText(reads[i]!)}</ReadChip>
                 </span>
               </div>
             ))}
             {low
               ? small.map((m) => (
-                  <div key={m.opponent} role="row" className="grid min-h-13 items-center bg-surface-100" style={{ gridTemplateColumns: MU_COLS }}>
+                  <div key={m.opponent} role="row" className="col-span-full grid min-h-13 grid-cols-subgrid items-center bg-surface-100">
                     <span role="cell" className="flex min-w-0 items-center gap-3 pl-6">
                       <Art id={m.opponentFace ?? faces[m.opponent]} sub={subFace(m.opponent, faces)} name={label(m)} size={44} dim />
                       <span className="flex min-w-0 flex-col leading-[18px]">

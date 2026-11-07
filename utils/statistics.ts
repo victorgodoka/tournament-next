@@ -336,17 +336,18 @@ export const getCard = (id: number, scope: StatisticsScope) => read<CardAnswer>(
 
 export type TopDeck = Pick<DeckStat, 'key' | 'name' | 'share'> & { topCards: { id: number; name: string | null }[] }
 
-/** The most played decks of a ladder's newest swept season with three of their cards: the sample deck's, else the most included. */
+/**
+ * The most played decks with their representative artwork, already present in the meta response.
+ * Keep this homepage read to one request: full deck answers include matchups and lists and can
+ * time out independently. Older servers without `face` leave the artwork empty for the UI fallback.
+ */
 export const getTopDecks = async (ladder: RankedLadderId, top = 10): Promise<TopDeck[] | null> => {
   const scope: Scope = { ladder, window: 'season', band: 'all' }
   const meta = await getMeta(scope)
   if (!meta.ok) return null
   const decks = plainDecks(meta.data.decks).sort((a, b) => b.share - a.share).slice(0, top)
-  const answers = await Promise.all(decks.map((d) => getDeck(d.key, scope)))
-  return decks.map(({ key, name, share }, i) => {
-    const answer = answers[i]
-    const cards = answer?.ok ? (answer.data.sampleDeck?.main ?? answer.data.cards.map((c) => ({ id: c.card, name: null }))) : []
-    return { key, name, share, topCards: cards.slice(0, 3).map(({ id, name: card }) => ({ id, name: card })) }
+  return decks.map(({ key, name, share, face }) => {
+    return { key, name, share, topCards: face ? [{ id: face, name: null }] : [] }
   })
 }
 

@@ -93,7 +93,7 @@ export type NavbarItem = {
 }
 
 const BASE_NAVBAR_ITEMS: NavbarItem[] = [
-  { item: "Home", to: "/welcome" },
+  { item: "Home", to: "/" },
   {
     item: "Compete",
     children: [
@@ -109,6 +109,7 @@ const BASE_NAVBAR_ITEMS: NavbarItem[] = [
       { item: "Public decks", to: "/decks" },
       { item: "Combo Calculator", to: "/calculator" },
       { item: "Combo Simulator", to: "/simulator" },
+      { item: "Published combos", to: "/simulator/combos" },
     ],
   },
   {
@@ -168,12 +169,31 @@ export const CARD_IMAGE_URL = (id: string | number) => `https://ygopro.online/as
  */
 export const CARD_SCAN_URL = (id: string | number) => `/card-image/common/${id}.jpg`
 
-export const FOOTER_LINKS = [
-  { item: "Home", to: "https://omega.duelistsunite.org/" },
-  { item: "Discord", to: "https://discord.gg/duelistsunite" },
-  { item: "Deck Builder", to: "/deck-builder" },
-  { item: "Privacy", to: "/privacy" },
-  { item: "Terms", to: "/terms" },
+export const FOOTER_GROUPS = [
+  { title: "Product", links: [
+    { item: "Home", to: "/" },
+    { item: "Download", to: "/download" },
+    { item: "Deck Builder", to: "/deck-builder" },
+    { item: "Combo Calculator", to: "/calculator" },
+    { item: "Combo Simulator", to: "/simulator" },
+  ] },
+  { title: "Compete", links: [
+    { item: "Tournaments", to: "/tournaments" },
+    { item: "Calendar", to: "/calendar" },
+    { item: "Statistics", to: "/statistics" },
+    { item: "Public decks", to: "/decks" },
+    { item: "Published combos", to: "/simulator/combos" },
+  ] },
+  { title: "Learn", links: [
+    { item: "Wiki", to: "/wiki" },
+    { item: "Installation guide", to: "/wiki/omega-install-guide" },
+    { item: "Troubleshooting", to: "/wiki/ygo-omega-troubleshooting-guide" },
+    { item: "Discord", to: "https://discord.gg/duelistsunite" },
+  ] },
+  { title: "Legal", links: [
+    { item: "Privacy", to: "/privacy" },
+    { item: "Terms", to: "/terms" },
+  ] },
 ]
 
 /** When each legal page last changed: the date at its top and its sitemap `lastModified`. */
@@ -211,8 +231,9 @@ export const HOME_META_DECKS = [
 ]
 
 export const HOME_TOOLS = [
-  { title: "Deck Builder", text: "Visual builder with live filters, format legality and shareable lists." },
-  { title: "Small World Resolver", text: "Feed it your deck and it maps every legal bridge, so you stop drawing the chart by hand." },
+  { title: "Deck Builder", to: "/deck-builder", text: "Visual builder with live filters, format legality and shareable lists." },
+  { title: "Combo Calculator", to: "/calculator", text: "Check opening-hand odds and compare the consistency of your builds." },
+  { title: "Combo Simulator", to: "/simulator", text: "Practice your lines in the browser and record combos to share." },
 ]
 
 export const HOME_MODES = [

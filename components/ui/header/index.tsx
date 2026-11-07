@@ -84,6 +84,7 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
       {isOpen ? (
         <div role="menu" className={twMerge(PANEL, "right-0")}>
           <p className={PANEL_RULE}>{name}</p>
+          <Link href="/welcome" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Dashboard</Link>
           <Link href={`/profile/${user.id}`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My profile</Link>
           <Link href={`/profile/${user.id}/statistics`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My statistics</Link>
           <Link href={`/profile/${user.id}/my-decks`} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>My decks</Link>

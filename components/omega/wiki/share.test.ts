@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { shareLinks } from './share'
+import { SITE_URL } from '@utils/config'
+import { articleShareUrl, shareLinks } from './share'
+
+describe('articleShareUrl', () => {
+  it('shares the saved slug after a rename even when the SEO canonical is unchanged', () => {
+    const article = { slug: 'old-title', seo: { canonical: '/wiki/old-title' } }
+    expect(articleShareUrl(article.slug)).toBe(`${SITE_URL}/wiki/old-title`)
+
+    article.slug = 'new-title'
+    const url = articleShareUrl(article.slug)
+    expect(url).toBe(`${SITE_URL}/wiki/new-title`)
+    for (const link of shareLinks(url, 'Article')) {
+      expect(decodeURIComponent(link.href)).toContain(url)
+      expect(decodeURIComponent(link.href)).not.toContain(article.seo.canonical)
+    }
+  })
+
+  it('keeps figure anchors on the current article URL', () => {
+    const url = `${articleShareUrl('new-title')}#figure-blue-eyes`
+    for (const link of shareLinks(url, 'Blue-Eyes')) {
+      expect(decodeURIComponent(link.href)).toContain(`${SITE_URL}/wiki/new-title#figure-blue-eyes`)
+    }
+  })
+})
 
 describe('shareLinks', () => {
   const links = shareLinks('https://site.gg/wiki/a-b?x=1', 'Blue-Eyes & friends')

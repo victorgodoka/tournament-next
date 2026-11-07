@@ -1,11 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
-import { SITE_URL } from '@utils/config'
 import type { ArticleLink, ArticleLinks } from '@utils/types'
 import { imageSource, outline, type DocHtml, type WikiAsset, type WikiDoc, type WikiInfobox } from '@utils/wiki-doc'
 import { topicOf, WIKI_TOPICS } from '@utils/wiki-topics'
 import { headingNumbers, WikiBlocks } from './blocks'
+import { articleShareUrl } from './share'
 import { Toc, TocDisclosure, type TocItem } from './toc'
 import { WIKI_ASIDE, WIKI_CARD, WIKI_RAIL, WIKI_SCROLL_ROW, WIKI_TILE } from './wiki'
 
@@ -150,7 +150,7 @@ const ReadNext = ({ articles }: { articles: ArticleLink[] }) => (
     </h2>
     <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4">
       {articles.map((article) => {
-        const topic = topicOf(article.slug)
+        const topic = topicOf(article)
         return (
           <li key={article.slug} className="flex">
             <Link
@@ -202,6 +202,10 @@ export const ArticleView = ({ doc, slug, html, links, meta, children, lead, body
         <div className="relative mx-auto flex w-full max-w-[1280px] flex-col gap-3.5 px-gutter pt-4 pb-6 sm:gap-5 sm:pt-10 sm:pb-11">
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <li>
+                <Link href="/" className="inline-flex items-center text-ink-muted signal-strong hover:text-ink max-sm:min-h-11">Home</Link>
+              </li>
+              <li aria-hidden className="text-ink-muted signal-sm">/</li>
               <li>
                 <Link href="/wiki" className="inline-flex items-center text-ink-muted signal-strong hover:text-ink max-sm:min-h-11">
                   Omega Wiki
@@ -276,7 +280,7 @@ export const ArticleView = ({ doc, slug, html, links, meta, children, lead, body
             </div>
 
             <article id={bodyId}>
-              <WikiBlocks doc={doc} html={html} lead={lead} shareUrl={slug ? new URL(doc.seo?.canonical || `/wiki/${slug}`, SITE_URL).toString() : undefined} />
+              <WikiBlocks doc={doc} html={html} lead={lead} shareUrl={slug ? articleShareUrl(slug) : undefined} />
               <HubCard doc={doc} slug={slug} links={links} className="mt-6 @min-[880px]:hidden" />
               {links?.related.length ? <ReadNext articles={links.related} /> : null}
             </article>
