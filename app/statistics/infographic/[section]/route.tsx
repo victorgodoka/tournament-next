@@ -4,7 +4,7 @@
  */
 
 import { notFound } from 'next/navigation'
-import { deckFaces, effectPoints, families, familyWeeks, getDeck, getMeta, plainDecks, scopeFrom, shareMoves, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
+import { deckFaces, effectPoints, getDeck, getMeta, plainDecks, reportMoves, scopeFrom, TIER_4_LIMIT, windowDays, type DeckAnswer, type DeckStat, type Meta, type Matchup, type Scope } from '@utils/statistics'
 import { oneAtATime } from '@utils/one-at-a-time'
 import { facesOf as metaFaces, subFace } from '../../format'
 import { Art, busy, C, Chip, col, Empty, F, Kpi, Label, loadImages, mono, num, Panel, pct, render, row, sizeOf, translator, type Size } from '@omega/infographic/infographic'
@@ -63,7 +63,7 @@ const Tile = ({ a, src, subSrc, side, width, t }: { a: DeckStat; src?: string; s
 )
 
 const tierList = async ({ data, scope, size, t }: Ctx) => {
-  const ranked = plainDecks(data.decks).sort((a, b) => b.wrExpected - a.wrExpected)
+  const ranked = plainDecks(data.decks).sort((a, b) => b.wrExpected - a.wrExpected || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
   const rows = TIERS.flatMap((tier) => {
     const decks = ranked.filter((a) => a.tier === tier)
     if (!decks.length) return []
@@ -71,7 +71,7 @@ const tierList = async ({ data, scope, size, t }: Ctx) => {
     const width = tileWidth(size, tier)
     const slots = Math.floor((rowWidth(size, tier) + TILE_GAP) / (width + TILE_GAP)) * LINES[size]
     const fits = decks.length <= slots
-    const shown = tier === 4 ? decks.slice(0, 9) : fits ? decks : decks.slice(0, slots - 1)
+    const shown = tier === 4 ? decks.slice(0, TIER_4_LIMIT) : fits ? decks : decks.slice(0, slots - 1)
     return [{ tier, decks, side, width, shown, share: decks.reduce((sum, a) => sum + a.share, 0) }]
   })
   if (!rows.length) return <Empty>{t('empty')}</Empty>
@@ -87,9 +87,11 @@ const tierList = async ({ data, scope, size, t }: Ctx) => {
       <div style={{ ...row, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1, gap: TILE_GAP }}>
         {shown.map((a) => <Tile key={a.key} a={a} src={arts.get(faces.get(a.key) ?? -1)} subSrc={secondary(a)} side={side} width={width} t={t} />)}
         {shown.length < decks.length ? (
-          <div style={{ ...col, width, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
-            <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
-            <Label size={12}>{t(tier === 4 ? 'others' : 'more')}</Label>
+          <div style={{ ...col, width, flexShrink: 0 }}>
+            <div style={{ ...col, width: side, height: side, alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0, background: C.surface, border: `2px solid ${C.line}` }}>
+              <div style={{ display: 'flex', fontFamily: F.display, fontSize: 38, lineHeight: 1 }}>{`+${decks.length - shown.length}`}</div>
+              <Label size={12}>{t(tier === 4 ? 'others' : 'more')}</Label>
+            </div>
           </div>
         ) : null}
       </div>
@@ -133,18 +135,11 @@ const MoverRow = ({ m: { a, build, delta }, src, subSrc, t }: { m: Mover; src?: 
 
 const metaReport = async ({ data, scope, size, t }: Ctx) => {
   const wide = size === 'wide'
-  const fams = families(data.decks)
-  const decks = new Map(fams.map(({ family }) => [family.key, family]))
-  // A family row has no cards: its art is its most played member's.
-  const lead = new Map(fams.map(({ family, members }) => [family.key, members[0] ?? family]))
-  const moves = shareMoves(familyWeeks(data.weeks, fams))
-  const mover = ({ key, delta }: { key: string; delta: number }): Mover => {
-    const a = decks.get(key)!
-    const member = lead.get(key)!
-    return { a, build: member === a ? null : member, delta }
-  }
+  const moves = reportMoves(data)
+  const mover = ({ family, deck, delta }: (typeof moves.risers)[number]): Mover => ({ a: family, build: deck, delta })
   const rising = moves.risers.map(mover)
   const falling = moves.fallers.map(mover)
+  const lead = new Map([...moves.risers, ...moves.fallers].map((m) => [m.family.key, m.deck]))
   const hero = rising[0]
   const faces = await facesOf([...rising, ...falling].map((m) => lead.get(m.a.key)!), scope, data.decks)
   const arts = await loadImages([...faces.values()])
@@ -175,7 +170,7 @@ const metaReport = async ({ data, scope, size, t }: Ctx) => {
                   {hero.build ? (
                     <div style={{ ...col, width: '50%', gap: 6 }}>
                       <div style={{ display: 'flex', fontFamily: F.display, fontSize: 52, lineHeight: 1, color: wrColor(hero.build.wrExpected) }}>{pct(hero.build.wrExpected)}</div>
-                      <Label size={13}>{t('winRate')}</Label>
+                      <Label size={13}>{t('expectedRate')}</Label>
                     </div>
                   ) : null}
                 </div>
@@ -247,7 +242,7 @@ const deck = async ({ data, scope, size, t, locale, key }: Ctx) => {
         </div>
       </div>
       <div style={{ ...row, gap: 16, flexShrink: 0, alignItems: 'stretch' }}>
-        <Kpi label={t('winRate')} value={pct(a.wrExpected)} color={wrColor(a.wrExpected)} size={52} hint={range(a.wrLo, a.wrHi)} />
+        <Kpi label={t('expectedRate')} value={pct(a.wrExpected)} color={wrColor(a.wrExpected)} size={52} hint={range(a.wrLo, a.wrHi)} />
         <Kpi label={t('share')} value={pct(a.share)} color={C.cyan} size={52} />
         <Kpi label={t('first')} value={pct(a.firstG1Wr)} color={wrColor(a.firstG1Wr)} size={52} hint={`${first >= 0 ? '+' : '−'}${Math.abs(first).toFixed(1)}`} />
         <Kpi label={t('second')} value={pct(a.secondG1Wr)} color={wrColor(a.secondG1Wr)} size={52} />

@@ -1,5 +1,5 @@
 /** The pure part of scripts/wiki-tier-list.ts: which decks a weekly article lists and how it says it. */
-import { familyWeeks, leadOf, plainDecks, shareMoves, type DeckAnswer, type DeckStat, type Family, type Meta } from '@utils/statistics'
+import { leadOf, plainDecks, reportMoves, type DeckAnswer, type DeckStat, type Family, type Meta } from '@utils/statistics'
 
 /**
  * The tier rules a build ran with (`fit.tiers`, from 2026-11-03 on): how far under the leader's expected win rate a deck
@@ -56,14 +56,8 @@ export const leaders = (ladder: Pick<Ladder, 'decks'>) => {
 export type Move = { family: DeckStat; deck: DeckStat | null; delta: number }
 
 const moves = (ladder: Pick<Ladder, 'decks' | 'meta' | 'families'>, kind: 'risers' | 'fallers'): Move[] => {
-  const byKey = new Map(ladder.families.map((f) => [f.family.key, f]))
-  const listedByKey = new Map(ladder.decks.map((d) => [d.key, d]))
-  return shareMoves(familyWeeks(ladder.meta.weeks, ladder.families), Infinity)[kind].map(({ key, delta }) => {
-    const { family, members } = byKey.get(key)!
-    const member = members.find((m) => listedByKey.has(m.key))
-    return { family, deck: member ? listedByKey.get(member.key)! : null, delta }
-  })
+  return reportMoves(ladder.meta, Infinity)[kind]
 }
-/** Share moves of the last week by family, biggest first. Every family: one can move a lot before it earns a tier. */
+/** Share moves of the last two season-week blocks, restricted to families represented by Tiers 1–3. */
 export const risers = (ladder: Pick<Ladder, 'decks' | 'meta' | 'families'>) => moves(ladder, 'risers')
 export const fallers = (ladder: Pick<Ladder, 'decks' | 'meta' | 'families'>) => moves(ladder, 'fallers')

@@ -24,17 +24,19 @@
  * WIKI_API points the numbers at another API. Copy that reads like a judgment stays out of here: add it by hand
  * in the editor.
  *
- * Publish in this order: Genesys, TCG, report. The server wants `hub` and `related` to exist, and each names the one before it.
+ * Publish tier lists before the report. The methodology article links to both lists; its JSON also comes from this script.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
-import { deckFaces, effectPoints, families, matchupCall, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
+import { deckFaces, effectPoints, families, matchupCall, reportDeck, tierListDecks, weekJumps, windowDays, type DeckAnswer, type DeckStat, type Meta, type Week } from '@utils/statistics'
 import { validateDoc, type WikiAsset, type WikiBlock, type WikiDoc } from '@utils/wiki-doc'
 import { searchTitle, seoChecks, seoScore, titlePixels, TITLE_PX } from '@utils/wiki-seo'
 import { and, behind, fallers, gapPoints, leaders, listed, name, pct, risers, rulesOf, T1_SLOTS, tier, type Ladder, type Move, type Tier, type TierRules } from './tier-list'
+import { METHODOLOGY_SLUG, statisticsMethodology } from './statistics-methodology'
 
 /** Production by default: a local API has no ladder data. */
-const API = process.env.WIKI_API ?? 'https://godokaapi.duelistsunite.org'
+const API = process.env.WIKI_API ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'
 const SITE = 'https://omega.duelistsunite.org'
 const IMAGE_BASE = process.env.WIKI_IMAGE_BASE ?? SITE
 /** Shared article artwork, with separate dimensions for the cover and SEO preview. */
@@ -62,10 +64,10 @@ const IMAGE_SIZES = { wide: { width: 1920, height: 1080 }, tall: { width: 1080, 
 const MATCHUP_GAMES = { TCG: 300, Genesys: 80 }
 /** The tier list ranks on the aggregate band, pinned so a server default change can't move it. */
 const BAND = 'aggregate'
-const MONTHS =['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 /** Last issue's tiered decks by deck key. `rebuilt` marks the keys of the rebuilt statistics. */
-type Snapshot = {
+export type Snapshot = {
   issue: string
   rebuilt?: true
   /**
@@ -93,6 +95,7 @@ const tierListSlug = (ladder: Pick<Ladder, 'prefix'>) => `yu-gi-oh-${ladder.pref
 const reportSlug = (issue: string) => `yu-gi-oh-meta-report-${day(issue).replace(/,/g, '').replace(/ /g, '-').toLowerCase()}`
 const statisticsPath = (ladder: Ladder) => (ladder.prefix === 'tcg' ? '/statistics' : '/statistics?ladder=genesys')
 const tiered = (ladder: Ladder) => ladder.decks.filter((deck) => deck.tier)
+const displayed = (ladder: Ladder) => tierListDecks(ladder.decks)
 const byShare = (ladder: Ladder) => [...ladder.decks].sort((a, b) => b.share - a.share)
 const share = (decks: DeckStat[]) => decks.reduce((total, deck) => total + deck.share, 0)
 const goingFirst = (ladder: Ladder) => pct(0.5 + effectPoints(ladder.meta.fit.firstEffect) / 100)
@@ -179,7 +182,7 @@ const reportImages = (ladder: Ladder, issue: string) =>
   imagePair(
     `report-${ladder.prefix}`,
     (size) => `${REPORT_IMAGES}/${issue}-${ladder.prefix}-${size}.jpg`,
-    `${ladder.label} meta report: the decks rising and falling fastest on the ladder for ${day(issue)}`,
+    `${ladder.label} meta share gains and losses among Tier 1–3 builds, comparing the latest two season-week blocks for ${day(issue)}`,
   )
 
 /** Right after the opening paragraph: the phone gets the 9:16 version, and the buttons link straight to it. */
@@ -206,23 +209,23 @@ const leaderNote = (ladder: Ladder) => {
 
 /** What a tier holds, and the spread of its decks under the leader. */
 const spreadNote = (ladder: Ladder, t: Tier) => {
-  const decks = tier(ladder, t)
+  const decks = displayed(ladder).filter((deck) => deck.tier === t)
   const high = decks[0]
   const low = decks.at(-1)
   const range = `Tier ${t} holds the ${tierRange(ladder, t)}.`
   if (!high || !low || high === low) return range
-  return `${range} This week that runs from ${name(high)} at ${pct(high.wrExpected)}, ${back(ladder, high)} points back, to ${name(low)} at ${pct(low.wrExpected)}, ${back(ladder, low)} back.`
+  return `${range}${t === 4 ? ' We show the five highest-ranked builds in this tier.' : ''} Among the displayed builds, ${name(high)} has an expected ${pct(high.wrExpected)} win rate, ${back(ladder, high)} points back; ${name(low)} has ${pct(low.wrExpected)}, ${back(ladder, low)} back.`
 }
 
 /** Art for the tiers short enough to show it; a cards block holds 12 at most, and an empty one is invalid. */
 const tierBlocks = (ladder: Ladder, t: Tier, note: string, art = true): WikiBlock[] => {
-  const decks = tier(ladder, t)
+  const decks = displayed(ladder).filter((deck) => deck.tier === t)
   if (!decks.length) return []
   const id = `${ladder.prefix}-${String(t).replace('.', '-')}`
   const cards = art && decks.length <= 12 ? tierCards(ladder, decks) : []
   return [
     heading(`h-${id}`, 3, `${ladder.label} Tier ${t}`, `tier-${String(t).replace('.', '-')}`),
-    ...(cards.length ? [{ id: `cards-${id}`, type: 'cards', cards, ...(t === 1 ? { caption: "Share of the meta and expected win rate. Art is the deck's most used card." } : {}) } as const] : []),
+    ...(cards.length ? [{ id: `cards-${id}`, type: 'cards', cards, ...(t === 1 ? { caption: "Share of the meta and expected win rate. Artwork represents each build." } : {}) } as const] : []),
     text(id, [table(ladder, decks), note].filter(Boolean).join('\n\n')),
   ]
 }
@@ -234,13 +237,13 @@ const ladderBlocks = (ladder: Ladder): WikiBlock[] => {
     heading(`h-${prefix}`, 2, `${label} tiers`, 'tiers'),
     text(
       `${prefix}-intro`,
-      `The ${label} ladder is ${windowDays(meta)} days into the ${seasonWord(ladder)} season, with ${num(meta.fit.games)} games from ${num(meta.fit.players)} players. The most played deck, ${name(byShare(ladder)[0] as DeckStat)}, holds ${pct(byShare(ladder)[0]?.share)} of the meta, and the ${tiered(ladder).length} decks in these tiers cover ${pct(share(tiered(ladder)), 0)} of it.${primer}`,
+      `The ${label} ladder is ${windowDays(meta)} days into the ${seasonWord(ladder)} season, with ${num(meta.fit.games)} games from ${num(meta.fit.players)} players. The most played deck, ${name(byShare(ladder)[0] as DeckStat)}, holds ${pct(byShare(ladder)[0]?.share)} of the meta. The ${displayed(ladder).length} builds shown below cover ${pct(share(displayed(ladder)), 0)} of it. We show Tiers 1–3 and the five highest-ranked Tier 4 builds; the [statistics page](${statisticsPath(ladder)}) lists the rest.${primer}`,
     ),
     ...tierBlocks(ladder, 1, leaderNote(ladder)),
     ...tierBlocks(ladder, 1.5, spreadNote(ladder, 1.5)),
     ...tierBlocks(ladder, 2, spreadNote(ladder, 2)),
     ...tierBlocks(ladder, 3, spreadNote(ladder, 3)),
-    // Every deck over the floors past the Tier 3 gap lands here: a long table, no art.
+    // The five strongest Tier 4 builds; snapshots retain the rest for next issue's promotions.
     ...tierBlocks(ladder, 4, spreadNote(ladder, 4), false),
   ]
 }
@@ -280,7 +283,7 @@ const matchupTable = (ladder: Ladder, decks: DeckStat[]) => {
     const { best, worst } = bestAndWorst(ladder, deck)
     return `| **${name(deck)}** | ${best ? paint(best, WIN) : 'None clear'} | ${worst ? paint(worst, LOSS) : 'None clear'} |`
   })
-  return ['| Deck | Best matchup | Worst matchup |', '|---|---|---|', ...rows].join('\n')
+  return ['| Deck | Above expectation | Below expectation |', '|---|---|---|', ...rows].join('\n')
 }
 
 /** A pair from this week, so the answer always has a true example. */
@@ -319,7 +322,7 @@ const mostPlayedAnswer = (ladder: Ladder) => {
   return `${name(top)}, at ${pct(top.share)} of the meta. It has an expected ${pct(top.wrExpected)} win rate ${place}.`
 }
 
-const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc => {
+export const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc => {
   const { label, prefix, meta } = ladder
   const issueDay = day(issue)
   const leader = ladder.decks[0]
@@ -332,7 +335,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
 
   const blocks: WikiBlock[] = [
     text('intro', `This Yu-Gi-Oh! ${label} tier list ranks the decks on the YGO Omega ${label} ladder by expected win rate, from ranked games through ${dataDay}. ${leaders(ladder)}`),
-    figure('board', board, `The ${label} tier list at a glance`),
+    figure('board', board, `${label} decks by expected win rate. Tier 4 shows the top five; Others counts the remaining Tier 4 builds.`),
     text(
       'intro-more',
       `Every tier counts down from the deck at the top: a deck's tier says how many points of expected win rate it gives up to the leader. For what moved this week, read the [latest meta report](/wiki/${reportSlug(issue)}). For the other ladder, see the [${other.label} tier list](/wiki/${tierListSlug(other)}), and between updates, the [live statistics page](${live}).`,
@@ -347,10 +350,11 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
         `| Tier 1 | ${tier(ladder, 1).map(name).join(', ')} |`,
         `| Tier 1.5 | ${tier(ladder, 1.5).map(name).join(', ') || 'None'} |`,
         `| Tier 2 | ${tier(ladder, 2).map(name).join(', ') || 'None'} |`,
-        `| Decks ranked | ${tiered(ladder).length} |`,
+        `| Builds shown | ${displayed(ladder).length} (Tier 4 limited to five) |`,
+        `| Builds eligible for a tier | ${tiered(ladder).length} |`,
         `| Games counted | ${num(meta.fit.games)} |`,
         `| Players | ${num(meta.fit.players)} |`,
-        `| Going first wins | ${goingFirst(ladder)} of game 1 |`,
+        `| Modelled going-first win probability | ${goingFirst(ladder)} between equal decks and ratings |`,
         `| Season opened | ${day(meta.season.startsAt)} |`,
       ].join('\n'),
     ),
@@ -363,23 +367,23 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
       `The underplayed decks reach Tier 2 or better on a small share of the meta. Specialists may pilot most of their games, so test one before you trust its number. The overplayed decks sit among the ten most played and land in Tier 3 or lower.\n\n- **Underplayed:** ${and(underplayed(ladder).map((deck) => `${name(deck)} (${pct(deck.share)} of the meta, expected ${pct(deck.wrExpected)})`)) || 'None this week'}\n- **Overplayed:** ${and(overplayed(ladder).map((deck) => `${name(deck)} (${pct(deck.share)} of the meta, expected ${pct(deck.wrExpected)})`)) || 'None this week'}`,
     ),
 
-    heading('h-matchups', 2, 'What beats the top decks?', 'matchups'),
+    heading('h-matchups', 2, 'Matchups above and below expectation', 'matchups'),
     text(
       'matchups',
-      `The best and worst matchup of the six best decks against Tiers 1 to 3. A matchup shows up only when its 95% interval excludes the rate the two decks' strengths predict, over at least ${MATCHUP_GAMES[label]} games.\n\n${matchupTable(ladder, ladder.decks.slice(0, 6))}`,
+      `We show matchups that outperform or underperform the model's expectation for the six highest-ranked builds against Tiers 1–3. We require a 95% interval clear of that expectation and at least ${MATCHUP_GAMES[label]} games. An above-expected matchup can still have a win rate below 50%.\n\n${matchupTable(ladder, displayed(ladder).slice(0, 6))}`,
     ),
 
     heading('h-method', 2, 'How this tier list works', 'methodology'),
     text(
       'method',
-      `Every number comes from ranked games on [YGO Omega](/wiki/ygo-omega-wiki), the same data as the [statistics page](${live}). Nobody votes on a tier or moves a deck by hand.\n\n**Each deck gets an expected win rate.** One model reads the season's games between players rated ${meta.fit.aggregateFloor} and up, after it drops players with too few ranked games and one-off decklists. It gives each deck a strength and predicts each game from the two strengths, who went first and the rating gap. A deck's expected win rate is its strength against the whole field, weighted by how often you meet each deck. The model pulls a deck with few games toward 50%.\n\n**Tiers count down from the leader.** The deck with the best expected win rate leads and sets Tier 1. Every other deck takes its tier from how many points it sits under the leader:\n\n${tierRules(ladder)}\n\nTier 1 holds ${SLOTS} decks at most. When the leader's rate moves, every boundary moves with it, so a deck can change tier in a week its own rate held still. A deck needs ${floors(ladder)} before it gets a tier: the model corrects for few games, and the floors keep out decks with few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, mirrors included.\n- **The 95% interval** gives the range the expected win rate likely falls in. It widens when the deck's daily results swing more than chance explains.\n- **Decks** take their names from the archetypes they play, lead archetype first. A hybrid counts apart from the pure build.`,
+      `Every number comes from ranked games on [YGO Omega](/wiki/ygo-omega-wiki), the same data as the [statistics page](${live}). We assign tiers from the fitted results and the build's configured rules.\n\n**Each deck gets an expected win rate.** We fit a model to eligible season games in the ${meta.fit.aggregateFloor}+ aggregate band. Each game's band comes from the mean of the two players' capped previous-day ratings. We remove games when either player or either decklist falls below the season activity requirements. We estimate both deck strengths alongside the first-turn effect and rating-gap effect. We calculate expected win rate against the other decks, weighted by their share of the field, with equal player ratings and the first-turn term set to zero. We shrink strength estimates with limited evidence toward the ladder mean.\n\n**Tiers count down from the leader.** The deck with the best expected win rate leads and sets Tier 1. Every other deck takes its tier from how many points it sits under the leader:\n\n${tierRules(ladder)}\n\nTier 1 holds ${SLOTS} decks at most. When the leader's rate moves, every boundary moves with it, so a deck can change tier in a week its own rate held still. A deck needs ${floors(ladder)} before it gets a tier: the model corrects for few games, and the floors keep out decks with few pilots.\n\n- **Meta share** is the deck's share of deck-games. Each game counts once per player, mirrors included.\n- **Raw win rate** is wins divided by wins, losses and draws. Draws stay in the denominator; games without a result stay outside rates. We leave draws out of the strength fit.\n- **Mirrors** contribute to meta share and help estimate rating and turn-order effects. We exclude them from raw deck win rates and matchups.\n- **The 95% interval** expresses uncertainty around expected win rate. We widen it when daily results vary more than the fitted model expects from sampling noise.\n- **Decks** take their names from their archetype packages. We normalize equivalent hybrid orders into one key and keep hybrid builds separate from pure builds.`,
     ),
     {
       id: 'limits',
       type: 'callout',
       tone: 'cyan',
       title: "What this list can't tell you",
-      md: 'These are ladder games on a simulator. Players of every level take part, and a deck that specialists pilot can score above what it would in most hands. Use the list to see what wins on the ladder; a premier event can reward other decks.',
+      md: `We fit these rankings to eligible ranked games on YGO Omega, using each game's average player rating to select the ${meta.fit.aggregateFloor}+ band. We adjust for rating differences and turn order, but specialists, deck choices and unrecorded factors can still affect the estimates. Tournament fields can differ from this ladder field.`,
     },
 
     heading('h-faq', 2, `Yu-Gi-Oh! ${label} tier list FAQ`, 'faq'),
@@ -401,9 +405,9 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
           q: 'Why did a deck change tier when its win rate barely moved?',
           md: "The tiers count from the leader. When the leader's expected win rate rises or falls, every tier boundary moves with it, and decks near a boundary cross it.",
         },
-        { q: 'Is this tier list based on tournament results?', md: 'No. It comes from ranked ladder games on YGO Omega. You get a far larger sample than any tournament, and it reflects ladder play, so a premier event can look different.' },
+        { q: 'Is this tier list based on tournament results?', md: 'We use ranked games on YGO Omega. Tournament players can face a different field, so use the list as a ladder benchmark.' },
         { q: 'Does a popular deck get a higher tier?', md: tierVsPopularity(ladder) },
-        { q: 'How much does going first matter?', md: `Going first wins ${goingFirst(ladder)} of game 1 between even decks on the ${label} ladder.` },
+        { q: 'How much does going first matter?', md: `The model estimates a ${goingFirst(ladder)} win probability going first between equal decks and player ratings on the ${label} ladder. This coefficient uses the games in the fit, including post-side games.` },
         { q: 'How often is the tier list updated?', md: `Every week, on this same page. Each week also gets its own [meta report](/wiki/${reportSlug(issue)}), and the [statistics page](${live}) shows the current numbers between updates.` },
         { q: 'Where can I see decklists for these decks?', md: `The [statistics page](${live}) has sample decklists, card usage and full matchup tables for each deck.` },
       ],
@@ -417,7 +421,7 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
     summary: `The Yu-Gi-Oh! ${label} tier list, updated ${issueDay}: ${headline(ladder)}. Ranked from ${num(meta.fit.games)} YGO Omega ladder games.`,
     cover: { asset: COVER.id },
     infobox: {
-      ...(faceId ? { asset: art, caption: `The most used card of ${name(leader)}, the top deck` } : {}),
+      ...(faceId ? { asset: art, caption: `Representative artwork for ${name(leader)}, the leading deck` } : {}),
       facts: [
         { label: 'Updated', value: issueDay },
         { label: 'Data through', value: dataDay },
@@ -437,14 +441,14 @@ const buildTierList = (ladder: Ladder, other: Ladder, issue: string): WikiDoc =>
       [board.tall.id]: board.tall,
       ...(faceId
         ? {
-            [art]: {
-              id: art,
-              src: `https://ygopro.online/assets/card-arts/${faceId}.jpg`,
-              width: 624,
-              height: 624,
-              alt: `Card art of the most used card of the ${name(leader)} deck`,
-            },
-          }
+          [art]: {
+            id: art,
+            src: `https://ygopro.online/assets/card-arts/${faceId}.jpg`,
+            width: 624,
+            height: 624,
+            alt: `Representative card artwork for the ${name(leader)} deck`,
+          },
+        }
         : {}),
     },
     seo: {
@@ -478,7 +482,7 @@ const eventRows = (ladder: Ladder) => {
   return weekJumps(weeks).flatMap((w) => {
     const deck = byKey.get(w.key)
     const from = before(w)
-    return deck && from ? [`| ${ladder.label} | **${name(deck)}** | ${paint(w.jump > 0 ? 'Stronger' : 'Weaker', w.jump > 0 ? WIN : LOSS)} | ${pct(from.wrExpected)} | ${pct(w.wrExpected)} | ${num(w.games)} |`] : []
+    return reportDeck(deck) && deck && from ? [`| ${ladder.label} | **${name(deck)}** | ${paint(w.jump > 0 ? 'Stronger' : 'Weaker', w.jump > 0 ? WIN : LOSS)} | ${pct(from.wrExpected)} | ${pct(w.wrExpected)} | ${num(w.games)} |`] : []
   })
 }
 
@@ -488,7 +492,7 @@ const sameRules = (a: TierRules | undefined, b: TierRules) => !!a && (['t1Gap', 
  * `null` without a comparable issue: no snapshot yet, the season changed under it, or it was cut on other tier rules
  * (including every snapshot from before the tiers became relative to the leader).
  */
-const tierChanges = (ladder: Ladder, previous: Snapshot | null) => {
+export const tierChanges = (ladder: Ladder, previous: Snapshot | null) => {
   const before = previous?.rebuilt ? previous.ladders[ladder.label] : null
   if (!before || before.season !== ladder.meta.season.code || before.band !== BAND || before.floor !== ladder.meta.fit.aggregateFloor || !sameRules(before.rules, ladder.rules)) return null
   const now = new Map(ladder.decks.map((deck) => [deck.key, deck]))
@@ -497,6 +501,7 @@ const tierChanges = (ladder: Ladder, previous: Snapshot | null) => {
   return [...keys].flatMap((id) => {
     const was = before.decks[id]
     const is = now.get(id)
+    if (!reportDeck(is)) return []
     if ((was?.tier ?? null) === (is?.tier ?? null)) return []
     const shown = was?.name ?? (is ? name(is) : id)
     // Tier 1 is the top: a lower number is a climb, and leaving the tiers is the bottom.
@@ -515,7 +520,7 @@ const leaderShift = (ladder: Ladder, previous: Snapshot | null) => {
   if (!was || was[1].wrExpected === undefined || !is) return ''
   const [key, deck] = was
   const old = ladder.decks.find((d) => d.key === key)
-  const now = () => (old ? ` and sits at ${pct(old.wrExpected)} in Tier ${old.tier}` : ' and fell under the floors')
+  const now = () => (old && reportDeck(old) ? ` and sits at ${pct(old.wrExpected)} in Tier ${old.tier}` : ' and is outside this report\'s Tier 1–3 coverage')
   return key === is.key
     ? `${ladder.label}: ${name(is)} still leads, ${pct(deck.wrExpected)} then and ${pct(is.wrExpected)} now.`
     : `${ladder.label}: ${name(is)} leads now at ${pct(is.wrExpected)}. ${deck.name} led the last issue at ${pct(deck.wrExpected)}${now()}.`
@@ -527,7 +532,7 @@ const spotlight = (ladder: Ladder): WikiBlock[] => {
   if (!riser) return []
   const { family, deck, delta } = riser
   const id = `spotlight-${ladder.prefix}`
-  const opening = `${name(family)} gained ${Math.abs(delta * 100).toFixed(1)} points of meta share last week, the most on the ladder, for ${pct(family.share)} of the season so far.`
+  const opening = `${name(family)} gained ${Math.abs(delta * 100).toFixed(1)} points of meta share last week, the most among covered families, for ${pct(family.share)} of the season so far.`
   // A family with no listed build has nothing more to say: the stats, matchups and sample deck all belong to one build.
   if (!deck) return [heading(`h-${id}`, 3, `${ladder.label}: ${name(family)}`, id), text(id, opening)]
   const { best, worst } = bestAndWorst(ladder, deck)
@@ -535,8 +540,8 @@ const spotlight = (ladder: Ladder): WikiBlock[] => {
   const faced = (answer?.against ?? []).slice(0, 3).map(cardLink)
   const lines = [
     `${opening} ${name(deck) === name(family) ? 'Its core build has' : `Its most played build, ${name(deck)}, has`} an expected win rate of ${pct(deck.wrExpected)} (95% interval ${interval(deck)}); in game 1 it wins ${pct(deck.firstG1Wr)} going first and ${pct(deck.secondG1Wr)} going second.`,
-    best ? `- **Best matchup:** ${best}` : '',
-    worst ? `- **Worst matchup:** ${worst}` : '',
+    best ? `- **Above-expected matchup:** ${best}` : '',
+    worst ? `- **Below-expected matchup:** ${worst}` : '',
     faced.length ? `- **Most used against it:** ${and(faced)}` : '',
   ]
   const cards = (answer?.sampleDeck?.main ?? []).slice(0, 4).map((card) => ({ id: card.id, name: cardName(card), note: `×${card.count} in the sample deck` }))
@@ -552,16 +557,16 @@ const risingAnswer = (...ladders: Ladder[]) =>
   ladders
     .map((ladder) => {
       const top = risers(ladder).slice(0, 3)
-      return top.length ? `In ${ladder.label}, ${and(top.map(({ family, delta }) => `${name(family)} (${points(delta)})`))}, in points of meta share.` : `No ${ladder.label} deck gained share.`
+      return top.length ? `In ${ladder.label}, ${and(top.map(({ family, delta }) => `${name(family)} (${points(delta)})`))}, in points of meta share.` : `No covered ${ladder.label} family gained share.`
     })
     .join(' ')
 
-const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snapshot | null): WikiDoc => {
+export const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snapshot | null): WikiDoc => {
   const issueDay = day(issue)
   const lead = (ladder: Ladder) => risers(ladder)[0]?.family
   const rising = (ladder: Ladder) => {
     const family = lead(ladder)
-    return family ? `${name(family)} rose fastest in ${ladder.label}` : `no ${ladder.label} deck gained share`
+    return family ? `${name(family)} led share gains among covered ${ladder.label} families` : `no covered ${ladder.label} family gained share`
   }
   const events = [...eventRows(tcg), ...eventRows(genesys)]
   const changes = [tierChanges(tcg, previous), tierChanges(genesys, previous)]
@@ -580,7 +585,7 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
     heading(`h-moves-${ladder.prefix}`, 3, `${ladder.label} movers`, `${ladder.prefix}-movers`),
     text(
       `moves-${ladder.prefix}`,
-      ['Last week against the week before.', risers(ladder).length ? `**Rising**\n\n${movementTable(risers(ladder).slice(0, 5))}` : '', fallers(ladder).length ? `**Falling**\n\n${movementTable(fallers(ladder).slice(0, 5))}` : '']
+      ['The latest season-week block against the preceding block. We cover families whose most played tiered build sits in Tiers 1–3.', risers(ladder).length ? `**Rising**\n\n${movementTable(risers(ladder).slice(0, 5))}` : '', fallers(ladder).length ? `**Falling**\n\n${movementTable(fallers(ladder).slice(0, 5))}` : 'No eligible family lost share.']
         .filter(Boolean)
         .join('\n\n'),
     ),
@@ -588,32 +593,35 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
 
   const blocks: WikiBlock[] = [
     text('intro', `This Yu-Gi-Oh! meta report covers what moved on the YGO Omega ranked ladders, from games through ${dataDay}. ${capitalized(rising(tcg))}, and ${rising(genesys)}. At the top, ${headline(tcg)} in TCG and ${headline(genesys)} in Genesys.`),
-    figure('report-board-tcg', tcgImages, `TCG movers for ${issueDay}`),
-    figure('report-board-genesys', genesysImages, `Genesys movers for ${issueDay}`),
+    figure('report-board-tcg', tcgImages, `TCG share changes across the latest two season-week blocks. Coverage: families represented by Tier 1–3 builds.`),
+    figure('report-board-genesys', genesysImages, `Genesys share changes across the latest two season-week blocks. Coverage: families represented by Tier 1–3 builds.`),
     text('intro-more', `For where every deck stands, see ${tierLinks}. This report covers the changes.`),
     heading('h-moves', 2, 'Yu-Gi-Oh! meta report: which decks moved?', 'which-decks-moved'),
-    text('moves', 'Change compares meta share in the last week of games with the week before it, in percentage points. Season share, tier and expected win rate cover the whole season, so a deck can climb fast from a small base.'),
+    text('moves', 'Share changes compare the latest two seven-day blocks counted from each season\'s opening day. The latest block may be incomplete. These changes do not compare the two report publication dates. Tier changes compare this issue with the most recent saved report snapshot when season, rating band and tier rules match. Season share and expected win rate cover the season. We cover current Tiers 1–3, including decks that rose from Tier 4.'),
     ...ladderMoves(tcg),
     ...ladderMoves(genesys),
+    text('tier-comparison', [tcg, genesys].map((ladder, i) => changes[i] !== null
+      ? `${ladder.label}: we compare tiers with the saved issue of ${day(previous!.issue)}.`
+      : `${ladder.label}: we have no comparable earlier snapshot under the current season, band and tier rules, so we omit tier-change claims.`).join(' ')),
     ...(compared
       ? [
-          heading('h-tiers', 2, `Tier changes since ${day(previous?.issue ?? issue)}`, 'tier-changes'),
-          text(
-            'tiers',
-            [
-              "Tiers count down from each ladder's leader, so a deck changes tier when its own expected win rate moves or when the leader's does.",
-              shifts,
-              changed.length ? ['| Ladder | Deck | Last issue | Now | Expected win rate |', '|---|---|---|---|---:|', ...changed].join('\n') : 'No deck changed tier since the last issue.',
-            ]
-              .filter(Boolean)
-              .join('\n\n'),
-          ),
-        ]
+        heading('h-tiers', 2, `Tier changes since ${day(previous?.issue ?? issue)}`, 'tier-changes'),
+        text(
+          'tiers',
+          [
+            "Tiers count down from each ladder's leader, so a deck changes tier when its own expected win rate moves or when the leader's does.",
+            shifts,
+            changed.length ? ['| Ladder | Deck | Last issue | Now | Expected win rate |', '|---|---|---|---|---:|', ...changed].join('\n') : 'No current Tier 1–3 deck changed tier in the comparable ladders.',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+        ),
+      ]
       : []),
     heading('h-events', 2, 'Biggest shifts in the numbers', 'biggest-shifts'),
     text(
       'events',
-      `We list a shift when a deck's strength moves more than 3.5 standard errors from one week to the next. Chance alone gets there about once across every deck and week.\n\n${events.length ? ['| Ladder | Deck | Shift | From | To | Games |', '|---|---|---|---:|---:|---:|', ...events].join('\n') : 'No deck crossed that bar this week.'}`,
+      `We flag current Tier 1–3 decks when their fitted strength changes by more than 3.5 combined standard errors between consecutive season-week blocks. This threshold reduces false signals across repeated comparisons; it does not rule them out.\n\n${events.length ? ['| Ladder | Deck | Shift | From | To | Games |', '|---|---|---|---:|---:|---:|', ...events].join('\n') : 'No covered deck crossed that bar this week.'}`,
     ),
     ...(lead(tcg) || lead(genesys) ? [heading('h-spotlight', 2, 'Decks to watch', 'decks-to-watch'), ...spotlight(tcg), ...spotlight(genesys)] : []),
     {
@@ -634,7 +642,9 @@ const buildReport = (tcg: Ladder, genesys: Ladder, issue: string, previous: Snap
           md: `In TCG, ${name(tcg.decks[0]!)} leads with an expected ${pct(tcg.decks[0]!.wrExpected)} win rate. In Genesys, ${name(genesys.decks[0]!)} leads with ${pct(genesys.decks[0]!.wrExpected)}. ${tierLinks.replace(/^the/, 'The')} rank the rest.`,
         },
         { q: 'Which Yu-Gi-Oh! decks are rising right now?', md: risingAnswer(tcg, genesys) },
-        { q: 'What is the difference between this report and the tier lists?', md: `${capitalized(tierLinks)} rank every deck and change in place each week. This report keeps a dated record of what moved that week.` },
+        { q: 'Does this meta report compare with the previous report?', md: 'Tier changes use the latest saved report snapshot with matching season, band and tier rules. Share changes and strength shifts compare the latest two season-week blocks, which can differ from the interval between reports. We omit tier comparisons when the snapshots are incompatible.' },
+        { q: 'Which decks does this report cover?', md: 'Current Tiers 1–3, including promotions from Tier 4. The tier lists also show the five highest-ranked Tier 4 builds; the statistics page has the full list.' },
+        { q: 'What is the difference between this report and the tier lists?', md: `${capitalized(tierLinks)} show the current rankings and update in place. Each dated report records share changes and tier moves among the covered decks.` },
         { q: 'How often is the meta report published?', md: 'Every week, with data from the ranked ladders up to the day before.' },
       ],
     },
@@ -703,8 +713,10 @@ const previousSnapshot = (issue: string): Snapshot | null => {
 
 /** One at a time, waiting out the API's 60 requests a minute. */
 const read = async <T>(path: string): Promise<T> => {
-  for (;;) {
-    const res = await fetch(`${API}${path}`)
+  for (; ;) {
+    const url = `${API}${path}`
+    console.log('Fetching:', url)
+    const res = await fetch(url)
     if (res.status === 429) {
       await new Promise((done) => setTimeout(done, Number(res.headers.get('retry-after') ?? 30) * 1000))
       continue
@@ -719,7 +731,7 @@ const load = async (label: Ladder['label'], prefix: Ladder['prefix']): Promise<L
   const rules = rulesOf(meta, label)
   const decks = listed(meta)
   const ladder: Ladder = { label, prefix, meta, rules, decks, families: families(meta.decks), answers: new Map() }
-  const wanted = [...new Set([...tiered(ladder), ...risers(ladder).slice(0, 5).flatMap((m) => (m.deck ? [m.deck] : []))])]
+  const wanted = [...new Set([...displayed(ladder), ...risers(ladder).slice(0, 5).flatMap((m) => (m.deck ? [m.deck] : []))])]
   for (const deck of wanted) ladder.answers.set(deck.key, await read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(deck.key)}?ladder=${prefix}&band=${BAND}`))
   return ladder
 }
@@ -732,6 +744,7 @@ const saveImages = async (ladders: Ladder[], issue: string) => {
     for (const ladder of ladders) {
       for (const size of Object.keys(IMAGE_SIZES) as Size[]) {
         const url = `${IMAGE_BASE}/statistics/infographic/${section}?ladder=${ladder.prefix}&size=${size}`
+        console.log('Fetching image:', url)
         const res = await fetch(url)
         if (!res.ok) throw new Error(`GET ${url} failed with ${res.status}. Not deployed yet? WIKI_IMAGE_BASE points at a dev server.`)
         await sharp(Buffer.from(await res.arrayBuffer()))
@@ -749,6 +762,7 @@ const main = async () => {
   const tcg = await load('TCG', 'tcg')
   const genesys = await load('Genesys', 'genesys')
   const articles = [
+    { slug: METHODOLOGY_SLUG, doc: statisticsMethodology() },
     { slug: tierListSlug(genesys), doc: buildTierList(genesys, tcg, issue) },
     { slug: tierListSlug(tcg), doc: buildTierList(tcg, genesys, issue) },
     { slug: reportSlug(issue), doc: buildReport(tcg, genesys, issue, previousSnapshot(issue)) },
@@ -775,7 +789,7 @@ const main = async () => {
   console.log(`\nImages saved to public${BOARD_IMAGES} and public${REPORT_IMAGES}: commit them and publish after they deploy. The posts use the same files.`)
 }
 
-main().catch((error) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {
   console.error(error instanceof Error ? error.message : error)
   process.exit(1)
 })

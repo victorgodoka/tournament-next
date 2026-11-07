@@ -80,7 +80,7 @@ export type DeckStat = {
   wrExpected: number
   wrLo: number
   wrHi: number
-  /** `null` under the floors (0.5% share, 10 duelists) or the anchors, even with `wrExpected` present. */
+  /** `null` under the build's share/player floors; eligible decks use relative gaps in `fit.tiers`. */
   tier: 1 | 1.5 | 2 | 3 | 4 | null
   firstEffect: number
   firstSe: number
@@ -289,6 +289,34 @@ export const shareMoves = (weeks: readonly Pick<Week, 'key' | 'week' | 'share'>[
     risers: moves.filter((m) => m.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, top),
     fallers: moves.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, top),
   }
+}
+
+/** Editorial coverage: reports cover current Tiers 1–3, including promotions from Tier 4. */
+export const reportDeck = (deck: Pick<DeckStat, 'tier'> | null | undefined) => deck?.tier != null && deck.tier <= 3
+
+/** Tier-list articles and boards show the five strongest Tier 4 builds. Keep full data for snapshots. */
+export const TIER_4_LIMIT = 5
+export const tierListDecks = (decks: readonly DeckStat[]) => {
+  let fourth = 0
+  return plainDecks(decks)
+    .filter((d) => d.tier != null)
+    .sort((a, b) => b.wrExpected - a.wrExpected || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+    .filter((d) => d.tier !== 4 || ++fourth <= TIER_4_LIMIT)
+}
+
+export type ReportMove = { family: DeckStat; deck: DeckStat; delta: number }
+
+/** Filter before taking the top movers. The most played tiered build represents each family. */
+export const reportMoves = (meta: Pick<Meta, 'decks' | 'weeks'>, top = 5) => {
+  const list = families(meta.decks)
+  const byKey = new Map(list.map((f) => [f.family.key, f]))
+  const moves = shareMoves(familyWeeks(meta.weeks, list), Infinity)
+  const select = (rows: { key: string; delta: number }[]): ReportMove[] => rows.flatMap(({ key, delta }) => {
+    const family = byKey.get(key)!
+    const deck = family.members.find((d) => d.tier != null)
+    return deck && reportDeck(deck) ? [{ family: family.family, deck, delta }] : []
+  }).slice(0, top)
+  return { risers: select(moves.risers), fallers: select(moves.fallers) }
 }
 
 export const weekJumps = (weeks: readonly Week[]) => {

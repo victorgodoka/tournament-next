@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deckFaces, families, type DeckStat, type Meta, type Week } from '@utils/statistics'
+import { deckFaces, families, reportDeck, reportMoves, tierListDecks, type DeckStat, type Meta, type Week } from '@utils/statistics'
 import { behind, fallers, gapPoints, leaders, listed, name, risers, rulesOf, tier, type Ladder, type TierRules } from './tier-list'
 
 const RULES: TierRules = { t1Gap: 0.0075, t2Gap: 0.0125, t3Gap: 0.025, minShare: 0.005, minPlayers: 10 }
@@ -74,19 +74,33 @@ describe('risers and fallers', () => {
   const decks = [deck('1*', 0.5, null, 0.3), deck('1', 0.56, 1, 0.2), deck('1>2', 0.55, 2, 0.1), deck('3*', 0.5, null, 0.1), deck('3', 0.54, 4, 0.1), deck('5*', 0.5, null, 0.1), { ...deck('5', 0.5, null, 0.1), players: 3 }]
   const l = ladder(decks, [week('1', 1, 0.1), week('1', 2, 0.12), week('1>2', 1, 0.05), week('1>2', 2, 0.07), week('3', 1, 0.1), week('3', 2, 0.08), week('5', 1, 0.1), week('5', 2, 0.2)])
 
-  it('orders the families by their summed move, biggest first, each with its most played listed member', () => {
-    expect(risers(l).map((m) => [m.family.key, m.deck?.key])).toEqual([['5*', undefined], ['1*', '1']])
-    expect(risers(l)[1]!.delta).toBeCloseTo(0.04)
-    expect(fallers(l).map((m) => [m.family.key, m.deck?.key])).toEqual([['3*', '3']])
+  it('keeps Tiers 1–3, sums family moves and excludes T4 and unranked families', () => {
+    expect(risers(l).map((m) => [m.family.key, m.deck?.key])).toEqual([['1*', '1']])
+    expect(risers(l)[0]!.delta).toBeCloseTo(0.04)
+    expect(fallers(l)).toEqual([])
   })
 
-  it('has no deck for a family none of whose members is listed', () => {
-    expect(risers(l)[0]!.deck).toBeNull()
+  it('filters before choosing the top mover, so an excluded family does not consume a slot', () => {
+    expect(reportMoves(l.meta, 1).risers[0]!.deck.key).toBe('1')
   })
 
   it('has none in the first week', () => {
     expect(risers(ladder([deck('1*', 0.5, null), deck('1', 0.56, 1)], [week('1', 1, 0.1)]))).toEqual([])
     expect(fallers(ladder([deck('1*', 0.5, null), deck('1', 0.56, 1)], [week('1', 1, 0.1)]))).toEqual([])
+  })
+})
+
+describe('editorial tier coverage', () => {
+  it('shows all Tiers 1–3 and only the five strongest T4 builds without changing the input', () => {
+    const decks = [deck('top', 0.6, 1), deck('third', 0.55, 3), ...Array.from({ length: 8 }, (_, i) => deck(`fourth-${i}`, 0.54 - i / 100, 4)), deck('unknown', 0.7, null)]
+    expect(tierListDecks([...decks].reverse()).map((d) => d.key)).toEqual(['top', 'third', 'fourth-0', 'fourth-1', 'fourth-2', 'fourth-3', 'fourth-4'])
+    expect(decks).toHaveLength(11)
+  })
+
+  it('accepts a deck promoted from T4 once its current tier is T3, and excludes demotions', () => {
+    expect(reportDeck(deck('promoted', 0.55, 3))).toBe(true)
+    expect(reportDeck(deck('demoted', 0.5, 4))).toBe(false)
+    expect(reportDeck(null)).toBe(false)
   })
 })
 
