@@ -158,8 +158,8 @@ export const TopicsSection = ({ articles }: { articles: ArticleSummary[] }) => (
   </section>
 )
 
-/** The match count a tier list states in its summary, which `scripts/wiki-tier-list.ts` writes in this one shape. */
-const ladderMatches = (summary: string) => summary.match(/([\d,]+) YGO Omega ladder matches/)?.[1]?.replaceAll(',', ' ')
+/** The game count a tier list states in its summary, as `scripts/wiki-tier-list.ts` writes it ("matches" before November 2026). */
+const ladderGames = (summary: string) => summary.match(/([\d,]+) YGO Omega ladder (?:games|matches)/)?.[1]?.replaceAll(',', ' ')
 
 const LADDER = {
   tcg: { label: 'TCG ladder', edge: '[--edge:var(--color-ladder-tcg)]', text: 'text-ladder-tcg' },
@@ -174,7 +174,7 @@ const LadderChip = ({ ladder, children, className }: { ladder: keyof typeof LADD
 )
 
 const LadderTile = ({ article, ladder }: { article: ArticleSummary; ladder: keyof typeof LADDER }) => {
-  const matches = ladderMatches(article.summary)
+  const games = ladderGames(article.summary)
   return (
     <Link
       href={`/wiki/${article.slug}`}
@@ -185,11 +185,15 @@ const LadderTile = ({ article, ladder }: { article: ArticleSummary; ladder: keyo
       </LadderChip>
       <span className={twMerge('signal-strong sm:hidden', LADDER[ladder].text)}>{LADDER[ladder].label}</span>
       <h3 className="text-lg/[1.1] text-ink display-3 sm:text-[22px]">{article.title}</h3>
+      {/* The list is replaced in place every week, so its last edit is its issue date. */}
+      <span className="text-ink-muted signal-sm">
+        Last updated <LocalDay iso={article.updatedAt} />
+      </span>
       <div className="flex items-end justify-between gap-3">
-        {matches ? (
+        {games ? (
           <div className="flex flex-col gap-1">
-            <span className="text-[32px] text-ink stat-lg sm:text-[40px]">{matches}</span>
-            <span className="text-ink-muted signal-sm">Ladder matches</span>
+            <span className="text-[32px] text-ink stat-lg sm:text-[40px]">{games}</span>
+            <span className="text-ink-muted signal-sm">Ladder games</span>
           </div>
         ) : null}
         {article.views === undefined ? null : <span className="text-ink-muted signal-sm max-sm:hidden">{COMPACT.format(article.views)} views</span>}

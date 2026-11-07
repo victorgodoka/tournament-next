@@ -23,8 +23,13 @@ Home and End switch tabs through the shared `TabBar` component.
 The picker reads the selected ladder's `band=all` meta and searches names and keys.
 The selection stores its name and up to five distinct cover passcodes; dated articles
 keep that artwork. The renderer shows the lead cover with secondary covers overlaid as
-squares and derives the internal statistics URL from key and ladder. The link stays in
-the same tab, like every other internal link. No arbitrary link or image URL lives in this block.
+squares and derives the internal statistics URL from key and ladder. No arbitrary link or
+image URL lives in this block.
+
+Every link in an article's content opens in a new tab (`target="_blank"`, `rel="noopener noreferrer"`):
+Markdown links in text, callouts, tables and FAQ answers, `[card:ID]` links, Cards blocks, Statistics
+Deck blocks, the infobox's deck covers and Article Preview cards. In-page anchors (`#section`, footnotes,
+the table of contents) and the page chrome (breadcrumbs, hub, related articles) stay in the same tab.
 
 `infobox.statisticsDeck` accepts the same `deck` object instead of `infobox.asset`.
 The two image sources are exclusive. The covers link to the deck's statistics. The desktop

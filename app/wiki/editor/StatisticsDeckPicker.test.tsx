@@ -33,11 +33,12 @@ describe('Statistics Deck', () => {
     expect(onChange).toHaveBeenLastCalledWith(undefined)
   })
 
-  it('links the deck name and covers to statistics in the same tab and keeps the caption', () => {
+  it('links the deck name and covers to statistics in a new tab and keeps the caption', () => {
     render(<StatisticsDeck deck={{ key: '115>482', name: 'Sky Striker / Angelechy', ladder: 'genesys', faces: [1, 2] }} caption="Two covers, one build." />)
     const link = screen.getByRole('link', { name: /Sky Striker \/ Angelechy/ })
     expect(link.getAttribute('href')).toBe('/statistics/archetypes/115%3E482?ladder=genesys')
-    expect(link.getAttribute('target')).toBeNull()
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
     expect(link.textContent).toContain('Genesys · Statistics')
     expect(screen.getAllByRole('img')).toHaveLength(2)
     expect(screen.getByText('Two covers, one build.')).toBeTruthy()

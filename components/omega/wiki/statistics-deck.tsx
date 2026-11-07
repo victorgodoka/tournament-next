@@ -3,7 +3,7 @@ import { CardImage } from '@omega/card-art'
 import { CARD_ART_URL } from '@utils/const'
 import type { WikiStatisticsDeck } from '@utils/wiki-doc'
 import { statisticsDeckHref } from '@utils/wiki-statistics-deck'
-import { WIKI_TILE } from './wiki'
+import { NEW_TAB, WIKI_TILE } from './wiki'
 
 export const StatisticsDeckArt = ({ deck, className }: { deck: WikiStatisticsDeck; className?: string }) => (
   <span className={twMerge('relative block aspect-square w-full overflow-hidden border border-line-mid bg-surface-200', className)}>
@@ -18,10 +18,10 @@ export const StatisticsDeckArt = ({ deck, className }: { deck: WikiStatisticsDec
 
 export const StatisticsDeck = ({ deck, caption }: { deck: WikiStatisticsDeck; caption?: string }) => (
   <figure className="clear-both my-5">
-    <a href={statisticsDeckHref(deck)} className={twMerge(WIKI_TILE, 'grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 p-3 text-ink hover:text-ink sm:grid-cols-[144px_minmax(0,1fr)] sm:gap-5 sm:p-4')}>
+    <a href={statisticsDeckHref(deck)} {...NEW_TAB} className={twMerge(WIKI_TILE, 'grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 p-3 text-ink hover:text-ink sm:grid-cols-[144px_minmax(0,1fr)] sm:gap-5 sm:p-4')}>
       <StatisticsDeckArt deck={deck} />
       <span className="flex min-w-0 flex-col gap-2">
-        <span className="text-cyan signal-sm">{deck.ladder === 'tcg' ? 'TCG' : 'Genesys'} · Statistics →</span>
+        <span className="text-cyan signal-sm">{deck.ladder === 'tcg' ? 'TCG' : 'Genesys'} · Statistics ↗</span>
         <span className="text-xl/[1.1] display-3 sm:text-2xl">{deck.name}</span>
       </span>
     </a>

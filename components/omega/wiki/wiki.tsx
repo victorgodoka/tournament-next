@@ -138,6 +138,9 @@ export const WIKI_SCROLL_ROW =
 
 /** The wiki's card: top-right notch on a line-mid edge. */
 export const WIKI_CARD = 'cut notch [--cut:var(--cut-lg)]'
+/** Every link inside an article's content opens in a new tab, so the reader keeps their place. In-page anchors don't use it. */
+export const NEW_TAB = { target: '_blank', rel: 'noopener noreferrer' } as const
+
 /** A tile that lifts under the pointer. Links only. */
 export const WIKI_TILE =
   'cut notch [--cut:var(--cut-md)] transition-[translate] duration-120 ease-out hover:-translate-y-0.5 hover:[--fill:var(--color-surface-200)] motion-reduce:transition-none'

@@ -9,6 +9,23 @@ vi.mock('./code-highlight', () => ({ lowlight: { registered: () => false } }))
 afterEach(() => vi.unstubAllGlobals())
 const response = (slug = 'test-guide') => ({ slug, title: 'Test guide', summary: 'A public guide.', publishedAt: '2026-11-07', doc: { cover: { asset: 'cover' }, assets: { cover: { id: 'cover', src: '/wiki-images/article-cover.png', width: 1920, height: 420, alt: 'Guide cover' } } } })
 
+describe('article links', () => {
+  it('open text, card and statistics links in a new tab and keep in-page anchors in place', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })))
+    const html = renderToStaticMarkup(await renderArticle('[Guide](/wiki/guide), [card](/wiki/card/14558127), [deck](/statistics/archetypes/482?ladder=tcg), [site](https://example.com) and [settings](#current-settings).'))
+    for (const href of ['/wiki/guide', '/wiki/card/14558127', '/statistics/archetypes/482?ladder=tcg', 'https://example.com'])
+      expect(html).toMatch(new RegExp(`<a[^>]*href="${href.replace(/[?]/g, '\\?')}"[^>]*target="_blank"[^>]*rel="noopener noreferrer"|<a[^>]*target="_blank"[^>]*href="${href.replace(/[?]/g, '\\?')}"`))
+    expect(html).toMatch(/<a[^>]*href="#current-settings"/)
+    expect(html).not.toMatch(/<a[^>]*href="#current-settings"[^>]*target=/)
+  })
+
+  it('open the article preview card in a new tab', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => response() })))
+    const html = renderToStaticMarkup(await renderArticle('[article=test-guide]'))
+    expect(html).toMatch(/<a[^>]*href="\/wiki\/test-guide"[^>]*target="_blank"/)
+  })
+})
+
 describe('article previews', () => {
   it('renders a card between paragraphs, with cover, title and summary', async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => response() }))

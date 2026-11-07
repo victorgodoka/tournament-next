@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { createElement, Fragment, type ReactNode } from 'react';
 import { ArticlePreview } from '@omega/wiki/article-preview'
+import { NEW_TAB } from '@omega/wiki/wiki'
 import { loadArticlePreview, type WikiArticlePreview } from './wiki-article-preview'
 
 /** A tag's own `className` rule beats `*`: the defaults' would strip our classes from a, code, ol, ul and li. */
@@ -305,6 +306,8 @@ const toReact = (node: HastNode, key?: number, previews?: ReadonlyMap<string, Wi
   }
   // GFM task-list boxes arrive `checked` + `disabled`; React needs to know they are read-only.
   if (node.tagName === 'input') props.readOnly = true
+  // Article links open a new tab, so the reader keeps their place. In-page anchors (footnotes, `#section`) stay.
+  if (node.tagName === 'a' && !String(props.href ?? '').startsWith('#')) Object.assign(props, NEW_TAB)
   return VOID.has(node.tagName) ? createElement(node.tagName, props) : createElement(node.tagName, props, ...children)
 }
 

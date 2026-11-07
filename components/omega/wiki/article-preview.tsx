@@ -1,9 +1,9 @@
 import Image from 'next/image'
 import type { WikiArticlePreview } from '@utils/wiki-article-preview'
-import { WIKI_TILE } from './wiki'
+import { NEW_TAB, WIKI_TILE } from './wiki'
 
 export const ArticlePreview = ({ slug, article }: { slug: string; article?: WikiArticlePreview | null }) => (
-  <a href={`/wiki/${article?.slug ?? slug}`} className={`${WIKI_TILE} clear-both my-5 flex items-center gap-4 p-3 text-ink hover:text-ink sm:gap-5 sm:p-4`}>
+  <a href={`/wiki/${article?.slug ?? slug}`} {...NEW_TAB} className={`${WIKI_TILE} clear-both my-5 flex items-center gap-4 p-3 text-ink hover:text-ink sm:gap-5 sm:p-4`}>
     {article?.cover ? <span className="relative aspect-[4/3] w-24 shrink-0 overflow-hidden bg-surface-200 sm:w-36">
       <Image src={article.cover.src} alt={article.cover.alt || article.title} fill unoptimized={article.cover.src.startsWith('https://res.cloudinary.com/')} sizes="144px" className="object-cover" />
     </span> : null}

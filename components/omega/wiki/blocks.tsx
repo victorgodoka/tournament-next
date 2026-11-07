@@ -24,7 +24,7 @@ import { Lightbox, Zoomable } from './lightbox'
 import { ShareButtons } from './share-buttons'
 import { Video } from './video'
 import { StatisticsDeck } from './statistics-deck'
-import { WIKI_TILE } from './wiki'
+import { NEW_TAB, WIKI_TILE } from './wiki'
 
 /** Floats sit beside the text that follows; everything wider clears them first. */
 const ALIGN: Record<FigureAlign, string> = {
@@ -103,6 +103,7 @@ const CardFace = ({ card, html, sizes }: { card: WikiCardRef; html: DocHtml; siz
 const CardFeature = ({ card, caption, html }: { card: WikiCardRef; caption?: string; html: DocHtml }) => (
   <Link
     href={`/wiki/card/${card.id}`}
+    {...NEW_TAB}
     className={twMerge(WIKI_TILE, 'clear-both my-5 grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3.5 p-3 text-ink-dim hover:text-ink-dim sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-5 sm:p-4')}
   >
     <CardFace card={card} html={html} sizes="96px" />
@@ -213,6 +214,7 @@ const Block = ({ block, assets, html, share, num, first, openFaq }: BlockProps) 
               <li key={card.id} className="w-[calc((100%-(var(--cols)-1)*var(--gap))/var(--cols))]">
                 <Link
                   href={`/wiki/card/${card.id}`}
+                  {...NEW_TAB}
                   className="group flex flex-col gap-2 text-ink transition-[translate] duration-120 ease-out hover:-translate-y-0.5 hover:text-ink motion-reduce:transition-none"
                 >
                   <span className="block group-hover:outline-2 group-hover:outline-offset-2 group-hover:outline-cyan">

@@ -7,14 +7,14 @@ import { topicOf, WIKI_TOPICS } from '@utils/wiki-topics'
 import { headingNumbers, WikiBlocks } from './blocks'
 import { articleShareUrl } from './share'
 import { Toc, TocDisclosure, type TocItem } from './toc'
-import { WIKI_ASIDE, WIKI_CARD, WIKI_RAIL, WIKI_SCROLL_ROW, WIKI_TILE } from './wiki'
+import { NEW_TAB, WIKI_ASIDE, WIKI_CARD, WIKI_RAIL, WIKI_SCROLL_ROW, WIKI_TILE } from './wiki'
 import { StatisticsDeckArt } from './statistics-deck'
 import { statisticsDeckHref } from '@utils/wiki-statistics-deck'
 
 /** The infobox's deck covers open the deck's statistics, as the Statistics Deck block does. */
 const InfoboxDeck = ({ deck }: { deck: NonNullable<WikiInfobox['statisticsDeck']> }) =>
   deck.key ? (
-    <a href={statisticsDeckHref(deck)} aria-label={`${deck.name} statistics`} className="block hover:opacity-90">
+    <a href={statisticsDeckHref(deck)} {...NEW_TAB} aria-label={`${deck.name} statistics`} className="block hover:opacity-90">
       <StatisticsDeckArt deck={deck} />
     </a>
   ) : (
