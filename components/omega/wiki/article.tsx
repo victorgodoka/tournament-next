@@ -5,7 +5,6 @@ import { LocalDay } from '@omega/wiki/local-day'
 import { Chip } from '@ui/chip'
 import { Icon } from '@ui/icon'
 import type { ArticleSummary, WikiUser } from '@utils/types'
-import { imageSource } from '@utils/wiki-doc'
 import { topicOf, WIKI_TOPICS, type WikiTopic } from '@utils/wiki-topics'
 
 export const ARTICLE_DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
@@ -96,7 +95,7 @@ export const ArticleRow = ({ article }: { article: ArticleSummary }) => {
         {/* Flush to the row's corner, the row's whole height, cropped never stretched. */}
         <span className="dots relative flex min-h-22 items-center justify-center overflow-hidden bg-surface-200 text-line-mid">
           {article.cover ? (
-            <Image {...imageSource(article.cover, 400)} alt="" fill sizes="(min-width: 640px) 176px, 88px" className="object-cover" />
+            <Image src={article.cover.src} alt="" fill sizes="(min-width: 640px) 176px, 88px" className="object-cover" />
           ) : topic ? (
             <TopicIcon topic={topic} size={28} />
           ) : null}

@@ -11,7 +11,6 @@ import { cardStatus } from '@utils/deck/rules'
 import type { CardData, CardMap, Deck, Zone } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
 import { CARD_IMAGE_URL, CARD_SCAN_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
 import { CardFacts } from './card-facts'
 
 type CardDetailProps = {
@@ -80,7 +79,7 @@ export const CardDetail = ({ card, art, deck, cards, banlists, onClose, onAdd, o
                   onClick={() => setSelected(id)}
                   className={twMerge('relative aspect-[59/86] w-12 cursor-pointer bg-surface-300', id === selected && 'outline outline-2 outline-cyan')}
                 >
-                  <Image loader={cardLoader} src={CARD_IMAGE_URL(imageOf(id, card))} alt="" fill sizes="64px" className="object-cover" />
+                  <Image src={CARD_IMAGE_URL(imageOf(id, card))} alt="" fill sizes="64px" className="object-cover" />
                 </button>
               ))}
             </div>

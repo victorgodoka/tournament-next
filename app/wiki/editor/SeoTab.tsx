@@ -6,7 +6,6 @@ import { uploadWikiAsset } from '@utils/articles'
 import type { ArticleSeo, ArticleSummary } from '@utils/types'
 import {
   DOC_LIMITS,
-  imageSource,
   isShareSize,
   shareAsset,
   shareCrop,
@@ -87,7 +86,7 @@ const ShareCrop = ({ asset, onFocal, className }: { asset: WikiAsset; onFocal?: 
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- a crop window: sized in percent of the original, which next/image can't express */}
       <img
-        src={imageSource(asset, 1200).src}
+        src={asset.src}
         alt=""
         style={{
           width: `${(asset.width / crop.w) * 100}%`,
@@ -364,7 +363,7 @@ export const SeoTab = ({ doc, setSeo, setLinks, addAsset, slugProps, self, crumb
                         )}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- library thumbnail, any host the editor holds */}
-                        <img src={imageSource(asset, 200).src} alt="" className={twMerge('size-full object-cover', !fits && 'opacity-35')} />
+                        <img src={asset.src} alt="" className={twMerge('size-full object-cover', !fits && 'opacity-35')} />
                         <span className={twMerge('absolute bottom-1.5 left-1.5 bg-scrim px-1 signal-sm', fits ? 'text-ink' : 'text-loss')}>
                           {asset.width}
                           {fits ? ' ✓' : ' px'}
@@ -376,7 +375,7 @@ export const SeoTab = ({ doc, setSeo, setLinks, addAsset, slugProps, self, crumb
                     {upload.busy ? 'Working…' : 'Upload'}
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
+                      accept="image/png,image/jpeg"
                       className="sr-only"
                       onChange={(event) => {
                         void uploadShare(event.target.files?.[0])
@@ -577,7 +576,7 @@ export const SeoTab = ({ doc, setSeo, setLinks, addAsset, slugProps, self, crumb
               ) : share ? (
                 <div className="mt-1.5 flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element -- small-card preview */}
-                  <img src={imageSource(share, 200).src} alt="" className="size-20 border border-line-mid object-cover" />
+                  <img src={share.src} alt="" className="size-20 border border-line-mid object-cover" />
                   <span className="text-loss signal-sm">Small square card · {share.width} px</span>
                 </div>
               ) : (

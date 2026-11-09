@@ -13,7 +13,7 @@ describe('shownScans', () => {
       big,
       img(next(89631139, 64), 64), // the tray thumbnail
       img(next(46986414, 256), 0, false), // still loading
-      img(`https://res.cloudinary.com/x/image/fetch/w_256/https://ygopro.online/assets/card-images/common/23995346.jpg`, 256), // would taint the canvas
+      img(`https://ygopro.online/assets/card-images/common/23995346.jpg`, 256), // cross-origin: would taint the canvas
       img(`${location.origin}/_next/image?url=https%3A%2F%2Fygopro.online%2Fassets%2Fcard-arts%2F7902349.jpg&w=256&q=75`, 256), // an art, not a scan
     ])
     expect([...scans.keys()]).toEqual([89631139])

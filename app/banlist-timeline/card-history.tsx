@@ -10,7 +10,6 @@ import { Icon } from '@ui/icon'
 import { SectionHead } from '@ui/section-head'
 import { BANLIST_CARDS, BANLISTS, cardBySlug, cardId, cardName, cardPath, cardSlug, STATUS_TONE, statusOn, wikiPath, type BanStatus } from '@utils/banlist'
 import { CARD_IMAGE_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
 import { CardStrip } from './card-strip'
 
 const subscribe = (onChange: () => void) => {
@@ -92,7 +91,7 @@ export const CardHistory = ({ selected, current }: { selected: number; current: 
           <div className="flex flex-col gap-5 pt-1">
             <div className="flex flex-wrap items-end gap-4">
               <Link href={wikiPath(card)} prefetch={false} target="_blank" rel="noopener" className="relative aspect-[59/86] w-20 shrink-0 overflow-hidden bg-surface-300">
-                <Image loader={cardLoader} src={CARD_IMAGE_URL(cardId(card))} alt={cardName(card)} fill sizes="80px" className="object-cover" />
+                <Image src={CARD_IMAGE_URL(cardId(card))} alt={cardName(card)} fill sizes="80px" className="object-cover" />
               </Link>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span className="text-ink-muted signal">

@@ -23,7 +23,6 @@ describe('isAllowedSrc', () => {
     expect(isAllowedSrc('/wiki-images/tier-list/2026-10-30-tcg-wide.jpg')).toBe(true)
     expect(isAllowedSrc('/wiki-images/troubleshooting/deck-manager.webp')).toBe(true)
     expect(isAllowedSrc('https://ygopro.online/assets/card-arts/72270339.jpg')).toBe(true)
-    expect(isAllowedSrc('https://res.cloudinary.com/x/image/upload/wiki_assets/abc')).toBe(true)
   })
 
   it('refuses a route of this site: every reader would run it on the server', () => {

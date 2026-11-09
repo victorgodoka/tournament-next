@@ -282,29 +282,23 @@ export const toAnchor = (text: string) =>
 /** Table of contents, straight from the heading blocks. */
 export const outline = (doc: WikiDoc) => doc.blocks.flatMap((block) => (block.type === 'heading' ? [block] : []))
 
+/** Public base of uploaded images (the API's `S3_PUBLIC_URL`), no trailing slash. Empty: uploads off. */
+export const UPLOADS_URL = (process.env.NEXT_PUBLIC_UPLOADS_URL ?? '').replace(/\/+$/, '')
+
+/** An uploaded wiki image: our bucket's `wiki_assets/` folder, never another host. */
+export const isWikiUpload = (src: string) => UPLOADS_URL !== '' && src.startsWith(`${UPLOADS_URL}/wiki_assets/`)
+
 /**
- * Where a wiki image may live: files in `public/`, card arts, and the wiki's own Cloudinary folder. The server refuses
+ * Where a wiki image may live: files in `public/`, card arts, and the wiki's own uploads folder. The server refuses
  * anything else. A route of this site is not a file: the image optimiser would run it for readers, and
  * `/statistics/infographic/*` takes ~33 s on production, in the process that serves the site.
  */
 const ALLOWED_SRC = [
   /^\/(?!\/)[^?#]*\.(?:png|jpe?g|webp|avif|gif)$/i,
   /^https:\/\/ygopro\.online\/assets\/card-arts\//,
-  /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/wiki_assets\//,
 ]
 
-export const isAllowedSrc = (src: string) => ALLOWED_SRC.some((pattern) => pattern.test(src))
-
-const CLOUDINARY_UPLOAD = '/image/upload/'
-
-/**
- * `src` (and `unoptimized`) for `<Image>`. Cloudinary resizes and picks the format on its own CDN,
- * like profile covers, so its images skip Next's optimiser; `width` is the widest the slot paints.
- */
-export const imageSource = (asset: WikiAsset, width: number) =>
-  asset.src.startsWith('https://res.cloudinary.com/')
-    ? { src: asset.src.replace(CLOUDINARY_UPLOAD, `${CLOUDINARY_UPLOAD}f_auto,q_auto,w_${width},c_limit/`), unoptimized: true }
-    : { src: asset.src }
+export const isAllowedSrc = (src: string) => isWikiUpload(src) || ALLOWED_SRC.some((pattern) => pattern.test(src))
 
 const ANCHOR = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const RAW_HTML = /<[a-zA-Z/!]/

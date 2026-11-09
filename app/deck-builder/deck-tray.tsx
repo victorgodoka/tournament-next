@@ -10,7 +10,6 @@ import type { CardMap, Zone } from '@utils/deck/types'
 import type { Banlist } from '@utils/wiki'
 import { CARD_IMAGE_URL } from '@utils/const'
 import { imageOf } from '@utils/deck/model'
-import { cardLoader } from '@utils/image-loader'
 import type { EditorState } from './deck-editor.reducer'
 import { DeckZone, type DragPayload } from './deck-zone'
 import { MOVE_SLOP, trayAfterDrag } from './gestures'
@@ -147,7 +146,7 @@ export const DeckTray = (p: DeckTrayProps) => {
             <span aria-hidden className="flex shrink-0 gap-1">
               {lastAdded.map((id, i) => (
                 <span key={`${id}-${i}`} className="relative aspect-[59/86] h-8 bg-surface-300">
-                  <Image loader={cardLoader} src={CARD_IMAGE_URL(imageOf(id, p.cards.get(id)))} alt="" fill sizes="22px" draggable={false} className="object-cover" />
+                  <Image src={CARD_IMAGE_URL(imageOf(id, p.cards.get(id)))} alt="" fill sizes="22px" draggable={false} className="object-cover" />
                 </span>
               ))}
             </span>

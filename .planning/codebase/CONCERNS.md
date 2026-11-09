@@ -124,9 +124,9 @@ last_mapped_at: 2026-11-01
 
 **Image optimiser on the page server:**
 - Problem: Each new `url` + `w` + `q` is a sharp job, and the disk cache dies with each deploy.
-- Files: `next.config.ts`, `utils/image-loader.ts`, `app/card-image/[kind]/[file]/route.ts`
+- Files: `next.config.ts`, `app/card-image/[kind]/[file]/route.ts`
 - Cause: `/_next/image` runs in the Node process.
-- Improvement path: Use `cardLoader` with Cloudinary fetch for card art. Keep the size matrix small.
+- Improvement path: A CDN in front of `/_next/image` (or a persistent cache volume). Keep the size matrix small.
 
 **Decklists in tournament HTML:**
 - Problem: Every decklist ships in the page, about 7 KB gzipped each.

@@ -1,5 +1,5 @@
 import { API_URL } from './auth'
-import type { WikiAsset } from './wiki-doc'
+import { isWikiUpload, type WikiAsset } from './wiki-doc'
 
 export type WikiArticlePreview = { slug: string; title: string; summary: string; cover?: WikiAsset }
 export const isArticleSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length <= 80
@@ -8,7 +8,7 @@ const pending = new Map<string, Promise<WikiArticlePreview | null>>()
 const safeCover = (asset: WikiAsset | undefined | null) => asset && typeof asset.src === 'string' && (
   /^\/(?![/\\])[^?#]*\.(?:png|jpe?g|webp|avif|gif)$/i.test(asset.src) ||
   asset.src.startsWith('https://ygopro.online/assets/card-arts/') ||
-  /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/wiki_assets\//.test(asset.src)
+  isWikiUpload(asset.src)
 ) && Number.isInteger(asset.width) && asset.width > 0 && Number.isInteger(asset.height) && asset.height > 0 ? asset : undefined
 
 /** Anonymous metadata of published articles only: no editor session reaches the request, so no draft enters a shared cache. */

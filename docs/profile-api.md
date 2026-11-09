@@ -94,7 +94,7 @@ One request is enough to render the whole page. It works for any duelist in the 
   "relation": { "state": "linked", "kind": "friend" },
 
   "bio": "Since the **first Omega beta**…",
-  "coverImage": "https://res.cloudinary.com/<cloud>/image/upload/profile_covers/3f…",
+  "coverImage": "https://<uploads>/profile_covers/3f…",
   "region": "brazil",
   "favoriteCard": { "id": 46986431, "name": "Dark Magician" },
   "favoriteDeck": "Mitsurugi with Yummy",
@@ -164,7 +164,7 @@ The identity header and `relation` are always sent, so a private page can still 
 |---|---|---|
 | `view` | ProfileView | How this profile shows to **this viewer**: VIP or not, history window, timeline, charts, … §4.10. Render from this. |
 | `bio` | string | **VIP only** (absent on non-VIP profiles). Markdown subset, max 2000 chars. `""` if unset. See §3.3 for what it can contain. Render it with a Markdown renderer that doesn't allow raw HTML. |
-| `coverImage` | string \| null | **VIP only** (absent on non-VIP profiles). Cover image URL, untransformed — add your own Cloudinary transformation for size/format. `null` = no cover. |
+| `coverImage` | string \| null | **VIP only** (absent on non-VIP profiles). Cover image URL, original file — size it with `next/image`. `null` = no cover. |
 | `region` | Region \| null | §4.5. |
 | `favoriteCard` | CardArt \| null | §4.4. |
 | `favoriteDeck` | string \| null | Free text the duelist wrote ("Mitsurugi with Yummy"). No art. `null` = not set. |
@@ -309,7 +309,7 @@ Content-Type: application/json
 | `favoriteCardId` | integer | yes | Card passcode, 1–2147483647. |
 | `favoriteDeckName` | string | yes | Free text, max 64 chars. Trimmed; `""` clears like `null`. Sent back as `favoriteDeck`. |
 | `socials` | Social[] | no (use `[]`) | **VIP.** Max 5, one per `network`. Replaces the whole list. Each `href` must be an absolute `http(s)` URL (max 500 chars). `handle` is a string (max 64) or `null`. |
-| `coverImageId` | string | yes | **VIP.** The `public_id` from §3.4, after the upload. The server asks Cloudinary whether it exists, passed moderation and fits the size limit: `404` not uploaded, `422 UNPROCESSABLE` rejected by moderation, `422 TOO_LARGE` over **2 MB** (the upload is deleted), `503 UNAVAILABLE` uploads not configured. Any other string → `400`. |
+| `coverImageId` | string | yes | **VIP.** The `key` from §3.4, after the upload. The server reads the object itself: it must exist, be a real JPEG/PNG and pass moderation: `404` not uploaded, `422 UNPROCESSABLE` not a JPEG/PNG or rejected by moderation (the upload is deleted), `503 UNAVAILABLE` uploads not configured. Any other string → `400`. |
 | `privacy` | Partial ProfilePrivacy | no | **VIP.** Any subset of §4.11; merged key by key into what is saved. Unknown key or wrong type → `400`. |
 
 Rejected with `400`: an empty body `{}`, any unknown key (almost always a typo), or a wrong type.
@@ -325,7 +325,7 @@ Rejected with `400`: an empty body `{}`, any unknown key (almost always a typo),
   "favoriteCard": { "id": 46986431, "name": "Dark Magician" },
   "favoriteDeck": "Mitsurugi with Yummy",
   "socials": [{ "network": "x", "handle": "@marufuji", "href": "https://x.com/marufuji" }],
-  "coverImage": "https://res.cloudinary.com/<cloud>/image/upload/profile_covers/3f2a…",
+  "coverImage": "https://<uploads>/profile_covers/3f2a…",
   "privacy": { "hideElo": "none", "showPastSeasons": true, "hideMatches": false, "matchWindow": "28d", "showPastSeasonMatches": false, "hideTimeline": false, "hideDecks": false, "delayMatches": true, "hideCharts": false }
 }
 ```
@@ -342,26 +342,33 @@ The response always carries the **saved** values, VIP or not (`privacy` complete
 
 ### 3.4 `POST /profiles/me/cover/sign` — cover upload (VIP)
 
-The browser uploads the image **straight to Cloudinary**; the API only signs the
-upload and later checks it. No body.
+The browser uploads the image **straight to S3** (presigned POST); the API only signs the
+upload and later checks it.
+
+```json
+{ "contentType": "image/png" }
+```
+
+`contentType` is `image/jpeg` or `image/png` (the file's type): it goes into the signature.
 
 ```json
 {
-  "uploadUrl": "https://api.cloudinary.com/v1_1/<cloud>/image/upload",
-  "fields": { "allowed_formats": "jpg,jpeg,png,webp", "moderation": "aws_rek…", "overwrite": "false",
-              "public_id": "profile_covers/3f2a…", "timestamp": 1793000000, "api_key": "…", "signature": "…" }
+  "uploadUrl": "https://<bucket>.s3.<region>.amazonaws.com/",
+  "fields": { "key": "incoming/profile_covers/3f2a…", "Content-Type": "image/png", "Policy": "…",
+              "X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Credential": "…", "X-Amz-Date": "…", "X-Amz-Signature": "…" },
+  "key": "profile_covers/3f2a…"
 }
 ```
 
-1. `POST /profiles/me/cover/sign`.
-2. `POST` a `multipart/form-data` to `uploadUrl` with **every** entry of `fields` unchanged plus `file`. Changing any field breaks the signature.
-3. `PATCH /profiles/me { "coverImageId": fields.public_id }`. Render `coverImage` from the response.
+1. `POST /profiles/me/cover/sign { contentType }`.
+2. `POST` a `multipart/form-data` to `uploadUrl` with **every** entry of `fields` unchanged, then `file` **last** (S3 ignores fields after the file). Changing any field breaks the signature; S3 answers `204` on success.
+3. `PATCH /profiles/me { "coverImageId": key }` (the top-level `key`, not `fields.key`). Render `coverImage` from the response.
 
-jpg/png/webp only (no gif, no svg), **2 MB at most** (recommended 1500 × 350). Every upload goes through moderation; a
-rejected or too large image fails step 3 with `422`. A new `public_id` every time — sign again
-for each upload.
+jpg/png only (Rekognition can't read webp; no gif, no svg), **2 MB at most** (recommended 1500 × 350): S3 itself refuses
+a bigger file in step 2. Every upload goes through moderation; a rejected image fails step 3 with `422`. A new `key`
+every time, valid for 5 minutes — sign again for each upload.
 
-**Responses:** `200` · `401` · `403 VIP_REQUIRED` · `503 UNAVAILABLE` (uploads not configured).
+**Responses:** `200` · `400` (`contentType`) · `401` · `403 VIP_REQUIRED` · `503 UNAVAILABLE` (uploads not configured).
 
 ---
 
@@ -760,7 +767,7 @@ Edit profile
        └─ 401 → session gone: send to sign-in
 
 Cover (VIP)
-  └─ POST /profiles/me/cover/sign → upload to Cloudinary → PATCH /profiles/me { coverImageId }
+  └─ POST /profiles/me/cover/sign → upload to S3 → PATCH /profiles/me { coverImageId }
 
 Duel timeline (Match.timeline == true)
   └─ GET /analytics/matches/{id}/timeline  → ANALYTICS_API.md §1

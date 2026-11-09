@@ -5,7 +5,6 @@ import { twMerge } from 'tailwind-merge'
 import { LocalDay } from '@omega/wiki/local-day'
 import { getMetaArticles } from '@utils/articles'
 import type { ArticleSummary } from '@utils/types'
-import { imageSource } from '@utils/wiki-doc'
 
 const ladderOf = (a: ArticleSummary) => (a.slug === 'yu-gi-oh-genesys-tier-list' ? 'Genesys' : a.slug === 'yu-gi-oh-tcg-tier-list' ? 'TCG' : null)
 
@@ -19,7 +18,7 @@ const Feature = ({ article, label, lead }: { article: ArticleSummary; label: str
     )}
   >
     <span className="dots relative block aspect-[1200/630] overflow-hidden bg-surface-200">
-      {article.cover ? <Image {...imageSource(article.cover, 200)} alt="" fill sizes="96px" className="object-cover" /> : null}
+      {article.cover ? <Image src={article.cover.src} alt="" fill sizes="96px" className="object-cover" /> : null}
     </span>
     <span className="flex min-w-0 flex-col gap-0.5">
       <span className={twMerge('signal-sm', lead ? 'text-gold' : 'text-azure-lift')}>{label}</span>

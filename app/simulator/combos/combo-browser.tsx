@@ -15,7 +15,6 @@ import { searchCards } from '@utils/cards'
 import { listPublicCombos, type ComboFilters, type PublicCombo } from '@utils/combos'
 import { CARD_ART_URL } from '@utils/const'
 import { DECK_TAGS, type DeckTag } from '@utils/decks'
-import { cardLoader } from '@utils/image-loader'
 
 type Card = { id: number; name: string }
 type Filters = { q: string; archetype: string; tag: DeckTag | null; cards: Card[] }
@@ -37,7 +36,7 @@ const Triptych = ({ cards }: { cards: number[] }) => (
     <span className="flex size-full">
       {cards.map((id) => (
         <span key={id} className="sim-pane-cover relative min-w-0 flex-1">
-          <Image loader={cardLoader} src={CARD_ART_URL(id)} alt="" fill sizes="(min-width: 1280px) 12vw, (min-width: 768px) 18vw, 34vw" className="object-cover" />
+          <Image src={CARD_ART_URL(id)} alt="" fill sizes="(min-width: 1280px) 12vw, (min-width: 768px) 18vw, 34vw" className="object-cover" />
         </span>
       ))}
     </span>

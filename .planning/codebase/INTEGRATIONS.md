@@ -37,14 +37,14 @@ last_mapped_at: 2026-11-01
 - Source of card scans and art, slow at 2-6 s per file
   - URLs: `CARD_IMAGE_URL` and `CARD_ART_URL` in `utils/const.ts`
   - Same-origin proxy for canvases: `app/card-image/[kind]/[file]/route.ts`, because the host sends no CORS headers
-  - Optional edge fetch: `cardLoader` in `utils/image-loader.ts` when `NEXT_PUBLIC_CARD_ART_FETCH=cloudinary`
+  - Resized by Next's optimizer (`next.config.ts` allows only the card-art and card-image paths)
 
-**Cloudinary:**
-- Delivers wiki assets and optional card art
-  - Uploads: browser-direct with a signature from `/wiki/assets/sign`, then registered at `/wiki/assets` (`utils/articles.ts`)
-  - Auth: the API signs uploads; the front only needs `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
-  - Allowed asset URLs are checked in `utils/wiki-doc.ts`
-  - `res.cloudinary.com` is deliberately absent from `next.config.ts` image hosts: Cloudinary sizes its own images
+**AWS S3 (uploads):**
+- Stores profile covers, wiki assets and shop assets
+  - Uploads: browser-direct presigned POST from `/profiles/me/cover/sign` or `/wiki/assets/sign` (body `{ contentType }`), file field last, then registered at `PATCH /profiles/me` or `/wiki/assets` (`utils/profile.ts`, `utils/articles.ts`)
+  - Auth: the API signs uploads and moderates them with Rekognition; the front only needs `NEXT_PUBLIC_UPLOADS_URL`
+  - Allowed asset URLs are checked in `utils/wiki-doc.ts` (`isWikiUpload`)
+  - Resized by Next's optimizer: `next.config.ts` allows the bucket's `profile_covers/`, `wiki_assets/` and `shop_items/` paths
 
 **Advertising (NitroPay):**
 - Site ID `2429`, set in `utils/nitro-ads.const.ts`
@@ -67,7 +67,7 @@ last_mapped_at: 2026-11-01
 - None in this repo. Postgres sits behind the API.
 
 **File Storage:**
-- Cloudinary for wiki assets, through the API's signed upload
+- S3 for covers and wiki assets, through the API's signed upload
 - `public/` for static art and `public/wiki-images/` for committed images
 - Next's image cache on the container's disk, lost on each deploy
 
@@ -122,7 +122,7 @@ last_mapped_at: 2026-11-01
 - `NEXT_PUBLIC_API_URL`
 
 **Optional env vars:**
-- `API_INTERNAL_URL`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CARD_ART_FETCH`, `NEXT_PUBLIC_SITE_URL`, `WIKI_IMAGE_BASE`
+- `API_INTERNAL_URL`, `NEXT_PUBLIC_UPLOADS_URL`, `NEXT_PUBLIC_SITE_URL`, `WIKI_IMAGE_BASE`
 
 **Secrets location:**
 - Local: uncommitted `.env.*` files

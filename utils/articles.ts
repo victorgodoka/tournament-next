@@ -214,24 +214,23 @@ export const updateArticle = (slug: string, patch: ArticlePatch | DocArticlePatc
 
 /**
  * One image into the wiki's storage (WIKI_API.md §4.12–4.13), the same way profile covers go:
- * the API signs, the browser uploads straight to Cloudinary, and the API only accepts the result
- * after asking Cloudinary itself that it exists and passed moderation. The returned asset carries
- * Cloudinary's own width and height.
+ * the API signs, the browser uploads straight to S3, and the API only accepts the result after
+ * reading the object itself: a real JPEG/PNG that passed moderation. The returned asset carries the
+ * width and height the API read from the file.
  */
 export const uploadWikiAsset = async (file: File, alt: string) => {
-  const { uploadUrl, fields } = await request<{ uploadUrl: string; fields: Record<string, string | number> }>(
+  const { uploadUrl, fields, key } = await request<{ uploadUrl: string; fields: Record<string, string>; key: string }>(
     '/wiki/assets/sign',
-    json('POST'),
+    json('POST', { contentType: file.type }),
   )
 
   const form = new FormData()
-  for (const [key, value] of Object.entries(fields)) form.set(key, String(value))
-  form.set('file', file)
+  for (const [name, value] of Object.entries(fields)) form.set(name, value)
+  form.set('file', file) // S3 ignores every field after `file`: the file goes last.
   const res = await fetch(uploadUrl, { method: 'POST', body: form })
   if (!res.ok) throw new WikiApiError(res.status, 'UPLOAD_FAILED')
-  const { public_id: publicId } = (await res.json()) as { public_id: string }
 
-  return request<WikiAsset>('/wiki/assets', json('POST', { publicId, alt }))
+  return request<WikiAsset>('/wiki/assets', json('POST', { publicId: key, alt }))
 }
 
 export const deleteArticle = (slug: string) => request<void>(`/wiki/${encodeURIComponent(slug)}`, json('DELETE'))

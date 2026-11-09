@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { useId, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { DOC_LIMITS, imageSource, isShareSize, shareAsset, toAnchor, type WikiAsset, type WikiDoc, type WikiInfobox } from '@utils/wiki-doc'
+import { DOC_LIMITS, isShareSize, shareAsset, toAnchor, type WikiAsset, type WikiDoc, type WikiInfobox } from '@utils/wiki-doc'
 import { SNIPPET_CHARS } from '@utils/wiki-seo'
 import { FIELD, LABEL } from '../ArticleForm'
 import { AssetPicker, MINI, TextField } from './fields'
@@ -277,7 +277,7 @@ export const HeaderPanel = ({ doc, edit, assets, slugProps, autoSlug, selected, 
         {cover ? (
           <>
             <Image
-              src={imageSource(cover, 1200).src}
+              src={cover.src}
               alt=""
               fill
               unoptimized
