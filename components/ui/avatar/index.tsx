@@ -64,7 +64,7 @@ type AvatarProps = {
 export const AvatarFrame = ({ cosmetics }: { cosmetics?: Cosmetics | null }) => {
   const frame = cosmetics?.WEBDECO?.assetUrl
   // ponytail: fixed 12% bleed around the portrait; read geometry from `data` if frames ever need it.
-  // Cloudinary skips Next's optimiser, like covers.
+  // Small shop asset: skips Next's optimiser.
   return frame ? <Image src={frame} alt="" fill unoptimized className="pointer-events-none -inset-[12%]! size-[124%]! max-w-none border-0! object-contain!" /> : null
 }
 

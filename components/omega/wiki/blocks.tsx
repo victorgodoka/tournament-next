@@ -9,7 +9,6 @@ import {
   CODE_LANGUAGES,
   faqKey,
   frameKey,
-  imageSource,
   type CalloutTone,
   type CardsAlign,
   type DocHtml,
@@ -67,14 +66,14 @@ const Markdown = ({ html, className }: { html?: React.ReactNode; className?: str
 /** A `<picture>` when there is a mobile image: the browser fetches one of the two, never both. */
 const FigureImage = ({ asset, mobile, wide }: { asset: WikiAsset; mobile?: WikiAsset; wide: boolean }) => {
   const image = {
-    ...imageSource(asset, wide ? 1600 : 640),
+    src: asset.src,
     width: asset.width,
     height: asset.height,
     sizes: wide ? '(min-width: 1024px) 680px, 100vw' : '(min-width: 640px) 300px, 100vw',
     className: 'h-auto w-full',
   }
   if (!mobile) return <Image {...image} alt={asset.alt} />
-  const { props: small } = getImageProps({ ...imageSource(mobile, 640), alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
+  const { props: small } = getImageProps({ src: mobile.src, alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
   return (
     <picture>
       {/* The site's `sm` breakpoint. Width and height let the browser reserve the mobile image's own shape. */}

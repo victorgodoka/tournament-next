@@ -9,9 +9,6 @@ const PROFILE_FILL = {
   '--fill': 'radial-gradient(ellipse 45% 140% at 100% 0%, rgba(0, 253, 255, 0.07), rgba(0, 0, 0, 0) 70%), var(--color-surface-100)',
 } as React.CSSProperties
 
-/** The API sends the cover untransformed: Cloudinary resizes it on the way out. */
-const sizedCover = (url: string) => url.replace('/image/upload/', '/image/upload/c_limit,w_2560,f_auto,q_auto/')
-
 type ProfileHeaderProps = {
   /** The API's `displayName`. `null` reads "Unknown duelist". */
   name: string | null
@@ -67,7 +64,7 @@ export const ProfileHeader = ({ name, handle, avatar, cosmetics, status, cover, 
           aria-label={`Cover image chosen by ${label}`}
           className="relative h-37.5 overflow-hidden bg-[#0a1430] md:mx-px md:mt-px md:h-75 md:[clip-path:polygon(0_0,calc(100%-15px)_0,100%_15px,100%_100%,0_100%)]"
         >
-          <Image src={sizedCover(cover)} alt="" fill unoptimized priority className="object-cover object-center" />
+          <Image src={cover} alt="" fill sizes="100vw" priority className="object-cover object-center" />
           <span aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,18,34,0)_45%,rgba(14,18,34,0.95)_100%)]" />
         </div>
       ) : null}

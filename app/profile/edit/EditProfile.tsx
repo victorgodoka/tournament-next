@@ -301,7 +301,7 @@ const CoverSection = ({ form, set, vip }: { form: Form; set: SetForm; vip: boole
             <span aria-hidden className="absolute bottom-4.5 left-6 size-18 border-4 border-surface-100 bg-azure max-md:size-12" />
           </div>
           <div className="flex flex-col gap-3">
-            <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
+            <input ref={input} type="file" accept="image/jpeg,image/png" hidden onChange={(e) => pick(e.target.files?.[0])} />
             <Button variant="secondary" disabled={state.busy} onClick={() => input.current?.click()}>
               <Icon name="plus" />{state.busy ? 'Uploading…' : 'Upload cover'}
             </Button>

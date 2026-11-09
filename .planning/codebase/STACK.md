@@ -64,7 +64,7 @@ Prefer these over new packages. Charts, dialogs, drag and drop and the icon set 
 - `.env.development`, `.env.production` and `.env.example` exist. Only `.env.example` is committed (`.gitignore`).
 - `NEXT_PUBLIC_*` values are inlined at build time, so they arrive as Docker build args. Adding one means changing `Dockerfile` and `.gitlab-ci.yml` together.
 - Required: `NEXT_PUBLIC_API_URL`. `utils/auth.ts` falls back to `''`, and `instrumentation.ts` then skips the fetch timeout entirely.
-- Optional at build: `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CARD_ART_FETCH`, `NEXT_PUBLIC_SITE_URL`.
+- Optional at build: `NEXT_PUBLIC_UPLOADS_URL`, `NEXT_PUBLIC_SITE_URL`.
 - Optional at runtime: `API_INTERNAL_URL` (server-side route to the API), `WIKI_IMAGE_BASE` (`scripts/wiki-tier-list.ts` only).
 - `NEXT_PUBLIC_SITE_URL` is not a build arg, so production always uses the default `https://omega.duelistsunite.org` from `utils/config.ts`.
 

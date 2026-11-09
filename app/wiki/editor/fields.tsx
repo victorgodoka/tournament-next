@@ -7,8 +7,7 @@ import { Lookup, type LookupOption } from '@ui/lookup'
 import { API_URL } from '@utils/auth'
 import { searchCardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
-import { CODE_LANGUAGES, DOC_LIMITS, imageSource, isUploadDate, parseYouTube, toAnchor, type CodeLanguage, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
+import { CODE_LANGUAGES, DOC_LIMITS, isUploadDate, parseYouTube, toAnchor, type CodeLanguage, type WikiAsset, type WikiBlock, type WikiCardRef } from '@utils/wiki-doc'
 import { FIELD, HELP, LABEL } from '../ArticleForm'
 import { Check, FieldHead, Frame, Help, INPUT, type Tone } from './ui'
 import { StatisticsDeckPicker } from './StatisticsDeckPicker'
@@ -113,7 +112,7 @@ const Segmented = <T extends string | number>({
 /** Library thumbnail. `unoptimized`: the editor may hold an upload from a host the optimiser doesn't know yet. */
 const Thumb = ({ asset, className }: { asset: WikiAsset; className?: string }) => (
   <Image
-    src={imageSource(asset, 200).src}
+    src={asset.src}
     alt=""
     width={64}
     height={64}
@@ -218,7 +217,7 @@ const CardRows = ({ cards, onChange }: { cards: WikiCardRef[]; onChange: (cards:
           <li key={i} className="grid grid-cols-[48px_110px_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
             <span className="relative aspect-square border border-line bg-surface-200">
               {card.id > 0 ? (
-                <Image loader={cardLoader} src={CARD_ART_URL(card.id)} alt="" fill sizes="48px" className="object-cover" />
+                <Image src={CARD_ART_URL(card.id)} alt="" fill sizes="48px" className="object-cover" />
               ) : null}
             </span>
             <input

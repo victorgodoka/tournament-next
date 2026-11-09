@@ -6,6 +6,15 @@ const DISABLED_ROUTES = [
   '/shop/:path*', '/inventory/:path*', '/battlepass/:path*',
   '/admin/shop/:path*', '/admin/rewards/:path*', '/admin/battlepass/:path*',
 ];
+const UPLOADS = process.env.NEXT_PUBLIC_UPLOADS_URL ? new URL(process.env.NEXT_PUBLIC_UPLOADS_URL) : null;
+const UPLOAD_PATTERNS = UPLOADS
+  ? ['profile_covers', 'wiki_assets', 'shop_items'].map((folder) => ({
+      protocol: 'https' as const,
+      hostname: UPLOADS.hostname,
+      pathname: `${UPLOADS.pathname.replace(/\/+$/, '')}/${folder}/**`,
+    }))
+  : [];
+
 const nextConfig: NextConfig = {
   redirects: async () => [
     ...DISABLED_ROUTES.map((source) => ({ source, destination: '/', permanent: false })),
@@ -37,9 +46,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.discordapp.com", pathname: "/avatars/**" },
       { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-arts/**" },
       { protocol: "https", hostname: "ygopro.online", pathname: "/assets/card-images/**" },
+      // Uploads (profile covers, wiki images, shop assets): only our bucket's public folders.
+      ...UPLOAD_PATTERNS,
     ],
-    // res.cloudinary.com is deliberately absent: Cloudinary sizes its own images (card art via
-    // `image-loader.ts`, wiki assets), so they never reach this optimiser at all.
   },
 };
 

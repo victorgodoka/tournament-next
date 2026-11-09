@@ -6,8 +6,7 @@ import { twMerge } from 'tailwind-merge'
 import { uploadWikiAsset } from '@utils/articles'
 import { searchCardArts, type CardArts } from '@utils/cards'
 import { CARD_ART_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
-import { DOC_LIMITS, WIKI_CREDITS, imageSource, type WikiAsset } from '@utils/wiki-doc'
+import { DOC_LIMITS, WIKI_CREDITS, type WikiAsset } from '@utils/wiki-doc'
 import { FIELD, HELP, failure } from '../ArticleForm'
 import { MINI } from './fields'
 
@@ -80,7 +79,7 @@ const CardArtSearch = ({ added, onPick }: { added: Set<string>; onPick: (id: num
                       }}
                       className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left hover:bg-ground-soft disabled:opacity-40"
                     >
-                      <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" width={40} height={40} unoptimized className="size-10 shrink-0 border border-line object-cover" />
+                      <Image src={CARD_ART_URL(art)} alt="" width={40} height={40} unoptimized className="size-10 shrink-0 border border-line object-cover" />
                       <span className="min-w-0 truncate text-ink body-sm">
                         {name} <span className="text-ink-muted mono-note">({art})</span>
                       </span>
@@ -140,7 +139,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
           {busy ? 'Working…' : 'Upload image'}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg"
             className="sr-only"
             onChange={(event) => {
               void upload(event.target.files?.[0])
@@ -172,7 +171,7 @@ export const AssetLibrary = ({ assets, used, onAdd, onChange, onRemove }: AssetL
                 }}
                 className="relative block cursor-crosshair self-start border border-line"
               >
-                <Image src={imageSource(asset, 200).src} alt="" width={asset.width} height={asset.height} unoptimized className="h-auto w-full" />
+                <Image src={asset.src} alt="" width={asset.width} height={asset.height} unoptimized className="h-auto w-full" />
                 {asset.focal ? (
                   <span
                     aria-hidden

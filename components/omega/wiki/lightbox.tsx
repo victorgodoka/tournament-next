@@ -4,7 +4,7 @@ import Image, { getImageProps } from 'next/image'
 import { useRef, useState, type RefObject } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@ui/icon'
-import { imageSource, type GalleryLayout, type WikiAsset } from '@utils/wiki-doc'
+import { type GalleryLayout, type WikiAsset } from '@utils/wiki-doc'
 import { WIKI_CHIP } from './wiki'
 
 const LIST: Record<GalleryLayout, string> = {
@@ -26,9 +26,9 @@ type Slide = { asset: WikiAsset; mobile?: WikiAsset }
 const VIEWED = 'h-auto max-h-full w-auto max-w-full border border-line object-contain'
 
 const ViewedImage = ({ asset, mobile }: Slide) => {
-  const image = { ...imageSource(asset, 1920), alt: asset.alt, width: asset.width, height: asset.height, sizes: '100vw', className: VIEWED }
+  const image = { src: asset.src, alt: asset.alt, width: asset.width, height: asset.height, sizes: '100vw', className: VIEWED }
   if (!mobile) return <Image {...image} alt={asset.alt} />
-  const { props: small } = getImageProps({ ...imageSource(mobile, 1080), alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
+  const { props: small } = getImageProps({ src: mobile.src, alt: '', width: mobile.width, height: mobile.height, sizes: '100vw' })
   return (
     // `contents`: the image sizes against the figure, not an inline box around it.
     <picture className="contents">
@@ -163,7 +163,7 @@ export const Lightbox = ({ assets, layout, caption }: LightboxProps) => {
               className={twMerge('relative block w-full bg-surface-200', ZOOM)}
             >
               <Image
-                {...imageSource(asset, 640)}
+                src={asset.src}
                 alt={asset.alt}
                 width={asset.width}
                 height={asset.height}

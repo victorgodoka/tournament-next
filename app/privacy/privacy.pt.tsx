@@ -150,8 +150,8 @@ export const pt: LegalDoc = {
             <strong>Discord</strong>, para fazer seu login (<a href="https://discord.com/privacy">política de privacidade</a>).
           </li>
           <li>
-            <strong>Cloudinary</strong> guarda e entrega as capas de perfil e as imagens da wiki, e verifica as capas enviadas com moderação
-            automática (<a href="https://cloudinary.com/privacy">política de privacidade</a>).
+            <strong>Amazon Web Services</strong> guarda e entrega as capas de perfil e as imagens da wiki (Amazon S3), e verifica todo
+            upload com moderação automática (Amazon Rekognition) (<a href="https://aws.amazon.com/privacy/">aviso de privacidade</a>).
           </li>
           <li>
             <strong>Nitro</strong> (NitroPay, da Overwolf Ltd) e seus parceiros de publicidade exibem os anúncios (

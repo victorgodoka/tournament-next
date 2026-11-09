@@ -28,7 +28,7 @@ last_mapped_at: 2026-11-01
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  omega-server-v3 API (separate repo)                        │
-│  Postgres, Discord OAuth, Cloudinary signing, SSE           │
+│  Postgres, Discord OAuth, S3 upload signing, SSE            │
 └─────────────────────────────────────────────────────────────┘
                        ▲
                        │  browser fetch, credentials: include
@@ -214,7 +214,7 @@ last_mapped_at: 2026-11-01
 
 **What happens:** A broad `remotePatterns` entry in `next.config.ts`.
 **Why it's wrong:** Each `url` + `w` + `q` is a sharp job on the page server, so a wildcard lets a stranger mint unlimited work.
-**Do this instead:** Keep hosts and paths narrow. Send card art through `cardLoader` or `app/card-image/[kind]/[file]/route.ts`.
+**Do this instead:** Keep hosts and paths narrow. Send card art through `CardImage` or `app/card-image/[kind]/[file]/route.ts`.
 
 ### Reading the API in an unbounded server loop
 

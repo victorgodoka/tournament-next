@@ -72,19 +72,23 @@ export const getMatches = (
 export const getDeckStats = (id: string, asVisitor?: boolean) =>
   request<DeckStats>(`/profiles/${encodeURIComponent(id)}/decks${asVisitor ? '?as=visitor' : ''}`)
 
-/** Signs one direct upload of a cover to Cloudinary (VIP). */
-export const signCoverUpload = () =>
-  request<{ uploadUrl: string; fields: Record<string, string | number> }>('/profiles/me/cover/sign', { method: 'POST' })
+/** Signs one direct upload of a cover to S3 (VIP). The content type is part of the signature. */
+export const signCoverUpload = (contentType: string) =>
+  request<{ uploadUrl: string; fields: Record<string, string>; key: string }>('/profiles/me/cover/sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contentType }),
+  })
 
-/** Sign, upload straight to Cloudinary, then the caller PATCHes `coverImageId` with the returned id. */
+/** Sign, upload straight to S3, then the caller PATCHes `coverImageId` with the returned key. */
 export const uploadCover = async (file: File): Promise<string> => {
-  const { uploadUrl, fields } = await signCoverUpload()
+  const { uploadUrl, fields, key } = await signCoverUpload(file.type)
   const body = new FormData()
-  for (const [key, value] of Object.entries(fields)) body.append(key, String(value))
-  body.append('file', file)
+  for (const [name, value] of Object.entries(fields)) body.append(name, value)
+  body.append('file', file) // S3 ignores every field after `file`: the file goes last.
   const res = await fetch(uploadUrl, { method: 'POST', body })
   if (!res.ok) throw new ProfileApiError(res.status, 'UPLOAD_FAILED')
-  return String(fields.public_id)
+  return key
 }
 
 /** The cover limit the API enforces (`422 TOO_LARGE`), checked first so nothing big is uploaded. */

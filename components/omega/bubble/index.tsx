@@ -18,7 +18,7 @@ export const ChatBubble = ({ style, sticker, mine, className, children }: ChatBu
   <div className={twMerge('bubble', mine && 'is-mine', className)} style={bubbleVars(style, mine)}>
     {children}
     {sticker ? (
-      // eslint-disable-next-line @next/next/no-img-element -- Cloudinary asset at 16–64px, like the frame it skips the optimiser
+      // eslint-disable-next-line @next/next/no-img-element -- shop asset at 16–64px, like the frame it skips the optimiser
       <img src={sticker} alt="" className={twMerge('bubble-sticker', style.sticker.animate !== 'none' && `is-${style.sticker.animate}`)} />
     ) : null}
   </div>

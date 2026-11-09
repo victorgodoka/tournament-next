@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import type { ArticleLink, ArticleLinks } from '@utils/types'
-import { imageSource, outline, type DocHtml, type WikiAsset, type WikiDoc, type WikiInfobox } from '@utils/wiki-doc'
+import { outline, type DocHtml, type WikiAsset, type WikiDoc, type WikiInfobox } from '@utils/wiki-doc'
 import { topicOf, WIKI_TOPICS } from '@utils/wiki-topics'
 import { headingNumbers, WikiBlocks } from './blocks'
 import { articleShareUrl } from './share'
@@ -69,7 +69,7 @@ const Infobox = ({ title, infobox, asset }: { title: string; infobox: WikiInfobo
     {infobox.statisticsDeck || asset ? (
       <figure className="flex flex-col gap-2 px-5 pt-3 pb-4">
         {infobox.statisticsDeck ? <InfoboxDeck deck={infobox.statisticsDeck} /> : asset ? (
-          <Image {...imageSource(asset, 700)} alt={asset.alt} width={asset.width} height={asset.height} sizes="240px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
+          <Image src={asset.src} alt={asset.alt} width={asset.width} height={asset.height} sizes="240px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
         ) : null}
         {infobox.caption ? <figcaption className="text-ink-dim body-sm">{infobox.caption}</figcaption> : null}
       </figure>
@@ -93,7 +93,7 @@ const Infobox = ({ title, infobox, asset }: { title: string; infobox: WikiInfobo
 const CompactInfobox = ({ infobox, asset }: { infobox: WikiInfobox; asset?: WikiAsset }) => (
   <div className={twMerge(WIKI_CARD, 'grid gap-3.5 p-3.5', (infobox.statisticsDeck || asset) && 'grid-cols-[112px_minmax(0,1fr)]')}>
     {infobox.statisticsDeck ? <InfoboxDeck deck={infobox.statisticsDeck} /> : asset ? (
-      <Image {...imageSource(asset, 320)} alt={asset.alt} width={asset.width} height={asset.height} sizes="112px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
+      <Image src={asset.src} alt={asset.alt} width={asset.width} height={asset.height} sizes="112px" style={{ objectPosition: focal(asset) }} className="aspect-[4/5] w-full object-cover" />
     ) : null}
     <dl className="flex min-w-0 flex-col">
       {infobox.facts.map(({ label, value }) => (
@@ -185,7 +185,7 @@ export const ArticleView = ({ doc, slug, html, links, meta, children, lead, body
       <section aria-labelledby="article-title" className="relative isolate overflow-hidden border-b border-line bg-[#0b1426]">
         {cover ? (
           <span aria-hidden className="absolute inset-x-0 top-0 -z-10 h-60 sm:h-full">
-            <Image {...imageSource(cover, 1920)} alt="" fill priority sizes="100vw" style={{ objectPosition: focal(cover) }} className="object-cover" />
+            <Image src={cover.src} alt="" fill priority sizes="100vw" style={{ objectPosition: focal(cover) }} className="object-cover" />
             {/* On a phone the cover is only the top band: this melts its bottom edge into the ground. */}
             <span className="absolute inset-0 bg-linear-to-t from-space-000 to-transparent to-60% sm:hidden" />
           </span>

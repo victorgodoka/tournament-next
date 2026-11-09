@@ -22,7 +22,7 @@
 ```
 ┌──────────── Editor (/wiki/new, /wiki/{slug}/edit) ─────────────┐
 │ paleta de componentes ──drag/click──▶ lista de blocos          │
-│ biblioteca de imagens ◀── upload (Cloudinary, §4)              │
+│ biblioteca de imagens ◀── upload (S3, §4)                      │
 │ estado = 1 objeto WikiDoc                                      │
 └──────────────┬─────────────────────────────────────────────────┘
                │ POST /wiki  { doc, slug?, published? }
@@ -103,7 +103,7 @@ Resposta atual + um campo:
 
 ### 2.5 Imagens — ver §4
 
-- `POST /wiki/assets/sign` — assina um upload direto para a Cloudinary.
+- `POST /wiki/assets/sign` — assina um upload direto para o S3.
 - `POST /wiki/assets` — registra a imagem enviada e devolve um `WikiAsset`.
 
 ---
@@ -151,9 +151,9 @@ type WikiAsset = {
 |---|---|
 | `/qualquer/caminho` (começa com uma `/`, não `//`) | arquivos em `public/` do front |
 | `https://ygopro.online/assets/card-arts/{passcode}.jpg` | arte de carta |
-| `https://res.cloudinary.com/{CLOUD}/image/upload/wiki_assets/{id}` | uploads da wiki (§4). O servidor deve exigir **o próprio** `CLOUD` e a pasta `wiki_assets/` |
+| `{S3_PUBLIC_URL}/wiki_assets/{id}` | uploads da wiki (§4). O servidor exige **a própria** base (`S3_PUBLIC_URL`, no front `NEXT_PUBLIC_UPLOADS_URL`) e a pasta `wiki_assets/` |
 
-`width`/`height` existem para a página reservar o espaço certo antes da imagem chegar (zero layout shift). Para uploads, o servidor preenche com o que a Cloudinary informar; para arte de carta é `624×624`; para caminhos locais o editor mede no navegador.
+`width`/`height` existem para a página reservar o espaço certo antes da imagem chegar (zero layout shift). Para uploads, o servidor preenche com o que leu do próprio arquivo; para arte de carta é `624×624`; para caminhos locais o editor mede no navegador.
 
 Ids que o editor gera: `card-{passcode}` para artes, `img-{8 hex}` para caminhos locais. Uploads recebem o id que o servidor devolver.
 
@@ -161,34 +161,36 @@ Ids que o editor gera: `card-{passcode}` para artes, `img-{8 hex}` para caminhos
 
 ## 4. Upload de imagem
 
-Mesmo desenho da capa de perfil (`profile.cloudinary.ts`): o browser sobe **direto** para a Cloudinary, mas a assinatura e a verificação ficam no backend. O backend nunca vira gargalo de banda e nunca aceita algo que não conferiu.
+Mesmo desenho da capa de perfil (`storage.ts` na API): o browser sobe **direto** para o S3 (presigned POST), mas a assinatura e a verificação ficam no backend. O backend nunca vira gargalo de banda e nunca aceita algo que não conferiu.
 
 ### 4.1 `POST /wiki/assets/sign` — `wiki.write`
 
-Sem corpo. Resposta:
+Corpo `{ "contentType": "image/jpeg" | "image/png" }`. Resposta:
 
 ```json
 {
-  "uploadUrl": "https://api.cloudinary.com/v1_1/{CLOUD}/image/upload",
+  "uploadUrl": "https://{bucket}.s3.{region}.amazonaws.com/",
   "fields": {
-    "allowed_formats": "jpg,jpeg,png,webp",
-    "moderation": "…",
-    "overwrite": "false",
-    "public_id": "wiki_assets/{32 hex}",
-    "timestamp": 1760000000,
-    "api_key": "…",
-    "signature": "…"
-  }
+    "key": "incoming/wiki_assets/{32 hex}",
+    "Content-Type": "image/jpeg",
+    "Policy": "…",
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": "…",
+    "X-Amz-Date": "…",
+    "X-Amz-Signature": "…"
+  },
+  "key": "wiki_assets/{32 hex}"
 }
 ```
 
-- `public_id` novo a cada assinatura + `overwrite=false`: ninguém troca uma imagem já aprovada re-subindo no mesmo id.
-- Sem `gif` (moderação lê um frame só) e sem `svg` (script embutido) — mesma regra da capa.
-- `503` se a Cloudinary não estiver configurada (o editor mostra "Couldn't reach the wiki").
+- A assinatura fixa key, Content-Type e no máximo 10 MB, e vence em 5 min.
+- O arquivo cai em `incoming/`, privado. Só a API copia para a key pública, depois de conferir: re-subir com a mesma assinatura não troca uma imagem já aprovada.
+- Só jpg/png: o Rekognition não lê webp, `gif` seria moderado por um frame só e `svg` carrega script — mesma regra da capa.
+- `503` se o S3 não estiver configurado (o editor mostra "Couldn't reach the wiki").
 
-### 4.2 Browser → Cloudinary
+### 4.2 Browser → S3
 
-O front faz `POST uploadUrl` multipart com todos os `fields` + `file`. Nada aqui passa pela API.
+O front faz `POST uploadUrl` multipart com todos os `fields` e o `file` **por último** (o S3 ignora campo depois do arquivo). Resposta `204`. Nada aqui passa pela API.
 
 ### 4.3 `POST /wiki/assets` — `wiki.write`
 
@@ -199,28 +201,28 @@ O front faz `POST uploadUrl` multipart com todos os `fields` + `file`. Nada aqui
 O servidor:
 
 1. confere o formato do `publicId` (`^wiki_assets/[0-9a-f]{32}$`);
-2. **pergunta à própria Cloudinary** (Admin API) se o recurso existe e se a moderação aprovou — o client não atesta nada;
-3. lê `width`/`height` da resposta da Cloudinary;
+2. **lê o próprio objeto** em `incoming/`: confere pelos bytes que é jpg/png e passa pelo Rekognition — o client não atesta nada. Reprovado é apagado;
+3. lê `width`/`height` do cabeçalho do arquivo e copia o objeto para a key pública;
 4. grava uma linha em `wiki_assets` (§7) com quem enviou;
 5. devolve o `WikiAsset`:
 
 ```json
 {
   "id": "wa-9f2c1b0e7a",
-  "src": "https://res.cloudinary.com/{CLOUD}/image/upload/wiki_assets/9f2c…",
+  "src": "{S3_PUBLIC_URL}/wiki_assets/9f2c…",
   "width": 1920,
   "height": 1080,
   "alt": "Sky Striker Ace - Raye mid-flight"
 }
 ```
 
-`src` vai **sem transformação**. O front acrescenta `f_auto,q_auto,w_{n},c_limit` conforme o tamanho em que pinta cada imagem (`imageSource` em `utils/wiki-doc.ts`), igual `coverUrl` faz com as capas. Essas imagens não passam pelo otimizador do Next.
+`src` é o arquivo original. O otimizador do Next redimensiona e escolhe o formato (`next.config.ts` libera só as pastas públicas do bucket), igual às capas.
 
-Erros: `400` (publicId torto, alt vazio), `404` (não existe na Cloudinary), `422` ou `400` (moderação reprovou/pendente — escolha um e documente no `WIKI_API.md`).
+Erros: `400` (publicId torto, alt vazio), `404` (upload não existe ou a assinatura venceu), `422` (não é jpg/png ou a moderação reprovou).
 
 ### 4.4 Limpeza (pode ficar para depois)
 
-Uma imagem enviada e nunca usada em nenhum `doc` (atual ou de revisão) é lixo. Um job periódico pode apagar da Cloudinary os `wiki_assets` com mais de 7 dias que não aparecem em nenhum doc. **Nunca** apague uma imagem que alguma revisão ainda referencia: o restore depende dela.
+Uma imagem enviada e nunca usada em nenhum `doc` (atual ou de revisão) é lixo. Um job periódico pode apagar do S3 os `wiki_assets` com mais de 7 dias que não aparecem em nenhum doc. **Nunca** apague uma imagem que alguma revisão ainda referencia: o restore depende dela. Upload assinado e nunca registrado fica em `incoming/`, que a regra de lifecycle do bucket apaga em 1 dia.
 
 ---
 
@@ -354,7 +356,7 @@ CREATE INDEX IF NOT EXISTS wiki_articles_tags_idx ON wiki_articles USING gin ((d
 - **Nenhum HTML atravessa a fronteira.** O front transforma Markdown em HTML **na hora de renderizar** (`renderDocHtml` → remark + `rehype-sanitize`). O servidor recusar HTML cru é a primeira parede; o sanitizer é a segunda.
 - **Nenhuma URL de imagem arbitrária.** A allowlist de `src` impede que um editor faça a página carregar imagens de terceiros (tracking, conteúdo trocado depois) e impede o otimizador do Next de virar proxy aberto.
 - **Links** seguem o `safeLink` atual: só `http(s)` e caminho interno. Nada de `javascript:`.
-- **Upload** nunca é confiado ao client: assinatura com `public_id` fixo e verificação na Cloudinary antes de registrar.
+- **Upload** nunca é confiado ao client: assinatura com key, tipo e tamanho fixos, e a API lê o arquivo (bytes + Rekognition) antes de publicar.
 - **Tamanho**: 256 KB por doc e 200 blocos seguram abuso e mantêm o render rápido.
 
 ---
@@ -396,7 +398,7 @@ Isso protege contra aba fechada, crash e sessão expirada, mas não sincroniza e
 - [ ] `GET /wiki/{slug}` e revisões: incluir `doc`.
 - [ ] Restore: restaurar `doc` junto.
 - [ ] Migração SQL (§7).
-- [ ] `POST /wiki/assets/sign` e `POST /wiki/assets` (§4), reaproveitando `sign`/`admin` de `profile.cloudinary.ts` com pasta `wiki_assets/`.
+- [ ] `POST /wiki/assets/sign` e `POST /wiki/assets` (§4), reaproveitando `storage.ts` com pasta `wiki_assets/`.
 - [ ] Bloco `video` no validador (§5.4): id de 11 caracteres, `title` obrigatório, `start` inteiro ≥ 0.
 - [ ] Testes: os casos recusados de `scripts/check-wiki-doc.ts` dão `400`.
 - [ ] (Opcional) Backfill ou restore convertendo Markdown com as regras de §10.1.

@@ -143,8 +143,8 @@ export const en: LegalDoc = {
             <strong>Discord</strong>, to sign you in (<a href="https://discord.com/privacy">privacy policy</a>).
           </li>
           <li>
-            <strong>Cloudinary</strong> stores and serves profile covers and wiki images, and screens uploaded covers with automated
-            moderation (<a href="https://cloudinary.com/privacy">privacy policy</a>).
+            <strong>Amazon Web Services</strong> stores and serves profile covers and wiki images (Amazon S3), and screens every upload
+            with automated moderation (Amazon Rekognition) (<a href="https://aws.amazon.com/privacy/">privacy notice</a>).
           </li>
           <li>
             <strong>Nitro</strong> (NitroPay, owned by Overwolf Ltd) and its advertising partners serve the ads (

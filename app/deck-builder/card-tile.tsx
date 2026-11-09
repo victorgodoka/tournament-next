@@ -9,7 +9,6 @@ import type { CardType } from '@ui/type-counts'
 import { frameOf, imageOf } from '@utils/deck/model'
 import type { CardData } from '@utils/deck/types'
 import { CARD_IMAGE_URL } from '@utils/const'
-import { cardLoader } from '@utils/image-loader'
 
 export type TileStatus = 'forbidden' | 'limited' | 'semi-limited' | { points: number }
 
@@ -80,7 +79,7 @@ export const CardTile = ({ id, card, sizes, count, dots, status, problem, label,
       {/* The scan is asked by passcode alone, before the card's data arrives: the lookup and the image load side by side,
           and an id with no scan falls back to the plate through `onError`. */}
       {!failed ? (
-        <Image loader={cardLoader} src={CARD_IMAGE_URL(src)} alt="" fill sizes={sizes} draggable={false} onError={() => setFailedSrc(src)} className="object-cover" />
+        <Image src={CARD_IMAGE_URL(src)} alt="" fill sizes={sizes} draggable={false} onError={() => setFailedSrc(src)} className="object-cover" />
       ) : (
         <span
           aria-hidden

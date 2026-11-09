@@ -24,7 +24,6 @@ import { CARD_ART_URL } from '@utils/const'
 import { toYdke } from '@utils/deck/codecs/ydke'
 import type { CardMap, Zone } from '@utils/deck/types'
 import { deleteDeckComment, likeDeck, postDeckComment, seasonName, unlikeDeck, type DeckSocial, type SavedDeck } from '@utils/decks'
-import { cardLoader } from '@utils/image-loader'
 import { setReturnTo } from '@utils/return-to'
 import { getBanlists, type Banlist } from '@utils/wiki'
 import { BusyDialog } from '@app/deck-builder/busy-dialog'
@@ -108,7 +107,7 @@ export const DeckView = ({ deck, social }: Props) => {
       <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: t('browse.title'), href: '/decks' }, { label: deck.name }]} />
       <header className="flex flex-col gap-6 border-b border-line pb-6 md:flex-row md:items-start">
         <span className="relative aspect-[16/9] w-full shrink-0 bg-surface-300 md:w-80">
-          {art ? <Image loader={cardLoader} src={CARD_ART_URL(art)} alt="" fill priority sizes="(min-width: 768px) 320px, 100vw" className="object-cover" /> : null}
+          {art ? <Image src={CARD_ART_URL(art)} alt="" fill priority sizes="(min-width: 768px) 320px, 100vw" className="object-cover" /> : null}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <Eyebrow>{t('page.eyebrow')}</Eyebrow>
