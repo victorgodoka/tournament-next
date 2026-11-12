@@ -187,7 +187,8 @@ const ProfileBody = ({ profile, asVisitor }: { profile: Profile; asVisitor: bool
             <Rail num={duels} label="Duel history" stamp={view.matchWindow ? (view.matchWindow === 'season' ? 'This season' : `Last ${view.matchWindow.replace('d', '')} days`) : undefined} />
             {history}
           </div>
-          <aside className="flex min-w-0 flex-col gap-6">
+          {/* Stretched to the duel history's height: the sticky half page needs room to stick. */}
+          <aside className="flex min-w-0 flex-col gap-6 lg:self-stretch">
             <AdBanner id="ad-aside" placement="aside" />
             <About num={about} vip={false} favoriteCard={profile.favoriteCard} favoriteDeck={profile.favoriteDeck} />
             <RecentTournaments tournaments={profile.tournaments} num={tours} />
@@ -228,7 +229,8 @@ const ProfileBody = ({ profile, asVisitor }: { profile: Profile; asVisitor: bool
 const ProfilePage = ({ profile, asVisitor = false }: { profile: Profile; asVisitor?: boolean }) => (
   <>
     <Header />
-    <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-hidden pt-16">
+    {/* `clip`, not `hidden`: `hidden` makes main a scroll container and the aside's sticky ad stops sticking. */}
+    <main data-clear-gutters className="flex min-h-dvh flex-col overflow-x-clip pt-16">
       <AdBanner id="ad-top" placement="content" slim className="mx-auto w-full max-w-page px-4 pt-5 min-[1312px]:px-0" />
       <div className="mx-auto flex w-full max-w-page flex-col gap-10 px-4 pt-7 pb-16 max-md:gap-5 max-md:pt-0 min-[1312px]:px-0">
         <ProfileBody profile={profile} asVisitor={asVisitor} />
