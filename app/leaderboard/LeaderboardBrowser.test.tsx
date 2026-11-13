@@ -57,6 +57,19 @@ it('reads a closed season from its standings and pages it without the live check
   expect(screen.queryByText('The ladder was re-read')).toBeNull()
 })
 
+it('hides the open ladder behind a notice for two hours after the last season closed', () => {
+  // The live read is 10:00: a season that opened at 09:00 is still gathering, one from 07:59 is not.
+  const opened = (endsAt: string) => render(<LeaderboardBrowser initial={{ tcg: live('tcg', 'Live one'), genesys: live('genesys', 'Live two') }} past={{ tcg: [{ ...closed, endsAt }], genesys: [] }} />)
+
+  opened('2026-11-01T09:00:00.000Z')
+  expect(screen.getByText("We're gathering data for Season 3")).toBeTruthy()
+  expect(screen.queryByText('Live one')).toBeNull()
+  cleanup()
+
+  opened('2026-11-01T07:59:00.000Z')
+  expect(screen.getByText('Live one')).toBeTruthy()
+})
+
 it('keeps the open season and the choice of each ladder without reading them again', async () => {
   board()
   season('tcg-2')

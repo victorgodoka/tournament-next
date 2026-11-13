@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { pageMetadata } from '@utils/metadata'
-import { aggregateEmpty, getMeta, getSeasons, scopeFrom } from '@utils/statistics'
+import { aggregateEmpty, gatheringSeason, getMeta, getSeasons, scopeFrom } from '@utils/statistics'
 import { MetaDashboard } from './MetaDashboard'
 import { StatsShell } from './StatsShell'
 
@@ -16,15 +16,17 @@ const StatisticsPage = async ({ searchParams }: StatisticsPageProps) => {
   let scope = scopeFrom(await searchParams)
   const [seasons, first] = await Promise.all([getSeasons(), getMeta(scope)])
   let result = first
+  // A season in its first 48 hours shows a notice instead of its numbers.
+  const gathering = gatheringSeason(seasons, scope)
   // No games reach the aggregate band: show every rating, with a note, instead of an empty page.
-  const fallback = scope.band === 'aggregate' && aggregateEmpty(result)
+  const fallback = !gathering && scope.band === 'aggregate' && aggregateEmpty(result)
   if (fallback) {
     scope = { ...scope, band: 'all' }
     result = await getMeta(scope)
   }
   return (
     <StatsShell>
-      <MetaDashboard scope={scope} seasons={seasons} result={result} fellBack={fallback && result.ok} />
+      <MetaDashboard scope={scope} seasons={seasons} result={result} fellBack={fallback && result.ok} gathering={gathering} />
     </StatsShell>
   )
 }

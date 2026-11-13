@@ -36,7 +36,7 @@ const C = {
   dim: '#b3bdd2',
   muted: '#8e99b4',
   swatchEdge: '#8ea6c7',
-  cyan: '#00fdff',
+  cyan: '#45cfdc',
   cyanOn: '#05121c',
   gold: '#efd17e',
 }
@@ -381,11 +381,11 @@ const background = (ctx: CanvasRenderingContext2D, tall: boolean) => {
   ctx.fillStyle = C.bg
   ctx.fillRect(0, 0, w, h)
   if (tall) {
-    glow(ctx, 0.2 * w, -0.08 * h, 900, 600, '0,253,255', 0.08)
+    glow(ctx, 0.2 * w, -0.08 * h, 900, 600, '69,207,220', 0.08)
     glow(ctx, 0.9 * w, -0.04 * h, 800, 600, '74,111,216', 0.15)
     dotField(ctx, w - 640, 640, 520, 0.65, 0.45)
   } else {
-    glow(ctx, 0.22 * w, -0.12 * h, 1100, 520, '0,253,255', 0.07)
+    glow(ctx, 0.22 * w, -0.12 * h, 1100, 520, '69,207,220', 0.07)
     glow(ctx, 0.82 * w, -0.08 * h, 900, 520, '74,111,216', 0.14)
     dotField(ctx, w - 760, 760, 420, 0.7, 0.4)
   }

@@ -52,11 +52,11 @@ const OnTable = ({ match, round, standings, roster, now, mode }: { match: Tourna
   return (
     <Panel
       label={t('live.onTable')}
-      className="flex flex-col gap-5.5 drop-shadow-[0_0_10px_rgba(0,253,255,0.35)] [--edge:var(--color-cyan)] [--sw:var(--stroke)] min-[720px]:px-8 min-[720px]:py-7"
+      className="flex flex-col gap-5.5 drop-shadow-[0_0_10px_color-mix(in_srgb,var(--color-cyan-glow)_35%,transparent)] [--edge:var(--color-cyan)] [--sw:var(--stroke)] min-[720px]:px-8 min-[720px]:py-7"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="flex items-center gap-2.5 text-cyan signal-strong">
-          <span aria-hidden className="size-2 rounded-round bg-cyan shadow-glow-live" />
+          <span aria-hidden className="size-2 rounded-round bg-cyan-glow shadow-glow-live" />
           {t('live.inProgressFor', { minutes: minutesBetween(round.startedAt, now) })}
         </span>
         <span className={META}>

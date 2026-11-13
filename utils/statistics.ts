@@ -362,6 +362,15 @@ export const getSeasons = async (): Promise<Season[]> => {
 export const seasonOf = (seasons: readonly Season[], { ladder, season }: StatisticsScope) =>
   seasons.find((s) => (season ? s.code === season || String(s.id) === season : s.ladder === ladder && s.sweptThrough))
 
+/** A new season shows no statistics for its first 48 hours: too few games to read. */
+export const GATHERING_MS = 48 * 3_600_000
+
+/** The open season a scope reads (by name, else the ladder's), while it is still gathering. */
+export const gatheringSeason = (seasons: readonly Season[], { ladder, season }: StatisticsScope, now = Date.now()) => {
+  const open = seasons.find((s) => !s.endsAt && (season ? s.code === season || String(s.id) === season : s.ladder === ladder))
+  return open && now - Date.parse(open.startsAt) < GATHERING_MS ? open : undefined
+}
+
 export const getMeta = (scope: Scope) => read<Meta>(`/statistics/meta?${scopeQuery(scope)}`, 'GET /statistics/meta')
 
 export const getDeck = (key: string, scope: Scope) => read<DeckAnswer>(`/statistics/decks/${encodeURIComponent(key)}?${scopeQuery(scope)}`, 'GET /statistics/decks/:key')

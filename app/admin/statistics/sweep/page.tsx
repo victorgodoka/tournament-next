@@ -108,7 +108,7 @@ const JobPage = () => {
       {running ? (
         <section aria-labelledby="job-run" className="cut notch flex flex-col gap-3 p-5 [--cut:var(--cut-lg)] [--fill:var(--color-steel)] min-[720px]:p-7">
           <div className="flex flex-wrap items-center gap-3.5">
-            <span aria-hidden className="size-2 rounded-round bg-cyan shadow-glow-live motion-safe:animate-blink" />
+            <span aria-hidden className="size-2 rounded-round bg-cyan-glow shadow-glow-live motion-safe:animate-blink" />
             <h2 id="job-run" className="flex-1 display-2">Running</h2>
             <span className="text-ink-dim signal-sm">Started {timeLabel(running.startedAt)} · checking every 5 s</span>
           </div>

@@ -4,7 +4,8 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { Button } from '@ui/button'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { AdVideo } from '@omega/ads/ad-video'
-import { scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
+import { LocalTime } from '@omega/profile/local-time'
+import { GATHERING_MS, gatheringSeason, scopeQuery, statisticsHref, type Meta, type Result, type Scope, type Season } from '@utils/statistics'
 import { Pickers } from './Pickers'
 import { SectionTabs } from './SectionTabs'
 import { BestAgainst } from './dashboard/BestAgainst'
@@ -22,15 +23,23 @@ type MetaDashboardProps = {
   result: Result<Meta>
   /** The aggregate band had no games, so `all` is shown instead. */
   fellBack?: boolean
+  /** The season is in its first 48 hours: a notice stands in for its numbers. */
+  gathering?: Season
 }
 
+const OPENS: Intl.DateTimeFormatOptions = { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
+
 /** /statistics: the header and filters, then one tab per question a ranked player asks. */
-export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDashboardProps) => {
+export const MetaDashboard = async ({ scope, seasons, result, fellBack, gathering }: MetaDashboardProps) => {
   const t = await getTranslations('Statistics')
   const locale = await getLocale()
-  const meta = result.ok ? result.data : null
-  const season = meta?.season
+  const meta = result.ok && !gathering ? result.data : null
+  const season = gathering ?? meta?.season
+  const swept = gathering ? null : season?.sweptThrough
   const shown = season ? { ...scope, ladder: season.ladder } : scope
+  // The picker keeps the gathering season next to the swept ones, so its notice has a tab to live on.
+  const opening = gathering ?? gatheringSeason(seasons, { ladder: shown.ladder })
+  const last = gathering ? seasons.find((s) => s.ladder === gathering.ladder && s.sweptThrough && s.id !== gathering.id) : undefined
   const status = result.ok ? null : result.status
   const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
   const faces = Object.fromEntries((meta?.decks ?? []).map((d) => [d.key, d.face ?? null]))
@@ -41,13 +50,13 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
         {season ? (
           <div className="flex items-center gap-2.5 max-[719px]:gap-2">
             <GoldDot />
-            <span className={`text-ink-muted signal ${WIDE}`}>{season.sweptThrough ? t('header.eyebrow', { season: season.label, date: day(season.sweptThrough) }) : season.label}</span>
-            <span className={`text-ink-muted signal-sm ${NARROW}`}>{season.sweptThrough ? t('header.eyebrowShort', { season: season.label, date: day(season.sweptThrough) }) : season.label}</span>
+            <span className={`text-ink-muted signal ${WIDE}`}>{swept ? t('header.eyebrow', { season: season.label, date: day(swept) }) : season.label}</span>
+            <span className={`text-ink-muted signal-sm ${NARROW}`}>{swept ? t('header.eyebrowShort', { season: season.label, date: day(swept) }) : season.label}</span>
           </div>
         ) : null}
         <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6 max-[719px]:gap-3">
           <div className="flex max-w-180 flex-[1_1_520px] flex-col gap-3.5 max-[719px]:gap-3">
-            <h1 className="m-0 font-display text-5xl leading-none text-ink uppercase max-[719px]:text-4xl">{t('header.title')}</h1>
+            <h1 className="m-0 title text-[36px] text-ink max-[719px]:text-[30px]">{t('header.title')}</h1>
             <p className={`m-0 text-lg leading-7 text-ink-dim ${WIDE}`}>{t('header.lede')}</p>
             <p className={`m-0 text-ink-dim ${NARROW}`}>{t('header.ledeShort')}</p>
           </div>
@@ -58,11 +67,22 @@ export const MetaDashboard = async ({ scope, seasons, result, fellBack }: MetaDa
         </div>
         {/* The weekly tier list and reports first: most visitors come for them; the filters below are for digging in. */}
         <Suspense fallback={null}><MetaArticles /></Suspense>
-        <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
+        <Pickers scope={shown} seasons={seasons} current={season?.code ?? scope.season} opening={opening?.code} bands={meta?.bands ?? []} aggregateFloor={meta?.fit.aggregateFloor ?? ''} />
         {fellBack ? <p className="m-0 text-[13px] leading-5 text-ink-dim">{t('pickers.aggregateEmpty')}</p> : null}
       </section>
 
-      {!meta ? (
+      {gathering ? (
+        // The leaderboard's empty state (.oh-rl-empty), in utilities: that stylesheet isn't loaded here.
+        <div className="dots flex flex-col items-center gap-3 border-(length:--hairline) border-line bg-space-000 px-6 py-16 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed 60×56 mark, as on the leaderboard */}
+          <img src="/omega-mark.png" alt="" className="h-14 w-15" />
+          <h2 className="m-0 text-[28px] leading-[1.15] font-extrabold text-ink max-[719px]:text-[22px]">{t('gathering.title', { label: gathering.label })}</h2>
+          <p className="m-0 mb-2 max-w-[46ch] text-[15px] leading-6 text-ink-dim">
+            {t.rich('gathering.body', { when: () => <LocalTime iso={new Date(Date.parse(gathering.startsAt) + GATHERING_MS).toISOString()} options={OPENS} /> })}
+          </p>
+          {last ? <Button size="signal" variant="secondary" href={statisticsHref({ ladder: last.ladder, season: last.code })} className="px-5">{t('gathering.last', { label: last.label })}</Button> : null}
+        </div>
+      ) : !meta ? (
         <Box className="gap-4 p-6">
           <h2 className="m-0 display-3 text-ink">{status === 404 ? t('error.notFound') : t('error.title')}</h2>
           <p className="m-0 text-ink-dim">{status === 404 ? t('error.notFoundBody') : t('error.body')}</p>

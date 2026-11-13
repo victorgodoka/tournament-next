@@ -37,7 +37,7 @@ export const Matchups = ({ data, name, art }: { data: PlayerAnswer; name: (key: 
     <>
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4 max-[719px]:flex-col max-[719px]:items-stretch">
         <div className="flex flex-[1_1_420px] flex-col gap-1.5 max-[719px]:flex-none max-[719px]:gap-1">
-          <h2 className="m-0 font-display text-[32px] leading-[1.05] text-ink uppercase max-[719px]:text-[26px]">{t('title')}</h2>
+          <h2 className="m-0 text-ink display-2 max-[719px]:text-[22px]">{t('title')}</h2>
           <p className={`m-0 text-ink-dim ${WIDE}`}>{t('lede')}</p>
           <p className={`m-0 text-sm leading-[22px] text-ink-dim ${NARROW}`}>{t('ledeShort')}</p>
         </div>

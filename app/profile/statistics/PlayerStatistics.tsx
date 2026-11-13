@@ -109,7 +109,7 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
             <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-2.5">
               <div className="flex items-center gap-2"><Lock size={14} /><span className="text-ink-muted signal">{tm('head.private')}</span></div>
               <div className="flex flex-wrap items-center gap-4">
-                <h1 className="m-0 font-display text-5xl leading-none text-ink uppercase">{name}</h1>
+                <h1 className="m-0 title text-[36px] text-ink">{name}</h1>
                 {standing ? <TierChip tier={standing.tier} /> : null}
               </div>
               <p className="m-0 max-w-170 text-lg leading-7 text-ink-dim">{tm('head.lede')}</p>
@@ -133,7 +133,7 @@ export const PlayerStatistics = async ({ profile, choices, selection, cookie }: 
             <div className="flex items-center gap-3.5">
               <Avatar profile={profile} size={64} name={name} />
               <div className="flex min-w-0 flex-col gap-1.5">
-                <h1 className="m-0 truncate font-display text-[32px] leading-none text-ink uppercase">{name}</h1>
+                <h1 className="m-0 truncate title text-[26px] text-ink">{name}</h1>
                 {standing ? (
                   <div className="flex items-center gap-2.5">
                     <TierChip tier={standing.tier} small />

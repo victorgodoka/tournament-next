@@ -2013,6 +2013,11 @@
       "me": "Eu ou o deck"
     },
     "closed": "{label} está encerrada. Estes são os números finais.",
+    "gathering": {
+      "title": "Estamos reunindo os dados de {label}",
+      "body": "A temporada acabou de abrir e ainda não há duelos ranqueados suficientes para ler. As estatísticas abrem em <when></when>, 48 horas depois do início da temporada.",
+      "last": "Ver os números finais de {label}"
+    },
     "activity": {
       "title": "Atividade do Omega",
       "description": "Logins, duelos ranqueados e duelistas do YGO Omega, por dia e tier de rating.",

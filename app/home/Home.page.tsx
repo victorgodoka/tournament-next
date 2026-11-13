@@ -38,7 +38,7 @@ type MetaDeck = { id: number; name: string; note: string }
 /** Content column: 1280px of content plus the page gutter on each side. */
 const WRAP = "mx-auto w-full max-w-[calc(var(--container-page)+2*var(--spacing-gutter))] px-gutter"
 const SECTION_GAP = "flex flex-col gap-[clamp(28px,4vw,48px)]"
-const BAND_TITLE = "font-display text-[clamp(40px,7vw,104px)] leading-[0.92] uppercase text-balance"
+const BAND_TITLE = "title text-[clamp(32px,4.6vw,64px)] leading-[1.08]"
 const BAND_LEAD = "text-[clamp(16px,1.6vw,20px)] leading-[1.55] text-ink-dim"
 const NOTE = "text-ink-muted signal-sm"
 /** A banner between two bands, spaced like a band. */
@@ -125,12 +125,12 @@ const LiveCardFan = async ({ ranked }: { ranked: Ranked }) => {
 
 const Hero = ({ ranked }: { ranked: Ranked }) => (
   <section id="top" className="dots relative overflow-hidden border-b border-line pt-[calc(4rem+clamp(56px,8vw,120px))] pb-[clamp(64px,9vw,140px)]">
-    <div aria-hidden className="absolute top-[-18%] right-[-12%] aspect-square w-[min(900px,90%)] rounded-round bg-[radial-gradient(circle,rgba(0,253,255,0.22)_0%,rgba(74,111,216,0.16)_35%,rgba(8,10,20,0)_68%)]" />
+    <div aria-hidden className="absolute top-[-18%] right-[-12%] aspect-square w-[min(900px,90%)] rounded-round bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-cyan)_22%,transparent)_0%,rgba(74,111,216,0.16)_35%,rgba(8,10,20,0)_68%)]" />
     <Image src="/omega-mark.png" alt="" width={720} height={720} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
       <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android · iOS">Free · every card unlocked</Eyebrow>
-      <h1 className="font-display text-[clamp(52px,10.4vw,115px)] leading-[0.88] tracking-[-0.005em] uppercase text-balance">
-        The first Yu-Gi-Oh! simulator with <span className="text-cyan">automatic tournaments</span>
+      <h1 className="text-[clamp(44px,7.6vw,96px)] display-hero">
+        The first <span className="whitespace-nowrap">Yu-Gi-Oh!</span> simulator with <span className="text-cyan">automatic tournaments</span>
       </h1>
       <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-10">
         <div className="flex max-w-155 flex-[1_1_380px] flex-col gap-7">
@@ -178,7 +178,7 @@ const ValueCards = () => (
         <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-gold">$0</p>
         <ul aria-hidden className="flex flex-col items-end gap-2.5">
           {["Currency", "Crafting", "Packs"].map((word, i) => (
-            <li key={word} className="relative font-display text-[clamp(24px,2.6vw,34px)] leading-none text-ink-muted uppercase">
+            <li key={word} className="relative title text-[clamp(20px,2vw,26px)] leading-none text-ink-muted">
               {word}
               <span className="absolute -inset-x-1.5 top-[calc(50%-1.5px)] h-0.75 origin-left animate-strike bg-gold" style={{ animationDelay: `${i * 0.4}s` }} />
             </li>
@@ -198,7 +198,7 @@ const ValueCards = () => (
     </li>
 
     <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
-      <CardGlow tone="bg-[radial-gradient(circle,rgba(0,253,255,0.18)_0%,rgba(0,0,0,0)_65%)]" />
+      <CardGlow tone="bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-cyan)_18%,transparent)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
         <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-cyan">Elo</p>
         <span aria-hidden className="flex flex-col items-end gap-1.5">
@@ -227,7 +227,7 @@ const FormatTicker = () => (
             <span
               key={title}
               className={twMerge(
-                "flex items-center gap-[clamp(20px,3vw,40px)] pr-[clamp(20px,3vw,40px)] font-display text-[clamp(40px,6vw,88px)] leading-[1.1] whitespace-nowrap uppercase",
+                "flex items-center gap-[clamp(20px,3vw,40px)] pr-[clamp(20px,3vw,40px)] title text-[clamp(28px,3.6vw,48px)] leading-[1.2] whitespace-nowrap",
                 i % 2 ? twMerge(OUTLINE, "[--stroke-c:var(--color-line-strong)] [--stroke-w:1.5px]") : "text-ink",
               )}
             >
@@ -254,7 +254,7 @@ const Alternative = () => (
             {String(i + 1).padStart(2, "0")}
           </span>
           <div className="flex flex-[1_1_420px] flex-col gap-3.5 pt-2">
-            <h3 className="font-display text-[clamp(30px,4.2vw,60px)] leading-[0.95] uppercase">{title}</h3>
+            <h3 className="title text-[clamp(24px,3vw,40px)]">{title}</h3>
             <p className="max-w-[60ch] text-[clamp(15px,1.4vw,18px)] leading-[1.6] text-ink-dim">{text}</p>
           </div>
         </li>
@@ -268,13 +268,13 @@ const Alternative = () => (
 )
 
 const Tournaments = () => (
-  <section id="tournaments" className="mt-[clamp(72px,10vw,144px)] scroll-mt-16 border-y border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,rgba(0,253,255,0.10),rgba(0,0,0,0)_70%)] py-[clamp(56px,8vw,112px)]">
+  <section id="tournaments" className="mt-[clamp(72px,10vw,144px)] scroll-mt-16 border-y border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_60%_80%_at_0%_0%,color-mix(in_srgb,var(--color-cyan)_10%,transparent),rgba(0,0,0,0)_70%)] py-[clamp(56px,8vw,112px)]">
     <div className={twMerge(WRAP, SECTION_GAP)}>
       <Rail num="02">Yugioh automatic tournament</Rail>
       <div className="flex flex-wrap items-end gap-x-16 gap-y-8">
         <h2 className={twMerge(BAND_TITLE, "max-w-[18ch] flex-[1_1_520px]")}>Decks lock at round one and stay locked to the last round</h2>
         <div className="flex flex-[1_1_320px] flex-col gap-6">
-          <h3 className="font-display text-[28px] leading-none text-cyan uppercase">Automatic, rotating Swiss tournaments</h3>
+          <h3 className="title text-[22px] text-cyan">Automatic, rotating Swiss tournaments</h3>
           <p className="text-base leading-[1.6] text-ink-dim">
             Sign up, submit a deck, and duel. Omega checks the list against the format&apos;s banlist, pairs the round, records the result and updates the standings. Decks lock the moment the tournament starts, so no judge has to check for swaps. Rotating tournaments open on the calendar by themselves, with no organizer behind them.
           </p>
@@ -328,13 +328,13 @@ const Rulings = () => (
         <div key={card.id} className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <CardArt art={{ id: card.id, name: card.name }} sizes="36px" className="h-13 w-9 shrink-0 rounded-xs border border-line-strong" />
-            <span className="font-display text-[clamp(28px,3.4vw,44px)] leading-none uppercase">{card.name}</span>
+            <span className="title text-[clamp(22px,2.6vw,32px)]">{card.name}</span>
           </div>
           <div className="relative flex flex-wrap gap-px border border-line bg-line">
             {card.effects.map((effect, i) => (
               <div key={effect.title} className="flex flex-[1_1_260px] flex-col gap-3 bg-surface-100 p-[clamp(20px,3vw,32px)]">
                 <div className="flex">{SPLIT[card.isPreErrata ? "errata" : "tcg"][i]}</div>
-                <b className="font-display text-[clamp(24px,2.6vw,34px)] leading-none font-normal uppercase">{effect.title}</b>
+                <b className="title text-[clamp(20px,2vw,26px)]">{effect.title}</b>
                 <span className="text-[15px] leading-[1.6] text-ink-dim">{effect.description}</span>
               </div>
             ))}
@@ -365,7 +365,7 @@ const Formats = () => (
           <li key={title} className="relative flex min-h-45 flex-col gap-2.5 overflow-hidden bg-surface-100 p-6">
             <span aria-hidden className={twMerge(OUTLINE, "absolute -right-1.5 -bottom-5.5 font-display text-[120px] leading-none [--stroke-c:var(--color-line-mid)] [--stroke-w:1px]")}>{num}</span>
             <span className="font-bold text-gold signal-sm">{num}</span>
-            <h3 className="font-display text-[30px] leading-none uppercase">{title}</h3>
+            <h3 className="title text-[24px]">{title}</h3>
             <span className="relative text-sm leading-[1.55] text-ink-dim">{text}</span>
           </li>
         )
@@ -402,7 +402,7 @@ const MetaDecks = ({ decks }: { decks: MetaDeck[] }) => (
               <span className="font-mono text-[11px] leading-none font-bold text-ink">{String(i + 1).padStart(2, "0")}</span>
             </span>
           </CardArt>
-          <span className="px-5 pt-4.5 pb-1 font-display text-[28px] leading-none uppercase">{deck.name}</span>
+          <span className="px-5 pt-4.5 pb-1 title text-[22px]">{deck.name}</span>
           <span className={twMerge("px-5 pb-5", NOTE)}>{deck.note}</span>
         </a>
       ))}
@@ -495,7 +495,7 @@ const Modes = () => (
           <span aria-hidden className={twMerge(OUTLINE, "absolute -top-2.5 -left-1 font-display text-[clamp(96px,13vw,180px)] leading-[0.85] uppercase opacity-60 [--stroke-w:1.5px]", MODE_TONE[i]?.stroke)}>
             {title}
           </span>
-          <h3 className="relative font-display text-[clamp(36px,4.4vw,60px)] leading-[0.95] uppercase">{title}</h3>
+          <h3 className="relative title text-[clamp(26px,3.2vw,40px)]">{title}</h3>
           <p className="relative max-w-[46ch] text-base leading-[1.6] text-ink-dim">{text}</p>
         </div>
       ))}
@@ -522,7 +522,7 @@ const Faq = () => (
       <div className="flex min-w-0 flex-[2_1_520px] flex-col border border-b-0 border-line">
         {HOME_FAQ.map(({ question, answer }, i) => (
           <details key={question} open={i === 0} className="group border-b border-line bg-surface-100">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5.5 font-display text-[clamp(22px,2.4vw,30px)] leading-[1.05] uppercase [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5.5 title text-[clamp(18px,1.8vw,22px)] leading-[1.25] [&::-webkit-details-marker]:hidden">
               {question}
               <span aria-hidden className="grid size-7 shrink-0 place-items-center border border-line-strong font-mono text-base leading-none font-bold text-cyan">
                 <span className="group-open:hidden">+</span>
@@ -559,12 +559,12 @@ const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
 )
 
 const ClosingCta = () => (
-  <section className="relative mt-[clamp(80px,11vw,160px)] overflow-hidden border-t border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_50%_70%_at_50%_100%,rgba(0,253,255,0.18),rgba(0,0,0,0)_70%)] py-[clamp(72px,10vw,144px)]">
+  <section className="relative mt-[clamp(80px,11vw,160px)] overflow-hidden border-t border-line-mid bg-surface-100 bg-[radial-gradient(ellipse_50%_70%_at_50%_100%,color-mix(in_srgb,var(--color-cyan)_18%,transparent),rgba(0,0,0,0)_70%)] py-[clamp(72px,10vw,144px)]">
     <Image src="/omega-mark.png" alt="" width={820} height={820} sizes="min(820px, 120vw)" aria-hidden className="absolute -bottom-[30%] left-1/2 w-[min(820px,120%)] -translate-x-1/2 opacity-8" />
     <div className={twMerge(WRAP, "relative flex flex-col items-center gap-8 text-center")}>
       <Image src="/omega-mark.png" alt="" width={88} height={88} />
-      <h2 className="max-w-[16ch] font-display text-[clamp(44px,8vw,120px)] leading-[0.9] uppercase text-balance">
-        Free automatic Yu-Gi-Oh! simulator. <span className="text-cyan">Ranked, scripted, judged by the engine.</span>
+      <h2 className="max-w-[18ch] title text-[clamp(34px,5.4vw,72px)] leading-[1.05]">
+        Free automatic <span className="whitespace-nowrap">Yu-Gi-Oh!</span> simulator. <span className="text-cyan">Ranked, scripted, judged by the engine.</span>
       </h2>
       <div className="flex flex-col items-center gap-3.5">
         <Download size="lg" />

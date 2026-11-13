@@ -11,6 +11,8 @@ type PickersProps = {
   scope: Scope
   seasons: Season[]
   current?: string
+  /** The code of a season still gathering: listed although nothing is swept yet. */
+  opening?: string
   bands: Meta['bands']
   aggregateFloor: string
   /** On a deck's page: the filters keep to that deck and there is no season picker. */
@@ -18,12 +20,12 @@ type PickersProps = {
 }
 
 /** Ladder, season, period and rating band, kept in the URL. A band may not exist in another season, so a new season starts from the aggregate. */
-export const Pickers = ({ scope, seasons, current, bands, aggregateFloor, deckKey }: PickersProps) => {
+export const Pickers = ({ scope, seasons, current, opening, bands, aggregateFloor, deckKey }: PickersProps) => {
   const t = useTranslations('Statistics.pickers')
   const router = useRouter()
   const [pending, start] = useTransition()
   const go = (next: Scope) => start(() => router.replace(deckKey === undefined ? statisticsHref(next) : deckHref(deckKey, next), { scroll: false }))
-  const swept = seasons.filter((s) => s.ladder === scope.ladder && s.sweptThrough)
+  const swept = seasons.filter((s) => s.ladder === scope.ladder && (s.sweptThrough || s.code === opening))
   const prefix = deckKey === undefined ? 'f' : 'd'
   const bandName = (band: string) => (band === 'aggregate' ? t('aggregateName2', { floor: aggregateFloor }) : band === 'all' ? t('allName') : band)
   const ladderName = scope.ladder === 'genesys' ? 'Genesys' : 'TCG'

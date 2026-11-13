@@ -49,7 +49,7 @@ export const BestCard = async ({ best, decks, scope }: { best: Best; decks: Deck
       <div className={`flex items-end justify-between gap-4 ${WIDE}`}>
         <div className="flex min-w-0 items-center gap-4">
           <Art id={deck.face} sub={sub} name={nameOf(deck)} size={80} className="border-ink/35" />
-          <h3 className={`m-0 ${DECK_NAME} font-display text-[32px] leading-[1.05] text-ink uppercase`}>{name}</h3>
+          <h3 className={`m-0 ${DECK_NAME} title text-[26px] text-ink`}>{name}</h3>
         </div>
         <div className="flex flex-col items-end">
           <span className="font-display text-[40px] leading-none text-ink">{pc(best.wr)}</span>
@@ -59,7 +59,7 @@ export const BestCard = async ({ best, decks, scope }: { best: Best; decks: Deck
       <div className={`flex items-center gap-3.5 ${NARROW}`}>
         <Art id={deck.face} sub={sub} name={nameOf(deck)} size={64} className="border-ink/35" />
         <div className="flex min-w-0 flex-col gap-1">
-          <h3 className={`m-0 ${DECK_NAME} font-display text-[26px] leading-[1.05] text-ink uppercase`}>{name}</h3>
+          <h3 className={`m-0 ${DECK_NAME} title text-[22px] text-ink`}>{name}</h3>
           <span className="text-[13px] text-ink-dim">{t.rich('vsShort', { rate: pc(best.wr), games: n(best.games), b: (chunks) => <strong className="font-display text-xl font-normal text-ink">{chunks}</strong> })}</span>
         </div>
       </div>

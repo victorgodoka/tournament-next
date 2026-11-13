@@ -1,10 +1,11 @@
 import { AdBanner } from '@omega/ads/ad-banner'
 import { Footer } from '@ui/footer'
 import { Header } from '@ui/header'
+import { PageHeader } from '@ui/page-header'
 import { pageMetadata } from '@utils/metadata'
 import { getLeaderboard, getPastSeasons } from '@utils/ranked'
 import type { LeaderboardPage, RankedFormat, RankedLadderId } from '@utils/types'
-import { LeaderboardBrowser, PageHeader } from './LeaderboardBrowser'
+import { LeaderboardBrowser } from './LeaderboardBrowser'
 
 export const metadata = pageMetadata({
   title: 'Leaderboard',
@@ -30,9 +31,10 @@ const LeaderboardPageRoute = async () => {
   return (
     <>
       <Header />
-      <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
+      {/* `oh-space` carries no style: Nitro's rail-collision allowlist keys on it (utils/nitro-ads.const.ts). */}
+      <div className="oh-space min-h-screen w-full overflow-x-clip">
         {/* 64px clears the fixed header; the rest is the design's 40px 0 96px. */}
-        <main style={{ width: 'min(var(--container-page), calc(100% - 32px))', margin: '0 auto', padding: '104px 0 96px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <main className="mx-auto flex w-[min(var(--container-page),calc(100%-32px))] flex-col gap-8 pt-26 pb-24">
           <PageHeader
             eyebrow="Ranked"
             title="Leaderboard"

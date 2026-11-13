@@ -59,7 +59,7 @@ export const MyDecks = ({ data, name, art }: { data: PlayerAnswer; name: (key: s
   return (
     <>
       <div className="flex flex-col gap-1.5 max-[719px]:gap-1">
-        <h2 className="m-0 font-display text-[32px] leading-[1.05] text-ink uppercase max-[719px]:text-[26px]">{t('title')}</h2>
+        <h2 className="m-0 text-ink display-2 max-[719px]:text-[22px]">{t('title')}</h2>
         <p className={`m-0 text-ink-dim ${WIDE}`}>{t('lede')}</p>
         <p className={`m-0 text-sm leading-[22px] text-ink-dim ${NARROW}`}>{t('ledeShort')}</p>
       </div>

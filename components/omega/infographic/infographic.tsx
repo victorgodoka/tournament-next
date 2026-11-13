@@ -25,7 +25,7 @@ export const C = {
   ink: '#eef1f8',
   dim: '#b3bdd2',
   muted: '#8e99b4',
-  cyan: '#00fdff',
+  cyan: '#45cfdc',
   gold: '#efd17e',
   goldInk: '#1a1405',
   win: '#4fdc8c',
@@ -272,7 +272,7 @@ export const render = async ({ size, eyebrow, aside, title, subtitle, chips = []
   const image = new ImageResponse(
     (
       <div style={{ ...col, position: 'relative', width, height, background: C.bg, color: C.ink, fontFamily: F.sans }}>
-        {glow('22%', '0,253,255', 0.07, 900)}
+        {glow('22%', '69,207,220', 0.07, 900)}
         {glow('78%', '74,111,216', 0.13, 800)}
         <div style={{ ...col, position: 'absolute', left: 0, top: 0, width, height, padding: `${compact ? 40 : pad - 8}px ${pad}px ${pad - 16}px`, gap: compact ? 20 : 28 }}>
           <div style={{ ...col, gap: compact ? 12 : 16, flexShrink: 0 }}>

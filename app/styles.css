@@ -53,10 +53,12 @@
   --color-ink-dim: #b3bdd2;
   --color-ink-muted: #8e99b4;
 
-  /* Brand: primary fill, links, active tab bar, selection, focus, online. */
-  --color-cyan: #00fdff;
+  /* Brand: primary fill, links, active tab bar, selection, focus. The mark's cyan, softened: #00fdff is too bright to fill a control or set text. */
+  --color-cyan: #45cfdc;
   --color-cyan-on: #05121c;
   --color-ground-cyan: #0b2c3a;
+  /* The mark's own cyan at full strength: its glow, the live dot, the Ready presence dot, the Omega tier gem. Never a fill or text. */
+  --color-cyan-glow: #00fdff;
   /* The mark's body. azure is fill only (offset plate, avatar fallback); azure-lift for text. */
   --color-azure: #4a6fd8;
   --color-azure-lift: #7f9cf0;
@@ -75,6 +77,13 @@
   /* Ranked ladders. Genesys is what the API's `ocg` columns hold. */
   --color-ladder-tcg: #3fcf7a;
   --color-ladder-genesys: #ea5fc0;
+
+  /* Messenger presence, as the API reports it. Away and busy also carry a shape, never the color alone. */
+  --color-presence-ready: #00fdff;
+  --color-presence-online: #7f9cf0;
+  --color-presence-away: #efd17e;
+  --color-presence-busy: #ff4d5e;
+  --color-presence-offline: #8e99b4;
 
   /* Card-frame colors, for card types only. */
   --color-type-normal: #b8a516;
@@ -133,7 +142,7 @@
   --shadow-offset-azure: 4px 4px 0 var(--color-azure);
   --shadow-offset-azure-press: 2px 2px 0 var(--color-azure);
   --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow-live: 0 0 10px rgba(0, 253, 255, 0.6);
+  --shadow-glow-live: 0 0 10px color-mix(in srgb, var(--color-cyan-glow) 60%, transparent);
   --shadow-focus-ring: 0 0 0 2px var(--color-space-000), 0 0 0 4px var(--color-cyan);
   /* Selection is a cyan edge: active tab / current nav link underline, selected row bar. */
   --shadow-tab-active: inset 0 -2px 0 var(--color-cyan);
@@ -311,7 +320,7 @@
     min-height: 100dvh;
     background-color: var(--color-space-000);
     background-image:
-      radial-gradient(ellipse 60% 45% at 50% -10%, rgba(0, 253, 255, 0.08), rgba(8, 10, 20, 0) 70%),
+      radial-gradient(ellipse 60% 45% at 50% -10%, color-mix(in srgb, var(--color-cyan) 8%, transparent), rgba(8, 10, 20, 0) 70%),
       radial-gradient(ellipse 50% 40% at 100% 0%, rgba(74, 111, 216, 0.1), rgba(8, 10, 20, 0) 70%);
     background-repeat: no-repeat;
     color: var(--color-ink);
@@ -325,8 +334,8 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-display);
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 800;
     text-wrap: balance;
   }
 
@@ -384,71 +393,95 @@
 /* Named type styles sit below utilities, so text-*, leading-*, tracking-* on the same element win. */
 @layer components {
 
-  /* ---- Display: Anton, uppercase, one weight. Hierarchy is size. ---- */
+  /* ---- Display: Anton, one weight. Only a short hero line and figures (Elo, rank, score): never a sentence. ---- */
   .display-hero,
-  .display-1,
-  .display-2,
-  .display-3,
-  .display-4,
-  .display-5,
-  .display-6,
   .stat-lg,
   .stat,
-  .dock-title,
-  .action-lg {
+  .display-5,
+  .dock-title {
     font-family: var(--font-display);
     font-weight: 400;
     text-transform: uppercase;
   }
 
+  /* One per page, a handful of words. Callers may size it down, never past 96px. */
   .display-hero {
     font-size: 72px;
-    line-height: 0.92;
-    letter-spacing: -0.005em;
+    line-height: 1;
+    letter-spacing: 0.02em;
     text-wrap: balance;
-  }
-
-  /* Page title, profile name. */
-  .display-1,
-  /* Section heading. */
-  .display-2 {
-    font-size: 32px;
-    line-height: 1.05;
-    text-wrap: balance;
-  }
-
-  /* Card and panel titles. */
-  .display-3,
-  .display-6 {
-    font-size: 22px;
-    line-height: 1.1;
-    letter-spacing: 0.01em;
   }
 
   .stat-lg {
     font-size: 40px;
     line-height: 1;
+    letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Numbers in rows (Elo, rank, score); legacy display-4/5 sit on the same step. */
+  /* Numbers in rows (Elo, rank, score); legacy display-5 sits on the same step. */
   .stat,
-  .display-4,
   .display-5 {
     font-size: 24px;
     line-height: 1;
+    letter-spacing: 0.02em;
   }
 
   .stat {
     font-variant-numeric: tabular-nums;
   }
 
-  .dock-title,
-  /* Button labels: lg is Anton, everything smaller is Figtree bold. */
-  .action-lg {
+  /* The simulator's turn and phase callouts. */
+  .dock-title {
     font-size: 20px;
     line-height: 1;
     letter-spacing: 0.04em;
+  }
+
+  /* ---- Titles: Figtree ExtraBold, sentence case. Hierarchy is size. ---- */
+  .title,
+  .display-1,
+  .display-2,
+  .display-3,
+  .display-4,
+  .display-6 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    text-wrap: balance;
+  }
+
+  /* A title at its own size: set text-[..px] beside it. */
+  .title {
+    line-height: 1.15;
+  }
+
+  /* Page title, profile name. */
+  .display-1 {
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  /* Section heading. */
+  .display-2 {
+    font-size: 26px;
+    line-height: 1.15;
+  }
+
+  /* Card and panel titles; legacy display-4 and display-6 sit on the same step. */
+  .display-3,
+  .display-4,
+  .display-6 {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  /* Button labels: Figtree at every size. */
+  .action-lg {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.01em;
   }
 
   .action-md,
@@ -671,7 +704,7 @@
   .wiki-ground {
     background-color: var(--color-space-000);
     background-image:
-      radial-gradient(ellipse 60% 420px at 18% -120px, rgba(0, 253, 255, 0.08), rgba(8, 10, 20, 0) 70%),
+      radial-gradient(ellipse 60% 420px at 18% -120px, color-mix(in srgb, var(--color-cyan) 8%, transparent), rgba(8, 10, 20, 0) 70%),
       radial-gradient(ellipse 55% 380px at 88% -100px, rgba(74, 111, 216, 0.12), rgba(8, 10, 20, 0) 70%);
     background-repeat: no-repeat;
   }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { aggregateEmpty, bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
+import { aggregateEmpty, bestAgainst, cardHref, coreFlex, deckHref, effectPoints, families, familyWeeks, gatheringSeason, getDeck, getMeta, getSeasons, getTopDecks, leadOf, localHours, matchupCall, meVerdict, plainDecks, scopeFrom, scopeQuery, seasonOf, shareMoves, statisticsHref, weekBand, weekJumps, windowDays, type CardStat, type DeckStat, type Matchup, type Meta, type PlayerDeck, type Season, type Week, type Window } from '@utils/statistics'
 
 describe('localHours', () => {
   it('moves UTC counts to the viewer clock, wrapping the day', () => {
@@ -223,6 +223,24 @@ describe('meVerdict', () => {
     expect(meVerdict(row(0.45, 0.6, { wrLo: 0.5, wrHi: 0.55 }))).toBe('same')
     expect(meVerdict(row(null, null, { wrLo: 0.5, wrHi: 0.55 }))).toBeNull()
     expect(meVerdict(row(0.45, 0.6, null))).toBeNull()
+  })
+})
+
+describe('gatheringSeason', () => {
+  const seasons = [
+    { id: 15, code: 'tcg-4', ladder: 'tcg', startsAt: '2026-11-10T12:00:00.000Z', endsAt: null },
+    { id: 14, code: 'tcg-3', ladder: 'tcg', startsAt: '2026-10-19T03:00:00.000Z', endsAt: '2026-11-10T12:00:00.000Z' },
+    { id: 12, code: 'genesys-1', ladder: 'genesys', startsAt: '2026-09-01T00:00:00.000Z', endsAt: null },
+  ] as Season[]
+  const at = (iso: string) => Date.parse(iso)
+
+  it('is the open season for its first 48 hours, by default or by name, and never a closed or old one', () => {
+    const during = at('2026-11-12T11:59:00.000Z')
+    expect(gatheringSeason(seasons, { ladder: 'tcg' }, during)?.id).toBe(15)
+    expect(gatheringSeason(seasons, { ladder: 'tcg', season: 'tcg-4' }, during)?.id).toBe(15)
+    expect(gatheringSeason(seasons, { ladder: 'tcg', season: 'tcg-3' }, during)).toBeUndefined()
+    expect(gatheringSeason(seasons, { ladder: 'genesys' }, during)).toBeUndefined()
+    expect(gatheringSeason(seasons, { ladder: 'tcg' }, at('2026-11-12T12:00:00.000Z'))).toBeUndefined()
   })
 })
 

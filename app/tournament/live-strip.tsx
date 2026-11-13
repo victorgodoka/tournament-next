@@ -73,7 +73,7 @@ export const LiveStrip = ({ round, rounds, done, total, updatedAt }: LiveStripPr
   return (
     <div className="border-b border-cyan/25 bg-ground-cyan">
       <div className="mx-auto flex min-h-11 w-full max-w-page flex-wrap items-center gap-x-4 gap-y-2 px-gutter py-2">
-        <span aria-hidden className="size-2 shrink-0 rounded-round bg-cyan shadow-glow-live" />
+        <span aria-hidden className="size-2 shrink-0 rounded-round bg-cyan-glow shadow-glow-live" />
         <span className="text-cyan signal-strong">{t('round', { round, rounds })}</span>
         <span className="text-ink-dim signal-sm">{t('done', { done, total })}</span>
         <span className="flex-1" />

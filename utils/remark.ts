@@ -132,9 +132,9 @@ const toHtml = async (markdownText: string, classes: Record<string, string>) => 
 }
 
 const BIO_CLASSES = {
-      'h1': 'font-display text-2xl uppercase leading-[1.06] text-white pb-1.5',
-      'h2': 'font-display text-xl uppercase leading-[1.08] text-white pb-1.5',
-      'h3': 'font-display text-lg uppercase leading-[1.1] text-white pb-1',
+      'h1': 'title text-[24px] text-white pb-1.5',
+      'h2': 'title text-[20px] text-white pb-1.5',
+      'h3': 'title text-[18px] leading-[1.25] text-white pb-1',
       'p': 'mb-3 last:mb-0 text-[17px] leading-[1.55] text-omega-gray',
       'strong': 'font-bold text-white',
       'em': 'italic text-white',

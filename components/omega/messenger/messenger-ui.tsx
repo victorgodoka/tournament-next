@@ -1,10 +1,10 @@
 'use client'
 
 /**
- * The Messenger page and dock, ported from the Omega Hub design bundle
- * (https://claude.ai/artifact/LVYHG1jb949H7GYT4ikJYw, MessengerPage / MessengerDock) and wired to
- * the real API through `useMessenger`. Class names and markup follow the bundle one to one; the
- * styles live in ./messenger.css.
+ * The Messenger page and dock (design: https://claude.ai/artifact/LVYHG1jb949H7GYT4ikJYw,
+ * MessengerPage / MessengerDock), wired to the real API through `useMessenger`. Controls, avatars
+ * and fields are the shared ones in components/ui; ./messenger.css holds only what is the
+ * messenger's own: the lists, the chat windows, the dock and the menu.
  */
 
 import {
@@ -16,10 +16,8 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type ButtonHTMLAttributes,
   type CSSProperties,
   type FormEvent,
-  type InputHTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
   type SyntheticEvent,
@@ -28,8 +26,16 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { twMerge } from "tailwind-merge";
 import { ChatBubble } from "@omega/bubble";
-import { AvatarFrame } from "@ui/avatar";
+import { Avatar, Presence as PresenceDot } from "@ui/avatar";
+import { Button } from "@ui/button";
+import { Chip } from "@ui/chip";
+import { Eyebrow } from "@ui/eyebrow";
+import { FIELD_LABEL, SearchField, TextArea, TextInput } from "@ui/field";
+import { Icon, type IconName } from "@ui/icon";
+import { ModeTabs } from "@ui/mode-tabs";
+import { TabBar } from "@ui/tab-bar";
 import { bubbleOf } from "@utils/bubble";
 import { mergeMessages, messenger as api, MessengerApiError } from "@utils/messenger";
 import type {
@@ -49,115 +55,23 @@ import type {
 import { useMessenger, type Messenger } from "./use-messenger";
 import "./messenger.css";
 
-export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ")
-
-/* ---------- Icon ---------- */
-const PATHS = {
-  close: "M5.3 3.9 12 10.6l6.7-6.7 1.4 1.4-6.7 6.7 6.7 6.7-1.4 1.4-6.7-6.7-6.7 6.7-1.4-1.4 6.7-6.7-6.7-6.7z",
-  search: "M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z",
-  chat: "M4 4h16v12H9l-5 4z",
-  mail: "M2 5h20v14H2zm2 2v.6l8 5.4 8-5.4V7zm16 3-8 5.4L4 10v7h16z",
-  user: "M12 3a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm-8 18c0-4 3.6-7 8-7s8 3 8 7z",
-  host: "M9 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM2 20c0-3.5 3.1-6 7-6s7 2.5 7 6zM18 7h2v3h3v2h-3v3h-2v-3h-3v-2h3z",
-  send: "M3 20.5V14l9-2-9-2V3.5L22 12z",
-  down: "M5 9l1.4-1.4 5.6 5.6 5.6-5.6L19 9l-7 7z",
-  right: "M9 5l7 7-7 7-1.4-1.4 5.6-5.6-5.6-5.6z",
-  left: "M15 5l1.4 1.4-5.6 5.6 5.6 5.6L15 19l-7-7z",
-  up: "M5 15l1.4 1.4 5.6-5.6 5.6 5.6L19 15l-7-7z",
-  more: "M10 4h4v4h-4zm0 6h4v4h-4zm0 6h4v4h-4z",
-  minus: "M4 11h16v2H4z",
-  expand: "M4 4h7v2H6v12h12v-5h2v7H4zm10 0h6v6h-2V7.4l-6.3 6.3-1.4-1.4L16.6 6H14z",
-  music: "M8 5l12-2v12.5a3 3 0 1 1-2-2.83V5.4l-8 1.33v11.77a3 3 0 1 1-2-2.83z",
-  block: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM5.99 7.41 7.41 5.99 18.01 16.59 16.59 18.01z",
-  edit: "M16 3l5 5L9.5 19.5 4 20l.5-5.5z",
-  refresh: "M12 4a8 8 0 0 1 7.3 4.7L21 7v6h-6l2.6-2.6A6 6 0 1 0 18 13h2a8 8 0 1 1-8-9z",
-  check: "M9.5 16.2 4.8 11.5l-1.4 1.4 6.1 6.1L21 7.5l-1.4-1.4z",
-  swap: "M7 3l1.4 1.4L6.8 6H20v2H6.8l1.6 1.6L7 11 3 7zm10 10 4 4-4 4-1.4-1.4 1.6-1.6H4v-2h13.2l-1.6-1.6z",
-}
-type IconName = keyof typeof PATHS
-
-export const Icon = ({ name, size, className }: { name: IconName; size?: number; className?: string }) => (
-  <svg className={cx("oh-icon", className)} viewBox="0 0 24 24" aria-hidden="true" style={size ? { width: size, height: size } : undefined}>
-    <path d={PATHS[name]} fillRule="evenodd" />
-  </svg>
-)
-
-/* ---------- Button ---------- */
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger"
-  size?: "sm" | "md"
-  icon?: IconName
-  iconOnly?: boolean
-  /** Renders a link. */
-  href?: string
-}
-export const Button = ({ variant = "secondary", size = "md", icon, iconOnly, href, className, children, type, ...rest }: ButtonProps) => {
-  const cls = cx("oh-cut oh-btn", variant !== "secondary" && `oh-btn-${variant}`, size !== "md" && `oh-btn-${size}`, iconOnly && "oh-btn-icon", className)
-  const label = rest["aria-label"] ?? (iconOnly ? (typeof children === "string" ? children : icon) : undefined)
-  const inner = <>{icon ? <Icon name={icon} /> : null}{iconOnly ? null : children}</>
-  if (href) return <Link href={href} className={cls} aria-label={label}>{inner}</Link>
-  return <button type={type ?? "button"} {...rest} className={cls} aria-label={label}>{inner}</button>
-}
-
-/* ---------- Tabs / ModeTabs / Eyebrow / SearchField / Chip ---------- */
-type TabItem<T extends string> = { id: T; label: string; count?: number | null }
-function Tabs<T extends string>({ items, value, onChange, label }: { items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string }) {
-  return (
-    <div className="oh-tabs" role="tablist" aria-label={label}>
-      {items.map((it) => (
-        <button key={it.id} type="button" role="tab" className="oh-tab" aria-selected={it.id === value} onClick={() => onChange(it.id)}>
-          {it.label}{it.count != null ? <span className="oh-count">{it.count}</span> : null}
-        </button>
-      ))}
-    </div>
-  )
-}
-function ModeTabs<T extends string>({ items, value, onChange, label }: { items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string }) {
-  return (
-    <div className="oh-segs" role="tablist" aria-label={label}>
-      {items.map((it) => (
-        <button key={it.id} type="button" role="tab" aria-selected={it.id === value} className="oh-cut oh-seg" onClick={() => onChange(it.id)}>{it.label}</button>
-      ))}
-    </div>
-  )
-}
-export const Eyebrow = ({ tone = "gold", children }: { tone?: "gold" | "cyan"; children: ReactNode }) => (
-  <div className={cx("oh-eyebrow", tone !== "gold" && `oh-eyebrow-${tone}`)}>
-    <span className="oh-eyebrow-sq" aria-hidden="true" />
-    <span className="oh-eyebrow-label">{children}</span>
-    <span className="oh-eyebrow-rule" aria-hidden="true" />
-  </div>
-)
-const SearchField = ({ label, ...props }: InputHTMLAttributes<HTMLInputElement> & { label?: string }) => (
-  <label className="oh-cut oh-field">
-    <Icon name="search" size={16} />
-    <span className="oh-sr">{label || props.placeholder || "Search"}</span>
-    <input type="search" {...props} />
-  </label>
-)
-const Chip = ({ tone, children }: { tone: Relation; children: ReactNode }) => <span className={`oh-cut oh-chip oh-chip-${tone}`}>{children}</span>
-
-/* ---------- Avatar / Presence ---------- */
+/* ---------- presence ---------- */
 type Status = Presence | ChosenPresence
 const PRES: Record<Status, string> = { ready: "Ready to Duel", online: "Online", away: "Away", busy: "Busy", offline: "Offline", invisible: "Appear offline" }
 const presKey = (s?: Status | null): Status => (s && PRES[s] ? s : "offline")
+/** `invisible` is only ever the viewer's own choice: the offline dot, named "Appear offline". */
+const dotOf = (s: Status): Presence => (s === "invisible" ? "offline" : s)
 
-const PresenceDot = ({ status, showLabel }: { status: Status; showLabel?: boolean }) => {
-  const s = presKey(status), cls = `oh-presence oh-presence-${s === "invisible" ? "offline" : s}`
-  if (showLabel) return <span className="oh-presence-label"><span className={cls} aria-hidden="true" />{PRES[s]}</span>
-  return <span className={cls} role="img" aria-label={PRES[s]} />
-}
-export const Avatar = ({ name, src, size = "md", status, cosmetics }: { name: string; src?: string | null; size?: "sm" | "md" | "lg"; status?: Status | null; cosmetics?: Cosmetics | null }) => {
-  const initials = (name || "?").replace(/[^A-Za-z0-9 ]/g, "").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?"
-  const px = size === "sm" ? "28px" : size === "lg" ? "64px" : "40px"
-  return (
-    <span className={cx("oh-avatar", size !== "md" && `oh-avatar-${size}`)}>
-      {src ? <Image src={src} alt={name} fill sizes={px} /> : <span className="oh-avatar-fallback" role="img" aria-label={name}>{initials}</span>}
-      <AvatarFrame cosmetics={cosmetics} />
-      {status ? <PresenceDot status={status} /> : null}
-    </span>
-  )
-}
+/* ---------- list tabs, with an unread count ---------- */
+type TabItem<T extends string> = { id: T; label: string; count?: number | null }
+const tabsOf = <T extends string>(items: TabItem<T>[]) => items.map(({ id, label, count }) => ({
+  id,
+  label: count != null ? <>{label}<span className="ml-1.5 bg-surface-300 px-1.25 py-px text-ink-dim signal-count">{count}</span></> : label,
+}))
+/** Four tabs across a 336px panel: sized to their labels, spread edge to edge, tracked a step tighter. */
+const LIST_TABS = "justify-between gap-3 px-4 [scrollbar-width:none] *:tracking-[0.1em]"
+
+const RELATION_TONE = { friend: "indigo", rival: "negative" } as const
 
 /* ---------- time: 24-hour clock, short dates ---------- */
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -271,9 +185,9 @@ const Menu = ({ items, label, title, align, trigger }: { items: (MenuItem | null
   const t: Trigger = { open, props: { "aria-haspopup": "menu", "aria-expanded": open, onClick: toggle } }
   return (
     <span className="oh-menu-anchor" ref={anchor}>
-      {trigger ? trigger(t) : <Button variant="ghost" size="sm" iconOnly icon="more" aria-label={label || "More actions"} {...t.props} />}
+      {trigger ? trigger(t) : <Button variant="ghost" size="icon-sm" aria-label={label || "More actions"} {...t.props}><Icon name="more" /></Button>}
       {style ? portal(
-        <div className="oh-cut oh-menu" role="menu" aria-label={label || "Actions"} ref={pop} style={style} onKeyDown={onKeyDown}>
+        <div className="cut oh-menu" role="menu" aria-label={label || "Actions"} ref={pop} style={style} onKeyDown={onKeyDown}>
           {title ? <div className="oh-menu-title">{title}</div> : null}
           {list.map((it, i) => {
             if (it.divider) return <div key={"d" + i} className="oh-menu-sep" role="separator" />
@@ -285,12 +199,12 @@ const Menu = ({ items, label, title, align, trigger }: { items: (MenuItem | null
                 role={radio ? "menuitemradio" : "menuitem"}
                 aria-checked={radio ? !!it.checked : undefined}
                 tabIndex={-1}
-                className={cx("oh-menu-item", it.tone === "danger" && "is-danger")}
+                className={twMerge("oh-menu-item", it.tone === "danger" && "is-danger")}
                 onClick={() => { setStyle(null); it.onSelect?.() }}
               >
-                {it.dot ? <PresenceDot status={it.dot} /> : it.icon ? <Icon name={it.icon} size={16} /> : null}
+                {it.dot ? <PresenceDot status={dotOf(it.dot)} label={PRES[it.dot]} className="mx-0.75 shrink-0 border-0" /> : it.icon ? <Icon name={it.icon} size={16} className={it.tone === "danger" ? undefined : "text-ink-dim"} /> : null}
                 <span className="oh-menu-text"><span>{it.label}</span>{it.hint ? <small>{it.hint}</small> : null}</span>
-                {radio && it.checked ? <Icon name="check" size={16} className="oh-menu-check" /> : null}
+                {radio && it.checked ? <Icon name="check" size={16} className="text-cyan" /> : null}
               </button>
             )
           })}
@@ -312,8 +226,8 @@ const PresencePicker = ({ value, onChange }: { value: ChosenPresence; onChange: 
     align="left"
     title="Show me as"
     trigger={(t) => (
-      <button type="button" className="oh-cut oh-picker" aria-label={"Presence: " + PRES[value]} {...t.props}>
-        <PresenceDot status={value} showLabel />
+      <button type="button" className="cut oh-picker" aria-label={"Presence: " + PRES[value]} {...t.props}>
+        <PresenceDot status={dotOf(value)} label={PRES[value]} showLabel className="text-inherit" />
         <Icon name="down" size={14} />
       </button>
     )}
@@ -334,8 +248,8 @@ const StatusInput = ({ value, onSave, maxLength = 70 }: { value: string | null; 
     if ((value || null) !== next) onSave(next)
   }
   return (
-    <label className={cx("oh-cut oh-status-in", focused && "is-focus")}>
-      <span className="oh-sr">Status message</span>
+    <label className={twMerge("cut oh-status-in", focused && "is-focus")}>
+      <span className="sr-only">Status message</span>
       <input
         value={shown}
         maxLength={maxLength}
@@ -371,12 +285,8 @@ const SongLine = ({ song, editable, onSave }: { song: Song | null; editable?: bo
   }
   if (editing) return (
     <form className="oh-song-edit" onSubmit={save}>
-      <label className="oh-cut oh-field">
-        <Icon name="music" size={16} />
-        <span className="oh-sr">YouTube link</span>
-        <input value={url} autoFocus placeholder="Paste a YouTube link" onChange={(e) => { setUrl(e.target.value); setError(null) }} onKeyDown={(e) => { if (e.key === "Escape") setEditing(false) }} />
-      </label>
-      <div className="oh-row" style={{ gap: "var(--space-2)" }}>
+      <TextInput aria-label="YouTube link" prefix={<Icon name="song" size={16} />} value={url} autoFocus placeholder="Paste a YouTube link" onChange={(e) => { setUrl(e.target.value); setError(null) }} onKeyDown={(e) => { if (e.key === "Escape") setEditing(false) }} />
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" variant="primary" disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
         <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setError(null) }}>Cancel</Button>
         {song ? <Button size="sm" variant="ghost" onClick={() => { setEditing(false); onSave?.(null) }}>Remove song</Button> : null}
@@ -385,8 +295,8 @@ const SongLine = ({ song, editable, onSave }: { song: Song | null; editable?: bo
     </form>
   )
   const body = song
-    ? <a className="oh-song" href={"https://youtu.be/" + song.videoId} target="_blank" rel="noreferrer"><Icon name="music" size={14} /><span>{song.title || "Unknown title"}</span></a>
-    : editable ? <span className="oh-song is-empty"><Icon name="music" size={14} /><span>No song</span></span> : null
+    ? <a className="oh-song" href={"https://youtu.be/" + song.videoId} target="_blank" rel="noreferrer"><Icon name="song" size={14} /><span>{song.title || "Unknown title"}</span></a>
+    : editable ? <span className="oh-song is-empty"><Icon name="song" size={14} /><span>No song</span></span> : null
   return (
     <div className="oh-song-line">
       {body}
@@ -397,7 +307,7 @@ const SongLine = ({ song, editable, onSave }: { song: Song | null; editable?: bo
 
 type Me = Identity & { presence: ChosenPresence; status: string | null; song: Song | null }
 const MeCard = ({ me, compact, m }: { me: Me; compact?: boolean; m: MessengerView }) => (
-  <section className={cx("oh-me", compact && "is-compact")} aria-label="You">
+  <section className={twMerge("oh-me", compact && "is-compact")} aria-label="You">
     <div className="oh-me-top">
       <Avatar name={nameOf(me)} src={me.avatar} cosmetics={me.cosmetics} size={compact ? "md" : "lg"} status={me.presence === "invisible" ? "offline" : me.presence} />
       <div className="oh-me-id">
@@ -415,7 +325,7 @@ const ContactRow = ({ entry: e, unread, selected, onOpen, menu }: { entry: Roste
   const off = !isVisible(e.presence)
   const sub = off ? PRES.offline : e.status || PRES[presKey(e.presence)]
   return (
-    <div className={cx("oh-contact", off && "is-off", selected && "is-selected")} role="listitem">
+    <div className={twMerge("oh-contact", off && "is-off", selected && "is-selected")} role="listitem">
       <button type="button" className="oh-contact-hit" onClick={onOpen} aria-current={selected ? "true" : undefined} aria-label={nameOf(e) + ", " + PRES[presKey(e.presence)] + (unread ? ", " + unread + " unread" : "")}>
         <Avatar name={nameOf(e)} src={e.avatar} cosmetics={e.cosmetics} status={e.presence} />
         <span className="oh-contact-main">
@@ -423,8 +333,8 @@ const ContactRow = ({ entry: e, unread, selected, onOpen, menu }: { entry: Roste
             <span className="oh-contact-name">{nameOf(e)}</span>
             {e.nickname && e.username ? <span className="oh-contact-handle">{handleOf(e)}</span> : null}
           </span>
-          <span className={cx("oh-contact-sub", !off && e.status && "is-status")}>{sub}</span>
-          {!off && e.song ? <span className="oh-contact-song"><Icon name="music" size={12} /><span>{e.song.title || "Unknown title"}</span></span> : null}
+          <span className={twMerge("oh-contact-sub", !off && e.status && "is-status")}>{sub}</span>
+          {!off && e.song ? <span className="oh-contact-song"><Icon name="song" size={12} /><span>{e.song.title || "Unknown title"}</span></span> : null}
         </span>
         {unread ? <span className="oh-unread">{unread}</span> : null}
       </button>
@@ -432,6 +342,9 @@ const ContactRow = ({ entry: e, unread, selected, onOpen, menu }: { entry: Roste
     </div>
   )
 }
+
+/** The editor sits on surface-200, so its fields step down to surface-100. */
+const EDITOR_PLATE = "[--fill:var(--color-surface-100)]"
 
 /** Nickname 32, note 200. Private to the viewer. */
 const ContactEditor = ({ entry: e, onSave, onCancel }: { entry: RosterEntry; onSave: (v: { nickname: string | null; note: string | null }) => void; onCancel: () => void }) => {
@@ -441,20 +354,14 @@ const ContactEditor = ({ entry: e, onSave, onCancel }: { entry: RosterEntry; onS
     <form className="oh-editor" onSubmit={(ev) => { ev.preventDefault(); onSave({ nickname: nickname.trim() || null, note: note.trim() || null }) }} aria-label={"Nickname and note for " + (e.displayName || e.username)}>
       <div className="oh-editor-title">Private to you</div>
       <label>
-        <span className="oh-field-label">Nickname</span>
-        <span className="oh-cut oh-field">
-          <input value={nickname} maxLength={32} autoFocus placeholder={e.displayName || e.username || ""} onChange={(x) => setNickname(x.target.value)} />
-          <span className="oh-field-count">{32 - nickname.length}</span>
-        </span>
+        <span className={FIELD_LABEL}>Nickname</span>
+        <TextInput value={nickname} maxLength={32} autoFocus placeholder={e.displayName || e.username || ""} onChange={(x) => setNickname(x.target.value)} suffix={32 - nickname.length} plateClassName={EDITOR_PLATE} />
       </label>
       <label>
-        <span className="oh-field-label">Note</span>
-        <span className="oh-cut oh-field oh-field-area">
-          <textarea value={note} maxLength={200} rows={3} placeholder="Deck, habits, where you met" onChange={(x) => setNote(x.target.value)} />
-          <span className="oh-field-count">{200 - note.length}</span>
-        </span>
+        <span className={FIELD_LABEL}>Note</span>
+        <TextArea value={note} maxLength={200} rows={3} placeholder="Deck, habits, where you met" onChange={(x) => setNote(x.target.value)} suffix={200 - note.length} className="resize-none" plateClassName={EDITOR_PLATE} />
       </label>
-      <div className="oh-row" style={{ gap: "var(--space-2)" }}>
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" variant="primary">Save</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
       </div>
@@ -478,7 +385,7 @@ const RequestRow = ({ request: r, direction, now, onAccept, onDecline, onBlock, 
           <span className="oh-contact-top"><span className="oh-contact-name">{nm}</span>{r.username ? <span className="oh-contact-handle">@{r.username}</span> : null}</span>
           <span className="oh-contact-sub">{(incoming ? "Wants to add you" : "Request sent") + (r.requestedAt ? " · " + ago(r.requestedAt, now) : "")}</span>
         </div>
-        {kind ? <Chip tone={kind}>{kind === "rival" ? "Rival" : "Friend"}</Chip> : null}
+        {kind ? <Chip tone={RELATION_TONE[kind]} className="text-ink">{kind === "rival" ? "Rival" : "Friend"}</Chip> : null}
         <Menu
           label={"More for " + nm}
           items={incoming
@@ -489,8 +396,8 @@ const RequestRow = ({ request: r, direction, now, onAccept, onDecline, onBlock, 
       {incoming ? (
         <div className="oh-request-acts" role="group" aria-label={"Accept " + nm + " as"}>
           <span className="oh-request-label">Accept as</span>
-          <Button size="sm" onClick={() => onAccept?.("friend")}>Friend</Button>
-          <Button size="sm" onClick={() => onAccept?.("rival")}>Rival</Button>
+          <Button variant="secondary" size="sm" onClick={() => onAccept?.("friend")}>Friend</Button>
+          <Button variant="secondary" size="sm" onClick={() => onAccept?.("rival")}>Rival</Button>
         </div>
       ) : null}
     </div>
@@ -504,7 +411,7 @@ const MessageBubble = ({ mine, time, bubble, children }: { mine: boolean; time: 
   bubble ? (
     <ChatBubble style={bubble.style} sticker={bubble.sticker} mine={mine}>{children}<span className="oh-bubble-meta">{time}</span></ChatBubble>
   ) : (
-    <div className={cx("oh-bubble", mine && "is-mine")}>{children}<span className="oh-bubble-meta">{time}</span></div>
+    <div className={twMerge("oh-bubble", mine && "is-mine")}>{children}<span className="oh-bubble-meta">{time}</span></div>
   )
 
 /** Plain text, 1–1000 chars, newlines kept. Enter sends, Shift+Enter breaks the line. */
@@ -532,20 +439,21 @@ const Composer = ({ onSend, placeholder, locked, autoFocus, maxLength = 1000 }: 
   }
   return (
     <form className="oh-composer" onSubmit={send}>
-      <label className="oh-cut oh-field oh-field-area">
-        <span className="oh-sr">Message</span>
-        <textarea
-          ref={ta}
-          rows={1}
-          value={value}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) send(e) }}
-        />
-        {value.length > maxLength - 200 ? <span className="oh-field-count">{value.length}/{maxLength}</span> : null}
-      </label>
-      <Button type="submit" variant="primary" iconOnly icon="send" aria-label="Send" disabled={!can} />
+      <TextArea
+        ref={ta}
+        rows={1}
+        value={value}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        aria-label="Message"
+        className="max-h-33 resize-none"
+        plateClassName="flex-1 py-2"
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) send(e) }}
+        suffix={value.length > maxLength - 200 ? `${value.length}/${maxLength}` : undefined}
+      />
+      {/* The primary's offset plate needs its 4px inside the composer. */}
+      <Button type="submit" variant="primary" size="icon" className="mr-1 mb-1" aria-label="Send" disabled={!can}><Icon name="send" /></Button>
     </form>
   )
 }
@@ -607,7 +515,7 @@ const ChatWindow = (p: ChatWindowProps) => {
   const nm = nameOf(peer)
   const sub = !pres ? "Not on your list" : !isVisible(pres) ? PRES.offline : peer.status || PRES[presKey(pres)]
   const body = (
-    <div className="oh-chatwin-body">
+    <div className={twMerge("oh-chatwin-body", variant === "dock" && "motion-safe:animate-fade-in")}>
       <ChatThread
         messages={p.thread.messages} nextCursor={p.thread.nextCursor} onLoadOlder={p.onLoadOlder} loadingOlder={p.loadingOlder} newCount={p.newCount} now={p.now} peerName={nm} peerId={peer.id}
         myBubble={bubbleOf(p.me?.MSGBUBBLE)} peerBubble={bubbleOf(peer.cosmetics?.MSGBUBBLE)}
@@ -622,16 +530,16 @@ const ChatWindow = (p: ChatWindowProps) => {
   if (variant === "dock") {
     const min = !!p.minimized
     return (
-      <section className={cx("oh-chatwin", min && "is-min")} aria-label={"Chat with " + nm}>
+      <section className={twMerge("oh-chatwin", min && "is-min")} aria-label={"Chat with " + nm}>
         <div className="oh-chatwin-head">
           <button type="button" className="oh-chatwin-title" onClick={min ? p.onRestore : p.onMinimize} aria-expanded={!min} aria-label={(min ? "Open" : "Minimize") + " chat with " + nm}>
             <Avatar name={nm} src={peer.avatar} cosmetics={peer.cosmetics} size="sm" status={pres} />
             <span className="oh-chatwin-id"><b>{nm}</b><span>{sub}</span></span>
             {min && p.unread ? <span className="oh-unread">{p.unread}</span> : null}
           </button>
-          {!min && p.expandHref ? <Button href={p.expandHref} variant="ghost" size="sm" iconOnly icon="expand" aria-label="Open in Messenger" /> : null}
-          {!min ? <Button variant="ghost" size="sm" iconOnly icon="minus" aria-label="Minimize" onClick={p.onMinimize} /> : null}
-          <Button variant="ghost" size="sm" iconOnly icon="close" aria-label={"Close chat with " + nm} onClick={p.onClose} />
+          {!min && p.expandHref ? <Button href={p.expandHref} variant="ghost" size="icon-sm" aria-label="Open in Messenger"><Icon name="expand" /></Button> : null}
+          {!min ? <Button variant="ghost" size="icon-sm" aria-label="Minimize" onClick={p.onMinimize}><Icon name="minus" /></Button> : null}
+          <Button variant="ghost" size="icon-sm" aria-label={"Close chat with " + nm} onClick={p.onClose}><Icon name="close" /></Button>
         </div>
         {min ? null : body}
       </section>
@@ -639,22 +547,22 @@ const ChatWindow = (p: ChatWindowProps) => {
   }
   const head = variant === "sheet" ? (
     <div className="oh-chatpane-head is-sheet">
-      <Button variant="ghost" iconOnly icon="left" aria-label="Back" onClick={p.onBack ?? undefined} />
+      <Button variant="ghost" size="icon" aria-label="Back" onClick={p.onBack ?? undefined}><Icon name="left" /></Button>
       <Avatar name={nm} src={peer.avatar} cosmetics={peer.cosmetics} size="sm" status={pres} />
       <span className="oh-chatwin-id"><b>{nm}</b><span>{sub}</span></span>
       {p.menu ? <Menu label={"Actions for " + nm} items={p.menu} /> : null}
     </div>
   ) : (
     <div className="oh-chatpane-head">
-      {p.onBack ? <Button variant="ghost" iconOnly icon="left" aria-label="Back to conversations" onClick={p.onBack} /> : null}
+      {p.onBack ? <Button variant="ghost" size="icon" aria-label="Back to conversations" onClick={p.onBack}><Icon name="left" /></Button> : null}
       <Avatar name={nm} src={peer.avatar} cosmetics={peer.cosmetics} size="lg" status={pres} />
       <div className="oh-chatpane-id">
-        <div className="oh-row" style={{ gap: "var(--space-2) var(--space-3)" }}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 className="oh-chatpane-name">{nm}</h2>
           {peer.nickname && peer.username ? <span className="oh-contact-handle">{handleOf(peer)}</span> : null}
         </div>
         <div className="oh-chatpane-sub">
-          {pres ? <PresenceDot status={pres} showLabel /> : <span className="oh-presence-label">Not on your list</span>}
+          {pres ? <PresenceDot status={pres} showLabel /> : <span className="whitespace-nowrap text-ink-dim signal-sm">Not on your list</span>}
           {isVisible(pres) && peer.status ? <span className="oh-chatpane-status">{peer.status}</span> : null}
         </div>
         {isVisible(pres) && peer.song ? <SongLine song={peer.song} /> : null}
@@ -662,7 +570,7 @@ const ChatWindow = (p: ChatWindowProps) => {
       <div className="oh-chatpane-acts">{p.actions}{p.menu ? <Menu label={"Actions for " + nm} items={p.menu} /> : null}</div>
     </div>
   )
-  return <section className={cx("oh-chatpane", variant === "sheet" && "is-sheet")} aria-label={"Chat with " + nm}>{head}{body}</section>
+  return <section className={twMerge("oh-chatpane", variant === "sheet" && "is-sheet")} aria-label={"Chat with " + nm}>{head}{body}</section>
 }
 
 /* ---------- state: the live panel plus the open conversations ---------- */
@@ -814,7 +722,7 @@ const MessengerList = ({ m, tab, query, selected, onOpen, editing, onEdit }: {
           return (
             <div
               key={c.id}
-              className={cx("oh-convo", c.unread > 0 && "is-unread")}
+              className={twMerge("oh-convo", c.unread > 0 && "is-unread")}
               role="option"
               tabIndex={0}
               aria-selected={selected === c.id}
@@ -859,7 +767,7 @@ const MessengerList = ({ m, tab, query, selected, onOpen, editing, onEdit }: {
                   <div className="oh-request-top">
                     <Avatar name={nm} src={b.avatar} cosmetics={b.cosmetics} />
                     <div className="oh-contact-main"><span className="oh-contact-name">{nm}</span><span className="oh-contact-sub">Blocked · {ago(b.blockedAt, m.now)}</span></div>
-                    <Button size="sm" onClick={() => m.unblock(b.id)}>Unblock</Button>
+                    <Button variant="secondary" size="sm" onClick={() => m.unblock(b.id)}>Unblock</Button>
                   </div>
                 </div>
               )
@@ -936,7 +844,7 @@ export const MessengerMailbox = ({ className }: { className?: string }) => {
   if (!m?.panel) return null
   const total = (m.unreadChats || 0) + (m.requests ? m.requests.incoming.length : m.panel.incomingRequests)
   return (
-    <Link href={pageHref} className={cx("relative", className)} aria-label={"Messenger" + (total ? ", " + total + " new" : "")}>
+    <Link href={pageHref} className={twMerge("relative", className)} aria-label={"Messenger" + (total ? ", " + total + " new" : "")}>
       <Icon name="mail" size={22} />
       {total ? <span className="oh-unread absolute top-2.5 right-0.5">{total}</span> : null}
     </Link>
@@ -986,10 +894,10 @@ const Dock = ({ m, vw, me }: { m: MessengerView; vw: number; me: Me }) => {
   }
   const lists = (
     <>
-      <Tabs label="Messenger lists" items={msgrTabs(m)} value={tab} onChange={(v) => { setTab(v); setEditing(null) }} />
+      <TabBar fit label="Messenger lists" tabs={tabsOf(msgrTabs(m))} active={tab} onSelect={(v) => { setTab(v); setEditing(null) }} className={LIST_TABS} />
       {tab !== "requests" ? (
         <div className="oh-dock-search">
-          <SearchField placeholder={tab === "chats" ? "Search chats" : "Search " + tab} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <SearchField className="h-9 w-full min-w-0" placeholder={tab === "chats" ? "Search chats" : "Search " + tab} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       ) : null}
       <div className="oh-dock-list"><MessengerList m={m} tab={tab} query={query} onOpen={openChat} editing={editing} onEdit={setEditing} /></div>
@@ -1009,7 +917,7 @@ const Dock = ({ m, vw, me }: { m: MessengerView; vw: number; me: Me }) => {
           onClose: () => setWin(w.id, null),
         }))}
       </div>
-      <section className={cx("oh-cut oh-notch oh-dock-panel", open && "is-open")}>
+      <section className={twMerge("cut notch oh-dock-panel", open && "is-open")}>
         <button type="button" className="oh-dock-bar" aria-expanded={open} aria-label="Messenger" title={open ? undefined : "Messenger"} onClick={() => setOpen(!open)}>
           <Avatar name={nameOf(me)} src={me.avatar} cosmetics={me.cosmetics} size={open ? "sm" : "md"} status={me.presence === "invisible" ? "offline" : me.presence} />
           {open ? <span className="oh-dock-title">Messenger</span> : null}
@@ -1017,7 +925,7 @@ const Dock = ({ m, vw, me }: { m: MessengerView; vw: number; me: Me }) => {
           {m.incoming ? <span className="oh-unread is-gold" title={m.incoming + " requests"}><Icon name="host" size={12} />{m.incoming}</span> : null}
           {open ? <Icon name="down" size={18} className="oh-dock-chev" /> : null}
         </button>
-        {open ? <div className="oh-dock-body">{meCard}{lists}</div> : null}
+        {open ? <div className="oh-dock-body motion-safe:animate-fade-in">{meCard}{lists}</div> : null}
       </section>
     </div>,
   )
@@ -1030,13 +938,13 @@ export const MessengerPage = (props: MessengerPageProps) => {
   const m = useMessengerView()
   const me = m.S.me
   if (m.panel === null) return (
-    <div className="oh-msgr-none" style={{ height: props.height }}>
+    <div className="oh-msgr-none dots" style={{ height: props.height }}>
       <h2>Messenger</h2>
       <p>Log in to see your friends and rivals.</p>
       <Button variant="primary" href="/login">Log in</Button>
     </div>
   )
-  if (!me) return <div className="oh-msgr-none" style={{ height: props.height }} aria-busy="true" />
+  if (!me) return <div className="oh-msgr-none dots" style={{ height: props.height }} aria-busy="true" />
   return <Page m={m} me={me} {...props} />
 }
 
@@ -1072,10 +980,10 @@ const Page = ({ m, me, defaultSelected, defaultTab, height }: MessengerPageProps
   const side = (
     <aside className="oh-msgr-side" aria-label="Conversations and contacts">
       <div className="oh-msgr-me"><MeCard me={me} m={m} /></div>
-      <Tabs label="Messenger lists" items={msgrTabs(m)} value={tab} onChange={setTab} />
+      <TabBar fit label="Messenger lists" tabs={tabsOf(msgrTabs(m))} active={tab} onSelect={setTab} className={LIST_TABS} />
       {tab !== "requests" ? (
         <div className="oh-dock-search">
-          <SearchField placeholder={tab === "chats" ? "Search chats" : "Search " + tab} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <SearchField className="h-9 w-full min-w-0" placeholder={tab === "chats" ? "Search chats" : "Search " + tab} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
       ) : null}
       <div className="oh-dock-list"><MessengerList m={m} tab={tab} query={query} selected={id} onOpen={openChat} editing={editing} onEdit={setEditing} /></div>
@@ -1109,10 +1017,10 @@ const Page = ({ m, me, defaultSelected, defaultTab, height }: MessengerPageProps
           onRefresh={() => m.open(id)}
           onBack={mode === "narrow" ? () => setView("list") : null}
           menu={menu}
-          actions={mode !== "narrow" ? <Button size="sm" href={profileHref(id)} icon="user">Profile</Button> : null}
+          actions={mode !== "narrow" ? <Button variant="secondary" size="sm" href={profileHref(id)}><Icon name="user" />Profile</Button> : null}
         />
       ) : (
-        <div className="oh-msgr-none">
+        <div className="oh-msgr-none dots">
           <Image src="/omega-mark.png" alt="" width={60} height={60} />
           <h2>Pick a conversation</h2>
           <p>Chats, friends and rivals are on the left. Messages arrive when you open or refresh a chat; there&apos;s no live feed.</p>
@@ -1125,18 +1033,18 @@ const Page = ({ m, me, defaultSelected, defaultTab, height }: MessengerPageProps
     : mode === "mid" ? [side, main] : [view === "thread" && peer ? main : side]
   const drawer = mode !== "wide" && info && details ? portal(
     <>
-      <button type="button" className="oh-scrim" aria-label="Close details" onClick={() => setInfo(false)} />
-      <aside className="oh-drawer oh-msgr-drawer" role="dialog" aria-modal="true" aria-label="Contact details" onKeyDown={(e) => { if (e.key === "Escape") setInfo(false) }}>
+      <button type="button" className="oh-scrim motion-safe:animate-fade-in" aria-label="Close details" onClick={() => setInfo(false)} />
+      <aside className="oh-drawer oh-msgr-drawer motion-safe:animate-drawer-in" role="dialog" aria-modal="true" aria-label="Contact details" onKeyDown={(e) => { if (e.key === "Escape") setInfo(false) }}>
         <div className="oh-drawer-head">
           <span className="oh-dock-title">Details</span>
-          <Button variant="ghost" iconOnly icon="close" aria-label="Close details" onClick={() => setInfo(false)} />
+          <Button variant="ghost" size="icon" aria-label="Close details" onClick={() => setInfo(false)}><Icon name="close" /></Button>
         </div>
         {details}
       </aside>
     </>,
   ) : null
   return (
-    <div ref={wrap} className={cx("oh-msgr", "is-" + mode)} style={height ? { height } : undefined}>
+    <div ref={wrap} className={twMerge("oh-msgr", "is-" + mode)} style={height ? { height } : undefined}>
       {cols.map((c, i) => <Fragment key={i}>{c}</Fragment>)}
       {drawer}
     </div>
@@ -1163,22 +1071,16 @@ const ContactInfo = ({ m, peer, entry: e, onClear, onClose }: { m: MessengerView
         <div className="oh-info-block">
           <Eyebrow tone="cyan">Private to you</Eyebrow>
           <div className="oh-info-field">
-            <span className="oh-field-label">Filed under</span>
-            <ModeTabs<Relation> label="Filed under" value={e.kind} items={[{ id: "friend", label: "Friend" }, { id: "rival", label: "Rival" }]} onChange={(k) => m.changeKind(peer.id, k)} />
+            <span className={FIELD_LABEL}>Filed under</span>
+            <ModeTabs<Relation> label="Filed under" value={e.kind} items={[{ id: "friend", label: "Friend" }, { id: "rival", label: "Rival" }]} onChange={(k) => m.changeKind(peer.id, k)} className="self-start" />
           </div>
           <label className="oh-info-field">
-            <span className="oh-field-label">Nickname</span>
-            <span className="oh-cut oh-field">
-              <input value={nickname} maxLength={32} placeholder={peer.displayName || peer.username || ""} onChange={(x) => setNickname(x.target.value)} onBlur={saveNick} onKeyDown={(x) => { if (x.key === "Enter") x.currentTarget.blur() }} />
-              <span className="oh-field-count">{32 - nickname.length}</span>
-            </span>
+            <span className={FIELD_LABEL}>Nickname</span>
+            <TextInput value={nickname} maxLength={32} placeholder={peer.displayName || peer.username || ""} onChange={(x) => setNickname(x.target.value)} onBlur={saveNick} onKeyDown={(x) => { if (x.key === "Enter") x.currentTarget.blur() }} suffix={32 - nickname.length} />
           </label>
           <label className="oh-info-field">
-            <span className="oh-field-label">Note</span>
-            <span className="oh-cut oh-field oh-field-area">
-              <textarea value={note} maxLength={200} rows={4} placeholder="Deck, habits, where you met" onChange={(x) => setNote(x.target.value)} onBlur={saveNote} />
-              <span className="oh-field-count">{200 - note.length}</span>
-            </span>
+            <span className={FIELD_LABEL}>Note</span>
+            <TextArea value={note} maxLength={200} rows={4} placeholder="Deck, habits, where you met" onChange={(x) => setNote(x.target.value)} onBlur={saveNote} suffix={200 - note.length} className="resize-none" />
           </label>
         </div>
       ) : (
@@ -1188,10 +1090,10 @@ const ContactInfo = ({ m, peer, entry: e, onClear, onClose }: { m: MessengerView
         </div>
       )}
       <div className="oh-info-acts">
-        <Button href={profileHref(peer.id)} icon="user">View profile</Button>
-        <Button variant="ghost" onClick={onClear}>Clear chat for me</Button>
-        {e ? <Button variant="ghost" onClick={() => m.remove(peer.id)}>Remove from list</Button> : null}
-        <Button variant="danger" icon="block" onClick={() => { m.block(peer.id); onClose() }}>Block</Button>
+        <Button variant="secondary" className="justify-start" href={profileHref(peer.id)}><Icon name="user" />View profile</Button>
+        <Button variant="ghost" className="justify-start" onClick={onClear}>Clear chat for me</Button>
+        {e ? <Button variant="ghost" className="justify-start" onClick={() => m.remove(peer.id)}>Remove from list</Button> : null}
+        <Button variant="danger" className="justify-start" onClick={() => { m.block(peer.id); onClose() }}><Icon name="block" />Block</Button>
       </div>
       <p className="oh-msgr-hint">Blocking is silent: they see the same thing as a removal and can&apos;t message you.</p>
     </div>

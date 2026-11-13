@@ -46,7 +46,7 @@ export const TournamentTabs = ({ id, tab, live, counts, panels }: TournamentTabs
                 on ? 'text-ink shadow-tab-active' : 'text-ink-muted hover:text-ink',
               )}
             >
-              {key === 'live' ? <span aria-hidden className="size-1.5 rounded-round bg-cyan shadow-glow-live motion-safe:animate-blink" /> : null}
+              {key === 'live' ? <span aria-hidden className="size-1.5 rounded-round bg-cyan-glow shadow-glow-live motion-safe:animate-blink" /> : null}
               {key === 'live' ? ts('live') : t(key)}
               {counts[key] !== undefined ? <span className="font-normal text-ink-muted">{counts[key]}</span> : null}
             </Link>

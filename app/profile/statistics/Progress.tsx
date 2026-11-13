@@ -11,7 +11,7 @@ import { GapLine } from './tracks'
 import { eloChart, gap, readOf, runningChart, weekDates } from './view'
 
 const PANEL = 'cut notch [--cut:var(--cut-lg)] [--edge:var(--color-line-mid)] [--fill:var(--color-surface-100)]'
-const TITLE = 'm-0 font-display text-[22px] leading-[1.1] tracking-[0.01em] text-ink uppercase'
+const TITLE = 'm-0 text-ink display-3'
 const WEEK_COLS = '1.2fr 72px 72px 80px 1.4fr 72px'
 /** The rating with a space for thousands: 1 842. */
 const elo = (v: number) => String(v).replace(/(\d)(\d{3})$/, '$1 $2')
@@ -31,7 +31,7 @@ export const Progress = ({ data, ladder, history }: { data: PlayerAnswer; ladder
   return (
     <>
       <div className="flex flex-col gap-1.5 max-[719px]:gap-1">
-        <h2 className="m-0 font-display text-[32px] leading-[1.05] text-ink uppercase max-[719px]:text-[26px]">{t('title')}</h2>
+        <h2 className="m-0 text-ink display-2 max-[719px]:text-[22px]">{t('title')}</h2>
         <p className={`m-0 text-ink-dim ${WIDE}`}>{t('lede')}</p>
         <p className={`m-0 text-sm leading-[22px] text-ink-dim ${NARROW}`}>{t('ledeShort')}</p>
       </div>

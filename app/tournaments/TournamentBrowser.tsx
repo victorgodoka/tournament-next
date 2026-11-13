@@ -135,8 +135,8 @@ const LiveBanner = ({ detail, now }: { detail: TournamentDetail; now: string }) 
           </div>
 
           {onTable ? (
-            <div className="cut flex max-w-140 flex-wrap items-center gap-4 px-4.5 py-3.5 drop-shadow-[0_0_10px_rgba(0,253,255,0.35)] [--cut:var(--cut-md)] [--edge:var(--color-cyan)] [--sw:var(--stroke)]">
-              <span aria-hidden className="size-2 rounded-round bg-cyan shadow-glow-live" />
+            <div className="cut flex max-w-140 flex-wrap items-center gap-4 px-4.5 py-3.5 drop-shadow-[0_0_10px_color-mix(in_srgb,var(--color-cyan-glow)_35%,transparent)] [--cut:var(--cut-md)] [--edge:var(--color-cyan)] [--sw:var(--stroke)]">
+              <span aria-hidden className="size-2 rounded-round bg-cyan-glow shadow-glow-live" />
               <span className="text-cyan signal-strong">{tl('onTable')}</span>
               <span className="flex min-w-55 flex-1 items-center gap-2.5">
                 <Avatar name={name(onTable.player1)} src={roster.get(onTable.player1)?.avatar} cosmetics={roster.get(onTable.player1)?.cosmetics} size="sm" className="size-6 text-[10px]" />
@@ -277,7 +277,7 @@ const Row = ({ tournament, live, now, maxPlayers }: { tournament: TournamentSumm
 
         {isLive ? (
           <span className="flex items-center gap-2.5">
-            <span aria-hidden className="size-2 shrink-0 rounded-round bg-cyan shadow-glow-live" />
+            <span aria-hidden className="size-2 shrink-0 rounded-round bg-cyan-glow shadow-glow-live" />
             <span className="flex min-w-0 flex-col">
               <span className="text-cyan signal-strong">{round ? t('browser.row.round', { round: round.number, rounds }) : t('browser.row.inProgress')}</span>
               {leader ? <span className={twMerge('truncate', META)}>{tr('leader', { name: playerName(leader.player, t('player.unknown')), points: leader.points })}</span> : null}

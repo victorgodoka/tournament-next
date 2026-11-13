@@ -41,7 +41,7 @@ const Lock = ({ size = 18 }: { size?: number }) => (
 const PanelHead = ({ format, select }: { format: Ladder['format']; select?: React.ReactNode }) => (
   <div className="flex flex-wrap items-center gap-3">
     <Chip tone={ACCENT[format].chip}>{format}</Chip>
-    <h3 className="font-display text-[22px] leading-[1.1] tracking-[0.01em] uppercase max-md:text-xl">{format} ladder</h3>
+    <h3 className="display-3 max-md:text-[18px]">{format} ladder</h3>
     {select ? <div className="ml-auto max-md:w-full max-md:*:w-full">{select}</div> : null}
   </div>
 )
@@ -148,7 +148,7 @@ const UnplayedLadder = ({ format, season }: { format: Ladder['format']; season?:
   <Panel tone="sunken" label={`${format} ladder`} className="flex items-center gap-4 px-6 py-5 min-[720px]:px-6 min-[720px]:py-5">
     <Chip tone={ACCENT[format].chip}>{format}</Chip>
     <div className="flex grow flex-col gap-1">
-      <h3 className="font-display text-[22px] leading-[1.1] uppercase">{format} ladder</h3>
+      <h3 className="display-3">{format} ladder</h3>
       <p className="text-sm leading-5 text-ink-dim">
         No ranked {format} duels yet.
         {season ? <> {season.label} has been open since <LocalTime iso={season.startsAt} options={DAY_MONTH} />.</> : null}
@@ -244,7 +244,7 @@ const FreeCard = ({ chip, title, caption, big, lines }: { chip: React.ReactNode;
   <Panel label={title} className="flex flex-col gap-4.5 max-md:gap-1">
     <div className="flex items-center gap-2.5">
       {chip}
-      <h3 className="font-display text-[22px] leading-[1.1] uppercase max-md:hidden">{title}</h3>
+      <h3 className="display-3 max-md:hidden">{title}</h3>
       {caption ? <span className={twMerge(CAPTION, 'md:hidden')}>{caption}</span> : null}
     </div>
     {big}

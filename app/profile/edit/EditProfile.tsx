@@ -570,7 +570,7 @@ const Editor = ({ identity, initial, vip }: { identity: ProfileIdentity; initial
             {vip ? <Chip tone="vip">VIP</Chip> : null}
             <span className={LABEL}>Your profile{identity.handle ? ` · ${identity.handle}` : ''}</span>
           </div>
-          <h1 className="font-display text-[56px] leading-none uppercase max-md:text-[40px]">Edit profile</h1>
+          <h1 className="title text-[40px] max-md:text-[32px]">Edit profile</h1>
           <p className="max-w-[64ch] text-base leading-6 text-ink-dim">
             Changes show on your profile as soon as you save. Hidden sections disappear for everyone else; you always see your full profile.
           </p>

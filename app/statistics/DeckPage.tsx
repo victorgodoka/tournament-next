@@ -108,7 +108,7 @@ export const DeckPage = ({ answer, season, scope, cards: serverCards, family, bu
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <h1 className="m-0 font-display text-5xl leading-none text-ink uppercase">{name}</h1>
+            <h1 className="m-0 title text-[36px] text-ink">{name}</h1>
             {deck.tier !== null ? <TierChip tier={deck.tier} /> : null}
           </div>
           <p className="m-0 max-w-170 text-lg leading-7 text-ink-dim">{summary(false)}</p>
@@ -125,7 +125,7 @@ export const DeckPage = ({ answer, season, scope, cards: serverCards, family, bu
           <span className="text-ink-muted signal-sm">{ladderName(season)} · {season.label}{versions ? ` · ${t('versionOf', { index, count: versions.members.length })}` : ''}</span>
         </div>
         <div className="flex items-center gap-3">
-          <h1 className="m-0 font-display text-[38px] leading-none text-ink uppercase">{name}</h1>
+          <h1 className="m-0 title text-[30px] text-ink">{name}</h1>
           {deck.tier !== null ? <TierChip tier={deck.tier} /> : null}
         </div>
         <p className="m-0 text-ink-dim">{summary(true)}</p>

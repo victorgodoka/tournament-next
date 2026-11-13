@@ -138,7 +138,7 @@ const ProfileBody = ({ profile, asVisitor }: { profile: Profile; asVisitor: bool
         <section aria-label="Private profile" className="cut notch [--cut:var(--cut-lg)] [--edge:var(--color-line)] [--fill:var(--color-space-000)]">
           <div className="flex flex-col items-center gap-4 bg-[radial-gradient(rgba(142,166,199,0.16)_1px,transparent_1.5px)] bg-size-[24px_24px] px-6 py-18 text-center">
             <LockIcon />
-            <h2 className="font-display text-[32px] leading-[1.05] uppercase">This profile is private</h2>
+            <h2 className="display-2">This profile is private</h2>
             <p className="max-w-[52ch] text-base leading-6 text-ink-dim">
               {first}&apos;s ladders, duel history and tournaments are hidden. Only {first} can see them.
             </p>

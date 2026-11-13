@@ -27,7 +27,7 @@ const C = {
   ink: '#eef1f8',
   dim: '#b3bdd2',
   muted: '#8e99b4',
-  cyan: '#00fdff',
+  cyan: '#45cfdc',
   gold: '#efd17e',
   goldInk: '#1a1405',
 }
@@ -164,7 +164,7 @@ const draw = (
   // Ground: two soft glows from the top and a dot field fading out around the donut.
   ctx.fillStyle = C.bg
   ctx.fillRect(0, 0, W, H)
-  for (const [x, y, r, rgb, a] of [[0.22 * W, -130, 900, '0,253,255', 0.07], [0.78 * W, -86, 800, '74,111,216', 0.13]] as const) {
+  for (const [x, y, r, rgb, a] of [[0.22 * W, -130, 900, '69,207,220', 0.07], [0.78 * W, -86, 800, '74,111,216', 0.13]] as const) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r)
     g.addColorStop(0, `rgba(${rgb},${a})`)
     g.addColorStop(0.7, `rgba(${rgb},0)`)

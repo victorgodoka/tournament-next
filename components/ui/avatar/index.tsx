@@ -1,38 +1,41 @@
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
-import type { Cosmetics } from '@utils/types'
+import type { Cosmetics, Presence as Status } from '@utils/types'
 
-export type Status = 'online' | 'duel' | 'away' | 'offline'
+/** Presence as the messenger API reports it. The server computes it; never derive it on the client. */
+export type { Status }
 
-const STATUS_LABEL: Record<Status, string> = { online: 'Online', duel: 'In a duel', away: 'Away', offline: 'Offline' }
+const STATUS_LABEL: Record<Status, string> = { ready: 'Ready to Duel', online: 'Online', away: 'Away', busy: 'Busy', offline: 'Offline' }
 
+/** Away is a crescent and busy a barred dot, so the state never rides on color alone. */
 const DOT: Record<Status, string> = {
-  online: 'bg-cyan',
-  duel: 'bg-gold',
-  away: 'bg-tier-master',
-  offline: 'bg-surface-300 shadow-[inset_0_0_0_2px_var(--color-ink-muted)]',
+  ready: 'bg-presence-ready shadow-[0_0_6px_color-mix(in_srgb,var(--color-presence-ready)_70%,transparent)]',
+  online: 'bg-presence-online',
+  away: '[background:radial-gradient(circle_at_28%_28%,var(--color-space-000)_0_3px,var(--color-presence-away)_3.5px)]',
+  busy: '[background:linear-gradient(var(--color-space-000),var(--color-space-000))_center/6px_2px_no-repeat,var(--color-presence-busy)]',
+  offline: 'bg-surface-300 shadow-[inset_0_0_0_2px_var(--color-presence-offline)]',
 }
-
 
 type PresenceProps = {
   status: Status
   /** Adds the mono word after the dot. */
   showLabel?: boolean
+  /** Replaces the status word, shown or read out: "Appear offline". */
   label?: string
   className?: string
 }
 
-/** Status as a round dot: online cyan, duel gold, away violet, offline hollow. */
-const Presence = ({ status, showLabel, label, className }: PresenceProps) =>
+/** Presence as a round dot: ready cyan with a glow, online azure, away a gold crescent, busy barred crimson, offline hollow. */
+export const Presence = ({ status, showLabel, label, className }: PresenceProps) =>
   showLabel ? (
-    <span className={twMerge('inline-flex items-center gap-2 text-ink-dim signal-sm', className)}>
-      <span aria-hidden className={twMerge('size-2.5 rounded-round', DOT[status])} />
+    <span className={twMerge('inline-flex items-center gap-2 whitespace-nowrap text-ink-dim signal-sm', className)}>
+      <span aria-hidden className={twMerge('size-2.5 shrink-0 rounded-round', DOT[status])} />
       {label ?? STATUS_LABEL[status]}
     </span>
   ) : (
     <span
       role="img"
-      aria-label={STATUS_LABEL[status]}
+      aria-label={label ?? STATUS_LABEL[status]}
       className={twMerge('inline-block size-2.5 box-content rounded-round border-2 border-space-000', DOT[status], className)}
     />
   )
@@ -52,7 +55,7 @@ type AvatarProps = {
   src?: string | null
   /** sm 28 · md 40 · lg 64 · xl 128 */
   size?: keyof typeof SIZE
-  status?: Status
+  status?: Status | null
   /** Equipped cosmetics from the API; the `WEBDECO` frame is drawn over the portrait. */
   cosmetics?: Cosmetics | null
   /** Above the fold and likely the LCP, like a profile's header portrait. */

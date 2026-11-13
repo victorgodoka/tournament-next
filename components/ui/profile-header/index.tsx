@@ -6,7 +6,7 @@ import { StatGrid, type Stat } from '@ui/stat-grid'
 
 /** surface-100 with a faint cyan haze in the notched corner, for a profile with no cover. */
 const PROFILE_FILL = {
-  '--fill': 'radial-gradient(ellipse 45% 140% at 100% 0%, rgba(0, 253, 255, 0.07), rgba(0, 0, 0, 0) 70%), var(--color-surface-100)',
+  '--fill': 'radial-gradient(ellipse 45% 140% at 100% 0%, color-mix(in srgb, var(--color-cyan) 7%, transparent), rgba(0, 0, 0, 0) 70%), var(--color-surface-100)',
 } as React.CSSProperties
 
 type ProfileHeaderProps = {
@@ -78,7 +78,7 @@ export const ProfileHeader = ({ name, handle, avatar, cosmetics, status, cover, 
           {badges ? <span className="flex flex-wrap gap-1.5 pb-1">{badges}</span> : null}
         </div>
         <Facts facts={facts} />
-        <h1 className="wrap-anywhere font-display text-4xl leading-none text-ink uppercase">{label}</h1>
+        <h1 className="wrap-anywhere title text-[30px] text-ink">{label}</h1>
         {handle ? <span className="text-ink-dim data">{handle}</span> : null}
         {actions ? <div className="grid grid-cols-2 gap-3 *:w-full">{actions}</div> : null}
       </div>

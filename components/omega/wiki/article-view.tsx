@@ -230,7 +230,7 @@ export const ArticleView = ({ doc, slug, html, links, meta, children, lead, body
             </ol>
           </nav>
 
-          <h1 id="article-title" className="mt-24 text-[52px] leading-[0.95] text-ink display-hero sm:mt-14 sm:text-[72px] sm:leading-[0.92]">
+          <h1 id="article-title" className="mt-24 text-[36px] leading-[1.1] text-ink title sm:mt-14 sm:text-[48px]">
             {doc.title || 'Untitled'}
           </h1>
           {doc.summary ? <p className="max-w-180 text-base/[26px] text-ink sm:text-lg/7">{doc.summary}</p> : null}

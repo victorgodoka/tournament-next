@@ -83,11 +83,19 @@ export const TextInput = ({ prefix, suffix, mono, warn, plateClassName, classNam
   </span>
 )
 
-type TextAreaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & { mono?: boolean; plateClassName?: string }
+type TextAreaProps = React.ComponentProps<'textarea'> & {
+  /** Inside the plate after the text, on its last line: a character count ("171"). */
+  suffix?: React.ReactNode
+  mono?: boolean
+  /** Classes for the plate; `className` goes to the textarea. */
+  plateClassName?: string
+}
 
-export const TextArea = ({ mono, plateClassName, className, rows = 3, ...props }: TextAreaProps) => (
+/** A textarea in the field plate. Takes a `ref`, for a composer that grows with its text. */
+export const TextArea = ({ suffix, mono, plateClassName, className, rows = 3, ...props }: TextAreaProps) => (
   <span className={twMerge(FIELD, 'h-auto min-w-0 items-stretch py-2.5', plateClassName)}>
     <textarea rows={rows} className={twMerge(INPUT, 'resize-y', mono && 'mono-data', className)} {...props} />
+    {suffix != null ? <span className="shrink-0 self-end signal-sm">{suffix}</span> : null}
   </span>
 )
 

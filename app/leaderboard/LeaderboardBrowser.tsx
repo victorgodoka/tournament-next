@@ -1,19 +1,25 @@
 'use client'
 
 /**
- * The public ranked leaderboard, ported from the Omega Hub design bundle
- * (https://claude.ai/artifact/Bi3WkghqHpeZpvNdDwiFh1, RankedLeaderboard / LeaderboardPodium /
- * Leaderboard / LadderSwitch) and wired to GET /ranked/leaderboard, or to
- * GET /ranked/seasons/:code/standings for a closed season. Class names and markup follow the bundle
- * one to one; the styles live in ./leaderboard.css.
+ * The public ranked leaderboard (design: https://claude.ai/artifact/Bi3WkghqHpeZpvNdDwiFh1,
+ * RankedLeaderboard / LeaderboardPodium / Leaderboard / LadderSwitch), wired to
+ * GET /ranked/leaderboard, or to GET /ranked/seasons/:code/standings for a closed season.
+ * Controls, avatars, tier badges and the rail head are the shared ones in components/ui;
+ * ./leaderboard.css holds the ladder switch, the podium and the ledger.
  */
 
-import { Fragment, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { Fragment, useState, type KeyboardEvent } from 'react'
 import Link from 'next/link'
+import { twMerge } from 'tailwind-merge'
 import { useAuth } from '@contexts/auth/auth.context'
-import { Avatar, Button, cx, Eyebrow, Icon } from '@omega/messenger/messenger-ui'
 import { LocalTime } from '@omega/profile/local-time'
+import { Alert } from '@ui/alert'
+import { Avatar } from '@ui/avatar'
+import { Button } from '@ui/button'
 import { Select } from '@ui/field'
+import { Icon } from '@ui/icon'
+import { RailHead } from '@ui/rail-head'
+import { TierBadge } from '@ui/tier-badge'
 import { can } from '@utils/articles'
 import { LEADERBOARD_PAGE_SIZE, RankedApiError, getLeaderboard, getSeasonStandings, refreshLeaderboard, type PageQuery } from '@utils/ranked'
 import type { Cosmetics, LeaderboardEntry, LeaderboardPage, PastSeason, RankedLadderId, RankedSeason, Tier } from '@utils/types'
@@ -41,6 +47,8 @@ const HM: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hou
 const DAY: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
 const profileHref = (id: string) => `/profile/${id}`
 const seasonTitle = (s: Pick<RankedSeason, 'label' | 'ordinal'>) => s.label || `Season ${s.ordinal}`
+/** A new season shows no ladder for its first two hours: the first games don't make a ranking yet. */
+const GATHER_MS = 2 * 3_600_000
 
 type Row = {
   rank: number
@@ -78,43 +86,29 @@ const entryRow = (e: LeaderboardEntry, meId?: string): Row => ({
 })
 const recordOf = (r: Row) => `${r.w}–${r.l}–${r.d}`
 
-/* ---------- TierBadge / RailHead ---------- */
-const TierBadge = ({ tier }: { tier: Tier }) => {
-  const key = tier.toLowerCase()
-  return (
-    <span className="oh-cut oh-tier" style={{ '--edge': `var(--tier-${key})` } as CSSProperties}>
-      <span className="oh-tier-gem" aria-hidden="true" style={{ background: `var(--tier-${key})` }} />
-      {tier}
-    </span>
-  )
-}
-
-const RailHead = ({ num, label, stamp }: { num: string; label: string; stamp: string | null }) => (
-  <div className="oh-rail" role="heading" aria-level={2}>
-    <span className="oh-rail-num">{num}</span>
-    <span className="oh-rail-label">{label}</span>
-    <span className="oh-rail-rule" aria-hidden="true" />
-    {stamp ? <span className="oh-rail-stamp">{stamp}</span> : null}
-  </div>
-)
+/** The podium's portraits drop from 64px to 48px once its cards stack (see the 900px container query). */
+const PODIUM_PORTRAIT = '@max-[900px]:size-12'
 
 const Who = ({ r, size, className }: { r: Row; size: 'sm' | 'lg'; className: string }) => (
   <>
     {r.unnamed ? (
-      <span className={`oh-avatar oh-avatar-${size} oh-lb-anon`} aria-hidden="true">
+      <span
+        aria-hidden="true"
+        className={twMerge('grid shrink-0 place-items-center border border-dashed border-line-mid bg-surface-200 text-ink-muted', size === 'sm' ? 'size-7' : 'size-16', size === 'lg' && PODIUM_PORTRAIT)}
+      >
         <Icon name="user" size={size === 'sm' ? 16 : 28} />
       </span>
     ) : (
-      <Avatar name={r.name} src={r.avatar} cosmetics={r.cosmetics} size={size} />
+      <Avatar name={r.name} src={r.avatar} cosmetics={r.cosmetics} size={size} className={size === 'lg' ? PODIUM_PORTRAIT : undefined} />
     )}
     <span className={size === 'sm' ? 'oh-lb-id' : 'oh-podium-id'}>
-      <Link className={cx(className, r.unnamed && 'is-anon')} href={profileHref(r.id)}>
+      <Link className={twMerge(className, r.unnamed && 'is-anon')} href={profileHref(r.id)}>
         {r.name}
       </Link>
       {r.handle ? <span className="oh-lb-handle">{r.handle}</span> : null}
       {size === 'sm' ? (
         <span className="oh-lb-mini">
-          <TierBadge tier={r.tier} />
+          <TierBadge tier={r.tier} className="h-5 text-[9px]" />
           <span>{recordOf(r) + ' · ' + r.rate}</span>
         </span>
       ) : null}
@@ -132,7 +126,7 @@ const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; 
         <span
           key={c}
           role="columnheader"
-          className={cx(i === 2 && 'oh-lb-c-tier', i >= 4 && 'oh-lb-c-extra')}
+          className={twMerge(i === 2 && 'oh-lb-c-tier', i >= 4 && 'oh-lb-c-extra')}
           style={{ textAlign: i === 0 ? 'center' : i >= 3 ? 'right' : 'left' }}
         >
           {c}
@@ -140,8 +134,8 @@ const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; 
       ))}
     </div>
     {rows.map((r) => (
-      <div key={r.id} className={cx('oh-lb-row', r.me && 'is-me')} role="row">
-        <span className={cx('oh-lb-rank', r.rank <= 3 && `p${r.rank}`)} role="cell">
+      <div key={r.id} className={twMerge('oh-lb-row', r.me && 'is-me')} role="row">
+        <span className={twMerge('oh-lb-rank', r.rank <= 3 && `p${r.rank}`)} role="cell">
           {r.rank}
         </span>
         <span className="oh-lb-who" role="cell">
@@ -155,7 +149,7 @@ const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; 
         </span>
         <span className="oh-lb-num oh-lb-c-extra" role="cell">
           <span className="oh-lb-rec">
-            <b className="oh-up">{r.w}</b>–<b className="oh-down">{r.l}</b>–<b className="oh-flat">{r.d}</b>
+            <b className="text-win">{r.w}</b>–<b className="text-loss">{r.l}</b>–<b className="text-draw">{r.d}</b>
           </span>
         </span>
         <span className="oh-lb-num oh-lb-c-extra" role="cell">
@@ -180,9 +174,9 @@ const PLACE = ['First', 'Second', 'Third']
 
 const LeaderboardPodium = ({ rows, label }: { rows: Row[]; label: string }) =>
   rows.length ? (
-    <ol className={cx('oh-podium', `is-${rows.length}`)} aria-label={label}>
+    <ol className={twMerge('oh-podium', `is-${rows.length}`)} aria-label={label}>
       {rows.map((r) => (
-        <li key={r.id} className={cx('oh-cut oh-notch oh-podium-card', `p${r.rank}`, r.me && 'is-me')}>
+        <li key={r.id} className={twMerge('cut notch oh-podium-card', `p${r.rank}`, r.me && 'is-me')}>
           <div className="oh-podium-top">
             <span className="oh-podium-rank" aria-label={PLACE[r.rank - 1] + ' place'}>
               {r.rank}
@@ -243,7 +237,7 @@ const LadderSwitch = ({
             aria-selected={sel}
             aria-controls={controls}
             tabIndex={sel ? 0 : -1}
-            className={cx('oh-cut oh-ladder', `is-${L.tone}`)}
+            className={twMerge('cut oh-ladder', `is-${L.tone}`)}
             onClick={() => onChange(id)}
             onKeyDown={(e) => key(e, i)}
           >
@@ -264,7 +258,7 @@ type Board = {
   entries: LeaderboardEntry[]
   nextCursor: string | null
 }
-type Notice = { tone: 'cyan' | 'live'; title: string; body: string }
+type Notice = { tone: 'info' | 'negative'; title: string; body: string }
 
 /** Boards are kept per ladder and season. No `code` is the open season, live; `/` never appears in a code. */
 const boardKey = (ladder: RankedLadderId, code?: string) => (code ? `${ladder}/${code}` : ladder)
@@ -338,7 +332,7 @@ export const LeaderboardBrowser = ({
         /* `rank` is recomputed by every read, so a walk that crosses one can skip or repeat a duelist. */
         if (pg.syncedAt !== cur.syncedAt) {
           setNotice({
-            tone: 'cyan',
+            tone: 'info',
             title: 'The ladder was re-read',
             body: `The list refreshed at ${hm(pg.syncedAt ?? new Date().toISOString())} while you were paging, so ranks may have moved. You're back at the top of the new read.`,
           })
@@ -348,7 +342,7 @@ export const LeaderboardBrowser = ({
       },
       () => {
         setL(key, { status: 'ready' })
-        setNotice({ tone: 'live', title: "Couldn't load more", body: "The next page didn't arrive. Try again in a moment." })
+        setNotice({ tone: 'negative', title: "Couldn't load more", body: "The next page didn't arrive. Try again in a moment." })
       },
     )
   }
@@ -359,7 +353,7 @@ export const LeaderboardBrowser = ({
       (r) => {
         setRefreshing(false)
         setNotice({
-          tone: 'cyan',
+          tone: 'info',
           title: 'Leaderboard re-read at ' + hm(r.readAt),
           body: `TCG ${fmtCount(r.tcg)} duelists · Genesys ${fmtCount(r.genesys)} duelists. The 30-minute cache now starts from this read.`,
         })
@@ -370,7 +364,7 @@ export const LeaderboardBrowser = ({
         setRefreshing(false)
         const denied = e instanceof RankedApiError && e.status === 403
         setNotice({
-          tone: 'live',
+          tone: 'negative',
           title: denied ? 'Only admins can refresh the leaderboard' : 'Refresh failed',
           body: denied ? "Your session doesn't have system.manage." : "The game server didn't answer. The list you see is still the last read.",
         })
@@ -386,10 +380,19 @@ export const LeaderboardBrowser = ({
   const seasonName = season ? seasonTitle(season) : null
   const rows = entries.map((e) => entryRow(e, meId))
   const loading = st.status === 'loading' || st.status === 'idle'
+  /*
+   * The open season started the instant the newest closed one ended (one transaction on the server).
+   * The clock is the read's own `syncedAt`, so the ladder opens with the first read past the two hours.
+   */
+  const opened = past[ladder][0]?.endsAt
+  const opensAt =
+    !closed && opened && st.syncedAt && Date.parse(st.syncedAt) - Date.parse(opened) < GATHER_MS
+      ? new Date(Date.parse(opened) + GATHER_MS).toISOString()
+      : null
   const panelId = 'ladder-panel'
 
   return (
-    <div className={cx('oh-rl', `is-${L.tone}`)}>
+    <div className={twMerge('oh-rl', `is-${L.tone}`)}>
       <div className="oh-rl-bar">
         <div className="oh-rl-pick">
           <LadderSwitch value={ladder} onChange={choose} controls={panelId} />
@@ -414,7 +417,7 @@ export const LeaderboardBrowser = ({
               </>
             ) : (
               <>
-                <span className="oh-livedot" aria-hidden="true" />
+                <span aria-hidden="true" className="size-1.5 rounded-round bg-win" />
                 {st.syncedAt ? (
                   <>
                     Read <LocalTime iso={st.syncedAt} options={HM} /> · refreshes every 30 min
@@ -426,7 +429,8 @@ export const LeaderboardBrowser = ({
             )}
           </span>
           {!closed && can(user, 'system.manage') ? (
-            <Button size="sm" icon="refresh" disabled={refreshing} onClick={refresh}>
+            <Button variant="secondary" size="sm" disabled={refreshing} onClick={refresh}>
+              <Icon name="refresh" />
               {refreshing ? 'Refreshing…' : 'Refresh leaderboard'}
             </Button>
           ) : null}
@@ -434,23 +438,35 @@ export const LeaderboardBrowser = ({
       </div>
 
       {notice ? (
-        <div className={cx('oh-cut oh-rl-notice', `is-${notice.tone}`)} role="status">
-          <div>
-            <b>{notice.title}</b>
-            <p>{notice.body}</p>
-          </div>
-          <Button variant="ghost" size="sm" iconOnly icon="close" aria-label="Dismiss" onClick={() => setNotice(null)} />
-        </div>
+        <Alert
+          tone={notice.tone}
+          edged
+          title={notice.title}
+          action={
+            <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={() => setNotice(null)}>
+              <Icon name="close" />
+            </Button>
+          }
+        >
+          {notice.body}
+        </Alert>
       ) : null}
 
       <section id={panelId} role="tabpanel" aria-labelledby={`ladder-tab-${ladder}`} className="oh-rl-panel">
+        {/* `px-0!`: tailwind-merge doesn't know `px-gutter`, so a plain `px-0` loses to it. The h2 keeps the mono label. */}
         <RailHead
+          as="h2"
+          className="px-0! [&_h2]:font-mono"
           num="01"
           label={L.format + (seasonName ? ' · ' + seasonName : '')}
-          stamp={closed ? 'Final results' : season ? "Season W–L–D counts from the season's start" : null}
+          stamp={
+            closed || season ? (
+              <span className="@max-[620px]:hidden">{closed ? 'Final results' : "Season W–L–D counts from the season's start"}</span>
+            ) : null
+          }
         />
         {st.status === 'error' ? (
-          <div className="oh-rl-empty">
+          <div className="oh-rl-empty dots">
             <h3>Couldn&apos;t read the ladder</h3>
             <p>The leaderboard didn&apos;t load. The game server may be busy.</p>
             <Button variant="primary" onClick={() => loadTop(ladder, code)}>
@@ -458,16 +474,28 @@ export const LeaderboardBrowser = ({
             </Button>
           </div>
         ) : !loading && !season ? (
-          <div className="oh-rl-empty">
+          <div className="oh-rl-empty dots">
             <h3>No open {L.format} season</h3>
             <p>There&apos;s no season running on this ladder right now, so there&apos;s nothing to rank.</p>
           </div>
-        ) : !loading && !entries.length ? (
-          <div className="oh-rl-empty">
+        ) : !loading && (opensAt || !entries.length) ? (
+          <div className="oh-rl-empty dots">
             {/* eslint-disable-next-line @next/next/no-img-element -- fixed 60×56 mark, as in the bundle */}
             <img src="/omega-mark.png" alt="" />
-            <h3>Nobody has played {seasonName} yet</h3>
-            <p>The season just started. The first ranked {L.format} game puts its players on the board.</p>
+            {opensAt ? (
+              <>
+                <h3>We&apos;re gathering data for {seasonName}</h3>
+                <p>
+                  The season just opened and the ladder is still taking shape. The leaderboard opens around{' '}
+                  <LocalTime iso={opensAt} options={HM} />, two hours after the season started.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3>Nobody has played {seasonName} yet</h3>
+                <p>The season just started. The first ranked {L.format} game puts its players on the board.</p>
+              </>
+            )}
           </div>
         ) : (
           <Fragment>
@@ -490,7 +518,8 @@ export const LeaderboardBrowser = ({
             <div className="oh-rl-foot">
               <span className="oh-rl-count">{entries.length ? `Showing 1–${entries.at(-1)?.rank}` : ''}</span>
               {st.nextCursor ? (
-                <Button onClick={more} disabled={st.status === 'more'} icon={st.status === 'more' ? undefined : 'down'}>
+                <Button variant="secondary" onClick={more} disabled={st.status === 'more'}>
+                  {st.status === 'more' ? null : <Icon name="down" />}
                   {st.status === 'more' ? 'Loading…' : `Show ${limit} more`}
                 </Button>
               ) : entries.length && !loading ? (
@@ -509,14 +538,3 @@ export const LeaderboardBrowser = ({
     </div>
   )
 }
-
-/* ---------- PageHeader ---------- */
-export const PageHeader = ({ eyebrow, title, lead }: { eyebrow: string; title: string; lead: string }) => (
-  <header className="oh-pagehead">
-    <div className="oh-pagehead-main">
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h1 className="oh-pagehead-title">{title}</h1>
-      <p className="oh-pagehead-lead">{lead}</p>
-    </div>
-  </header>
-)

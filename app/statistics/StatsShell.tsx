@@ -5,8 +5,9 @@ import { Header } from '@ui/header'
 export const StatsShell = ({ children }: { children: React.ReactNode }) => (
   <>
     <Header />
-    <div className="oh-space" style={{ width: '100%', minHeight: '100vh', overflowX: 'clip', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-      <main style={{ width: 'min(var(--container-page), calc(100% - 32px))', margin: '0 auto', padding: '88px 0 96px' }}>{children}</main>
+    {/* `oh-space` carries no style: Nitro's rail-collision allowlist keys on it (utils/nitro-ads.const.ts). */}
+    <div className="oh-space min-h-screen w-full overflow-x-clip">
+      <main className="mx-auto w-[min(var(--container-page),calc(100%-32px))] pt-22 pb-24">{children}</main>
     </div>
     <Footer />
   </>

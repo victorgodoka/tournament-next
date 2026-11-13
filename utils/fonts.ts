@@ -7,10 +7,10 @@ export const anton = Anton({
   display: "swap",
 });
 
-/** 400 prose, 500 captions, 700 body-strong and names. */
+/** 400 prose, 500 captions, 700 body-strong and names, 800 titles. */
 export const figtree = Figtree({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "700", "800"],
   variable: "--font-figtree",
   display: "swap",
 });

@@ -56,6 +56,13 @@ const PATHS = {
   brick: 'M2 5h8.5v6H2zM12.5 5H22v6h-9.5zM2 13h4v6H2zM8 13h8v6H8zM18 13h4v6h-4z',
   ring: 'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z',
   summon: 'M3 12 12 3l9 9-2.8 2.8L12 8.6l-6.2 6.2zM4 18h16v3H4z',
+  mail: 'M2 5h20v14H2zm2 2v.6l8 5.4 8-5.4V7zm16 3-8 5.4L4 10v7h16z',
+  minus: 'M4 11h16v2H4z',
+  expand: 'M4 4h7v2H6v12h12v-5h2v7H4zm10 0h6v6h-2V7.4l-6.3 6.3-1.4-1.4L16.6 6H14z',
+  block: 'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM5.99 7.41 7.41 5.99 18.01 16.59 16.59 18.01z',
+  edit: 'M16 3l5 5L9.5 19.5 4 20l.5-5.5z',
+  refresh: 'M12 4a8 8 0 0 1 7.3 4.7L21 7v6h-6l2.6-2.6A6 6 0 1 0 18 13h2a8 8 0 1 1-8-9z',
+  swap: 'M7 3l1.4 1.4L6.8 6H20v2H6.8l1.6 1.6L7 11 3 7zm10 10 4 4-4 4-1.4-1.4 1.6-1.6H4v-2h13.2l-1.6-1.6z',
 }
 
 /** Glyphs taken from other sets (MDI, Bootstrap, Foundation, Mage) keep their own winding rule and, when not 24, their box. */

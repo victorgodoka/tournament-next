@@ -145,7 +145,7 @@ export const Overview = ({ data, name, art }: Props) => {
               <span className="text-ink signal max-[719px]:text-[10px] max-[719px]:leading-3 max-[719px]:tracking-[0.16em]">{t('eyebrow')}</span>
             </div>
             <div className="flex flex-wrap items-center gap-3.5 max-[719px]:flex-col max-[719px]:items-start max-[719px]:gap-3">
-              <h2 className="m-0 font-display text-[40px] leading-none text-ink uppercase max-[719px]:text-[30px]">{t(`headline.${headline}`)}</h2>
+              <h2 className="m-0 title text-[32px] text-ink max-[719px]:text-[24px]">{t(`headline.${headline}`)}</h2>
               <ReadChip read={read} className={read === 'flat' ? 'text-ink [--edge:var(--color-ink-dim)] [--fill:var(--color-steel)]' : undefined}>
                 {tv(perf.verdict === 'above' || perf.verdict === 'below' ? perf.verdict : 'unclear')}
               </ReadChip>
@@ -231,7 +231,7 @@ export const Overview = ({ data, name, art }: Props) => {
         {cards[0] ? wideCard(cards[0]) : null}
         {turn.length ? (
           <div className={`${PANEL} gap-4 p-6 max-[719px]:gap-3 max-[719px]:px-4 max-[719px]:py-5`}>
-            <h3 className="m-0 font-display text-[22px] leading-[1.1] tracking-[0.01em] text-ink uppercase">{t('turn.title')}</h3>
+            <h3 className="m-0 text-ink display-3">{t('turn.title')}</h3>
             {turn.map(({ id, slice, g: tg }) => (
               <div key={id} className="flex flex-col gap-2 border-t border-line pt-3">
                 <div className={`flex items-baseline justify-between gap-3 ${WIDE}`}>
@@ -263,7 +263,7 @@ export const Overview = ({ data, name, art }: Props) => {
         ) : null}
         {cards.slice(1).map(wideCard)}
         <div className={`${PANEL} gap-4 p-6 max-[719px]:gap-3 max-[719px]:px-4 max-[719px]:py-5`}>
-          <h3 className="m-0 font-display text-[22px] leading-[1.1] tracking-[0.01em] text-ink uppercase">{t('method.title')}</h3>
+          <h3 className="m-0 text-ink display-3">{t('method.title')}</h3>
           <div className="flex flex-col gap-4 text-sm leading-6 text-ink-dim">
             <p className="m-0">{t.rich('method.expected', { b: (c) => <strong className="text-ink">{c}</strong> })}</p>
             <p className="m-0">{t.rich('method.verdict', { b: (c) => <strong className="text-ink">{c}</strong> })}</p>

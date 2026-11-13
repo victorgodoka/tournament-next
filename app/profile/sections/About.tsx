@@ -55,7 +55,7 @@ const FavoriteCard = ({ card, size }: { card: CardArtType; size: 'lg' | 'md' }) 
     />
     <span className="flex min-w-0 flex-col gap-2">
       <span className={twMerge(CAPTION, 'text-gold')}>Favorite card</span>
-      <span className={twMerge('font-display leading-[1.02] uppercase group-hover:text-cyan', size === 'lg' ? 'text-[30px] max-md:text-[26px]' : 'text-2xl max-md:text-[22px]')}>
+      <span className={twMerge('title group-hover:text-cyan', size === 'lg' ? 'text-[24px] max-md:text-[21px]' : 'text-[20px] max-md:text-[18px]')}>
         {card.name ?? `Card ${card.id}`}
       </span>
     </span>

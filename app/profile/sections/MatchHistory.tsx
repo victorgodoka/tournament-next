@@ -235,7 +235,7 @@ const DayHead = ({ day, matches, deltas }: { day: string; matches: Match[]; delt
     <div className={ROW}>
       <Axis />
       <div className="flex items-center gap-3 pt-5 pb-2.5 max-md:gap-2.5 max-md:pt-4.5 max-md:pb-2">
-        <span className="font-display text-lg leading-none uppercase max-md:text-base"><DayLabel day={day} /></span>
+        <span className="title text-[16px] leading-none max-md:text-[15px]"><DayLabel day={day} /></span>
         {summary ? <span className={twMerge(CAPTION, 'max-md:hidden')}>{summary}</span> : null}
         <span aria-hidden className="h-px grow bg-line" />
         {deltas.map((d) => (
@@ -452,7 +452,7 @@ export const HistoryHidden = ({ first }: { first: string }) => (
       <svg viewBox="0 0 24 24" width={32} height={32} aria-hidden className="fill-line-strong">
         <path fillRule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h2v11H5V10zm2 0h6V7a3 3 0 0 0-6 0zm2 4v4h2v-4z" />
       </svg>
-      <h3 className="font-display text-2xl leading-[1.1] uppercase">Duel history is private</h3>
+      <h3 className="display-3">Duel history is private</h3>
       <p className="max-w-[44ch] text-sm leading-5.25 text-ink-dim">{first}&apos;s ladders and tournaments are still on this page.</p>
     </div>
   </section>

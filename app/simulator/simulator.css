@@ -193,7 +193,7 @@
 
 .sim-pillar {
   position: absolute;
-  background: linear-gradient(to top, rgba(0, 253, 255, 0.6), rgba(74, 111, 216, 0.25) 55%, rgba(74, 111, 216, 0));
+  background: linear-gradient(to top, color-mix(in srgb, var(--color-cyan) 60%, transparent), rgba(74, 111, 216, 0.25) 55%, rgba(74, 111, 216, 0));
   clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
   mix-blend-mode: screen;
   transform-origin: 50% 100%;
@@ -253,7 +253,7 @@
 .sim-scan-band {
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 20%, rgba(0, 253, 255, 0.55) 50%, transparent 80%);
+  background: linear-gradient(transparent 20%, color-mix(in srgb, var(--color-cyan) 55%, transparent) 50%, transparent 80%);
   mix-blend-mode: screen;
 }
 
@@ -269,7 +269,7 @@
   inset: 0;
   z-index: 1;
   outline: var(--stroke) solid var(--color-cyan);
-  box-shadow: 0 0 calc(var(--card-w, 84px) * 0.2) calc(var(--card-w, 84px) * 0.05) rgba(0, 253, 255, 0.55);
+  box-shadow: 0 0 calc(var(--card-w, 84px) * 0.2) calc(var(--card-w, 84px) * 0.05) color-mix(in srgb, var(--color-cyan) 55%, transparent);
   pointer-events: none;
 }
 
@@ -322,7 +322,7 @@
 }
 
 .sim-pick:hover {
-  background: rgba(0, 253, 255, 0.28);
+  background: color-mix(in srgb, var(--color-cyan) 28%, transparent);
 }
 
 .sim-empty {
@@ -978,7 +978,7 @@
 
 @keyframes sim-offer {
   50% {
-    outline-color: rgba(0, 253, 255, 0.35);
+    outline-color: color-mix(in srgb, var(--color-cyan) 35%, transparent);
   }
 }
 

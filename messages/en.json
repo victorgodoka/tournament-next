@@ -2013,6 +2013,11 @@
       "me": "Me or the deck"
     },
     "closed": "{label} is over. These are the final numbers.",
+    "gathering": {
+      "title": "We’re gathering data for {label}",
+      "body": "The season just opened and there aren’t enough ranked games to read yet. Statistics open on <when></when>, 48 hours after the season started.",
+      "last": "See the final numbers of {label}"
+    },
     "activity": {
       "title": "Omega activity",
       "description": "Logins, ranked duels and duelists of YGO Omega, by day and rating tier.",
