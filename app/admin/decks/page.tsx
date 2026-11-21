@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Button } from '@ui/button'
 import { Chip, FilterChip } from '@ui/chip'
 import { Segmented } from '@ui/choice'
@@ -10,9 +10,12 @@ import { Select } from '@ui/field'
 import { Icon } from '@ui/icon'
 import { useResource } from '@hooks/index'
 import { dayTime } from '@utils/format'
-import { listDecks, panelErrorText, type IdentifiedDeck } from '@utils/panel'
+import { deckCount, listDecks, panelErrorText, type IdentifiedDeck } from '@utils/panel'
 import { getSeasons } from '@utils/statistics'
-import { count, Cover, Failure, Head, hex, kindLabel, LowValueControl, passesLow, percent, ShareBar, useStored, type LowMode } from '../shared'
+import { count, Cover, Failure, Head, hex, kindLabel, LowValueControl, passesLow, percent, Rail, ShareBar, useAction, useStored, type LowMode } from '../shared'
+import { CoverPicker } from './CoverPicker'
+import { writeCover } from './covers'
+import { ClosestToMinimum, NameChanges, NoisePackages } from './Signals'
 
 type Sort = 'lists' | 'wr' | 'versions' | 'name'
 type Only = 'all' | 'versions' | 'cover' | 'series'
@@ -52,6 +55,8 @@ const DecksPage = () => {
   const [cut, setCut] = useStored<number | null>('decks.cut', null)
   const [sort, setSort] = useStored<Sort>('decks.sort', 'lists')
   const [shown, setShown] = useState(PAGE)
+  const [picking, setPicking] = useState<number | null>(null)
+  const { run, pending, busy } = useAction(decks.reload)
 
   const data = decks.data
   const all = data?.decks ?? []
@@ -65,6 +70,16 @@ const DecksPage = () => {
   const rows = inScope.filter(FILTERS[only]).sort(SORT[sort])
   const hidden = all.filter(matches).length - inScope.length
   const top = Math.max(0.0001, ...all.map((d) => d.tcg?.share ?? 0))
+  // the cover candidates come from the lists of one season: TCG when there is one
+  const coverSeason = data?.seasons.tcg?.id ?? data?.seasons.genesys?.id
+  const pin = (d: IdentifiedDeck, card: number) => {
+    setPicking(null)
+    run(`cover:${d.code}`, writeCover(d, card), {
+      title: `Cover of ${d.name ?? hex(d.code)} pinned`,
+      body: 'It shows on the next read of a deck label; /statistics may need its cache cleared on the job page.',
+      undo: () => run(`cover:${d.code}`, writeCover(d, null), { title: 'Cover put back to automatic' }),
+    })
+  }
   const options = (format: 'TCG' | 'Genesys') => (seasons.data ?? []).filter((s) => s.ladder === (format === 'TCG' ? 'tcg' : 'genesys') && s.sweptThrough).map((s) => ({ value: String(s.id), label: s.label }))
 
   return (
@@ -105,7 +120,12 @@ const DecksPage = () => {
         </div>
       </div>
 
+      {data ? <NoisePackages noise={data.noise} run={run} pending={pending} /> : null}
+      <NameChanges />
+      {data ? <ClosestToMinimum seasons={data.seasons} /> : null}
+
       <section className="col" style={{ gap: 16 }}>
+        <Rail n="04" title="Every lead" note="One row per archetype or Series that leads a list" />
         <div className="fx-b">
           <label className="fld" style={{ flex: '1 1 280px', maxWidth: 420 }}>
             <span className="lbl-sm">Find a deck</span>
@@ -156,7 +176,8 @@ const DecksPage = () => {
             </thead>
             <tbody>
               {rows.slice(0, shown).map((d) => (
-                <tr key={d.code} className="lnk-row" onClick={() => router.push(`/admin/decks/${d.code}`)}>
+                <Fragment key={d.code}>
+                <tr className={`lnk-row ${pending === `cover:${d.code}` ? 'working' : ''}`} onClick={() => router.push(`/admin/decks/${d.code}`)}>
                   <td>
                     <span className="who">
                       <Cover card={d.cover?.card} />
@@ -171,6 +192,11 @@ const DecksPage = () => {
                   <td>
                     <span className="fx" style={{ gap: 6 }}>
                       {d.cover?.pinned ? null : <Chip tone="neutral">No cover</Chip>}
+                      {d.cover?.pinned || coverSeason === undefined ? null : (
+                        <button type="button" className="act" disabled={busy} onClick={(e) => { e.stopPropagation(); setPicking(picking === d.code ? null : d.code) }}>
+                          {picking === d.code ? 'Close' : 'Pick'}
+                        </button>
+                      )}
                     </span>
                   </td>
                   <td className="r ink">{count(d.tcg?.lists ?? 0)}</td>
@@ -182,8 +208,8 @@ const DecksPage = () => {
                   <td className="r">{percent(d.genesys?.share ?? 0)}</td>
                   <td className="r">{count((d.tcg?.secondaryLists ?? 0) + (d.genesys?.secondaryLists ?? 0))}</td>
                   <td className="r mono">
-                    {/* the pure deck plus its versions */}
-                    <span className="ink">{1 + d.versions}</span>
+                    {/* its versions, plus the pure deck when it has lists */}
+                    <span className="ink">{deckCount(d)}</span>
                   </td>
                   <td className="r">
                     <Link className="act" href={`/admin/decks/${d.code}`} onClick={(e) => e.stopPropagation()}>
@@ -191,6 +217,15 @@ const DecksPage = () => {
                     </Link>
                   </td>
                 </tr>
+                {picking === d.code && coverSeason !== undefined ? (
+                  <tr className="sub">
+                    <td colSpan={10}>
+                      <span className="lbl-sm">Pick the cover of {d.name ?? hex(d.code)} · most included cards first</span>
+                      <CoverPicker code={d.code} season={coverSeason} busy={busy} onPick={(card) => pin(d, card)} />
+                    </td>
+                  </tr>
+                ) : null}
+                </Fragment>
               ))}
               {rows.length === 0 ? (
                 <tr>

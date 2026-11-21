@@ -4,22 +4,19 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@ui/button'
+import { Chip } from '@ui/chip'
 import { Lookup } from '@ui/lookup'
 import { useResource } from '@hooks/index'
 import {
-  clearCover,
   getDeck,
-  getSeries,
   panelErrorText,
-  setCover,
-  toSeriesInput,
-  updateSeries,
   type DeckDetail,
   type DeckVersion,
 } from '@utils/panel'
 import { getSeasons } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
 import { CardThumb, count, Cover, Failure, findCards, hex, kindLabel, LowValueControl, NextBuildNote, passesLow, percent, points, Rail, ShareBar, useAction, useStored, useToast, type LowMode } from '../../shared'
+import { writeCover } from '../covers'
 import { Alongside } from './Alongside'
 
 const LADDER: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
@@ -57,11 +54,7 @@ const DeckPage = () => {
   const pinCover = (card: number | null) => {
     if (!data) return
     const was = data.cover.pinned
-    const write = (to: number | null): Promise<unknown> => {
-      if (data.seriesId === null) return to === null ? clearCover(code) : setCover(code, to)
-      const id = data.seriesId
-      return getSeries(id).then((series) => updateSeries(id, { ...toSeriesInput(series), cover: to }))
-    }
+    const write = (to: number | null) => writeCover(data, to)
     run('cover', write(card), {
       title: card === null ? `${name} is back to its automatic cover` : `Cover of ${name} pinned`,
       body: 'It shows on the next read of a deck label; /statistics may need its cache cleared on the job page.',
@@ -86,7 +79,8 @@ const DeckPage = () => {
   const isLow = (v: DeckVersion) => v.codes.length > 1 && v.share * 100 < cut
   const visible = data.decks.filter((v) => passesLow(low, isLow(v)))
   const top = Math.max(0.0001, ...data.decks.map((v) => v.share))
-  const coverOf = (c: number) => (c === code ? data.cover.card : null)
+  // the lead shows the cover it has here (pinned or picked); the other names, their cover as a lead
+  const coverIn = (v: DeckVersion, i: number) => (v.codes[i] === code ? data.cover.card : v.covers[i])
 
   const row = (v: DeckVersion) => {
     const pure = v.codes.length === 1
@@ -94,13 +88,22 @@ const DeckPage = () => {
       <tr key={v.key} className={isLow(v) ? 'low' : ''}>
         <td>
           <span className="who">
-            {v.codes.map((c) => (
-              <Cover key={c} size={32} card={coverOf(c)} />
+            {v.codes.map((c, i) => (
+              <Cover key={c} size={32} card={coverIn(v, i)} />
             ))}
             <span className="col-s">
-              <span className="nm">{nameOf(v)}</span>
+              <span className="nm">
+                {nameOf(v)}
+                {v.near ? (
+                  <>
+                    {' '}
+                    <Chip tone="amber">Near the minimum</Chip>
+                  </>
+                ) : null}
+              </span>
               <span className="cap">
                 {pure ? 'The pure deck' : v.firstDay ? `Seen since ${day(v.firstDay)}` : 'No list in this season'}
+                {v.seasonShare !== null ? ` · ${percent(v.seasonShare)} of the season (needs ${percent(data.versionShare)})` : ''}
                 {isLow(v) ? ' · low value' : ''}
               </span>
             </span>
@@ -310,7 +313,9 @@ const DeckPage = () => {
                   <td>
                     <span className="nm">{nameOf(u)}</span>
                   </td>
-                  <td className="r">{count(u.lists)}</td>
+                  <td className="r">
+                    {count(u.lists)} <span className="mut">of {count(data.minLists)}</span>
+                  </td>
                   <td className="r">
                     {percent(u.seasonShare)} <span className="mut">of {percent(data.versionShare)}</span>
                   </td>
@@ -347,8 +352,8 @@ const DeckPage = () => {
                 <tr key={v.key}>
                   <td>
                     <span className="who">
-                      {v.codes.map((c) => (
-                        <Cover key={c} size={32} card={coverOf(c)} />
+                      {v.codes.map((c, i) => (
+                        <Cover key={c} size={32} card={v.covers[i]} />
                       ))}
                       <span className="nm">{nameOf(v)}</span>
                     </span>
