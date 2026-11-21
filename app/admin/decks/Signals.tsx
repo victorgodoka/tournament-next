@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Segmented } from '@ui/choice'
 import { useResource } from '@hooks/index'
-import { getSeasonUnder, getVersionChanges, panelErrorText, resetArchetypeStaples, setArchetypeStaples, type DeckList, type VersionChange } from '@utils/panel'
+import { getSeasonUnder, getVersionChanges, ignoreSetcode, panelErrorText, resetArchetypeStaples, setArchetypeStaples, unignoreSetcode, type DeckList, type VersionChange } from '@utils/panel'
 import type { RankedLadderId } from '@utils/types'
 import { count, Cover, Failure, hex, percent, Rail, RowAction, TWO_STEPS } from '../shared'
 
@@ -14,6 +14,13 @@ type Run = (id: string, request: Promise<unknown>, done: { title: string; body?:
 /** Archetypes that join versions of many leads: likely a generic package. One action makes its cards staples. */
 export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise']; run: Run; pending: string | null }) => {
   const undo = (code: number, name: string) => run(`noise:${code}`, resetArchetypeStaples(code), { title: `${name} cards are back to the automatic detection`, body: TWO_STEPS })
+  const unignore = (code: number, name: string) => run(`ignore:${code}`, unignoreSetcode(code), { title: `${name} names decks again`, body: TWO_STEPS })
+  const ignore = (code: number, name: string) =>
+    run(`ignore:${code}`, ignoreSetcode(code), {
+      title: `${name} is ignored`,
+      body: `It names nothing: not as a lead, not as a second name. Its cards stay as they are. ${TWO_STEPS}`,
+      undo: () => unignore(code, name),
+    })
   const stage = (code: number, name: string) =>
     run(`noise:${code}`, setArchetypeStaples(code), {
       title: `${name} cards are staples now`,
@@ -24,7 +31,7 @@ export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise'
     <section className="col" style={{ gap: 16 }}>
       <Rail n="01" title="Looks like a generic package" note="Second name in versions of many leads" />
       <p className="sm" style={{ maxWidth: 760 }}>
-        An engine joins the decks it belongs to; a package played everywhere joins the names of unrelated decks. Making its cards staples takes it out of every name.
+        An engine joins the decks it belongs to; a package played everywhere joins the names of unrelated decks. Ignoring the setcode takes it out of every name; making its cards staples also takes them out of every count.
       </p>
       <div className="tblbox">
         <table className="tbl">
@@ -52,6 +59,7 @@ export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise'
                           Second or third name in versions of {n.leads} different leads
                           {n.leadLists > 0 ? ` · leads ${count(n.leadLists)} lists itself` : ''}
                           {n.staged ? ' · staged as staples' : ''}
+                          {n.ignored ? ' · ignored' : ''}
                         </span>
                       </span>
                     </span>
@@ -59,10 +67,19 @@ export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise'
                   <td className="r ink">{count(n.leads)}</td>
                   <td className="r">{count(n.lists)}</td>
                   <td className="r">
-                    {n.staged ? (
-                      <RowAction id={`noise:${n.code}`} pending={pending} label="Undo the staples" doing="Undoing…" danger onClick={() => undo(n.code, name)} />
-                    ) : n.canStaple ? (
-                      <RowAction id={`noise:${n.code}`} pending={pending} label="Make its cards staples" doing="Saving…" onClick={() => stage(n.code, name)} />
+                    {n.canStaple ? (
+                      <span className="fx" style={{ justifyContent: 'flex-end', gap: 14, flexWrap: 'nowrap' }}>
+                        {n.ignored ? (
+                          <RowAction id={`ignore:${n.code}`} pending={pending} label="Stop ignoring" doing="Saving…" onClick={() => unignore(n.code, name)} />
+                        ) : (
+                          <RowAction id={`ignore:${n.code}`} pending={pending} label="Ignore" doing="Saving…" onClick={() => ignore(n.code, name)} />
+                        )}
+                        {n.staged ? (
+                          <RowAction id={`noise:${n.code}`} pending={pending} label="Undo the staples" doing="Undoing…" danger onClick={() => undo(n.code, name)} />
+                        ) : (
+                          <RowAction id={`noise:${n.code}`} pending={pending} label="Make its cards staples" doing="Saving…" onClick={() => stage(n.code, name)} />
+                        )}
+                      </span>
                     ) : (
                       <span className="cap">A Series: adjust it in its editor</span>
                     )}

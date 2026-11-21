@@ -9,13 +9,15 @@ import { Lookup } from '@ui/lookup'
 import { useResource } from '@hooks/index'
 import {
   getDeck,
+  ignoreSetcode,
+  unignoreSetcode,
   panelErrorText,
   type DeckDetail,
   type DeckVersion,
 } from '@utils/panel'
 import { getSeasons } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
-import { CardThumb, count, Cover, Failure, findCards, hex, kindLabel, LowValueControl, NextBuildNote, passesLow, percent, points, Rail, ShareBar, useAction, useStored, useToast, type LowMode } from '../../shared'
+import { CardThumb, count, Cover, Failure, findCards, hex, kindLabel, LowValueControl, NextBuildNote, passesLow, percent, points, Rail, ShareBar, TWO_STEPS, useAction, useStored, useToast, type LowMode } from '../../shared'
 import { writeCover } from '../covers'
 import { Alongside } from './Alongside'
 
@@ -152,7 +154,15 @@ const DeckPage = () => {
             <span className="lbl eyebrow">
               {kindLabel(data.kind)} · <span className="mono">{hex(code)}</span>
             </span>
-            <h1 className="t1">{name}</h1>
+            <h1 className="t1">
+              {name}
+              {data.ignored ? (
+                <>
+                  {' '}
+                  <Chip tone="amber">Ignored</Chip>
+                </>
+              ) : null}
+            </h1>
             <p className="sm">
               {versions.length > 0 ? `Leads ${versions.length} version${versions.length === 1 ? '' : 's'} besides the pure deck.` : 'Named alone: no version with it passed the minimum.'}
             </p>
@@ -180,8 +190,33 @@ const DeckPage = () => {
                 The build names decks by itself: a version of up to three names is a deck when it reaches {percent(data.versionShare)} of a season&apos;s lists (and the
                 floor of games); its lists otherwise count for the longest version above it, down to {name} alone.
               </p>
-              <p className="cap">To shape it: make a card a staple, or group cards in a Series.</p>
+              <p className="cap">To shape it: ignore the setcode, make a card a staple, or group cards in a Series.</p>
             </div>
+            {data.kind === 'setcode' ? (
+              <div className={`col ${pending === 'ignore' ? 'working' : ''}`} style={{ gap: 6 }}>
+                <span className="lbl-sm">Ignore this setcode</span>
+                <p className="sm">{data.ignored ? `${name} names nothing: not as a lead, not as a second name.` : `${name} names decks like any setcode.`}</p>
+                <div className="fx">
+                  <Button
+                    variant="secondary"
+                    size="mono"
+                    disabled={busy}
+                    onClick={() => {
+                      const on = !data.ignored
+                      const write = (to: boolean) => (to ? ignoreSetcode(code) : unignoreSetcode(code))
+                      run('ignore', write(on), {
+                        title: on ? `${name} is ignored` : `${name} names decks again`,
+                        body: TWO_STEPS,
+                        undo: () => run('ignore', write(!on), { title: on ? `${name} names decks again` : `${name} is ignored` }),
+                      })
+                    }}
+                  >
+                    {data.ignored ? 'Stop ignoring' : 'Ignore'}
+                  </Button>
+                </div>
+                <p className="cap">Only {name}: sub-families keep naming. As a child of a Series its cards still count for the Series.</p>
+              </div>
+            ) : null}
             {data.seriesId !== null ? (
               <div className="fx">
                 <Button variant="secondary" size="mono" href={`/admin/series/${data.seriesId}`}>

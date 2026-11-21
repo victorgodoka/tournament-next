@@ -523,6 +523,21 @@ export const listAuditActions = (signal?: AbortSignal) =>
   )
 
 /* ---------------------------------------------------------------- *
+ * Ignored setcodes (section 9.2): an ignored setcode names nothing (exact code, one mode)
+ * ---------------------------------------------------------------- */
+
+export type IgnoredSetcode = { code: number; name: string | null; updatedAt: string }
+
+export const listIgnored = (signal?: AbortSignal) =>
+  request<{ archetypes: IgnoredSetcode[] }>('/panel/ignored-archetypes', { signal }).then((page) => page.archetypes)
+
+/** Idempotent. A setcode only; the setcode a Series becomes is refused. Answers the whole list. */
+export const ignoreSetcode = (code: number) =>
+  request<{ archetypes: IgnoredSetcode[] }>(`/panel/ignored-archetypes/${code}`, json('PUT')).then((page) => page.archetypes)
+
+export const unignoreSetcode = (code: number) => request<void>(`/panel/ignored-archetypes/${code}`, json('DELETE'))
+
+/* ---------------------------------------------------------------- *
  * Setcode covers (section 9.2.1): the card that stands for a setcode's deck
  * ---------------------------------------------------------------- */
 
@@ -609,7 +624,8 @@ export const toSeriesInput = (series: Series): SeriesInput => ({
  * ---------------------------------------------------------------- */
 
 export type DeckKind = 'setcode' | 'series-setcode' | 'series'
-export type DeckIdentity = { code: number; name: string | null; kind: DeckKind; seriesId: number | null }
+/** `ignored`: a setcode the staff ignored; it names nothing from the next build. */
+export type DeckIdentity = { code: number; name: string | null; kind: DeckKind; seriesId: number | null; ignored: boolean }
 export type DeckCover = { card: number; pinned: boolean } | null
 export type DeckLadder = { lists: number; share: number; winRate: number | null; duelists: number; secondaryLists: number; pureLists: number } | null
 export type DeckSeason = { id: number; code: string; label: string; open: boolean }
