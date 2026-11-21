@@ -356,7 +356,7 @@ const sampleNote = (ladder: Ladder) => {
 /** The classification setting, when the API sends it: names per deck and the staple cut-offs. */
 const namingNote = (c: Classification | undefined) =>
   c
-    ? `**Decks** take up to ${plural(c.maxNames, 'archetype name')}, lead archetype first. A card in at least ${ratePct(c.stapleShare)} of decklists counts as a staple, and names no deck, when ${ratePct(c.stapleForeign)} or more of the lists running it hold no other card of its archetype. We merge equivalent hybrid orders into one key and keep hybrids apart from pure builds.`
+    ? `**Decks** take up to 3 archetype names, lead archetype first; a second or third name needs that set in at least ${ratePct(c.versionShare)} of a season's decklists. A card in at least ${ratePct(c.stapleShare)} of decklists counts as a staple, and names no deck, when ${ratePct(c.stapleForeign)} or more of the lists running it hold no other card of its archetype. We merge equivalent hybrid orders into one key and keep hybrids apart from pure builds.`
     : '**Decks** take their names from their archetype packages. We merge equivalent hybrid orders into one key and keep hybrids apart from pure builds.'
 
 const tierOneAnswer = (ladder: Ladder) => {

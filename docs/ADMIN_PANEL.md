@@ -25,10 +25,10 @@ file points at them and never restates a shape it can link to.
     past standings).
   - *The rollover still stamps the server's `now()`:* the close dialog records and shows the moment the
     button was pressed, and says the server stamps the exact instant.
-  - *Make variation* approves the pair at once: a candidate only exists once the build saw the pair.
   - *The admin bar* is on the deck pages of `/statistics` only; tournaments and wiki articles do not have it.
-  - *The account menu count* is read when an admin opens the menu, not on every page.
-  - The low value cut-off and "needs review" follow `PANEL_API.md` §9.1.1.
+  - The low value cut-off follows `PANEL_API.md` §9.1.1.
+  - *Automatic naming (21 Nov 2026)* removed every deck decision from the panel: variations, ignore modes,
+    the review count (nav and account menu) and the third-name panel. §4–§6 describe the read-only screens.
 - Figures in the canvas are sample data. Card and cover tiles are placeholders coloured by card
   frame; the real screens use card art.
 
@@ -88,7 +88,7 @@ gone as screens (their routes stay on the server); their jobs moved into Identif
 | Group | Item | Route | Count shown |
 |---|---|---|---|
 | (none) | Overview | `/admin` | — |
-| Decks | Identified decks | `/admin/decks` | decks that need review, gold |
+| Decks | Identified decks | `/admin/decks` | — |
 | Decks | Series | `/admin/series` | — |
 | Decks | Filters | `/admin/filters` | — |
 | Decks | Staples | `/admin/staples` | — |
@@ -144,7 +144,7 @@ itself), and a secondary mono button that opens the **public twin** of the scree
 ### 2.4 The way in, on the site
 
 - **Account menu.** `components/ui/header` already has "Admin panel" (gold) for admins. Rename it
-  `Panel` and show the review count on its right ("14 to review") when it is above zero. It links
+  `Panel`. It links
   to `/admin` and stores the current path first (§2.2).
 - **Admin bar.** On public pages that have a panel screen, admins see a one-line gold bar under
   the navbar: the `Admin` chip, "This page reads **Identified decks › Dark Magician**. Only admins
@@ -209,9 +209,8 @@ Artboard "Overview". Route `/admin`. New.
 | Block | Shows | Source |
 |---|---|---|
 | Eyebrow | "Panel · Read HH:MM" (when the reads answered) | client clock |
-| Stat row | Decks to review · Candidate variations · Upcoming tournaments · Waiting for a link · Last statistics job | see below |
-| 01 Needs a decision | Up to 6 decks: cover, name, kind, what changed, TCG lists, Genesys lists, `Review` → `/admin/decks/<code>` | identified decks with `review` (needs API) |
-| 02 Recent activity | Last 5 log entries: when, who, action, target, outcome | `listAudit({ limit: 5 })` |
+| Stat row | Upcoming tournaments · Waiting for a link · Last statistics job | see below |
+| 01 Recent activity | Last 5 log entries: when, who, action, target, outcome | `listAudit({ limit: 5 })` |
 | On the site | Four links (Statistics, Tournaments, Leaderboard, Wiki) | static |
 | Statistics job | Last run chip and one-line summary, `Reclassify open seasons`, `Open the job` | `getAnalyticsSync()`, `buildOpenSeasons()` |
 | Open seasons | One line per ladder: ladder chip, label, duelists | `listSeasons()` |
@@ -241,7 +240,8 @@ key.
 - Eyebrow: "Decks · N identified · Built <date of the last build>".
 - Season select, top right. A build covers the open season of each ladder, so the select offers
   pairs or single seasons, whatever the API serves; the two ladders are columns of the same table.
-- Stat row: Identified · Needs review (gold) · Approved variations · Low value · Ignored.
+- Stat row: Identified · Versions · Low value · Series. Deck names are set by the build (automatic naming,
+  server `docs/DECK_CLASSIFICATION.md`): nothing on these screens is decided by hand except covers.
 
 ### 5.2 Toolbar
 
@@ -250,8 +250,8 @@ key.
 | Find a deck | Filters the loaded rows by archetype name, Series name or setcode (hex or decimal) |
 | Low value | `Show` / `Hide` (default) / `Only` |
 | Cut-off | Percent of lists; default from settings (`lowValueShare`, needs API). A deck is low value when its share is under the cut-off in **both** ladders |
-| Sort | `Lists` (default, descending) · `Win rate` · `Candidates` · `A–Z` |
-| Filter chips | `All` · `Needs review` · `Has variations` · `No cover` · `Series` · `Ignored`, each with its count; one at a time |
+| Sort | `Lists` (default, descending) · `Win rate` · `Versions` · `A–Z` |
+| Filter chips | `All` · `Has versions` · `No cover` · `Series`, each with its count; one at a time |
 | Count line | "181 shown · 231 low value hidden" |
 
 Low value, cut-off and sort are remembered per admin (localStorage).
@@ -261,14 +261,14 @@ Low value, cut-off and sort are remembered per admin (localStorage).
 | Column | Content |
 |---|---|
 | Deck | Cover (square art crop; a dashed "?" tile when there is none), name, kind (`Setcode` · `Series over setcode` · `Series, new archetype`) and code in mono |
-| State | Chips: `Review` (gold) when there is something to decide, `New` (cyan) first build it appears, `No cover` (neutral), `Ignored as lead` / `Ignored as secondary` (amber), `Ignored fully` (negative) |
+| State | Chip `No cover` (neutral) when no cover is pinned |
 | TCG lists · TCG share · TCG win rate | Lists led by it, share of all TCG lists (bar plus percent), win rate |
 | Genesys lists · Genesys share | Same for Genesys |
 | As secondary | Lists led by another deck where it is the second or third name |
-| Variations | "2 on · 4 candidates"; the candidate count is gold when above zero |
+| Decks | The pure deck plus its versions (`1 + versions`) |
 | Action | `Open` → `/admin/decks/<code>` |
 
-A fully ignored row is dimmed. A row is a link as a whole; `Open` is the accessible name.
+A row is a link as a whole; `Open` is the accessible name.
 
 ### 5.4 States
 
@@ -288,27 +288,14 @@ setcode (or Series code, `65536 + id`).
 | Part | Behaviour |
 |---|---|
 | Cover as lead | Large art tile, the cover card's name under it |
-| Eyebrow, title, chips | Kind, code, member card count; "N candidates to review", "N variations on", and the ignore state in words |
+| Eyebrow, title, line | Kind, code; "Leads N versions besides the pure deck" or "Named alone" |
 | Pick the cover | The most included cards of its lists as tiles (card, name, "98.4% of lists"); a click sets the cover. `Or any card` is a `Lookup` (`findCards`). The pinned one carries a cyan ring |
-| Ignore this archetype | Segmented: `Off` · `As lead` · `As secondary` · `Fully`. Saves on change |
+| How it is named | Read only: a version of up to three names is a deck from `versionShare` of a season's lists; to shape names, make a card a staple or group cards in a Series |
 | Edit Series | Shown when the lead is a Series → `/admin/series/<id>` |
 
 Cover writes: a plain setcode uses `setCover(code, card)` / `clearCover(code)`
 (`/panel/archetype-covers`); a Series uses `updateSeries(id, { …, cover })`. A Series that becomes
 a setcode keeps its own cover when it has one. Show `Reset to automatic` when a cover is pinned.
-
-Ignore, per mode:
-
-| Mode | Meaning | Today's API |
-|---|---|---|
-| Off | Leads its own decks and joins variations | `unignoreArchetype(code)` |
-| As lead | Never the first name; still joins a variation | needs API |
-| As secondary | Leads its own decks; never the second or third name | needs API |
-| Fully | Its cards carry no name anywhere | `ignoreArchetype(code)` |
-
-**Ignoring applies to that archetype only.** Today's `ignored-archetypes` also ignores the
-sub-families of a family; the new rule does not (needs API). A setcode a Series becomes cannot be
-ignored today (`400 series "S" becomes this setcode`): surface that message as is.
 
 ### 6.2 Ladder tabs and stats
 
@@ -319,44 +306,30 @@ belongs to the picked ladder.
 Stat row: Lists as lead (and share of the ladder) · Duelists (and lists each) · Win rate (first
 and second) · Pure lists (no second archetype) · Named cards (mean, min–max) · As secondary.
 
-### 6.3 Section 01 · Variations
+### 6.3 Section 01 · Decks
 
-**Only what is on exists.** A list led by this deck is named by the lead alone unless a variation
-here is approved. Candidates are pairs (and triples) the build saw together.
-
-Toolbar: filter chips `All` · `On` · `Candidates` · `Refused`; Low value `Show` / `Hide` / `Only`
-with its own cut-off (percent of this deck's lists, default 2).
+**Named by the build.** The pure deck and every version this code leads in the picked season
+(`DeckDetail.decks`), with the same numbers as /statistics. No actions, no states.
 
 | Column | Content |
 |---|---|
-| Variation | The covers of each name in order, the composed name (`Dark Magician / Bystial`), a note line ("Approved 9 Nov", "Seen since 21 Oct", "Three names · 23.0% of the pair") |
-| State | `Always` (the pure row, neutral) · `On` (positive) · `Candidate` (gold) · `Refused` (negative) |
+| Deck | The cover of each name (the lead's cover; others show the placeholder), the composed name, "The pure deck" or "Seen since <day>" |
 | Lists · Of its lists | Count, and share of the lead's lists as a bar |
-| Duelists · Win rate · vs pure | `vs pure` is the win-rate difference to the pure row, green or red, in points |
-| Cards of 2nd | Mean cards of the secondary in those lists |
-| Cover of the secondary, here | Card thumb, card name, `Fallback · its cover as lead` or `Custom for this variation`, `Change` |
-| Action | On: `Third name`, `Turn off` · Candidate: `Approve`, `Refuse` · Refused: `Restore` |
+| Duelists · Win rate · vs pure | `—` for duelists on the pure row; `vs pure` in points, green or red |
+| Cards of the others | Mean cards of each other name in those lists |
+| Action | `Open <name>` for each other name |
 
-- The first row is always the pure deck. It has no cover column and no actions.
-- A three-name variation is indented under its pair.
-- **Secondary cover.** The default is the cover that archetype has as a lead. `Change` opens a
-  card `Lookup`; the pick is stored for this variation only and never changes the lead's cover.
-  `Reset` returns to the fallback.
-- **Third name.** `Third name` on a pair opens a panel under the table: "What else the N lists of
-  this variation play, staples left out". One card per co-occurring archetype: cover, name, share
-  of the pair's lists as a bar, lists, cards, win rate, and `Add as third name` (or `Candidate
-  above` when the triple is already a row). A third name follows the same minimum as any
-  secondary (2 distinct cards and 5 points).
-- A low value row is dimmed and says so in its note line.
-- Approving, refusing and turning off save at once and update the row in place; no page save
-  button.
+Low value `Show` / `Hide` / `Only` with its own cut-off (percent of this deck's lists, default 2) dims
+versions only.
 
-### 6.4 Section 02 · Where it is the secondary
+**Under the minimum** (a second table): `DeckDetail.under`, the sets it leads that are not versions:
+the set, its lists, its share of the season against `versionShare`, and "Counted as" the deck its lists
+go to.
 
-One row per variation of **another** lead that includes this deck: the variation, lists, this
-deck's mean cards there, win rate, the cover this deck takes there (`Custom for this variation` or
-`Fallback · the cover as lead`), and `Open <lead>` → that lead's page. Read only here: the cover
-is set on the lead's page.
+### 6.4 Section 02 · Where it is a secondary
+
+One row per version of **another** lead that includes this deck (`secondaryIn`): the name, lists, this
+deck's mean cards there, win rate, and `Open <lead>`.
 
 ### 6.5 Section 03 · Played alongside
 
@@ -372,7 +345,7 @@ carries it too"; side: "Never names a deck · shown for staple and tech decision
 
 | Column | Archetype row | Card row |
 |---|---|---|
-| Name | Cover, name, sub line (`Variation on`, `Candidate`, `Ignored as lead`, "Extra only in 61% of these lists") | Card thumb, name, passcode |
+| Name | Cover, name, sub line ("In a version with it" or "Not in a version with it") | Card thumb, name, passcode |
 | In lists | Bar and percent of the lead's lists | same |
 | Lists · Duelists | counts | counts |
 | Copies | Mean cards over the lists that play it | Mean copies |
@@ -380,7 +353,7 @@ carries it too"; side: "Never names a deck · shown for staple and tech decision
 | Distinct cards | Mean distinct cards | `—` |
 | Win rate with · vs without | Win rate of the lead's lists holding the row, and the difference to those that don't | same |
 | Mostly with | The co-occurring archetypes with the highest share, or `Pure N%` | same |
-| Action | `Make variation` (creates the candidate and scrolls to it) or `Open variation` | `Add to Series` (→ the Series editor with the card pre-added) and `Staple` (`setStaple(card, true)`) |
+| Action | `See the deck` (scrolls to section 01) when they share a version | `Add to Series` (→ the Series editor with the card pre-added) and `Staple` (`setStaple(card, true)`) |
 
 Footnote: "Copies is the mean over the lists that play it. Win rate with and without compare
 lists that hold the row against those that don't, game 1 only. A row under the low value cut-off
@@ -771,9 +744,8 @@ with only the changed keys. A `400` names the key: put the message under that fi
 | 01 Tiers | Tier 1 · second deck, Tier 2, Tier 3 | `analytics.tiers.t1Gap`, `t2Gap`, `t3Gap` | Points (the rate × 100), smallest first |
 | 01 Tiers | Minimum meta share, per format | `analytics.filters.<Format>.tierShare` | Percent |
 | 01 Tiers | Minimum duelists, per format | `analytics.filters.<Format>.tierPlayers` | Integer |
-| 02 Deck classification | Names in a deck | `analytics.classification.maxNames` | Integer; the design caps it at 3 |
-| 02 Deck classification | Low value cut-off | needs API | Percent of lists |
-| 02 Deck classification | Candidate: distinct cards, Candidate: points | needs API (today fixed at 2 and 5 in the rule) | Integers |
+| 02 Deck classification | Version: in lists | `analytics.classification.versionShare` | Percent of a season's lists |
+| 02 Deck classification | Low value cut-off | `analytics.classification.lowValueShare` | Percent of lists |
 | 02 Deck classification | Staple: in decks, Staple: foreign | `stapleShare`, `stapleForeign` | Percent |
 | 03 Sample filters | Player games, List games, Deck games, per format | `minPlayerGames`, `minListGames`, `minKeyGames` | Integers, 0 turns it off |
 | 03 Sample filters | Rating cap, per format | `eloCap` | Integer |
@@ -838,6 +810,10 @@ has to show or do; the right is what exists. **Nothing here is a contract.** Bui
 against the real route once the server documents it, and keep the function in `utils/panel.ts`.
 
 ### Classification model
+
+**Replaced on 21 Nov 2026 by automatic naming** (server `docs/superpowers/specs/2026-11-21-automatic-deck-naming-design.md`):
+the routes below for variations and ignore modes, the cover of a secondary inside a variation and the settings
+`maxNames`, `candidateCards`, `candidatePoints` no longer exist. Kept as history.
 
 **Served since 14 Nov 2026** (server branch with the curated classification; shapes in `PANEL_API.md`
 §9.2, §9.2.2, §9.2.3, §9.4, §10): approved variations and three-name variations (`/panel/variations`),

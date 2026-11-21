@@ -46,7 +46,7 @@ export const statisticsMethodology = (issue: string, ladders: readonly Source[])
     row('Tier 3 reaches', `${gapPoints(tcg.rules.t3Gap)} pts`, `${gapPoints(genesys.rules.t3Gap)} pts`),
   ].join('\n')
   const naming = classification
-    ? `Both formats name decks the same way. A deck takes up to ${plural(classification.maxNames, 'archetype name')}, lead archetype first. A card counts as a staple when it appears in at least ${ratePct(classification.stapleShare)} of decklists and ${ratePct(classification.stapleForeign)} or more of the lists running it hold no other card of its archetype. Staples never name a deck.`
+    ? `Both formats name decks the same way. A deck takes up to 3 archetype names, lead archetype first; a second or third name needs that set of archetypes in at least ${ratePct(classification.versionShare)} of a season's decklists, otherwise its lists count for the shorter name. A card counts as a staple when it appears in at least ${ratePct(classification.stapleShare)} of decklists and ${ratePct(classification.stapleForeign)} or more of the lists running it hold no other card of its archetype. Staples never name a deck.`
     : ''
   // One number when both formats share it, both when they differ.
   const gap = (key: 't1Gap' | 't2Gap' | 't3Gap') =>

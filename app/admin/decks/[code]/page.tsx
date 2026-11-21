@@ -4,8 +4,6 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@ui/button'
-import { Chip, FilterChip, type ChipTone } from '@ui/chip'
-import { Segmented } from '@ui/choice'
 import { Lookup } from '@ui/lookup'
 import { useResource } from '@hooks/index'
 import {
@@ -14,47 +12,20 @@ import {
   getSeries,
   panelErrorText,
   setCover,
-  setIgnore,
-  setVariation,
-  setVariationCover,
   toSeriesInput,
   updateSeries,
   type DeckDetail,
-  type DeckVariation,
-  type IgnoreMode,
-  type VariationState,
+  type DeckVersion,
 } from '@utils/panel'
 import { getSeasons } from '@utils/statistics'
 import type { RankedLadderId } from '@utils/types'
-import { CardThumb, count, Cover, Failure, findCards, hex, kindLabel, LowValueControl, NextBuildNote, passesLow, percent, points, Rail, RowAction, ShareBar, TWO_STEPS, useAction, useStored, useToast, type LowMode } from '../../shared'
+import { CardThumb, count, Cover, Failure, findCards, hex, kindLabel, LowValueControl, NextBuildNote, passesLow, percent, points, Rail, ShareBar, useAction, useStored, useToast, type LowMode } from '../../shared'
 import { Alongside } from './Alongside'
-import { ThirdName } from './ThirdName'
 
-const IGNORE: { value: IgnoreMode | 'off'; label: string }[] = [
-  { value: 'off', label: 'Off' },
-  { value: 'lead', label: 'As lead' },
-  { value: 'secondary', label: 'As secondary' },
-  { value: 'full', label: 'Fully' },
-]
-const IGNORE_WORDS: Record<IgnoreMode | 'off', string> = {
-  off: 'Counts as lead and secondary',
-  lead: 'Ignored as lead',
-  secondary: 'Ignored as secondary',
-  full: 'Ignored fully',
-}
-const STATE: Record<VariationState, { label: string; tone: ChipTone }> = {
-  on: { label: 'On', tone: 'positive' },
-  candidate: { label: 'Candidate', tone: 'gold' },
-  refused: { label: 'Refused', tone: 'negative' },
-}
 const LADDER: Record<RankedLadderId, string> = { tcg: 'TCG', genesys: 'Genesys' }
 
-type Show = 'all' | VariationState
-
-/** The identity of a variation, as the API keys it. */
-const setOfCodes = (codes: number[]) => [...codes].sort((a, b) => a - b).join(',')
-
-const nameOf = (v: DeckVariation) => v.names.map((n, i) => n ?? hex(v.codes[i]!)).join(' / ')
+const nameOf = (v: Pick<DeckVersion, 'codes' | 'names'>) => v.names.map((n, i) => n ?? hex(v.codes[i]!)).join(' / ')
+const day = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 const DeckPage = () => {
   const code = Number(useParams<{ code: string }>().code)
@@ -73,14 +44,11 @@ const DeckPage = () => {
   const open = (which: RankedLadderId) => (seasons.data ?? []).find((s) => s.ladder === which && s.endsAt === null) ?? (seasons.data ?? []).find((s) => s.ladder === which)
   const season = open(ladder)
   const deck = useResource(season ? `deck:${code}:${season.id}` : null, (signal) => getDeck(code, season!.id, signal))
-  const [show, setShow] = useState<Show>('all')
   const [low, setLow] = useStored<LowMode>('deck.variations.low', 'all')
   const [cut, setCut] = useStored('deck.variations.cut', 2)
-  const [third, setThird] = useState<DeckVariation | null>(null)
-  const [covering, setCovering] = useState<string | null>(null)
 
   /** Every write saves at once, says what it did, and the read reloads so the row shows what the server kept. */
-  const { run, pending, busy, flash } = useAction(deck.reload)
+  const { run, pending, busy } = useAction(deck.reload)
   const toast = useToast()
 
   const data: DeckDetail | undefined = deck.data
@@ -101,27 +69,6 @@ const DeckPage = () => {
     })
   }
 
-  /** A decision on a variation, with the words for it and the way back. */
-  const decide = (v: DeckVariation, to: VariationState, id: string) => {
-    const label = nameOf(v)
-    const said: Record<VariationState, string> = { on: `${label} approved`, refused: `${label} refused`, candidate: v.state === 'on' ? `${label} turned off` : `${label} is a candidate again` }
-    run(id, setVariation(v.codes, to), {
-      title: said[to],
-      body: to === 'on' ? `Its lists take the name ${label}. ${TWO_STEPS}` : v.state === 'on' ? `Its lists go back to ${name} alone. ${TWO_STEPS}` : undefined,
-      flash: v.key,
-      undo: () => run(id, setVariation(v.codes, v.state), { title: `${label} put back`, flash: v.key }),
-    })
-  }
-  const coverIn = (v: DeckVariation, k: DeckVariation['covers'][number], card: number | null) => {
-    const who = v.names[v.codes.indexOf(k.code)] ?? hex(k.code)
-    run(`${v.key}:cover:${k.code}`, setVariationCover(v.codes, k.code, card), {
-      title: card === null ? `${who} is back to its cover as lead here` : `Cover of ${who} changed in ${nameOf(v)}`,
-      body: card === null ? undefined : `Only in this variation: the cover of ${who} as lead stays as it is.`,
-      flash: v.key,
-      undo: () => run(`${v.key}:cover:${k.code}`, setVariationCover(v.codes, k.code, k.custom ? k.card : null), { title: 'Cover put back', flash: v.key }),
-    })
-  }
-
   if (deck.error && !data) {
     return (
       <Failure title="Not a deck of this season">
@@ -135,116 +82,48 @@ const DeckPage = () => {
   if (!data) return <p className="sm">Loading…</p>
 
   const s = data.summary
-  const variations = data.variations
-  const candidates = variations.filter((v) => v.state === 'candidate').length
-  const on = variations.filter((v) => v.state === 'on').length
-  const isLow = (v: DeckVariation) => v.share * 100 < cut
-  const visible = variations.filter((v) => (show === 'all' || v.state === show) && passesLow(low, isLow(v)))
-  // a three-name row sits under its pair
-  const pairs = visible.filter((v) => v.codes.length === 2)
-  const triplesOf = (pair: DeckVariation) => visible.filter((v) => v.codes.length === 3 && pair.codes.every((c) => v.codes.includes(c)))
-  const loose = visible.filter((v) => v.codes.length === 3 && !pairs.some((p) => p.codes.every((c) => v.codes.includes(c))))
-  const top = Math.max(0.0001, ...variations.map((v) => v.share))
+  const versions = data.decks.filter((v) => v.codes.length > 1)
+  const isLow = (v: DeckVersion) => v.codes.length > 1 && v.share * 100 < cut
+  const visible = data.decks.filter((v) => passesLow(low, isLow(v)))
+  const top = Math.max(0.0001, ...data.decks.map((v) => v.share))
+  const coverOf = (c: number) => (c === code ? data.cover.card : null)
 
-  const row = (v: DeckVariation, sub: boolean) => {
-    const st = STATE[v.state]
-    // low value dims what is still to decide; an approved variation exists, so it reads at full strength
+  const row = (v: DeckVersion) => {
+    const pure = v.codes.length === 1
     return (
-      <tr key={v.key} className={`${sub ? 'sub' : ''} ${isLow(v) && v.state !== 'on' ? 'low' : ''} ${flash === v.key ? 'flash' : ''}`}>
+      <tr key={v.key} className={isLow(v) ? 'low' : ''}>
         <td>
           <span className="who">
             {v.codes.map((c) => (
-              <Cover key={c} size={32} card={c === code ? data.cover.card : v.covers.find((k) => k.code === c)?.card} />
+              <Cover key={c} size={32} card={coverOf(c)} />
             ))}
             <span className="col-s">
               <span className="nm">{nameOf(v)}</span>
               <span className="cap">
-                {v.codes.length === 3 ? 'Three names · ' : ''}
-                {v.decidedAt ? `${v.state === 'on' ? 'Approved' : 'Refused'} ${new Date(v.decidedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : v.firstDay ? `Seen since ${new Date(v.firstDay).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}` : 'No list in this season'}
+                {pure ? 'The pure deck' : v.firstDay ? `Seen since ${day(v.firstDay)}` : 'No list in this season'}
                 {isLow(v) ? ' · low value' : ''}
               </span>
             </span>
           </span>
         </td>
-        <td>
-          <Chip tone={st.tone}>{st.label}</Chip>
-        </td>
         <td className="r ink">{count(v.lists)}</td>
         <td>
-          <ShareBar rate={v.share} of={top} gold={v.state === 'candidate'} />
+          <ShareBar rate={v.share} of={top} />
         </td>
-        <td className="r">{count(v.duelists)}</td>
+        <td className="r">{v.duelists === null ? <span className="mut">—</span> : count(v.duelists)}</td>
         <td className="r">{percent(v.winRate)}</td>
-        <td className={`r ${v.vsPure === null ? '' : v.vsPure >= 0 ? 'gn' : 'ls'}`}>{points(v.vsPure)}</td>
-        <td className="r">{v.codes.slice(1).map((c) => (v.cards[String(c)] ?? 0).toFixed(1)).join(' · ')}</td>
-        <td>
-          <span className="col" style={{ gap: 6 }}>
-            {v.covers.map((k) => {
-              const slot = `${v.key}:${k.code}`
-              return (
-                <span key={k.code} className="who" style={{ gap: 8 }}>
-                  {k.card ? <CardThumb id={k.card} size={28} /> : <Cover card={null} size={32} />}
-                  <span className="col-s">
-                    {/* the secondary as a lead of its own, in a new tab: this page keeps its place */}
-                    <Link className="lnk" style={{ fontSize: 13, fontWeight: 700 }} href={`/admin/decks/${k.code}${ladder === 'genesys' ? '?ladder=genesys' : ''}`} target="_blank" title={`Open ${v.names[v.codes.indexOf(k.code)] ?? hex(k.code)} as a lead, in a new tab`}>
-                      {v.names[v.codes.indexOf(k.code)] ?? hex(k.code)} ↗
-                    </Link>
-                    <span className="cap">
-                      {k.custom ? 'Custom for this variation' : 'Fallback · its cover as lead'} ·{' '}
-                      {v.state === 'candidate' ? (
-                        'approve to change'
-                      ) : (
-                        <>
-                          <button type="button" className="lnk act" onClick={() => setCovering(covering === slot ? null : slot)}>
-                            Change
-                          </button>
-                          {k.custom ? (
-                            <>
-                              {' · '}
-                              <RowAction id={`${v.key}:cover:${k.code}`} pending={pending} label="Reset" doing="Resetting…" onClick={() => coverIn(v, k, null)} />
-                            </>
-                          ) : null}
-                        </>
-                      )}
-                    </span>
-                    {covering === slot ? (
-                      <Lookup
-                        compact
-                        label={`Cover of ${v.names[v.codes.indexOf(k.code)] ?? k.code} in this variation`}
-                        placeholder="Card name or passcode"
-                        search={findCards}
-                        onPick={(option) => {
-                          setCovering(null)
-                          coverIn(v, k, Number(option.key))
-                        }}
-                      />
-                    ) : null}
-                  </span>
-                </span>
-              )
-            })}
-          </span>
-        </td>
+        <td className={`r ${pure || v.vsPure === null ? 'mut' : v.vsPure >= 0 ? 'gn' : 'ls'}`}>{pure ? '—' : points(v.vsPure)}</td>
+        <td className="r">{pure ? <span className="mut">—</span> : v.codes.slice(1).map((c) => (v.cards[String(c)] ?? 0).toFixed(1)).join(' · ')}</td>
         <td className="r">
-          <span className="fx" style={{ justifyContent: 'flex-end', gap: 14, flexWrap: 'nowrap' }}>
-            {v.state === 'on' ? (
-              <>
-                {v.codes.length === 2 ? (
-                  <button type="button" className="act" onClick={() => setThird(third?.key === v.key ? null : v)}>
-                    Third name
-                  </button>
-                ) : null}
-                <RowAction id={`${v.key}:off`} pending={pending} label="Turn off" doing="Turning off…" danger onClick={() => decide(v, 'candidate', `${v.key}:off`)} />
-              </>
-            ) : v.state === 'candidate' ? (
-              <>
-                <RowAction id={`${v.key}:on`} pending={pending} label="Approve" doing="Approving…" onClick={() => decide(v, 'on', `${v.key}:on`)} />
-                <RowAction id={`${v.key}:refuse`} pending={pending} label="Refuse" doing="Refusing…" danger onClick={() => decide(v, 'refused', `${v.key}:refuse`)} />
-              </>
-            ) : (
-              <RowAction id={`${v.key}:restore`} pending={pending} label="Restore" doing="Restoring…" onClick={() => decide(v, 'candidate', `${v.key}:restore`)} />
-            )}
-          </span>
+          {pure ? null : (
+            <span className="fx" style={{ justifyContent: 'flex-end', gap: 14, flexWrap: 'nowrap' }}>
+              {v.codes.slice(1).map((c, i) => (
+                <Link key={c} className="act" href={`/admin/decks/${c}${ladder === 'genesys' ? '?ladder=genesys' : ''}`}>
+                  Open {v.names[i + 1] ?? hex(c)}
+                </Link>
+              ))}
+            </span>
+          )}
         </td>
       </tr>
     )
@@ -269,11 +148,9 @@ const DeckPage = () => {
               {kindLabel(data.kind)} · <span className="mono">{hex(code)}</span>
             </span>
             <h1 className="t1">{name}</h1>
-            <div className="fx" style={{ gap: 6 }}>
-              {candidates > 0 ? <Chip tone="gold">{candidates} candidates to review</Chip> : null}
-              {on > 0 ? <Chip tone="positive">{on} variations on</Chip> : null}
-              <Chip tone={data.ignore === 'off' ? 'neutral' : data.ignore === 'full' ? 'negative' : 'amber'}>{IGNORE_WORDS[data.ignore]}</Chip>
-            </div>
+            <p className="sm">
+              {versions.length > 0 ? `Leads ${versions.length} version${versions.length === 1 ? '' : 's'} besides the pure deck.` : 'Named alone: no version with it passed the minimum.'}
+            </p>
             <div className="col" style={{ gap: 8 }}>
               <span className="lbl-sm">Pick the cover · most included cards first</span>
               <div className="tiles" style={{ gap: 12 }}>
@@ -293,36 +170,12 @@ const DeckPage = () => {
           </div>
           <div className="side col" style={{ gap: 14, maxWidth: 360 }}>
             <div className="col" style={{ gap: 6 }}>
-              <span className="lbl-sm">Ignore this archetype</span>
-              <div className={pending === 'ignore' ? 'working' : undefined}>
-                <Segmented
-                  label="Ignore this archetype"
-                  size="sm"
-                  options={IGNORE}
-                  value={data.ignore}
-                  onChange={(mode) => {
-                    const was = data.ignore
-                    if (mode === was) return
-                    run('ignore', setIgnore(code, mode), {
-                      title: mode === 'off' ? `${name} counts as lead and secondary again` : `${name}: ${IGNORE_WORDS[mode].toLowerCase()}`,
-                      body: TWO_STEPS,
-                      undo: () => run('ignore', setIgnore(code, was), { title: `${name}: ${IGNORE_WORDS[was].toLowerCase()}` }),
-                    })
-                  }}
-                />
-              </div>
-            </div>
-            <div className="col" style={{ gap: 6 }}>
+              <span className="lbl-sm">How it is named</span>
               <p className="sm">
-                <b className="ink">As lead</b>: never names a deck first, still joins a variation.
+                The build names decks by itself: a version of up to three names is a deck when it reaches {percent(data.versionShare)} of a season&apos;s lists (and the
+                floor of games); its lists otherwise count for the longest version above it, down to {name} alone.
               </p>
-              <p className="sm">
-                <b className="ink">As secondary</b>: leads its own decks, never the second or third name.
-              </p>
-              <p className="sm">
-                <b className="ink">Fully</b>: its cards carry no name anywhere.
-              </p>
-              <p className="cap">Only {name}. Sub-families, child setcodes and other Series keep their own setting.</p>
+              <p className="cap">To shape it: make a card a staple, or group cards in a Series.</p>
             </div>
             {data.seriesId !== null ? (
               <div className="fx">
@@ -402,155 +255,118 @@ const DeckPage = () => {
         )}
       </div>
 
-      <section id="variations" className="col" style={{ gap: 16 }}>
-        <Rail n="01" title="Variations" note="Up to three names · only what is on exists" />
+      <section id="decks" className="col" style={{ gap: 16 }}>
+        <Rail n="01" title="Decks" note={`Named by the build · a version from ${percent(data.versionShare)} of a season's lists`} />
         <p className="sm" style={{ maxWidth: 760 }}>
-          A list led by {name} is named {name} alone unless a variation below is on. Candidates are pairs the build saw together; approving one names those lists from the next read, and /statistics after the next build.
+          The pure deck and every version {name} leads in this season, with the same numbers as /statistics. Nothing here is decided by hand.
         </p>
         <div className="fx-b">
-          <div className="fx">
-            {(['all', 'on', 'candidate', 'refused'] as Show[]).map((key) => (
-              <FilterChip
-                key={key}
-                pressed={show === key}
-                label={key === 'all' ? 'All' : key === 'candidate' ? 'Candidates' : STATE[key].label}
-                count={variations.filter((v) => key === 'all' || v.state === key).length}
-                onClick={() => setShow(key)}
-              />
-            ))}
-          </div>
-          <div className="fx">
-            <LowValueControl mode={low} onMode={setLow} cut={cut} onCut={setCut} unit="% of its lists" />
-          </div>
+          <span className="cap">
+            {count(versions.length)} version{versions.length === 1 ? '' : 's'}
+          </span>
+          <LowValueControl mode={low} onMode={setLow} cut={cut} onCut={setCut} unit="% of its lists" />
         </div>
         <div className="tblbox">
           <table className="tbl">
             <thead>
               <tr>
-                <th>Variation</th>
-                <th>State</th>
+                <th>Deck</th>
                 <th className="r">Lists</th>
                 <th style={{ minWidth: 150 }}>Of its lists</th>
                 <th className="r">Duelists</th>
                 <th className="r">Win rate</th>
                 <th className="r">vs pure</th>
-                <th className="r">Cards of 2nd</th>
-                <th>Cover of the secondary, here</th>
+                <th className="r">Cards of the others</th>
                 <th className="r">Action</th>
               </tr>
             </thead>
             <tbody>
-              {s ? (
-                <tr>
-                  <td>
-                    <span className="who">
-                      <Cover size={32} card={data.cover.card} />
-                      <span className="col-s">
-                        <span className="nm">{name}</span>
-                        <span className="cap">The pure deck</span>
-                      </span>
-                    </span>
-                  </td>
-                  <td>
-                    <Chip tone="neutral">Always</Chip>
-                  </td>
-                  <td className="r ink">{count(s.pureLists)}</td>
-                  <td>
-                    <ShareBar rate={s.lists ? s.pureLists / s.lists : 0} />
-                  </td>
-                  <td className="r mut">—</td>
-                  <td className="r">{percent(s.pureWinRate)}</td>
-                  <td className="r mut">—</td>
-                  <td className="r mut">—</td>
-                  <td />
-                  <td />
-                </tr>
-              ) : null}
-              {pairs.flatMap((pair) => [row(pair, false), ...triplesOf(pair).map((t) => row(t, true))])}
-              {loose.map((t) => row(t, true))}
+              {visible.map(row)}
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="dim">
-                    {variations.length === 0 ? 'The build has not seen this deck with another archetype yet.' : 'No variation matches.'}
+                  <td colSpan={8} className="dim">
+                    {data.decks.length === 0 ? `${name} leads no list in this season.` : 'No deck matches.'}
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
         </div>
-        {third && season ? (
-          <ThirdName
-            lead={data}
-            pair={third}
-            season={season.id}
-            busy={busy}
-            onAdd={(codes, label) =>
-              run(`third:${codes.join(',')}`, setVariation(codes, 'on'), {
-                title: `${nameOf(third)} / ${label} approved`,
-                body: `Lists with the three take the name. ${TWO_STEPS}`,
-                undo: () => run(`third:${codes.join(',')}`, setVariation(codes, 'candidate'), { title: 'Third name taken back' }),
-              })
-            }
-          />
-        ) : null}
-      </section>
 
-      <section className="col" style={{ gap: 16 }}>
-        <Rail n="02" title={`Where ${name} is the secondary`} note="Set on the lead deck" />
-        <p className="sm" style={{ maxWidth: 760 }}>
-          Each lead picks the cover {name} takes inside its variation. With none picked, the cover as lead above is the fallback, and changing one there never touches it.
-        </p>
+        <span className="lbl-sm">Under the minimum</span>
         <div className="tblbox">
           <table className="tbl">
             <thead>
               <tr>
-                <th>Variation</th>
+                <th>Set</th>
+                <th className="r">Lists</th>
+                <th className="r">Of the season</th>
+                <th>Counted as</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.under.map((u) => (
+                <tr key={u.codes.join('>')} className="low">
+                  <td>
+                    <span className="nm">{nameOf(u)}</span>
+                  </td>
+                  <td className="r">{count(u.lists)}</td>
+                  <td className="r">
+                    {percent(u.seasonShare)} <span className="mut">of {percent(data.versionShare)}</span>
+                  </td>
+                  <td>{nameOf(u.countedAs)}</td>
+                </tr>
+              ))}
+              {data.under.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="dim">
+                    Nothing under the minimum: every set {name} leads is a version, or it is always played alone.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="col" style={{ gap: 16 }}>
+        <Rail n="02" title={`Where ${name} is a secondary`} note="Versions another deck leads" />
+        <div className="tblbox">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Deck</th>
                 <th className="r">Lists</th>
                 <th className="r">{name} cards</th>
                 <th className="r">Win rate</th>
-                <th>Cover of {name}, there</th>
                 <th className="r">Action</th>
               </tr>
             </thead>
             <tbody>
-              {data.secondaryIn.map((v) => {
-                const mine = v.covers.find((k) => k.code === code)
-                return (
-                  <tr key={v.key}>
-                    <td>
-                      <span className="who">
-                        {v.codes.map((c) => (
-                          <Cover key={c} size={32} card={c === code ? (mine?.card ?? data.cover.card) : v.covers.find((k) => k.code === c)?.card} />
-                        ))}
-                        <span className="col-s">
-                          <span className="nm">{nameOf(v)}</span>
-                          <span className="cap">
-                            {STATE[v.state].label} on {v.names[0] ?? hex(v.codes[0]!)}
-                          </span>
-                        </span>
-                      </span>
-                    </td>
-                    <td className="r ink">{count(v.lists)}</td>
-                    <td className="r">{(v.cards[String(code)] ?? 0).toFixed(1)}</td>
-                    <td className="r">{percent(v.winRate)}</td>
-                    <td>
-                      <span className="who" style={{ gap: 8 }}>
-                        {mine?.card ? <CardThumb id={mine.card} size={28} /> : <Cover card={null} size={32} />}
-                        <span className="cap">{mine?.custom ? 'Custom for this variation' : 'Fallback · the cover as lead'}</span>
-                      </span>
-                    </td>
-                    <td className="r">
-                      <Link className="act" href={`/admin/decks/${v.codes[0]}${ladder === 'genesys' ? '?ladder=genesys' : ''}`}>
-                        Open {v.names[0] ?? hex(v.codes[0]!)}
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
+              {data.secondaryIn.map((v) => (
+                <tr key={v.key}>
+                  <td>
+                    <span className="who">
+                      {v.codes.map((c) => (
+                        <Cover key={c} size={32} card={coverOf(c)} />
+                      ))}
+                      <span className="nm">{nameOf(v)}</span>
+                    </span>
+                  </td>
+                  <td className="r ink">{count(v.lists)}</td>
+                  <td className="r">{(v.cards[String(code)] ?? 0).toFixed(1)}</td>
+                  <td className="r">{percent(v.winRate)}</td>
+                  <td className="r">
+                    <Link className="act" href={`/admin/decks/${v.codes[0]}${ladder === 'genesys' ? '?ladder=genesys' : ''}`}>
+                      Open {v.names[0] ?? hex(v.codes[0]!)}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
               {data.secondaryIn.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="dim">
-                    No other deck holds {name} as a second or third name.
+                  <td colSpan={5} className="dim">
+                    No version of another deck holds {name}.
                   </td>
                 </tr>
               ) : null}
@@ -564,14 +380,6 @@ const DeckPage = () => {
           lead={data}
           season={season.id}
           busy={busy}
-          onVariation={(other, label) =>
-            run(`make:${other}`, setVariation([code, other], 'on'), {
-              title: `${name} / ${label} approved`,
-              body: `Its lists take that name. ${TWO_STEPS}`,
-              flash: setOfCodes([code, other]),
-              undo: () => run(`make:${other}`, setVariation([code, other], 'candidate'), { title: `${name} / ${label} taken back` }),
-            })
-          }
           onStaple={(card, label) => toast({ tone: 'ok', title: `${label} is a staple now`, body: 'It leaves this table and stops naming decks after the next build.' })}
           onError={(message) => toast({ tone: 'bad', title: "That didn't go through", body: message })}
         />

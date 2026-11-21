@@ -11,19 +11,19 @@ import { useAuth } from '@contexts/auth/auth.context'
 import { useResource } from '@hooks/index'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'
-import { getReviewCount, listTournaments } from '@utils/panel'
+import { listTournaments } from '@utils/panel'
 import { readPanelReturn } from '@utils/panel-return'
 import { ToastHost } from './shared'
 import './admin.css'
 
-type NavItem = { href: string; label: string; count?: 'review' | 'upcoming' }
+type NavItem = { href: string; label: string; count?: 'upcoming' }
 
 const NAV: { label: string; items: NavItem[] }[] = [
   { label: '', items: [{ href: '/admin', label: 'Overview' }] },
   {
     label: 'Decks',
     items: [
-      { href: '/admin/decks', label: 'Identified decks', count: 'review' },
+      { href: '/admin/decks', label: 'Identified decks' },
       { href: '/admin/series', label: 'Series' },
       { href: '/admin/filters', label: 'Filters' },
       { href: '/admin/staples', label: 'Staples' },
@@ -90,7 +90,6 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth()
   const admin = can(user, 'system.manage')
   const upcoming = useResource(admin ? 'upcoming' : null, (signal) => listTournaments({ upcoming: true, limit: 200 }, signal))
-  const review = useResource(admin ? 'review' : null, getReviewCount)
   const back = useReturnPath()
 
   if (user === undefined) return <Locked title="Checking your session" blurb="One moment." />
@@ -114,7 +113,7 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   }
 
   const here = locate(pathname)
-  const counts = { review: review.data, upcoming: upcoming.data?.length }
+  const counts = { upcoming: upcoming.data?.length }
   const base = here ? pathOf(here.item.href) : ''
   const rest = here && base !== '/admin' ? pathname.slice(base.length).split('/').filter(Boolean) : []
   const last = rest.at(-1)

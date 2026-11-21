@@ -14,8 +14,8 @@ describe('settingsBody', () => {
     })
   })
 
-  it('keeps maxNames an integer, not a rate', () => {
-    expect(settingsBody({ maxNames: '4' })).toEqual({ 'analytics.classification': { maxNames: 4 } })
+  it('sends the version share as a rate, like the other classification percents', () => {
+    expect(settingsBody({ versionShare: '0.5' })).toEqual({ 'analytics.classification': { versionShare: 0.005 } })
   })
 
   it('sends a filter set to 0 as the only change, under its format', () => {
@@ -41,6 +41,11 @@ describe('settingsBody', () => {
       'analytics.filters': { TCG: { aggregateFloor: 'Platinum', eloCap: 2800 }, Genesys: { aggregateFloor: 'Silver' } },
     })
     expect(settingsBody({ t2Gap: '1.5' }, stored)).toEqual({ 'analytics.tiers': { t1Gap: 0.005, t3Gap: 0.03, t2Gap: 0.015 } })
+  })
+
+  it('drops the retired classification keys still stored: the server refuses them', () => {
+    const stored = { 'analytics.classification': { maxNames: 3, candidateCards: 2, candidatePoints: 5, stapleShare: 0.12 } } as never
+    expect(settingsBody({ versionShare: '1' }, stored)).toEqual({ 'analytics.classification': { stapleShare: 0.12, versionShare: 0.01 } })
   })
 
   it('drops the old absolute marks still stored: the server refuses them', () => {

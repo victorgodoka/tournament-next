@@ -38,15 +38,13 @@ type Draft = Partial<Record<keyof TierAnchors | keyof Classification | FilterDra
  * filters). A key with no edit isn't sent; a field never stored stays absent, on its default.
  */
 export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSettings => {
-  const { maxNames, stapleShare, stapleForeign, candidateCards, candidatePoints, lowValueShare } = draft
+  const { stapleShare, stapleForeign, lowValueShare, versionShare } = draft
   const tiers = Object.fromEntries(TIERS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, fromPercent(draft[key])]])))
   const classification = {
-    ...(maxNames === undefined ? {} : { maxNames: Number(maxNames) }),
     ...(stapleShare === undefined ? {} : { stapleShare: fromPercent(stapleShare) }),
     ...(stapleForeign === undefined ? {} : { stapleForeign: fromPercent(stapleForeign) }),
-    ...(candidateCards === undefined ? {} : { candidateCards: Number(candidateCards) }),
-    ...(candidatePoints === undefined ? {} : { candidatePoints: Number(candidatePoints) }),
     ...(lowValueShare === undefined ? {} : { lowValueShare: fromPercent(lowValueShare) }),
+    ...(versionShare === undefined ? {} : { versionShare: fromPercent(versionShare) }),
   }
   const filters = Object.fromEntries(
     FORMATS.flatMap((format) => {
@@ -66,7 +64,8 @@ export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSet
   return {
     // only today's keys of what is stored: an old absolute mark (`t1`…`t4`) would be refused
     ...(Object.keys(tiers).length ? { 'analytics.tiers': { ...pick(stored['analytics.tiers'], TIERS.map((t) => t.key)), ...tiers } } : {}),
-    ...(Object.keys(classification).length ? { 'analytics.classification': { ...stored['analytics.classification'], ...classification } } : {}),
+    // the same for the classification keys retired with automatic naming (maxNames, candidateCards, candidatePoints)
+    ...(Object.keys(classification).length ? { 'analytics.classification': { ...pick(stored['analytics.classification'], Object.keys(DEFAULT_CLASSIFICATION)), ...classification } } : {}),
     ...(Object.keys(filters).length
       ? { 'analytics.filters': { ...storedFilters, ...Object.fromEntries(Object.entries(filters).map(([f, one]) => [f, { ...storedFilters[f as Format], ...one }])) } }
       : {}),
@@ -183,32 +182,20 @@ export const SettingsPanel = () => {
           </div>
         </Group>
 
-        <Group title="Deck classification" when="Names now · /statistics next build" lede="How many names a deck can hold, what a second or third name needs, when the panel calls a deck low value, and the cut-offs of the automatic staple detection.">
+        <Group title="Deck classification" when="/statistics next build" lede="When a set of archetypes names decks, when the panel calls a deck low value, and the cut-offs of the automatic staple detection. Up to three names, set by the build.">
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <Field label="Names in a deck" htmlFor="set-names">
-                <TextInput id="set-names" inputMode="numeric" suffix="1–3" value={draft.maxNames ?? String(classification.maxNames)} onChange={set('maxNames')} plateClassName={edited('maxNames')} />
-              </Field>
-              <Hint>Archetypes a deck name joins, lead first. A second or third name also needs its variation approved.</Hint>
-            </div>
-            <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <Field label="Candidate: distinct cards" htmlFor="set-cand-cards">
-                  <TextInput id="set-cand-cards" inputMode="numeric" suffix="1–10" value={draft.candidateCards ?? String(classification.candidateCards)} onChange={set('candidateCards')} plateClassName={edited('candidateCards')} />
+                <Field label="Version: in lists" htmlFor="set-version">
+                  <TextInput id="set-version" inputMode="decimal" suffix="% lists" value={draft.versionShare ?? toPercent(classification.versionShare)} onChange={set('versionShare')} plateClassName={edited('versionShare')} />
                 </Field>
-                <Hint>Different cards a name that is not the lead needs.</Hint>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Field label="Candidate: points" htmlFor="set-cand-points">
-                  <TextInput id="set-cand-points" inputMode="numeric" suffix="1–60" value={draft.candidatePoints ?? String(classification.candidatePoints)} onChange={set('candidatePoints')} plateClassName={edited('candidatePoints')} />
-                </Field>
-                <Hint>2 for the first copy of a card, 1 for each further one.</Hint>
+                <Hint>Share of a season&apos;s lists a set of two or three archetypes needs to name decks (with the per-key games floor). Under it, its lists count for the shorter name.</Hint>
               </div>
               <div className="flex flex-col gap-1">
                 <Field label="Low value cut-off" htmlFor="set-low">
                   <TextInput id="set-low" inputMode="decimal" suffix="% lists" value={draft.lowValueShare ?? toPercent(classification.lowValueShare)} onChange={set('lowValueShare')} plateClassName={edited('lowValueShare')} />
                 </Field>
-                <Hint>Under it the panel treats a deck or a variation as low value. Only the panel reads it.</Hint>
+                <Hint>Under it the panel treats a deck as low value. Only the panel reads it.</Hint>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">

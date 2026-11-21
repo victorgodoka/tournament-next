@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@ui/button'
-import { Chip, FilterChip, type ChipTone } from '@ui/chip'
+import { Chip, FilterChip } from '@ui/chip'
 import { Segmented } from '@ui/choice'
 import { Select } from '@ui/field'
 import { Icon } from '@ui/icon'
@@ -14,38 +14,30 @@ import { listDecks, panelErrorText, type IdentifiedDeck } from '@utils/panel'
 import { getSeasons } from '@utils/statistics'
 import { count, Cover, Failure, Head, hex, kindLabel, LowValueControl, passesLow, percent, ShareBar, useStored, type LowMode } from '../shared'
 
-type Sort = 'lists' | 'wr' | 'cand' | 'name'
-type Only = 'all' | 'review' | 'variations' | 'cover' | 'series' | 'ignored'
+type Sort = 'lists' | 'wr' | 'versions' | 'name'
+type Only = 'all' | 'versions' | 'cover' | 'series'
 
 const SORTS: { value: Sort; label: string }[] = [
   { value: 'lists', label: 'Lists' },
   { value: 'wr', label: 'Win rate' },
-  { value: 'cand', label: 'Candidates' },
+  { value: 'versions', label: 'Versions' },
   { value: 'name', label: 'A–Z' },
 ]
-
-const IGNORE: Record<string, { label: string; tone: ChipTone }> = {
-  lead: { label: 'Ignored as lead', tone: 'amber' },
-  secondary: { label: 'Ignored as secondary', tone: 'amber' },
-  full: { label: 'Ignored fully', tone: 'negative' },
-}
 
 const PAGE = 100
 const lists = (d: IdentifiedDeck) => (d.tcg?.lists ?? 0) + (d.genesys?.lists ?? 0)
 
 const FILTERS: Record<Only, (d: IdentifiedDeck) => boolean> = {
   all: () => true,
-  review: (d) => d.review,
-  variations: (d) => d.variations.on > 0,
+  versions: (d) => d.versions > 0,
   cover: (d) => !d.cover?.pinned,
   series: (d) => d.kind !== 'setcode',
-  ignored: (d) => d.ignore !== 'off',
 }
 
 const SORT: Record<Sort, (a: IdentifiedDeck, b: IdentifiedDeck) => number> = {
   lists: (a, b) => lists(b) - lists(a),
   wr: (a, b) => (b.tcg?.winRate ?? -1) - (a.tcg?.winRate ?? -1),
-  cand: (a, b) => b.variations.candidates - a.variations.candidates || lists(b) - lists(a),
+  versions: (a, b) => b.versions - a.versions || lists(b) - lists(a),
   name: (a, b) => (a.name ?? '').localeCompare(b.name ?? ''),
 }
 
@@ -80,7 +72,7 @@ const DecksPage = () => {
       <Head
         eyebrow={`Decks · ${count(all.length)} identified${data?.builtAt ? ` · Built ${dayTime(data.builtAt)}` : ''}`}
         title="Identified decks"
-        lead="Every archetype and Series the build found in ranked lists. Open one to pick its cover, approve its variations and decide where it counts."
+        lead="Every archetype and Series the build found in ranked lists. Open one to pick its cover and see the decks it leads."
         end={
           <>
             <Select label="TCG season" value={String(data?.seasons.tcg?.id ?? '')} options={options('TCG')} onChange={(e) => setPicked({ ...picked, tcg: Number(e.target.value) })} />
@@ -97,14 +89,9 @@ const DecksPage = () => {
           <span className="cap">Setcodes and Series with a list</span>
         </div>
         <div>
-          <span className="lbl-sm">Needs review</span>
-          <span className="fig gd">{count(all.filter((d) => d.review && d.ignore !== 'full').length)}</span>
-          <span className="cap">A candidate to decide, or no cover</span>
-        </div>
-        <div>
-          <span className="lbl-sm">Approved variations</span>
-          <span className="fig">{count(all.reduce((n, d) => n + d.variations.on, 0))}</span>
-          <span className="cap">Names of two or three</span>
+          <span className="lbl-sm">Versions</span>
+          <span className="fig">{count(all.reduce((n, d) => n + d.versions, 0))}</span>
+          <span className="cap">Names of two or three, set by the build</span>
         </div>
         <div>
           <span className="lbl-sm">Low value</span>
@@ -112,9 +99,9 @@ const DecksPage = () => {
           <span className="cap">Under {cutOff}% of lists in both ladders</span>
         </div>
         <div>
-          <span className="lbl-sm">Ignored</span>
-          <span className="fig">{count(all.filter((d) => d.ignore !== 'off').length)}</span>
-          <span className="cap">As lead, as secondary or fully</span>
+          <span className="lbl-sm">Series</span>
+          <span className="fig">{count(all.filter(FILTERS.series).length)}</span>
+          <span className="cap">Staff-defined archetypes with a list</span>
         </div>
       </div>
 
@@ -139,11 +126,9 @@ const DecksPage = () => {
           {(
             [
               ['all', 'All'],
-              ['review', 'Needs review'],
-              ['variations', 'Has variations'],
+              ['versions', 'Has versions'],
               ['cover', 'No cover'],
               ['series', 'Series'],
-              ['ignored', 'Ignored'],
             ] as [Only, string][]
           ).map(([key, label]) => (
             <FilterChip key={key} pressed={only === key} label={label} count={inScope.filter(FILTERS[key]).length} onClick={() => setOnly(key)} />
@@ -165,13 +150,13 @@ const DecksPage = () => {
                 <th className="r">Genesys lists</th>
                 <th className="r">Genesys share</th>
                 <th className="r">As secondary</th>
-                <th>Variations</th>
+                <th className="r">Decks</th>
                 <th className="r">Action</th>
               </tr>
             </thead>
             <tbody>
               {rows.slice(0, shown).map((d) => (
-                <tr key={d.code} className={`lnk-row ${d.ignore === 'full' ? 'off' : ''}`} onClick={() => router.push(`/admin/decks/${d.code}`)}>
+                <tr key={d.code} className="lnk-row" onClick={() => router.push(`/admin/decks/${d.code}`)}>
                   <td>
                     <span className="who">
                       <Cover card={d.cover?.card} />
@@ -185,9 +170,7 @@ const DecksPage = () => {
                   </td>
                   <td>
                     <span className="fx" style={{ gap: 6 }}>
-                      {d.review && d.ignore !== 'full' ? <Chip tone="gold">Review</Chip> : null}
                       {d.cover?.pinned ? null : <Chip tone="neutral">No cover</Chip>}
-                      {d.ignore !== 'off' ? <Chip tone={IGNORE[d.ignore]!.tone}>{IGNORE[d.ignore]!.label}</Chip> : null}
                     </span>
                   </td>
                   <td className="r ink">{count(d.tcg?.lists ?? 0)}</td>
@@ -198,11 +181,9 @@ const DecksPage = () => {
                   <td className="r">{count(d.genesys?.lists ?? 0)}</td>
                   <td className="r">{percent(d.genesys?.share ?? 0)}</td>
                   <td className="r">{count((d.tcg?.secondaryLists ?? 0) + (d.genesys?.secondaryLists ?? 0))}</td>
-                  <td>
-                    <span className="mono">
-                      <span className="ink">{d.variations.on}</span> on<span className="mut"> · </span>
-                      <span className={d.variations.candidates > 0 ? 'gd' : 'mut'}>{d.variations.candidates} candidates</span>
-                    </span>
+                  <td className="r mono">
+                    {/* the pure deck plus its versions */}
+                    <span className="ink">{1 + d.versions}</span>
                   </td>
                   <td className="r">
                     <Link className="act" href={`/admin/decks/${d.code}`} onClick={(e) => e.stopPropagation()}>

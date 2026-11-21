@@ -62,8 +62,8 @@ export type Fit = {
 }
 /** Games per duelist, per decklist and per deck key a build needs (0 turns one off), and the rating cap. */
 export type BuildFilters = { minPlayerGames: number; minListGames: number; minKeyGames: number; eloCap: number; aggregateFloor: string }
-/** Names a deck can hold and the staple cut-offs, as set when the answer was read. */
-export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number }
+/** The classification cut-offs as set when the answer was read (versionShare: what a set of archetypes needs to name decks). */
+export type Classification = { stapleShare: number; stapleForeign: number; lowValueShare: number; versionShare: number }
 
 export type DeckStat = {
   /** `''` unknown, `A`, `A>B` (A leads) or `A*` (every key A leads, summed). Use it as the id; `name` is only the label. */
