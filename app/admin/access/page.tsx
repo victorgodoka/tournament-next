@@ -5,7 +5,6 @@ import { Alert } from '@ui/alert'
 import { Avatar } from '@ui/avatar'
 import { Button } from '@ui/button'
 import { Chip, type ChipTone } from '@ui/chip'
-import { PageHeader } from '@ui/page-header'
 import { Panel } from '@ui/panel'
 import { SectionHead } from '@ui/section-head'
 import { TextInput } from '@ui/field'
@@ -13,7 +12,7 @@ import { useResource } from '@hooks/index'
 import { demoteEditor, listEditors, promoteEditor } from '@utils/articles'
 import { demoteAnalyst, listAnalysts, panelErrorText, promoteAnalyst } from '@utils/panel'
 import type { WikiEditor } from '@utils/types'
-import { SettingsPanel } from './Settings'
+import { Head } from '../shared'
 
 const ROLE: Record<string, { label: string; tone: ChipTone }> = {
   ADMIN: { label: 'Admin', tone: 'gold' },
@@ -109,18 +108,13 @@ const People = ({
   )
 }
 
-const StaffPage = () => {
+const AccessPage = () => {
   const analysts = useResource('analysts', () => listAnalysts())
   const editors = useResource('editors', () => listEditors())
 
   return (
     <>
-      <PageHeader
-        flush
-        eyebrow="Staff"
-        title="Access and settings"
-        lead="Who can read any duelist's statistics, who can edit the wiki, and the values staff tune without a deploy. Roles apply on the next request, no sign-in needed."
-      />
+      <Head eyebrow="People · needs user.manage" title="Access" lead="Who can read any duelist's statistics and who can edit the wiki. Roles apply on the next request, no sign-in needed." />
       {analysts.error || editors.error ? (
         <Alert tone="negative" title="Couldn't read the staff lists">{panelErrorText(analysts.error ?? editors.error)}</Alert>
       ) : null}
@@ -151,9 +145,17 @@ const StaffPage = () => {
         />
       </div>
 
-      <SettingsPanel />
+      <div className="well fx-b">
+        <div className="col-s">
+          <span className="t4">API keys</span>
+          <span className="sm">One key per Discord account for the public cards API: its rate limit and whether it is blocked.</span>
+        </div>
+        <Button variant="secondary" size="mono" href="/admin/api-keys">
+          Open API keys
+        </Button>
+      </div>
     </>
   )
 }
 
-export default StaffPage
+export default AccessPage

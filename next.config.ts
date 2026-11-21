@@ -23,12 +23,22 @@ const nextConfig: NextConfig = {
     // The analytics pages became statistics: old links land on their replacement.
     { source: '/analytics/:path*', destination: '/statistics', permanent: true },
     { source: '/admin/analytics/:path*', destination: '/admin/statistics/:path*', permanent: true },
+    // The panel redesign (docs/ADMIN_PANEL.md §3): Decks, Ignored setcodes and Setcode covers became Identified decks.
+    { source: '/admin/cards/decks', destination: '/admin/decks', permanent: true },
+    { source: '/admin/cards/ignored', destination: '/admin/decks', permanent: true },
+    { source: '/admin/cards/covers', destination: '/admin/decks', permanent: true },
+    { source: '/admin/cards/series/:path*', destination: '/admin/series/:path*', permanent: true },
+    { source: '/admin/cards/staples', destination: '/admin/staples', permanent: true },
+    { source: '/admin/tools', destination: '/admin/seasons', permanent: true },
+    // #analysts and #editors never reach the server: the settings page sends them on to /admin/access.
+    { source: '/admin/staff', destination: '/admin/settings', permanent: true },
     { source: '/profile/:id/analytics', destination: '/profile/:id/statistics', permanent: true },
     { source: '/profile/:id/explorations/:path*', destination: '/profile/:id/statistics', permanent: true },
     // NitroAds (site 2429) hosts the ads.txt; duelistsunite.org/ads.txt redirects there too.
     { source: '/ads.txt', destination: 'https://api.nitropay.com/v1/ads-2429.txt', permanent: true },
   ],
   output: "standalone",
+  experimental: { agentUpgrade: "security" },
   images: {
     /**
      * Every distinct `url`+`w`+`q` is a fresh sharp decode/encode on the Node server that
@@ -38,7 +48,6 @@ const nextConfig: NextConfig = {
     /** 60: card art (`CardArt`), detailed crops shown small, where 75 is bytes nobody sees. */
     qualities: [60, 75],
     deviceSizes: [640, 828, 1080, 1920],
-  experimental: { agentUpgrade: "security" },
     imageSizes: [64, 128, 256],
     /** 31 days: a variant is worth keeping, recomputing it is the expensive part. */
     minimumCacheTTL: 2_678_400,

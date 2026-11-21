@@ -92,7 +92,7 @@ const JobPage = () => {
     <>
       <PageHeader
         flush
-        eyebrow="Statistics · Nightly at 01:00 for the day before"
+        eyebrow="Ranked · Nightly at 01:00 for the day before"
         title="Statistics job"
         lead="A GitHub Actions job sweeps the ranked games and refits the answers /statistics reads. Dispatch it here for a range of days, or to rebuild the open seasons."
       />
@@ -146,18 +146,18 @@ const JobPage = () => {
           <Alert plain title="Backfilling a season">Dispatch once per season: From its first day, To its last (yesterday for the open one).</Alert>
         </Panel>
 
-        <Panel label="Rebuild the open seasons" className="flex flex-col gap-4.5 [--edge:var(--color-line-mid)]">
-          <SectionHead compact num="02">Rebuild the open seasons</SectionHead>
-          <p className="text-sm leading-5.5 text-ink-dim">Sweeps every open season from its first day to yesterday, both formats. A closed season is only refitted when a range covers its last day.</p>
-          <div>
-            <Button variant="secondary" size="mono-md" onClick={() => start(rebuildOpenSeasons())}>Rebuild open seasons</Button>
-          </div>
-          <SectionHead compact num="03">Reclassify only</SectionHead>
+        <Panel label="Reclassify and rebuild" className="flex flex-col gap-4.5 [--edge:var(--color-line-mid)]">
+          <SectionHead compact num="02">Reclassify only</SectionHead>
           <p className="text-sm leading-5.5 text-ink-dim">
-            Sweeps nothing: reclassifies the open seasons&apos; decks with the current Series, staples, ignored setcodes and settings, then rebuilds the statistics and sample decks. Minutes instead of hours. Uses the Format picked for the job (both by default).
+            Sweeps nothing: reclassifies the open seasons&apos; decks with the current identified decks, Series, filters, staples and settings, then rebuilds the statistics, the panel&apos;s deck numbers and the sample decks. Minutes instead of hours. This is the button to press after a round of deck decisions. Uses the Format picked for the job (both by default).
           </p>
           <div>
             <Button variant="secondary" size="mono-md" onClick={() => start(buildOpenSeasons(ladder || undefined))}>Reclassify open seasons</Button>
+          </div>
+          <SectionHead compact num="03">Rebuild the open seasons</SectionHead>
+          <p className="text-sm leading-5.5 text-ink-dim">Sweeps every open season from its first day to yesterday, both formats. A closed season is only refitted when a range covers its last day.</p>
+          <div>
+            <Button variant="secondary" size="mono-md" onClick={() => start(rebuildOpenSeasons())}>Rebuild open seasons</Button>
           </div>
         </Panel>
 
@@ -197,7 +197,13 @@ const JobPage = () => {
               ) : null}
             </>
           ) : (
-            <DoneTable run={last} />
+            <>
+              {/* a run can have many days: ten rows show, the rest scroll under a sticky head */}
+              <span className="text-ink-muted signal-sm">{last.done.length} days{last.done.length > 10 ? ' · 10 shown, scroll for the rest' : ''}</span>
+              <div className="max-h-[440px] overflow-y-auto [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10">
+                <DoneTable run={last} />
+              </div>
+            </>
           )}
         </Panel>
       ) : null}

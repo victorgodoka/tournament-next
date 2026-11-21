@@ -8,9 +8,10 @@ import { DataTable } from '@ui/data-table'
 import { Field, Select, TextInput } from '@ui/field'
 import { PageHeader } from '@ui/page-header'
 import { Panel } from '@ui/panel'
-import { Segmented } from '@ui/choice'
+import { Segmented, Switch } from '@ui/choice'
 import { useResource } from '@hooks/index'
 import { dayLabel, timeLabel } from '@utils/format'
+import { groupRepeats, type Row } from './group'
 import { getAuditEntry, listAudit, listAuditActions, panelErrorText, type AuditEntry, type AuditOutcome, type AuditQuery } from '@utils/panel'
 
 const OUTCOME: Record<AuditOutcome, { label: string; tone: ChipTone }> = {
@@ -36,6 +37,9 @@ const bodyText = (body: unknown) => {
 
 type Page = { entries: AuditEntry[]; nextCursor: string | null }
 
+/** "8387, 115, 254 and 29 more". */
+const summary = (targets: string[]) => (targets.length <= 3 ? targets.join(', ') : `${targets.slice(0, 3).join(', ')} and ${targets.length - 3} more`)
+
 const ActivityPage = () => {
   const [actor, setActor] = useState('')
   const [action, setAction] = useState('')
@@ -45,6 +49,8 @@ const ActivityPage = () => {
   const [outcome, setOutcome] = useState<'all' | AuditOutcome>('all')
   const [picked, setPicked] = useState<string | null>(null)
   const [more, setMore] = useState<{ key: string; pages: Page[] } | null>(null)
+  const [grouped, setGrouped] = useState(true)
+  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set())
 
   const actions = useResource('audit-actions', listAuditActions)
   const query: AuditQuery = {
@@ -82,12 +88,14 @@ const ActivityPage = () => {
   ]
 
   const e = detail.data
+  const rows = grouped ? groupRepeats(entries, opened) : entries.map((entry): Row => ({ id: entry.id, entry, n: 1, targets: [], child: false }))
+  const toggle = (id: string) => setOpened((was) => new Set(was.has(id) ? [...was].filter((x) => x !== id) : [...was, id]))
 
   return (
     <>
       <PageHeader
         flush
-        eyebrow={first.data ? `Staff · Read ${timeLabel(new Date(first.data.readAt))} · newest first` : 'Staff'}
+        eyebrow={first.data ? `System · Read ${timeLabel(new Date(first.data.readAt))} · newest first` : 'System'}
         title="Activity log"
         lead="Every admin change, recorded by the server with who made it, what was sent and how it ended. Refused and failed attempts too."
       />
@@ -122,6 +130,7 @@ const ActivityPage = () => {
               { value: 'error', label: 'Error' },
             ]}
           />
+          <Switch checked={grouped} onChange={setGrouped} label="Group repeats of one action" quiet />
         </div>
       </div>
 
@@ -131,34 +140,43 @@ const ActivityPage = () => {
         <div className="flex min-w-0 flex-col gap-4">
           <div className="overflow-x-auto">
             <DataTable
-              rows={entries}
+              rows={rows}
               rowKey={(r) => r.id}
-              isSelected={(r) => r.id === picked}
+              isSelected={(r) => r.n === 1 && r.entry.id === picked}
               empty={first.data ? 'Nothing matches these filters.' : 'Loading…'}
               columns={[
                 {
                   key: 'when',
                   label: 'When',
-                  render: (r) => (
-                    <button type="button" onClick={() => setPicked(r.id)} className="cursor-pointer text-left whitespace-nowrap hover:text-cyan">
-                      <span className="font-bold text-ink">{dayLabel(r.at)}</span> · {timeLabel(r.at)}
+                  render: ({ entry: r, n, child, id }) => (
+                    <button type="button" aria-expanded={n > 1 ? opened.has(id) : undefined} onClick={() => (n > 1 ? toggle(id) : setPicked(r.id))} className={`cursor-pointer text-left whitespace-nowrap hover:text-cyan ${child ? 'pl-5' : ''}`}>
+                      <span className="font-bold text-ink">{dayLabel(r.at)}</span> · {timeLabel(r.at, child)}
                     </button>
                   ),
                 },
                 {
                   key: 'who',
                   label: 'Who',
-                  render: (r) => (
+                  render: ({ entry: r }) => (
                     <span className="flex flex-col">
                       <span className="text-ink">{r.actor.username ?? short(r.actor.id)}</span>
                       <span className="text-ink-muted signal-sm">{ROLE[r.actor.role] ?? r.actor.role}</span>
                     </span>
                   ),
                 },
-                { key: 'action', label: 'Action', render: (r) => <span className="text-ink data">{r.action}</span> },
-                { key: 'target', label: 'Target', render: (r) => <span className="data">{r.target ? short(r.target) : '—'}</span> },
-                { key: 'status', label: 'Status', numeric: true, render: (r) => <span className="data">{r.status}</span> },
-                { key: 'outcome', label: 'Outcome', render: (r) => <Chip tone={OUTCOME[r.outcome].tone}>{OUTCOME[r.outcome].label}</Chip> },
+                {
+                  key: 'action',
+                  label: 'Action',
+                  render: ({ entry: r, n }) => (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-ink data">{r.action}</span>
+                      {n > 1 ? <Chip tone="cyan">{n} times</Chip> : null}
+                    </span>
+                  ),
+                },
+                { key: 'target', label: 'Target', render: ({ entry: r, n, targets }) => <span className="data">{n > 1 ? summary(targets.map(short)) || '—' : r.target ? short(r.target) : '—'}</span> },
+                { key: 'status', label: 'Status', numeric: true, render: ({ entry: r }) => <span className="data">{r.status}</span> },
+                { key: 'outcome', label: 'Outcome', render: ({ entry: r }) => <Chip tone={OUTCOME[r.outcome].tone}>{OUTCOME[r.outcome].label}</Chip> },
               ]}
             />
           </div>

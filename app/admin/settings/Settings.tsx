@@ -5,8 +5,6 @@ import { twMerge } from 'tailwind-merge'
 import { Alert } from '@ui/alert'
 import { Button } from '@ui/button'
 import { Field, Select, TextInput } from '@ui/field'
-import { Panel } from '@ui/panel'
-import { SectionHead } from '@ui/section-head'
 import { useResource } from '@hooks/index'
 import { count, timeLabel } from '@utils/format'
 import { BAND_NAMES, DEFAULT_CLASSIFICATION, DEFAULT_FILTERS, DEFAULT_TIERS, FORMATS, getSettings, panelErrorText, updateSettings, type Classification, type Filters, type Format, type PanelSettings, type TierAnchors } from '@utils/panel'
@@ -40,12 +38,15 @@ type Draft = Partial<Record<keyof TierAnchors | keyof Classification | FilterDra
  * filters). A key with no edit isn't sent; a field never stored stays absent, on its default.
  */
 export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSettings => {
-  const { maxNames, stapleShare, stapleForeign } = draft
+  const { maxNames, stapleShare, stapleForeign, candidateCards, candidatePoints, lowValueShare } = draft
   const tiers = Object.fromEntries(TIERS.flatMap(({ key }) => (draft[key] === undefined ? [] : [[key, fromPercent(draft[key])]])))
   const classification = {
     ...(maxNames === undefined ? {} : { maxNames: Number(maxNames) }),
     ...(stapleShare === undefined ? {} : { stapleShare: fromPercent(stapleShare) }),
     ...(stapleForeign === undefined ? {} : { stapleForeign: fromPercent(stapleForeign) }),
+    ...(candidateCards === undefined ? {} : { candidateCards: Number(candidateCards) }),
+    ...(candidatePoints === undefined ? {} : { candidatePoints: Number(candidatePoints) }),
+    ...(lowValueShare === undefined ? {} : { lowValueShare: fromPercent(lowValueShare) }),
   }
   const filters = Object.fromEntries(
     FORMATS.flatMap((format) => {
@@ -129,9 +130,7 @@ export const SettingsPanel = () => {
   }
 
   return (
-    <Panel label="Settings" className="flex scroll-mt-6 flex-col gap-5 [--edge:var(--color-line-mid)]">
-      <span id="settings" />
-      <SectionHead compact num="03" end="Read by the next job run">Settings</SectionHead>
+    <div className="flex flex-col gap-5">
       {settings.error ? <Alert tone="negative" title="Couldn't read the settings">{panelErrorText(settings.error)}</Alert> : null}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -184,13 +183,33 @@ export const SettingsPanel = () => {
           </div>
         </Group>
 
-        <Group title="Deck classification" when="Names now · /statistics next build" lede="How many names a deck can hold, and the cut-offs of the automatic staple detection.">
+        <Group title="Deck classification" when="Names now · /statistics next build" lede="How many names a deck can hold, what a second or third name needs, when the panel calls a deck low value, and the cut-offs of the automatic staple detection.">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <Field label="Names in a deck" htmlFor="set-names">
-                <TextInput id="set-names" inputMode="numeric" suffix="1–5" value={draft.maxNames ?? String(classification.maxNames)} onChange={set('maxNames')} plateClassName={edited('maxNames')} />
+                <TextInput id="set-names" inputMode="numeric" suffix="1–3" value={draft.maxNames ?? String(classification.maxNames)} onChange={set('maxNames')} plateClassName={edited('maxNames')} />
               </Field>
-              <Hint>Archetypes a deck name joins, lead first.</Hint>
+              <Hint>Archetypes a deck name joins, lead first. A second or third name also needs its variation approved.</Hint>
+            </div>
+            <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <Field label="Candidate: distinct cards" htmlFor="set-cand-cards">
+                  <TextInput id="set-cand-cards" inputMode="numeric" suffix="1–10" value={draft.candidateCards ?? String(classification.candidateCards)} onChange={set('candidateCards')} plateClassName={edited('candidateCards')} />
+                </Field>
+                <Hint>Different cards a name that is not the lead needs.</Hint>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Field label="Candidate: points" htmlFor="set-cand-points">
+                  <TextInput id="set-cand-points" inputMode="numeric" suffix="1–60" value={draft.candidatePoints ?? String(classification.candidatePoints)} onChange={set('candidatePoints')} plateClassName={edited('candidatePoints')} />
+                </Field>
+                <Hint>2 for the first copy of a card, 1 for each further one.</Hint>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Field label="Low value cut-off" htmlFor="set-low">
+                  <TextInput id="set-low" inputMode="decimal" suffix="% lists" value={draft.lowValueShare ?? toPercent(classification.lowValueShare)} onChange={set('lowValueShare')} plateClassName={edited('lowValueShare')} />
+                </Field>
+                <Hint>Under it the panel treats a deck or a variation as low value. Only the panel reads it.</Hint>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2">
               <div className="flex flex-col gap-1">
@@ -262,6 +281,6 @@ export const SettingsPanel = () => {
           <Button size="mono-md" disabled={bad || !edits} onClick={save}>Save settings</Button>
         </span>
       </div>
-    </Panel>
+    </div>
   )
 }

@@ -145,6 +145,15 @@ export const queryCards = async (q: PoolQuery, page: number, signal?: AbortSigna
 
 const ID_CHUNK = 100
 
+/** Every card carrying one of the setcodes, family included, by name. By setcode only: a matching name alone doesn't count. */
+export const setcodeCards = async (codes: readonly number[], signal?: AbortSignal): Promise<CardArt[]> => {
+  const page = (n: number) =>
+    get<{ cards: CardArt[]; total: number }>(`/cards?archetype=${codes.join(',')}&archetypeMatch=setcode&limit=${ID_CHUNK}&page=${n}`, signal)
+  const first = await page(1)
+  const rest = await Promise.all(Array.from({ length: Math.ceil(first.total / ID_CHUNK) - 1 }, (_, i) => page(i + 2)))
+  return [first, ...rest].flatMap((p) => p.cards).map(({ id, name }) => ({ id, name }))
+}
+
 /** Keyed by the passcode asked for (`idSearched`), so an alternate artwork resolves to its card. Unknown ids are absent. */
 export const cardsByIds = async (ids: readonly number[], signal?: AbortSignal): Promise<Map<number, WikiCard>> => {
   const unique = [...new Set(ids)]

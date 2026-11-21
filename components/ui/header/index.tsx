@@ -10,6 +10,9 @@ import { Avatar } from "@ui/avatar";
 import { useAuth } from "@contexts/auth/auth.context";
 import { signIn, type AuthUser } from "@utils/auth";
 import { can } from "@utils/articles";
+import { useResource } from "@hooks/index";
+import { getReviewCount } from "@utils/panel";
+import { storePanelReturn } from "@utils/panel-return";
 import { DOWNLOAD_URL, NAVBAR_ITEMS, NavbarItem } from "@utils/const";
 import { Button } from "@ui/button";
 import { MessengerMailbox } from "@omega/messenger";
@@ -51,6 +54,8 @@ const SignIn = ({ isLoading }: { isLoading: boolean }) => (
 /** Account cell plus its menu. Closes on Escape or as soon as focus leaves the group. */
 const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<void> }) => {
   const [isOpen, setIsOpen] = useState(false)
+  // Decks waiting for a decision, read when an admin opens the menu. A failed read shows no count.
+  const review = useResource(isOpen && can(user, 'system.manage') ? 'panel-review' : null, getReviewCount)
   const name = user.profile.username ?? 'Duelist'
 
   return (
@@ -95,7 +100,19 @@ const Account = ({ user, signOut }: { user: AuthUser; signOut: () => Promise<voi
           <Link href="/profile/edit" role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>Edit profile</Link>
           {/* The panel refuses anyone without it anyway; this only keeps the door out of sight. */}
           {can(user, 'system.manage') || can(user, 'user.manage') ? (
-            <Link href="/admin" role="menuitem" onClick={() => setIsOpen(false)} className={twMerge(PANEL_ITEM, "text-gold")}>Admin panel</Link>
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => {
+                // "Back to site" in the panel returns to where the admin was
+                storePanelReturn(window.location.pathname + window.location.search)
+                setIsOpen(false)
+              }}
+              className={twMerge(PANEL_ITEM, "flex items-center justify-between gap-3 text-gold")}
+            >
+              <span>Panel</span>
+              {review.data ? <span className="signal-sm">{review.data} to review</span> : null}
+            </Link>
           ) : null}
           <button type="button" role="menuitem" onClick={signOut} className={twMerge(PANEL_ITEM, "w-full cursor-pointer text-crimson-lift hover:text-crimson-lift")}>
             Log out

@@ -2,55 +2,51 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { Avatar } from '@ui/avatar'
-import { Breadcrumbs } from '@ui/breadcrumbs'
 import { Button } from '@ui/button'
 import { Chip } from '@ui/chip'
-import { SideNav, type SideNavGroup } from '@ui/side-nav'
+import { Icon } from '@ui/icon'
 import { useAuth } from '@contexts/auth/auth.context'
 import { useResource } from '@hooks/index'
 import { can } from '@utils/articles'
 import { signIn } from '@utils/auth'
-import { listTournaments } from '@utils/panel'
+import { getReviewCount, listTournaments } from '@utils/panel'
+import { readPanelReturn } from '@utils/panel-return'
+import { ToastHost } from './shared'
+import './admin.css'
 
-type NavItem = { href: string; label: string }
+type NavItem = { href: string; label: string; count?: 'review' | 'upcoming' }
 
 const NAV: { label: string; items: NavItem[] }[] = [
-  { label: 'Schedule', items: [{ href: '/admin/tournaments', label: 'Tournaments' }, { href: '/admin/formats', label: 'Formats' }] },
+  { label: '', items: [{ href: '/admin', label: 'Overview' }] },
   {
-    label: 'Statistics',
-    items: [{ href: '/admin/statistics/sweep', label: 'Statistics job' }],
-  },
-  {
-    label: 'Deck classification',
+    label: 'Decks',
     items: [
-      { href: '/admin/cards/decks', label: 'Decks' },
-      { href: '/admin/cards/ignored', label: 'Ignored setcodes' },
-      { href: '/admin/cards/covers', label: 'Setcode covers' },
-      { href: '/admin/cards/staples', label: 'Staples' },
-      { href: '/admin/cards/series', label: 'Series' },
+      { href: '/admin/decks', label: 'Identified decks', count: 'review' },
+      { href: '/admin/series', label: 'Series' },
+      { href: '/admin/filters', label: 'Filters' },
+      { href: '/admin/staples', label: 'Staples' },
     ],
   },
-  {
-    label: 'Staff',
-    items: [
-      { href: '/admin/staff#settings', label: 'Settings' },
-      { href: '/admin/staff#analysts', label: 'Analysts' },
-      { href: '/admin/api-keys', label: 'API keys' },
-      { href: '/admin/activity', label: 'Activity log' },
-    ],
-  },
-  {
-    label: 'Other tools',
-    items: [
-      { href: '/admin/tools', label: 'Ranked ops' },
-      { href: '/admin/staff#editors', label: 'Wiki editors' },
-    ],
-  },
+  { label: 'Tournaments', items: [{ href: '/admin/tournaments', label: 'Schedule', count: 'upcoming' }, { href: '/admin/formats', label: 'Formats' }] },
+  { label: 'Ranked', items: [{ href: '/admin/statistics/sweep', label: 'Statistics job' }, { href: '/admin/seasons', label: 'Seasons' }] },
+  { label: 'People', items: [{ href: '/admin/access', label: 'Access' }, { href: '/admin/api-keys', label: 'API keys' }] },
+  { label: 'System', items: [{ href: '/admin/settings', label: 'Settings' }, { href: '/admin/activity', label: 'Activity log' }] },
 ]
 
+/** The public twin of a panel screen: the mono button on the right of the top bar. */
+const TWIN: Record<string, { label: string; href: string }> = {
+  '/admin': { label: 'Open site', href: '' },
+  '/admin/decks': { label: 'View /statistics', href: '/statistics' },
+  '/admin/staples': { label: 'View /statistics', href: '/statistics' },
+  '/admin/statistics/sweep': { label: 'View /statistics', href: '/statistics' },
+  '/admin/tournaments': { label: 'View /tournaments', href: '/tournaments' },
+  '/admin/seasons': { label: 'View /leaderboard', href: '/leaderboard' },
+}
+
 /** Last crumb for the screens under a nav item. */
-const SUB: Record<string, string> = { new: 'New', player: 'Duelist', types: 'Types & categories', prices: 'Base prices' }
+const SUB: Record<string, string> = { new: 'New' }
 
 const pathOf = (href: string) => href.split('#')[0]!
 
@@ -60,12 +56,23 @@ const locate = (pathname: string) => {
   for (const group of NAV) {
     for (const item of group.items) {
       const path = pathOf(item.href)
-      if ((pathname === path || pathname.startsWith(`${path}/`)) && (!best || path.length > pathOf(best.item.href).length)) {
+      if ((pathname === path || (path !== '/admin' && pathname.startsWith(`${path}/`))) && (!best || path.length > pathOf(best.item.href).length)) {
         best = { group: group.label, item }
       }
     }
   }
   return best
+}
+
+/** The stored path, read (not taken): it holds while the admin moves inside the panel. With none, home. */
+const useReturnPath = () => {
+  const [path, setPath] = useState('/')
+  useEffect(() => {
+    const stored = readPanelReturn()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage only exists after mount
+    if (stored) setPath(stored)
+  }, [])
+  return path
 }
 
 export const Locked = ({ title, blurb, action }: { title: string; blurb: string; action?: React.ReactNode }) => (
@@ -83,6 +90,8 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth()
   const admin = can(user, 'system.manage')
   const upcoming = useResource(admin ? 'upcoming' : null, (signal) => listTournaments({ upcoming: true, limit: 200 }, signal))
+  const review = useResource(admin ? 'review' : null, getReviewCount)
+  const back = useReturnPath()
 
   if (user === undefined) return <Locked title="Checking your session" blurb="One moment." />
   if (!user) {
@@ -105,56 +114,101 @@ export const AdminShell = ({ children }: { children: React.ReactNode }) => {
   }
 
   const here = locate(pathname)
-  const groups: SideNavGroup[] = NAV.map((group) => ({
-    label: group.label,
-    items: group.items.map((item) => ({
-      ...item,
-      current: here?.item === item,
-      count: item.href === '/admin/tournaments' ? upcoming.data?.length : undefined,
-    })),
-  }))
-
-  const rest = here ? pathname.slice(pathOf(here.item.href).length).split('/').filter(Boolean) : []
+  const counts = { review: review.data, upcoming: upcoming.data?.length }
+  const base = here ? pathOf(here.item.href) : ''
+  const rest = here && base !== '/admin' ? pathname.slice(base.length).split('/').filter(Boolean) : []
   const last = rest.at(-1)
-  const crumbs = [
-    { label: 'Panel', href: '/admin' },
-    ...(here ? [{ label: here.group }, { label: here.item.label, href: pathOf(here.item.href) }] : []),
-    ...(last ? [{ label: SUB[last] ?? (/^\d+$/.test(last) ? `#${last}` : decodeURIComponent(last)) }] : []),
-  ]
+  const sub = last ? (SUB[last] ?? (/^\d+$/.test(last) ? `#${last}` : decodeURIComponent(last))) : null
+  const twin = TWIN[base]
   const name = user.profile.username ?? user.id
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <SideNav
-        label="Panel"
-        groups={groups}
-        brand={
-          <>
-            <span className="text-ink brandmark text-sm">Omega Hub</span>
+    <div className="adm">
+      <div className="navslot">
+        <nav className="snav" aria-label="Panel">
+          <div className="brand">
+            <span className="wm">Omega Hub</span>
             <Chip tone="gold">Panel</Chip>
-          </>
-        }
-        footer={
-          <>
+          </div>
+          <Link className="back cut" href={back}>
+            <Icon name="left" size={16} />
+            <span className="col-s" style={{ gap: 0 }}>
+              <span className="t4" style={{ fontSize: 14 }}>
+                Back to site
+              </span>
+              <span className="lbl-sm" style={{ textTransform: 'none', letterSpacing: 0 }}>
+                {back}
+              </span>
+            </span>
+          </Link>
+          {NAV.map((group) => (
+            <div key={group.label}>
+              {group.label ? <div className="grp lbl-sm">{group.label}</div> : null}
+              {group.items.map((item) => {
+                const on = here?.item === item
+                const waiting = item.count ? counts[item.count] : undefined
+                return (
+                  <Link key={item.href} href={item.href} className={on ? 'nv on' : 'nv'} aria-current={on ? 'page' : undefined}>
+                    <span>{item.label}</span>
+                    {waiting ? <span className="ct">{waiting}</span> : null}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
+          <div className="foot">
             <Avatar name={name} src={user.profile.avatarUrl} cosmetics={user.cosmetics} className="size-9 text-lg" />
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-sm font-bold text-ink">{name}</span>
-              <span className="text-ink-muted signal-sm">Admin · system.manage</span>
+            <span className="col-s" style={{ gap: 0, minWidth: 0 }}>
+              <span className="t4" style={{ fontSize: 14 }}>
+                {name}
+              </span>
+              <span className="lbl-sm">Admin · system.manage</span>
             </span>
-          </>
-        }
-      />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-16 shrink-0 flex-wrap items-center gap-4 border-b border-line px-gutter py-3">
-          <Breadcrumbs items={crumbs} className="flex-1" />
-          {here?.item.href === '/admin/activity' ? null : (
-            <span className="flex items-center gap-4">
-              <span className="text-ink-muted signal-sm">Every change is logged</span>
-              <Link href="/admin/activity" className="signal-strong">Activity log</Link>
-            </span>
-          )}
-        </div>
-        <main className="flex flex-col gap-8 px-gutter py-10">{children}</main>
+          </div>
+        </nav>
+      </div>
+      <div className="adm-main">
+        <header className="topbar">
+          <nav className="crumbs lbl" aria-label="Breadcrumb">
+            <Link href="/admin">Panel</Link>
+            {here?.group ? (
+              <>
+                <span>/</span>
+                <span>{here.group}</span>
+              </>
+            ) : null}
+            {here && base !== '/admin' ? (
+              <>
+                <span>/</span>
+                {sub ? <Link href={base}>{here.item.label}</Link> : <b>{here.item.label}</b>}
+              </>
+            ) : null}
+            {sub ? (
+              <>
+                <span>/</span>
+                <b>{sub}</b>
+              </>
+            ) : null}
+          </nav>
+          <span className="fx">
+            {base === '/admin/activity' ? null : (
+              <>
+                <span className="lbl-sm">Every change is logged</span>
+                <Link className="lbl-strong lnk" href="/admin/activity">
+                  Activity log
+                </Link>
+              </>
+            )}
+            {twin ? (
+              <Button variant="secondary" size="mono" href={twin.href || back}>
+                {twin.label}
+              </Button>
+            ) : null}
+          </span>
+        </header>
+        <ToastHost>
+          <main className="page">{children}</main>
+        </ToastHost>
       </div>
     </div>
   )

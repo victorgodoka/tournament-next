@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { getTranslations } from 'next-intl/server'
+import { AdminBar } from '@ui/admin-bar'
 import { Button } from '@ui/button'
 import { Panel } from '@ui/panel'
 import { cardsByIds } from '@utils/cards'
@@ -69,6 +70,7 @@ const DeckRoute = async (props: DeckRouteProps) => {
   const fit = meta.ok ? meta.data.fit : null
   return (
     <StatsShell>
+      <AdminBar reads={`Identified decks › ${result.data.deck.name ?? key}`} href={`/admin/decks/${leadOf(key)}${season.ladder === 'genesys' ? '?ladder=genesys' : ''}`} label="Edit this deck" />
       <DeckPage
         answer={result.data}
         season={season}
