@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createFilter, createSeries, deleteSeries, EMPTY_RULES, getDeck, getDeckThird, listDecks, previewFilter, setIgnore, setVariation, setVariationCover, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
+import * as panel from './panel'
+import { createFilter, createSeries, deleteSeries, DEFAULT_CLASSIFICATION, EMPTY_RULES, getDeck, getDeckAlongside, listDecks, previewFilter, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -90,35 +91,30 @@ describe('series', () => {
   })
 })
 
-describe('identified decks, variations, ignore and filters', () => {
-  it('reads the decks of the picked seasons, a lead and a third name', async () => {
+describe('identified decks (read only) and filters', () => {
+  it('reads the decks of the picked seasons, a lead and what it plays alongside', async () => {
     const list = stub({ decks: [] })
     await listDecks({ tcg: 14 })
     expect(url(list).pathname + url(list).search).toBe('/panel/decks?tcg=14')
     const one = stub({})
     await getDeck(65561, 14)
     expect(url(one).pathname + url(one).search).toBe('/panel/decks/65561?season=14')
-    const third = stub({})
-    await getDeckThird(65561, 14, 392)
-    expect(url(third).pathname + url(third).search).toBe('/panel/decks/65561/third?season=14&second=392')
+    const along = stub({})
+    await getDeckAlongside(65561, 14)
+    expect(url(along).pathname + url(along).search).toBe('/panel/decks/65561/alongside?season=14')
   })
 
-  it('decides a variation and the cover of a secondary in it', async () => {
-    const put = stub({})
-    await setVariation([65561, 392], 'on')
-    expect(url(put).pathname).toBe('/panel/variations')
-    expect(JSON.parse(String(init(put).body))).toEqual({ codes: [65561, 392], state: 'on' })
-    const cover = stub({})
-    await setVariationCover([65561, 392], 392, null)
-    expect(url(cover).pathname).toBe('/panel/variations/cover')
-    expect(JSON.parse(String(init(cover).body))).toEqual({ codes: [65561, 392], code: 392, card: null })
+  it('has no call for variations, ignoring, review or a third name: the build names decks by itself', () => {
+    for (const name of ['setVariation', 'setVariationCover', 'getDeckThird', 'getReviewCount', 'setIgnore', 'listIgnored', 'ignoreArchetype', 'unignoreArchetype']) {
+      expect(name in panel, name).toBe(false)
+    }
   })
 
-  it('ignores one exact code with a mode', async () => {
-    const put = stub({ archetypes: [] })
-    await setIgnore(392, 'lead')
-    expect(url(put).pathname).toBe('/panel/archetypes/392/ignore')
-    expect(JSON.parse(String(init(put).body))).toEqual({ mode: 'lead' })
+  it('defaults the classification settings to the four rates and sends versionShare', async () => {
+    expect(DEFAULT_CLASSIFICATION).toEqual({ stapleShare: 0.1, stapleForeign: 0.5, lowValueShare: 0.02, versionShare: 0.005 })
+    const patch = stub({})
+    await updateSettings({ 'analytics.classification': { versionShare: 0.01 } })
+    expect(JSON.parse(String(init(patch).body))).toEqual({ 'analytics.classification': { versionShare: 0.01 } })
   })
 
   it('previews a filter without saving and creates one', async () => {

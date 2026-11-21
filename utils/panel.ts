@@ -358,8 +358,6 @@ export type PanelDeck = {
 export type DeckSetcode = {
   code: number
   name: string | null
-  /** The code or its family is ignored. */
-  ignored: boolean
   decks: number
   share: number
   mean: number
@@ -412,11 +410,12 @@ export const resetStaple = (card: number) => request<void>(`/panel/staples/${car
  * both formats. Tier 1 is the leader and at most one more; past `t3Gap` is Tier 4. The floors are per format, in `Filters`.
  */
 export type TierAnchors = { t1Gap: number; t2Gap: number; t3Gap: number }
-export type Classification = { maxNames: number; stapleShare: number; stapleForeign: number; candidateCards: number; candidatePoints: number; lowValueShare: number }
+/** `versionShare`: the share of a season's lists a set of archetypes needs to name decks (a version). */
+export type Classification = { stapleShare: number; stapleForeign: number; lowValueShare: number; versionShare: number }
 
 /** What the server falls back to for a key left out. */
 export const DEFAULT_TIERS: TierAnchors = { t1Gap: 0.0075, t2Gap: 0.0125, t3Gap: 0.025 }
-export const DEFAULT_CLASSIFICATION: Classification = { maxNames: 3, stapleShare: 0.1, stapleForeign: 0.5, candidateCards: 2, candidatePoints: 5, lowValueShare: 0.02 }
+export const DEFAULT_CLASSIFICATION: Classification = { stapleShare: 0.1, stapleForeign: 0.5, lowValueShare: 0.02, versionShare: 0.005 }
 
 /** A key never written is absent. */
 /** The seven tiers, lowest first; `aggregateFloor` is one of them. */
@@ -518,28 +517,6 @@ export const listAuditActions = (signal?: AbortSignal) =>
   )
 
 /* ---------------------------------------------------------------- *
- * Ignored setcodes (section 9.2): they never name a deck
- * ---------------------------------------------------------------- */
-
-/** `lead`: never the first name. `secondary`: never the second or third. `full`: its cards carry no name. */
-export type IgnoreMode = 'lead' | 'secondary' | 'full'
-
-export type IgnoredArchetype = { code: number; name: string | null; mode: IgnoreMode; updatedAt: string }
-
-/** One exact code, a setcode or a Series code: the family and the sub-archetypes are not touched. Answers the whole list. */
-export const setIgnore = (code: number, mode: IgnoreMode | 'off') =>
-  request<{ archetypes: IgnoredArchetype[] }>(`/panel/archetypes/${code}/ignore`, json('PUT', { mode })).then((page) => page.archetypes)
-
-export const listIgnored = (signal?: AbortSignal) =>
-  request<{ archetypes: IgnoredArchetype[] }>('/panel/ignored-archetypes', { signal }).then((page) => page.archetypes)
-
-/** Idempotent. Answers the whole list. */
-export const ignoreArchetype = (code: number) =>
-  request<{ archetypes: IgnoredArchetype[] }>(`/panel/ignored-archetypes/${code}`, json('PUT')).then((page) => page.archetypes)
-
-export const unignoreArchetype = (code: number) => request<void>(`/panel/ignored-archetypes/${code}`, json('DELETE'))
-
-/* ---------------------------------------------------------------- *
  * Setcode covers (section 9.2.1): the card that stands for a setcode's deck
  * ---------------------------------------------------------------- */
 
@@ -622,35 +599,22 @@ export const toSeriesInput = (series: Series): SeriesInput => ({
 })
 
 /* ---------------------------------------------------------------- *
- * Variations (section 9.2.2): a deck is named by its lead alone unless the variation is on
- * ---------------------------------------------------------------- */
-
-export type VariationState = 'on' | 'refused' | 'candidate'
-
-/** Approve, refuse, turn off (`candidate`) or restore. The order of `codes` does not matter. */
-export const setVariation = (codes: number[], state: VariationState) => request<unknown>('/panel/variations', json('PUT', { codes, state }))
-
-/** The cover `code` takes inside that variation; `null` returns to its cover as lead. The variation must be decided. */
-export const setVariationCover = (codes: number[], code: number, card: number | null) =>
-  request<unknown>('/panel/variations/cover', json('PUT', { codes, code, card }))
-
-/* ---------------------------------------------------------------- *
- * Identified decks (section 9.1.1): one row per lead, written by the build
+ * Identified decks (section 9.1.1): one row per lead, written by the build. Read only: the build names decks
  * ---------------------------------------------------------------- */
 
 export type DeckKind = 'setcode' | 'series-setcode' | 'series'
-export type DeckIdentity = { code: number; name: string | null; kind: DeckKind; seriesId: number | null; ignore: IgnoreMode | 'off' }
+export type DeckIdentity = { code: number; name: string | null; kind: DeckKind; seriesId: number | null }
 export type DeckCover = { card: number; pinned: boolean } | null
 export type DeckLadder = { lists: number; share: number; winRate: number | null; duelists: number; secondaryLists: number } | null
 export type DeckSeason = { id: number; code: string; label: string; open: boolean }
 
 export type IdentifiedDeck = DeckIdentity & {
   cover: DeckCover
-  review: boolean
   lowValue: boolean
   tcg: DeckLadder
   genesys: DeckLadder
-  variations: { on: number; candidates: number }
+  /** Versions (2+ names) it leads in the shown seasons. */
+  versions: number
 }
 
 export type DeckList = {
@@ -661,22 +625,32 @@ export type DeckList = {
   decks: IdentifiedDeck[]
 }
 
-export type DeckVariation = {
+/** A final key: the pure deck (one code) or a version. Its numbers equal /statistics. */
+export type DeckVersion = {
   codes: number[]
   key: string
   names: (string | null)[]
-  state: VariationState
   lists: number
   /** Of the lead's lists in this season. */
   share: number
-  duelists: number
+  /** `null` on the pure row. */
+  duelists: number | null
   winRate: number | null
+  /** Win rate minus the pure deck's; 0 on the pure row. */
   vsPure: number | null
   /** Mean cards of each code in those lists. */
   cards: Record<string, number>
-  covers: { code: number; card: number | null; custom: boolean }[]
   firstDay: string | null
-  decidedAt: string | null
+}
+
+/** A set the lead plays that is not a version, and the deck its lists count for. */
+export type UnderSet = {
+  codes: number[]
+  names: (string | null)[]
+  lists: number
+  /** Of the season's counted lists; a version needs `versionShare`. */
+  seasonShare: number
+  countedAs: { codes: number[]; names: (string | null)[] }
 }
 
 export type DeckDetail = DeckIdentity & {
@@ -695,8 +669,12 @@ export type DeckDetail = DeckIdentity & {
   } | null
   cover: { pinned: number | null; card: number | null; candidates: { card: number; name: string | null; inclusion: number }[] }
   lowValueShare: number
-  variations: DeckVariation[]
-  secondaryIn: DeckVariation[]
+  versionShare: number
+  /** The pure deck first, then its versions, by lists. */
+  decks: DeckVersion[]
+  under: UnderSet[]
+  /** Versions another code leads that hold it. */
+  secondaryIn: DeckVersion[]
 }
 
 export type AlongsideStats = {
@@ -710,31 +688,18 @@ export type AlongsideStats = {
   /** The raw names most seen with it; `code: null` = pure lists. */
   top: { code: number | null; name: string | null; lists: number }[]
 }
-export type AlongsideArchetype = DeckIdentity & AlongsideStats & { cover: DeckCover; variation: VariationState | null }
+export type AlongsideArchetype = DeckIdentity & AlongsideStats & { cover: DeckCover }
 export type AlongsideCard = AlongsideStats & { id: number; name: string | null }
 export type AlongsideZone = { archetypes: AlongsideArchetype[]; cards: AlongsideCard[] }
 export type Alongside = { code: number; lists: number; main: AlongsideZone; extra: AlongsideZone; side: AlongsideZone }
 
-export type ThirdNames = {
-  code: number
-  second: number
-  lists: number
-  thirds: (DeckIdentity & { cover: DeckCover; lists: number; share: number; duelists: number; cards: number; winRate: number | null; state: VariationState })[]
-}
-
 /** Both seasons default to the open one of each ladder. */
 export const listDecks = (seasons: { tcg?: number; genesys?: number } = {}, signal?: AbortSignal) => request<DeckList>(`/panel/decks${search(seasons)}`, { signal })
-
-/** Leads of the open seasons with something to decide: the count in the nav and the account menu. */
-export const getReviewCount = (signal?: AbortSignal) => request<{ count: number }>('/panel/decks/review', { signal }).then((r) => r.count)
 
 export const getDeck = (code: number, season: number, signal?: AbortSignal) => request<DeckDetail>(`/panel/decks/${code}${search({ season })}`, { signal })
 
 export const getDeckAlongside = (code: number, season: number, signal?: AbortSignal) =>
   request<Alongside>(`/panel/decks/${code}/alongside${search({ season })}`, { signal })
-
-export const getDeckThird = (code: number, season: number, second: number, signal?: AbortSignal) =>
-  request<ThirdNames>(`/panel/decks/${code}/third${search({ season, second })}`, { signal })
 
 /* ---------------------------------------------------------------- *
  * Filters (section 9.2.3): a saved card search a Series attaches
