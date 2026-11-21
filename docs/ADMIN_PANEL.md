@@ -241,7 +241,7 @@ key.
 - Season select, top right. A build covers the open season of each ladder, so the select offers
   pairs or single seasons, whatever the API serves; the two ladders are columns of the same table.
 - Stat row: Identified · Versions · Low value · Series. Deck names are set by the build (automatic naming,
-  server `docs/DECK_CLASSIFICATION.md`): by hand there are only covers and the staples of a generic package.
+  server `docs/DECK_CLASSIFICATION.md`): by hand there are only covers, ignored setcodes and the staples of a generic package.
 
 ### 5.1.1 Signals, above the table
 
@@ -249,7 +249,7 @@ Three blocks help shape what the build names, before the table of leads ("04 Eve
 
 | Block | Shows | Action |
 |---|---|---|
-| 01 Looks like a generic package | `DeckList.noise`: archetypes that join versions of 5+ different leads as 2nd or 3rd name (cover, name, leads, lists, the lists it leads itself, "staged as staples") | `Make its cards staples` (`setArchetypeStaples`; cards set by hand stay as they are), with Undo in the toast; once `staged`, the row offers `Undo the staples` (`resetArchetypeStaples`). A Series says "adjust it in its editor" instead |
+| 01 Looks like a generic package | `DeckList.noise`: archetypes that join versions of 5+ different leads as 2nd or 3rd name (cover, name, leads, lists, the lists it leads itself, "staged as staples") | `Ignore` / `Stop ignoring` (`ignoreSetcode`, `unignoreSetcode`: the setcode names nothing) and `Make its cards staples` (`setArchetypeStaples`; cards set by hand stay as they are), with Undo in the toast; once `staged`, the row offers `Undo the staples` (`resetArchetypeStaples`). A Series says "adjust it in its editor" instead |
 | 02 Name changes | `getVersionChanges(7)`: "New versions" and "No longer a version" this week, each a link to its lead | — |
 | 03 Closest to naming decks | `getSeasonUnder(season)`, TCG / Genesys toggle: the top 15 sets under the minimum, any lead, with lists "of <minLists>", share "of <versionShare>" and where their lists go | — (tune `versionShare` in Settings) |
 
@@ -261,7 +261,7 @@ Three blocks help shape what the build names, before the table of leads ("04 Eve
 | Low value | `Show` / `Hide` (default) / `Only` |
 | Cut-off | Percent of lists; default from settings (`lowValueShare`, needs API). A deck is low value when its share is under the cut-off in **both** ladders |
 | Sort | `Lists` (default, descending) · `Win rate` · `Versions` · `A–Z` |
-| Filter chips | `All` · `Has versions` · `No cover` · `Series`, each with its count; one at a time |
+| Filter chips | `All` · `Has versions` · `No cover` · `Series` · `Ignored`, each with its count; one at a time |
 | Count line | "181 shown · 231 low value hidden" |
 
 Low value, cut-off and sort are remembered per admin (localStorage).
@@ -271,7 +271,7 @@ Low value, cut-off and sort are remembered per admin (localStorage).
 | Column | Content |
 |---|---|
 | Deck | Cover (square art crop; a dashed "?" tile when there is none), name, kind (`Setcode` · `Series over setcode` · `Series, new archetype`) and code in mono |
-| State | Chip `No cover` (neutral) when no cover is pinned, and `Pick`: opens a row under it with the cover candidates (`CoverPicker`, from a season it leads lists in, TCG first: `coverSeasonOf`) and `Or any card`; a pick saves at once with Undo |
+| State | Chip `Ignored` (amber) for an ignored setcode; chip `No cover` (neutral) when no cover is pinned, and `Pick`: opens a row under it with the cover candidates (`CoverPicker`, from a season it leads lists in, TCG first: `coverSeasonOf`) and `Or any card`; a pick saves at once with Undo |
 | TCG lists · TCG share · TCG win rate | Lists led by it, share of all TCG lists (bar plus percent), win rate |
 | Genesys lists · Genesys share | Same for Genesys |
 | As secondary | Lists led by another deck where it is the second or third name |
@@ -300,7 +300,8 @@ setcode (or Series code, `65536 + id`).
 | Cover as lead | Large art tile, the cover card's name under it |
 | Eyebrow, title, line | Kind, code; "Leads N versions besides the pure deck" or "Named alone" |
 | Pick the cover | The most included cards of its lists as tiles (card, name, "98.4% of lists"); a click sets the cover. `Or any card` is a `Lookup` (`findCards`). The pinned one carries a cyan ring |
-| How it is named | Read only: a version of up to three names is a deck from `versionShare` of a season's lists; to shape names, make a card a staple or group cards in a Series |
+| How it is named | Read only: a version of up to three names is a deck from `versionShare` of a season's lists; to shape names, ignore the setcode, make a card a staple or group cards in a Series |
+| Ignore this setcode | Plain setcodes only: `Ignore` / `Stop ignoring`, saves at once with Undo; the title shows `Ignored` (amber). Only that code: sub-families keep naming; as a Series child its cards still count for the Series |
 | Edit Series | Shown when the lead is a Series → `/admin/series/<id>` |
 
 Cover writes: a plain setcode uses `setCover(code, card)` / `clearCover(code)`

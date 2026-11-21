@@ -18,7 +18,7 @@ import { coverSeasonOf, writeCover } from './covers'
 import { ClosestToMinimum, NameChanges, NoisePackages } from './Signals'
 
 type Sort = 'lists' | 'wr' | 'versions' | 'name'
-type Only = 'all' | 'versions' | 'cover' | 'series'
+type Only = 'all' | 'versions' | 'cover' | 'series' | 'ignored'
 
 const SORTS: { value: Sort; label: string }[] = [
   { value: 'lists', label: 'Lists' },
@@ -35,6 +35,7 @@ const FILTERS: Record<Only, (d: IdentifiedDeck) => boolean> = {
   versions: (d) => d.versions > 0,
   cover: (d) => !d.cover?.pinned,
   series: (d) => d.kind !== 'setcode',
+  ignored: (d) => d.ignored,
 }
 
 const SORT: Record<Sort, (a: IdentifiedDeck, b: IdentifiedDeck) => number> = {
@@ -147,6 +148,7 @@ const DecksPage = () => {
               ['versions', 'Has versions'],
               ['cover', 'No cover'],
               ['series', 'Series'],
+              ['ignored', 'Ignored'],
             ] as [Only, string][]
           ).map(([key, label]) => (
             <FilterChip key={key} pressed={only === key} label={label} count={inScope.filter(FILTERS[key]).length} onClick={() => setOnly(key)} />
@@ -189,6 +191,7 @@ const DecksPage = () => {
                   </td>
                   <td>
                     <span className="fx" style={{ gap: 6 }}>
+                      {d.ignored ? <Chip tone="amber">Ignored</Chip> : null}
                       {d.cover?.pinned ? null : <Chip tone="neutral">No cover</Chip>}
                       {d.cover?.pinned || !data || coverSeasonOf(d, data.seasons) === undefined ? null : (
                         <button type="button" className="act" disabled={busy} onClick={(e) => { e.stopPropagation(); setPicking(picking === d.code ? null : d.code) }}>

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as panel from './panel'
-import { createFilter, createSeries, deckCount, deleteSeries, DEFAULT_CLASSIFICATION, EMPTY_RULES, getDeck, getDeckAlongside, getSeasonUnder, getVersionChanges, resetArchetypeStaples, setArchetypeStaples, listDecks, previewFilter, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
+import { createFilter, createSeries, deckCount, deleteSeries, DEFAULT_CLASSIFICATION, EMPTY_RULES, getDeck, getDeckAlongside, getSeasonUnder, getVersionChanges, ignoreSetcode, listIgnored, resetArchetypeStaples, setArchetypeStaples, unignoreSetcode, listDecks, previewFilter, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -124,6 +124,20 @@ describe('identified decks (read only) and filters', () => {
     expect(init(del).method).toBe('DELETE')
   })
 
+  it('lists, ignores and stops ignoring a setcode', async () => {
+    const list = stub({ archetypes: [{ code: 392, name: 'Mulcharmy', updatedAt: '' }] })
+    expect(await listIgnored()).toEqual([{ code: 392, name: 'Mulcharmy', updatedAt: '' }])
+    expect(url(list).pathname).toBe('/panel/ignored-archetypes')
+    const put = stub({ archetypes: [] })
+    await ignoreSetcode(392)
+    expect(url(put).pathname).toBe('/panel/ignored-archetypes/392')
+    expect(init(put).method).toBe('PUT')
+    const del = stub(null, 204)
+    await unignoreSetcode(392)
+    expect(url(del).pathname).toBe('/panel/ignored-archetypes/392')
+    expect(init(del).method).toBe('DELETE')
+  })
+
   it('counts the pure deck only when it has lists', () => {
     const ladder = (pureLists: number) => ({ lists: 10, share: 0.1, winRate: null, duelists: 3, secondaryLists: 0, pureLists })
     expect(deckCount({ versions: 2, tcg: ladder(0), genesys: null })).toBe(2)
@@ -132,7 +146,7 @@ describe('identified decks (read only) and filters', () => {
   })
 
   it('has no call for variations, ignoring, review or a third name: the build names decks by itself', () => {
-    for (const name of ['setVariation', 'setVariationCover', 'getDeckThird', 'getReviewCount', 'setIgnore', 'listIgnored', 'ignoreArchetype', 'unignoreArchetype']) {
+    for (const name of ['setVariation', 'setVariationCover', 'getDeckThird', 'getReviewCount', 'setIgnore', 'ignoreArchetype', 'unignoreArchetype']) {
       expect(name in panel, name).toBe(false)
     }
   })
