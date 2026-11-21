@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
     /** 60: card art (`CardArt`), detailed crops shown small, where 75 is bytes nobody sees. */
     qualities: [60, 75],
     deviceSizes: [640, 828, 1080, 1920],
+  experimental: { agentUpgrade: "security" },
     imageSizes: [64, 128, 256],
     /** 31 days: a variant is worth keeping, recomputing it is the expensive part. */
     minimumCacheTTL: 2_678_400,

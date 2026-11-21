@@ -5,5 +5,5 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 patchedDependencies:
-  next@16.4.3: patches/next@16.4.3.patch
+  next@16.4.6: patches/next@16.4.6.patch
 shellEmulator: true
