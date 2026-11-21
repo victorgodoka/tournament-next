@@ -18,7 +18,7 @@ const genesysFilters: BuildFilters = { minPlayerGames: 3, minListGames: 0, minKe
 const withFilters = (base: Ladder, filters: BuildFilters, floors?: Partial<TierRules>): Ladder => ({
   ...base,
   rules: { ...base.rules, ...floors },
-  meta: { ...base.meta, fit: { ...base.meta.fit, filters, aggregateFloor: filters.aggregateFloor, builtAt: '2026-11-07T15:50:00Z' }, classification: { maxNames: 2, stapleShare: 0.1, stapleForeign: 0.5 } },
+  meta: { ...base.meta, fit: { ...base.meta.fit, filters, aggregateFloor: filters.aggregateFloor, builtAt: '2026-11-07T15:50:00Z' }, classification: { stapleShare: 0.1, stapleForeign: 0.5, lowValueShare: 0.02, versionShare: 0.005 } },
 })
 const previous = (): Snapshot => ({
   issue: '2026-10-30', rebuilt: true,
@@ -75,7 +75,7 @@ describe('methodology article', () => {
     expect(md('tiers')).toContain('Tier 1 holds two decks at most')
     expect(doc.seo?.description!.length).toBeLessThanOrEqual(160)
     // Every panel value reaches the settings table.
-    for (const cell of ['Gold+', 'Silver+', '3,000', '| 5 |', '| 3 |', 'Off (0)', '| 30 |', '| 15 |', '1%', '0.5%', '| 25 |', 'None', '0.5 pts', '3 pts', '4.5 pts', '2 archetype names', 'at least 10%', '50% or more'])
+    for (const cell of ['Gold+', 'Silver+', '3,000', '| 5 |', '| 3 |', 'Off (0)', '| 30 |', '| 15 |', '1%', '0.5%', '| 25 |', 'None', '0.5 pts', '3 pts', '4.5 pts', 'up to 3 archetype names', 'at least 10%', '50% or more'])
       expect(md('settings')).toContain(cell)
     expect(md('sample')).toContain('so it removes nothing')
     expect(md('tiers')).toContain('Genesys asks for 0.5% of the meta and no player minimum')

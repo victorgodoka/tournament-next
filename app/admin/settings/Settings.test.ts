@@ -14,8 +14,8 @@ describe('settingsBody', () => {
     })
   })
 
-  it('keeps maxNames an integer, not a rate', () => {
-    expect(settingsBody({ maxNames: '4' })).toEqual({ 'analytics.classification': { maxNames: 4 } })
+  it('sends the version share as a rate, like the other classification percents', () => {
+    expect(settingsBody({ versionShare: '0.5' })).toEqual({ 'analytics.classification': { versionShare: 0.005 } })
   })
 
   it('sends a filter set to 0 as the only change, under its format', () => {

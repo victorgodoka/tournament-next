@@ -26,8 +26,6 @@ const ZONES: { key: Exclude<Zone, 'all'>; label: string; note: string }[] = [
   { key: 'extra', label: 'Extra deck', note: 'Counts for a name only when the main deck carries it too' },
   { key: 'side', label: 'Side deck', note: 'Never names a deck · shown for staple and tech decisions' },
 ]
-const IGNORED = { lead: 'Ignored as lead', secondary: 'Ignored as secondary', full: 'Ignored fully' } as const
-const VARIATION = { on: 'Variation on', candidate: 'Candidate', refused: 'Refused' } as const
 
 const withText = (row: AlongsideStats) =>
   row.top.map((t) => `${t.code === null ? 'Pure' : (t.name ?? hex(t.code))} ${percent(row.lists ? t.lists / row.lists : null)}`).join(' · ') || '—'
@@ -55,7 +53,9 @@ const Cells = ({ row, distinct, top }: { row: AlongsideStats; distinct: boolean;
 }
 
 /** Section 03: what the lists led by this deck also play, zone by zone, staples left out. */
-export const Alongside = ({ lead, season, busy, onVariation, onStaple, onError }: { lead: DeckDetail; season: number; busy: boolean; onVariation: (code: number, label: string) => void; onStaple: (card: number, label: string) => void; onError: (message: string) => void }) => {
+export const Alongside = ({ lead, season, busy, onStaple, onError }: { lead: DeckDetail; season: number; busy: boolean; onStaple: (card: number, label: string) => void; onError: (message: string) => void }) => {
+  // codes that share a deck name with the lead: a version the build set
+  const inVersion = new Set(lead.decks.flatMap((d) => (d.codes.length > 1 ? d.codes.slice(1) : [])))
   const read = useResource(`alongside:${lead.code}:${season}`, (signal) => getDeckAlongside(lead.code, season, signal))
   const [show, setShow] = useStored<Show>('deck.alongside.show', 'all')
   const [zone, setZone] = useStored<Zone>('deck.alongside.zone', 'all')
@@ -138,21 +138,17 @@ export const Alongside = ({ lead, season, busy, onVariation, onStaple, onError }
                             <Link className="nm" href={`/admin/decks/${r.code}`}>
                               {r.name ?? hex(r.code)}
                             </Link>
-                            <span className="cap">{[r.variation ? VARIATION[r.variation] : null, r.ignore === 'off' ? null : IGNORED[r.ignore]].filter(Boolean).join(' · ') || 'Never a raw pair with it'}</span>
+                            <span className="cap">{inVersion.has(r.code) ? 'In a version with it' : 'Not in a version with it'}</span>
                           </span>
                         </span>
                       </td>
                       <Cells row={r} distinct top={top} />
                       <td className="r">
-                        {z.key === 'side' ? null : r.variation ? (
-                          <a className="act" href="#variations">
-                            Open variation
+                        {inVersion.has(r.code) ? (
+                          <a className="act" href="#decks">
+                            See the deck
                           </a>
-                        ) : (
-                          <button type="button" className="act" disabled={busy} onClick={() => onVariation(r.code, r.name ?? hex(r.code))}>
-                            Make variation
-                          </button>
-                        )}
+                        ) : null}
                       </td>
                     </tr>
                   ))}
