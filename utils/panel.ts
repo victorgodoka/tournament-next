@@ -401,7 +401,7 @@ export const setStaple = (card: number, enabled: boolean) =>
 /** Forgets the decision; the next build decides again. `404` when the card has none. */
 export const resetStaple = (card: number) => request<void>(`/panel/staples/${card}`, json('DELETE'))
 
-/** A generic package: every card of the setcode becomes a manual staple. Idempotent. */
+/** A generic package: every card of the setcode with no manual setting becomes a staple; answers the cards written now. */
 export const setArchetypeStaples = (code: number) => request<{ code: number; cards: number[] }>(`/panel/staples/archetype/${code}`, json('PUT'))
 
 /** Undoes it: the setcode's cards go back to the automatic detection. */
@@ -639,8 +639,12 @@ export type NoisePackage = DeckIdentity & {
   /** Different leads whose versions hold it as a second or third name. */
   leads: number
   lists: number
+  /** Lists it leads itself: a real engine that is also everywhere would lose them. */
+  leadLists: number
   /** A plain setcode: its cards can be made staples at once. */
   canStaple: boolean
+  /** Its cards were staged as staples; `resetArchetypeStaples` undoes it. */
+  staged: boolean
 }
 
 /** The decks a lead names: its versions, plus the pure deck when it has lists. */
@@ -658,7 +662,9 @@ export type DeckVersion = {
   share: number
   /** The set's share of the season's lists (what decides a version); `null` on the pure row or when unknown. */
   seasonShare: number | null
-  /** Under 1.5 × versionShare: it may stop naming decks after a build. */
+  /** The set's lists in the season (the list floor applies to them); `null` as above. */
+  seasonLists: number | null
+  /** Open season only: share or lists under 1.5 × their minimum: it may stop naming decks after a build. */
   near: boolean
   /** `null` on the pure row. */
   duelists: number | null

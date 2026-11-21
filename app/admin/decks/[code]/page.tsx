@@ -103,7 +103,9 @@ const DeckPage = () => {
               </span>
               <span className="cap">
                 {pure ? 'The pure deck' : v.firstDay ? `Seen since ${day(v.firstDay)}` : 'No list in this season'}
-                {v.seasonShare !== null ? ` · ${percent(v.seasonShare)} of the season (needs ${percent(data.versionShare)})` : ''}
+                {v.seasonShare !== null && v.seasonLists !== null
+                  ? ` · ${count(v.seasonLists)} lists, ${percent(v.seasonShare)} of the season (needs ${count(data.minLists)} and ${percent(data.versionShare)})`
+                  : ''}
                 {isLow(v) ? ' · low value' : ''}
               </span>
             </span>

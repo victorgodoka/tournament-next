@@ -13,11 +13,12 @@ type Run = (id: string, request: Promise<unknown>, done: { title: string; body?:
 
 /** Archetypes that join versions of many leads: likely a generic package. One action makes its cards staples. */
 export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise']; run: Run; pending: string | null }) => {
+  const undo = (code: number, name: string) => run(`noise:${code}`, resetArchetypeStaples(code), { title: `${name} cards are back to the automatic detection`, body: TWO_STEPS })
   const stage = (code: number, name: string) =>
     run(`noise:${code}`, setArchetypeStaples(code), {
-      title: `Every ${name} card is a staple now`,
-      body: `It stops joining deck names. ${TWO_STEPS}`,
-      undo: () => run(`noise:${code}`, resetArchetypeStaples(code), { title: `${name} cards are back to the automatic detection` }),
+      title: `${name} cards are staples now`,
+      body: `Cards you set by hand stay as they are. It stops joining deck names. ${TWO_STEPS}`,
+      undo: () => undo(code, name),
     })
   return (
     <section className="col" style={{ gap: 16 }}>
@@ -47,14 +48,20 @@ export const NoisePackages = ({ noise, run, pending }: { noise: DeckList['noise'
                         <Link className="nm" href={`/admin/decks/${n.code}`}>
                           {name}
                         </Link>
-                        <span className="cap">Second or third name in versions of {n.leads} different leads</span>
+                        <span className="cap">
+                          Second or third name in versions of {n.leads} different leads
+                          {n.leadLists > 0 ? ` · leads ${count(n.leadLists)} lists itself` : ''}
+                          {n.staged ? ' · staged as staples' : ''}
+                        </span>
                       </span>
                     </span>
                   </td>
                   <td className="r ink">{count(n.leads)}</td>
                   <td className="r">{count(n.lists)}</td>
                   <td className="r">
-                    {n.canStaple ? (
+                    {n.staged ? (
+                      <RowAction id={`noise:${n.code}`} pending={pending} label="Undo the staples" doing="Undoing…" danger onClick={() => undo(n.code, name)} />
+                    ) : n.canStaple ? (
                       <RowAction id={`noise:${n.code}`} pending={pending} label="Make its cards staples" doing="Saving…" onClick={() => stage(n.code, name)} />
                     ) : (
                       <span className="cap">A Series: adjust it in its editor</span>

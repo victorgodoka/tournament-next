@@ -14,7 +14,7 @@ import { deckCount, listDecks, panelErrorText, type IdentifiedDeck } from '@util
 import { getSeasons } from '@utils/statistics'
 import { count, Cover, Failure, Head, hex, kindLabel, LowValueControl, passesLow, percent, Rail, ShareBar, useAction, useStored, type LowMode } from '../shared'
 import { CoverPicker } from './CoverPicker'
-import { writeCover } from './covers'
+import { coverSeasonOf, writeCover } from './covers'
 import { ClosestToMinimum, NameChanges, NoisePackages } from './Signals'
 
 type Sort = 'lists' | 'wr' | 'versions' | 'name'
@@ -70,8 +70,6 @@ const DecksPage = () => {
   const rows = inScope.filter(FILTERS[only]).sort(SORT[sort])
   const hidden = all.filter(matches).length - inScope.length
   const top = Math.max(0.0001, ...all.map((d) => d.tcg?.share ?? 0))
-  // the cover candidates come from the lists of one season: TCG when there is one
-  const coverSeason = data?.seasons.tcg?.id ?? data?.seasons.genesys?.id
   const pin = (d: IdentifiedDeck, card: number) => {
     setPicking(null)
     run(`cover:${d.code}`, writeCover(d, card), {
@@ -192,7 +190,7 @@ const DecksPage = () => {
                   <td>
                     <span className="fx" style={{ gap: 6 }}>
                       {d.cover?.pinned ? null : <Chip tone="neutral">No cover</Chip>}
-                      {d.cover?.pinned || coverSeason === undefined ? null : (
+                      {d.cover?.pinned || !data || coverSeasonOf(d, data.seasons) === undefined ? null : (
                         <button type="button" className="act" disabled={busy} onClick={(e) => { e.stopPropagation(); setPicking(picking === d.code ? null : d.code) }}>
                           {picking === d.code ? 'Close' : 'Pick'}
                         </button>
@@ -217,11 +215,11 @@ const DecksPage = () => {
                     </Link>
                   </td>
                 </tr>
-                {picking === d.code && coverSeason !== undefined ? (
+                {picking === d.code && data && coverSeasonOf(d, data.seasons) !== undefined ? (
                   <tr className="sub">
                     <td colSpan={10}>
                       <span className="lbl-sm">Pick the cover of {d.name ?? hex(d.code)} · most included cards first</span>
-                      <CoverPicker code={d.code} season={coverSeason} busy={busy} onPick={(card) => pin(d, card)} />
+                      <CoverPicker code={d.code} season={coverSeasonOf(d, data.seasons)!} busy={busy} onPick={(card) => pin(d, card)} />
                     </td>
                   </tr>
                 ) : null}
