@@ -401,6 +401,12 @@ export const setStaple = (card: number, enabled: boolean) =>
 /** Forgets the decision; the next build decides again. `404` when the card has none. */
 export const resetStaple = (card: number) => request<void>(`/panel/staples/${card}`, json('DELETE'))
 
+/** A generic package: every card of the setcode with no manual setting becomes a staple; answers the cards written now. */
+export const setArchetypeStaples = (code: number) => request<{ code: number; cards: number[] }>(`/panel/staples/archetype/${code}`, json('PUT'))
+
+/** Undoes it: the setcode's cards go back to the automatic detection. */
+export const resetArchetypeStaples = (code: number) => request<void>(`/panel/staples/archetype/${code}`, json('DELETE'))
+
 /* ---------------------------------------------------------------- *
  * Settings (section 10) — values staff tune without a deploy
  * ---------------------------------------------------------------- */
@@ -605,7 +611,7 @@ export const toSeriesInput = (series: Series): SeriesInput => ({
 export type DeckKind = 'setcode' | 'series-setcode' | 'series'
 export type DeckIdentity = { code: number; name: string | null; kind: DeckKind; seriesId: number | null }
 export type DeckCover = { card: number; pinned: boolean } | null
-export type DeckLadder = { lists: number; share: number; winRate: number | null; duelists: number; secondaryLists: number } | null
+export type DeckLadder = { lists: number; share: number; winRate: number | null; duelists: number; secondaryLists: number; pureLists: number } | null
 export type DeckSeason = { id: number; code: string; label: string; open: boolean }
 
 export type IdentifiedDeck = DeckIdentity & {
@@ -623,16 +629,43 @@ export type DeckList = {
   lowValueShare: number
   totals: { tcg: number; genesys: number }
   decks: IdentifiedDeck[]
+  /** Codes that join versions of many leads: they look like a generic package, not an engine. */
+  noise: NoisePackage[]
 }
 
 /** A final key: the pure deck (one code) or a version. Its numbers equal /statistics. */
+export type NoisePackage = DeckIdentity & {
+  cover: DeckCover
+  /** Different leads whose versions hold it as a second or third name. */
+  leads: number
+  lists: number
+  /** Lists it leads itself: a real engine that is also everywhere would lose them. */
+  leadLists: number
+  /** A plain setcode: its cards can be made staples at once. */
+  canStaple: boolean
+  /** Its cards were staged as staples; `resetArchetypeStaples` undoes it. */
+  staged: boolean
+}
+
+/** The decks a lead names: its versions, plus the pure deck when it has lists. */
+export const deckCount = (d: Pick<IdentifiedDeck, 'versions' | 'tcg' | 'genesys'>) =>
+  d.versions + ((d.tcg?.pureLists ?? 0) + (d.genesys?.pureLists ?? 0) > 0 ? 1 : 0)
+
 export type DeckVersion = {
   codes: number[]
   key: string
   names: (string | null)[]
+  /** The cover of each name, as a lead; `null`: nothing to show. */
+  covers: (number | null)[]
   lists: number
   /** Of the lead's lists in this season. */
   share: number
+  /** The set's share of the season's lists (what decides a version); `null` on the pure row or when unknown. */
+  seasonShare: number | null
+  /** The set's lists in the season (the list floor applies to them); `null` as above. */
+  seasonLists: number | null
+  /** Open season only: share or lists under 1.5 × their minimum: it may stop naming decks after a build. */
+  near: boolean
   /** `null` on the pure row. */
   duelists: number | null
   winRate: number | null
@@ -670,6 +703,8 @@ export type DeckDetail = DeckIdentity & {
   cover: { pinned: number | null; card: number | null; candidates: { card: number; name: string | null; inclusion: number }[] }
   lowValueShare: number
   versionShare: number
+  /** Lists a version needs in this season (the format's minKeyGames). */
+  minLists: number
   /** The pure deck first, then its versions, by lists. */
   decks: DeckVersion[]
   under: UnderSet[]
@@ -700,6 +735,17 @@ export const getDeck = (code: number, season: number, signal?: AbortSignal) => r
 
 export const getDeckAlongside = (code: number, season: number, signal?: AbortSignal) =>
   request<Alongside>(`/panel/decks/${code}/alongside${search({ season })}`, { signal })
+
+export type SeasonUnder = { season: DeckSeason & { ladder: RankedLadderId }; versionShare: number; minLists: number; lists: number; sets: UnderSet[] }
+
+/** The season's sets that are not versions, any lead, most lists first: the closest to naming decks. */
+export const getSeasonUnder = (season: number, signal?: AbortSignal) => request<SeasonUnder>(`/panel/decks/under${search({ season })}`, { signal })
+
+export type VersionChange = { codes: number[]; names: (string | null)[] }
+export type VersionChanges = { since: string; added: VersionChange[]; removed: VersionChange[] }
+
+/** Versions that started or stopped naming decks in the last `days` days (default 7). */
+export const getVersionChanges = (days?: number, signal?: AbortSignal) => request<VersionChanges>(`/panel/decks/changes${search({ days })}`, { signal })
 
 /* ---------------------------------------------------------------- *
  * Filters (section 9.2.3): a saved card search a Series attaches

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as panel from './panel'
-import { createFilter, createSeries, deleteSeries, DEFAULT_CLASSIFICATION, EMPTY_RULES, getDeck, getDeckAlongside, listDecks, previewFilter, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
+import { createFilter, createSeries, deckCount, deleteSeries, DEFAULT_CLASSIFICATION, EMPTY_RULES, getDeck, getDeckAlongside, getSeasonUnder, getVersionChanges, resetArchetypeStaples, setArchetypeStaples, listDecks, previewFilter, getPanelDeck, listPanelDecks, listSeries, listStaples, resetStaple, setStaple, startAnalyticsSync, updateApiAccount, updateSeries, updateSettings } from './panel'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -102,6 +102,33 @@ describe('identified decks (read only) and filters', () => {
     const along = stub({})
     await getDeckAlongside(65561, 14)
     expect(url(along).pathname + url(along).search).toBe('/panel/decks/65561/alongside?season=14')
+  })
+
+  it('reads the sets under the minimum and the name changes', async () => {
+    const under = stub({ sets: [] })
+    await getSeasonUnder(14)
+    expect(url(under).pathname + url(under).search).toBe('/panel/decks/under?season=14')
+    const changes = stub({ added: [], removed: [] })
+    await getVersionChanges(7)
+    expect(url(changes).pathname + url(changes).search).toBe('/panel/decks/changes?days=7')
+  })
+
+  it('stages and undoes the staples of a whole setcode', async () => {
+    const put = stub({ code: 392, cards: [1, 2] })
+    expect(await setArchetypeStaples(392)).toEqual({ code: 392, cards: [1, 2] })
+    expect(url(put).pathname).toBe('/panel/staples/archetype/392')
+    expect(init(put).method).toBe('PUT')
+    const del = stub(null, 204)
+    await resetArchetypeStaples(392)
+    expect(url(del).pathname).toBe('/panel/staples/archetype/392')
+    expect(init(del).method).toBe('DELETE')
+  })
+
+  it('counts the pure deck only when it has lists', () => {
+    const ladder = (pureLists: number) => ({ lists: 10, share: 0.1, winRate: null, duelists: 3, secondaryLists: 0, pureLists })
+    expect(deckCount({ versions: 2, tcg: ladder(0), genesys: null })).toBe(2)
+    expect(deckCount({ versions: 2, tcg: ladder(0), genesys: ladder(4) })).toBe(3)
+    expect(deckCount({ versions: 0, tcg: null, genesys: null })).toBe(0)
   })
 
   it('has no call for variations, ignoring, review or a third name: the build names decks by itself', () => {
