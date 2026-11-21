@@ -43,6 +43,11 @@ describe('settingsBody', () => {
     expect(settingsBody({ t2Gap: '1.5' }, stored)).toEqual({ 'analytics.tiers': { t1Gap: 0.005, t3Gap: 0.03, t2Gap: 0.015 } })
   })
 
+  it('drops the retired classification keys still stored: the server refuses them', () => {
+    const stored = { 'analytics.classification': { maxNames: 3, candidateCards: 2, candidatePoints: 5, stapleShare: 0.12 } } as never
+    expect(settingsBody({ versionShare: '1' }, stored)).toEqual({ 'analytics.classification': { stapleShare: 0.12, versionShare: 0.01 } })
+  })
+
   it('drops the old absolute marks still stored: the server refuses them', () => {
     const stored = { 'analytics.tiers': { t1: 0.56, t15: 0.54, t1Gap: 0.005 } } as never
     expect(settingsBody({ t2Gap: '1' }, stored)).toEqual({ 'analytics.tiers': { t1Gap: 0.005, t2Gap: 0.01 } })

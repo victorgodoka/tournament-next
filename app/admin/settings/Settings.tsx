@@ -64,7 +64,8 @@ export const settingsBody = (draft: Draft, stored: PanelSettings = {}): PanelSet
   return {
     // only today's keys of what is stored: an old absolute mark (`t1`…`t4`) would be refused
     ...(Object.keys(tiers).length ? { 'analytics.tiers': { ...pick(stored['analytics.tiers'], TIERS.map((t) => t.key)), ...tiers } } : {}),
-    ...(Object.keys(classification).length ? { 'analytics.classification': { ...stored['analytics.classification'], ...classification } } : {}),
+    // the same for the classification keys retired with automatic naming (maxNames, candidateCards, candidatePoints)
+    ...(Object.keys(classification).length ? { 'analytics.classification': { ...pick(stored['analytics.classification'], Object.keys(DEFAULT_CLASSIFICATION)), ...classification } } : {}),
     ...(Object.keys(filters).length
       ? { 'analytics.filters': { ...storedFilters, ...Object.fromEntries(Object.entries(filters).map(([f, one]) => [f, { ...storedFilters[f as Format], ...one }])) } }
       : {}),
