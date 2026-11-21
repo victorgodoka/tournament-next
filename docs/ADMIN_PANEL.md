@@ -243,6 +243,16 @@ key.
 - Stat row: Identified · Versions · Low value · Series. Deck names are set by the build (automatic naming,
   server `docs/DECK_CLASSIFICATION.md`): nothing on these screens is decided by hand except covers.
 
+### 5.1.1 Signals, above the table
+
+Three blocks help shape what the build names, before the table of leads ("04 Every lead"):
+
+| Block | Shows | Action |
+|---|---|---|
+| 01 Looks like a generic package | `DeckList.noise`: archetypes that join versions of 5+ different leads as 2nd or 3rd name (cover, name, leads, lists) | `Make its cards staples` (`setArchetypeStaples`), with Undo in the toast (`resetArchetypeStaples`). A Series says "adjust it in its editor" instead |
+| 02 Name changes | `getVersionChanges(7)`: "New versions" and "No longer a version" this week, each a link to its lead | — |
+| 03 Closest to naming decks | `getSeasonUnder(season)`, TCG / Genesys toggle: the top 15 sets under the minimum, any lead, with lists "of <minLists>", share "of <versionShare>" and where their lists go | — (tune `versionShare` in Settings) |
+
 ### 5.2 Toolbar
 
 | Control | Behaviour |
@@ -261,11 +271,11 @@ Low value, cut-off and sort are remembered per admin (localStorage).
 | Column | Content |
 |---|---|
 | Deck | Cover (square art crop; a dashed "?" tile when there is none), name, kind (`Setcode` · `Series over setcode` · `Series, new archetype`) and code in mono |
-| State | Chip `No cover` (neutral) when no cover is pinned |
+| State | Chip `No cover` (neutral) when no cover is pinned, and `Pick`: opens a row under it with the cover candidates (`CoverPicker`, from the TCG season, else Genesys) and `Or any card`; a pick saves at once with Undo |
 | TCG lists · TCG share · TCG win rate | Lists led by it, share of all TCG lists (bar plus percent), win rate |
 | Genesys lists · Genesys share | Same for Genesys |
 | As secondary | Lists led by another deck where it is the second or third name |
-| Decks | The pure deck plus its versions (`1 + versions`) |
+| Decks | Its versions plus the pure deck when the pure deck has lists (`deckCount`) |
 | Action | `Open` → `/admin/decks/<code>` |
 
 A row is a link as a whole; `Open` is the accessible name.
@@ -313,7 +323,7 @@ and second) · Pure lists (no second archetype) · Named cards (mean, min–max)
 
 | Column | Content |
 |---|---|
-| Deck | The cover of each name (the lead's cover; others show the placeholder), the composed name, "The pure deck" or "Seen since <day>" |
+| Deck | The cover of each name (`covers`; the lead shows its cover here), the composed name with `Near the minimum` (amber) when `near`, and "The pure deck" or "Seen since <day> · <seasonShare> of the season (needs <versionShare>)" |
 | Lists · Of its lists | Count, and share of the lead's lists as a bar |
 | Duelists · Win rate · vs pure | `—` for duelists on the pure row; `vs pure` in points, green or red |
 | Cards of the others | Mean cards of each other name in those lists |
@@ -322,7 +332,7 @@ and second) · Pure lists (no second archetype) · Named cards (mean, min–max)
 Low value `Show` / `Hide` / `Only` with its own cut-off (percent of this deck's lists, default 2) dims
 versions only.
 
-**Under the minimum** (a second table): `DeckDetail.under`, the sets it leads that are not versions:
+**Under the minimum** (a second table, lists shown "of <minLists>"): `DeckDetail.under`, the sets it leads that are not versions:
 the set, its lists, its share of the season against `versionShare`, and "Counted as" the deck its lists
 go to.
 
