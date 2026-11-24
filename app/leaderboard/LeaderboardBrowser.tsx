@@ -117,7 +117,7 @@ const Who = ({ r, size, className }: { r: Row; size: 'sm' | 'lg'; className: str
 )
 
 /* ---------- Leaderboard: rank 4 and below ---------- */
-const COLS = ['#', 'Duelist', 'Tier', 'Elo', 'W–L–D', 'Win rate']
+const COLS = ['#', 'Duelist', 'Tier', 'Glicko-2', 'W–L–D', 'Win rate']
 
 const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; label: string }) => (
   <div className="oh-lb has-rate" role="table" aria-label={label}>
@@ -188,7 +188,7 @@ const LeaderboardPodium = ({ rows, label }: { rows: Row[]; label: string }) =>
           </div>
           <dl className="oh-podium-stats">
             <div className="is-elo">
-              <dt>Elo</dt>
+              <dt>Glicko-2</dt>
               <dd>{r.elo}</dd>
             </div>
             <div>
@@ -532,8 +532,8 @@ export const LeaderboardBrowser = ({
 
       <p className="oh-rl-note">
         {closed
-          ? `Elo, tier and rank are frozen as ${seasonName} closed. W–L–D counts only games in that season, and names and avatars are current.`
-          : 'Elo and tier are read from the game server and cached for 30 minutes, so a profile can be a little ahead of this list. W–L–D counts only games in the open season. Only duelists who have played it are listed.'}
+          ? `Glicko-2 rating, tier and rank are frozen as ${seasonName} closed. W–L–D counts only games in that season, and names and avatars are current.`
+          : 'Glicko-2 rating and tier are read from the game server and cached for 30 minutes, so a profile can be a little ahead of this list. W–L–D counts only games in the open season. Only duelists who have played it are listed.'}
       </p>
     </div>
   )

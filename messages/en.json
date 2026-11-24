@@ -2655,7 +2655,7 @@
       "gameRate": "Game win rate",
       "ofGames": "{wins} / {total} games"
     },
-    "elo": { "title": "Elo history", "meta": "Open season · one point a day", "now": "Now", "none": "No daily Elo points for this selection: they are recorded for the open season only." },
+    "elo": { "title": "Glicko-2 history", "meta": "Open season · one point a day", "now": "Now", "none": "No daily Glicko-2 points for this selection: they are recorded for the open season only." },
     "decks": {
       "title": "Performance by deck",
       "meta": "Click a deck to focus the matchups",
@@ -2685,8 +2685,8 @@
       "meta": "From the numbers above",
       "none": "Nothing to point out yet: lines appear with {min}+ matches.",
       "lines": {
-        "eloUp": "Your Elo went up {points} points in this period.",
-        "eloDown": "Your Elo went down {points} points in this period.",
+        "eloUp": "Your Glicko-2 rating went up {points} points in this period.",
+        "eloDown": "Your Glicko-2 rating went down {points} points in this period.",
         "rateUp": "Your win rate is {points} pts higher than the period before ({now} vs {before} matches).",
         "rateDown": "Your win rate is {points} pts lower than the period before ({now} vs {before} matches).",
         "deckCompare": "Your win rate with {best} ({bestRate}, {bestN} matches) is higher than with {worst} ({worstRate}, {worstN}).",
@@ -2846,7 +2846,7 @@
       "gameWinRate": "Game win rate",
       "record": "W-L-D",
       "recent": "Last results",
-      "elo": "Elo",
+      "elo": "Glicko-2",
       "mostPlayed": "Most played deck",
       "deckLine": "{matches} matches · {rate} win rate",
       "best": "Best matchups",

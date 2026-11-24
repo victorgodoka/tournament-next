@@ -31,7 +31,7 @@ describe('player insights', () => {
     expect(byPair(rows).map((d) => d.key)).toEqual(['1|2', '1|3', '4|2'])
   })
 
-  it('takes the Elo change from the first point of the period', () => {
+  it('takes the rating change from the first point of the period', () => {
     const history = [{ day: '2026-10-01', seasonDay: 1, elo: 1500 }, { day: '2026-10-18', seasonDay: 18, elo: 1600 }]
     expect(eloChange(history, 1650, 7, NOW)).toBe(50)
     expect(eloChange(history, 1650, null, NOW)).toBe(150)

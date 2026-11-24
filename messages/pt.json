@@ -2654,7 +2654,7 @@
       "gameRate": "Win rate por game",
       "ofGames": "{wins} / {total} games"
     },
-    "elo": { "title": "Evolução do Elo", "meta": "Temporada aberta · um ponto por dia", "now": "Agora", "none": "Sem pontos diários de Elo para esta seleção: eles só são gravados na temporada aberta." },
+    "elo": { "title": "Evolução do Glicko-2", "meta": "Temporada aberta · um ponto por dia", "now": "Agora", "none": "Sem pontos diários de Glicko-2 para esta seleção: eles só são gravados na temporada aberta." },
     "decks": {
       "title": "Desempenho por arquétipo",
       "meta": "Clique num deck para focar os matchups",
@@ -2684,8 +2684,8 @@
       "meta": "A partir dos números acima",
       "none": "Nada a apontar ainda: as observações aparecem com {min}+ partidas.",
       "lines": {
-        "eloUp": "Seu Elo subiu {points} pontos neste período.",
-        "eloDown": "Seu Elo caiu {points} pontos neste período.",
+        "eloUp": "Seu rating Glicko-2 subiu {points} pontos neste período.",
+        "eloDown": "Seu rating Glicko-2 caiu {points} pontos neste período.",
         "rateUp": "Seu win rate está {points} pts acima do período anterior ({now} vs {before} partidas).",
         "rateDown": "Seu win rate está {points} pts abaixo do período anterior ({now} vs {before} partidas).",
         "deckCompare": "Seu win rate com {best} ({bestRate}, {bestN} partidas) é maior que com {worst} ({worstRate}, {worstN}).",
@@ -2845,7 +2845,7 @@
       "gameWinRate": "Win rate de games",
       "record": "V-D-E",
       "recent": "Últimos resultados",
-      "elo": "Elo",
+      "elo": "Glicko-2",
       "mostPlayed": "Deck mais jogado",
       "deckLine": "{matches} partidas · {rate} de win rate",
       "best": "Melhores matchups",

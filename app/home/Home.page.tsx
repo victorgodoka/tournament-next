@@ -129,13 +129,13 @@ const Hero = ({ ranked }: { ranked: Ranked }) => (
     <Image src="/omega-mark.png" alt="" width={720} height={720} sizes="min(720px, 70vw)" aria-hidden className="absolute -top-[4%] -right-[6%] w-[min(720px,70%)] opacity-9" />
     <div className={twMerge(WRAP, "relative flex flex-col gap-[clamp(32px,5vw,64px)]")}>
       <Eyebrow tone="cyan" meta="Windows · macOS · Linux · Android · iOS">Free · every card unlocked</Eyebrow>
-      <h1 className="text-[clamp(44px,7.6vw,96px)] display-hero">
-        The first <span className="whitespace-nowrap">Yu-Gi-Oh!</span> simulator with <span className="text-cyan">automatic tournaments</span>
+      <h1 className="text-[clamp(34px,4.8vw,60px)] display-hero">
+        The First <span className="whitespace-nowrap">Yu-Gi-Oh!</span> Simulator with <span className="text-cyan">Automatic Tournaments</span>
       </h1>
       <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-10">
         <div className="flex max-w-155 flex-[1_1_380px] flex-col gap-7">
           <p className={twMerge(BAND_LEAD, "max-w-[56ch]")}>
-            Official TCG and OCG rulings, every card unlocked, Elo ranking, and Swiss tournaments. No install beyond the launcher. Free.
+            Official TCG and OCG rulings, every card unlocked, Glicko-2 ranking, and Swiss tournaments. No install beyond the launcher. Free.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <Download size="lg" />
@@ -175,7 +175,7 @@ const ValueCards = () => (
     <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-gold)]")}>
       <CardGlow tone="bg-[radial-gradient(circle,rgba(239,209,126,0.22)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
-        <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-gold">$0</p>
+        <p className="font-display text-[clamp(44px,5.6vw,72px)] leading-[0.9] text-gold">$0</p>
         <ul aria-hidden className="flex flex-col items-end gap-2.5">
           {["Currency", "Crafting", "Packs"].map((word, i) => (
             <li key={word} className="relative title text-[clamp(20px,2vw,26px)] leading-none text-ink-muted">
@@ -200,7 +200,7 @@ const ValueCards = () => (
     <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
       <CardGlow tone="bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-cyan)_18%,transparent)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
-        <p className="font-display text-[clamp(72px,9vw,128px)] leading-[0.82] text-cyan">Elo</p>
+        <p className="font-display text-[clamp(44px,5.6vw,72px)] leading-[0.9] text-cyan">Glicko-2</p>
         <span aria-hidden className="flex flex-col items-end gap-1.5">
           <span className="text-ink-muted signal-sm">Rating</span>
           <span className="elo-count animate-count font-mono text-[clamp(28px,3vw,40px)] leading-none font-bold text-ink" />
@@ -287,7 +287,7 @@ const Tournaments = () => (
               <Icon name="calendar" />
               See the calendar
             </Button>
-            <span className={NOTE}>Free entry. Elo counted.</span>
+            <span className={NOTE}>Free entry. Counts toward Glicko-2.</span>
           </div>
         </div>
       </div>
@@ -486,7 +486,7 @@ const Modes = () => (
     <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
       <h2 className={twMerge(BAND_TITLE, "max-w-[14ch] flex-[1_1_560px]")}>Automatic and manual, in the same client</h2>
       <p className={twMerge(BAND_LEAD, "max-w-[44ch] flex-[1_1_320px]")}>
-        Nobody has to pick a platform. Practice a physical tournament by hand on Monday, grind Elo on the engine on Tuesday, keep one install.
+        Nobody has to pick a platform. Practice a physical tournament by hand on Monday, climb the Glicko-2 ladder on the engine on Tuesday, keep one install.
       </p>
     </div>
     <div className="flex flex-wrap gap-px border border-line-strong bg-line-strong">
