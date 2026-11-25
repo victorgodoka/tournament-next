@@ -1,22 +1,20 @@
 import { Suspense } from "react";
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArtCard,
   ArtCardGrid,
-  Avatar,
   Button,
   CharacterLine,
   Chip,
   Eyebrow,
   Icon,
-  MediaCard,
   RailHead,
   Sticker,
   type IconName,
 } from "@omega-hub/ds";
 import { CardArt } from "@omega/card-art";
-import { LocalDay } from "@omega/wiki/local-day";
+import { ArticleCard } from "@omega/wiki/article";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
 import { CARD_ART_URL, DOWNLOAD_BUILDS, DOWNLOAD_URL, HOME_META_DECKS, HOME_NAVBAR_ITEMS, RELEASES_URL } from "@utils/const";
@@ -501,13 +499,6 @@ const LatestWiki = async () => {
   return articles.length ? <Wiki articles={articles} /> : null
 }
 
-/**
- * MediaCard takes one plain URL, so the cover goes through Next's optimizer here instead of shipping the 1920px
- * original into a ~455px card. 400 wide picks the 828 variant for 2x screens (`src` is the largest srcset entry).
- */
-const coverSrc = ({ cover }: ArticleSummary) =>
-  cover ? getImageProps({ src: cover.src, alt: "", width: 400, height: 172, quality: 75 }).props.src : undefined
-
 const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
   <section id="wiki" className="ol-sec">
     <RailHead num="09" label="From the wiki" stamp="Latest" />
@@ -524,34 +515,7 @@ const Wiki = ({ articles }: { articles: ArticleSummary[] }) => (
         </Button>
       </div>
       <ArtCardGrid columns={3}>
-        {articles.map((article) => {
-          const author = article.author.username ?? "Omega"
-          return (
-            <MediaCard
-              key={article.id}
-              size="sm"
-              ratio="cinema"
-              href={`/wiki/${article.slug}`}
-              accent="cyan"
-              image={coverSrc(article)}
-              imageAlt={article.cover?.alt ?? ""}
-              title={article.title}
-              titleAs="h3"
-              meta={
-                <>
-                  <Avatar name={author} src={article.author.avatarUrl} size="sm" />
-                  <span className="font-semibold text-ink-dim">{author}</span>
-                  <span>
-                    · <LocalDay iso={article.publishedAt ?? article.updatedAt} />
-                    {article.views === undefined ? null : ` · ${article.views} views`}
-                  </span>
-                </>
-              }
-            >
-              {article.summary || null}
-            </MediaCard>
-          )
-        })}
+        {articles.map((article) => <ArticleCard key={article.id} article={article} layout="stack" ratio="cinema" />)}
       </ArtCardGrid>
     </div>
   </section>

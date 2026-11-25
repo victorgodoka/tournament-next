@@ -1,9 +1,7 @@
-import Image from 'next/image'
-import Link from 'next/link'
+import Image, { getImageProps } from 'next/image'
 import { twMerge } from 'tailwind-merge'
+import { Avatar, Chip, Icon, MediaCard } from '@omega-hub/ds'
 import { LocalDay } from '@omega/wiki/local-day'
-import { Chip } from '@ui/chip'
-import { Icon } from '@ui/icon'
 import type { ArticleSummary, WikiUser } from '@utils/types'
 import { topicOf, WIKI_TOPICS, type WikiTopic } from '@utils/wiki-topics'
 
@@ -80,52 +78,65 @@ export const TopicIcon = ({ topic, size = 20 }: { topic: WikiTopic; size?: numbe
   </svg>
 )
 
-/** The hairline grid the index rows sit in. */
-export const ARTICLE_LIST = 'grid gap-px border border-line bg-line'
+/** The list the index cards sit in. */
+export const ARTICLE_LIST = 'grid gap-3'
 
-/** Index row: cover or topic glyph, topic, title, summary, then who and when. A phone keeps the title and the stamp. */
-export const ArticleRow = ({ article }: { article: ArticleSummary }) => {
+/**
+ * MediaCard takes one plain URL, so a cover goes through Next's optimizer here instead of shipping the original.
+ * `src` is the largest srcset entry: 176 wide resolves to the 640 variant, 400 to the 828 one, 800 to the 1920 one
+ * (only for a featured card whose tall row crops deep into the cover).
+ */
+export const coverUrl = (cover: { src: string } | null | undefined, width: 176 | 400 | 800) =>
+  cover ? getImageProps({ src: cover.src, alt: '', width, height: Math.round(width * 0.5625), quality: 75 }).props.src : undefined
+
+/** Who wrote it, when, and its counts: a MediaCard's `meta` row. */
+export const ArticleMeta = ({ article }: { article: ArticleSummary }) => (
+  <>
+    <Avatar name={userName(article.author)} src={article.author.avatarUrl} size="sm" />
+    <span className="font-semibold text-ink-dim">{userName(article.author)}</span>
+    <span aria-hidden>·</span>
+    <LocalDay iso={article.publishedAt ?? article.updatedAt} />
+    {/* Absent until the API deploy that adds them: hide rather than show zeros. */}
+    {article.views === undefined ? null : (
+      <>
+        <span aria-hidden>·</span>
+        <CardStat icon="eye" count={article.views} label="views" />
+        <CardStat icon="heartOutline" count={article.likes ?? 0} label="likes" />
+        <CardStat icon="comment" count={article.commentCount ?? 0} label="comments" />
+      </>
+    )}
+  </>
+)
+
+type ArticleCardProps = {
+  article: ArticleSummary
+  /** `row` for one-column lists (index, welcome); `stack` for grids. */
+  layout?: 'row' | 'stack'
+  size?: 'sm' | 'md' | 'lg'
+  ratio?: string
+  eager?: boolean
+}
+
+/** A wiki post: cover, topic, title, summary, then who and when. A draft says so over its cover. */
+export const ArticleCard = ({ article, layout = 'row', size = 'sm', ratio, eager }: ArticleCardProps) => {
   const topic = topicOf(article)
   return (
-    <li>
-      <Link
-        href={`/wiki/${article.slug}`}
-        className="grid h-full grid-cols-[88px_minmax(0,1fr)] bg-surface-100 text-ink-dim transition-colors duration-120 ease-out hover:bg-surface-200 hover:text-ink-dim motion-reduce:transition-none sm:grid-cols-[176px_minmax(0,1fr)]"
-      >
-        {/* Flush to the row's corner, the row's whole height, cropped never stretched. */}
-        <span className="dots relative flex min-h-22 items-center justify-center overflow-hidden bg-surface-200 text-line-mid">
-          {article.cover ? (
-            <Image src={article.cover.src} alt="" fill sizes="(min-width: 640px) 176px, 88px" className="object-cover" />
-          ) : topic ? (
-            <TopicIcon topic={topic} size={28} />
-          ) : null}
-        </span>
-        <span className="flex min-w-0 flex-col justify-center gap-1 p-3.5 sm:p-4">
-          <span className="flex items-center justify-between gap-3">
-            {topic ? <span className="text-azure-lift signal-sm sm:text-[11px] sm:tracking-[0.14em]">{WIKI_TOPICS[topic].label}</span> : <span />}
-            {article.publishedAt ? null : <StatusChip publishedAt={null} />}
-          </span>
-          <span className="text-[15px]/[21px] font-bold text-ink sm:text-base/[22px]">{article.title}</span>
-          {article.summary ? <span className="line-clamp-2 text-[13px]/5 max-sm:hidden">{article.summary}</span> : null}
-          <span className="mt-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-muted caption sm:mt-1">
-            <Byline user={article.author} size={18} className="max-sm:hidden" />
-            <span aria-hidden className="max-sm:hidden">
-              ·
-            </span>
-            <LocalDay iso={article.publishedAt ?? article.updatedAt} />
-            {/* Absent until the API deploy that adds them: hide rather than show zeros. */}
-            {article.views === undefined ? null : (
-              <>
-                <span aria-hidden>·</span>
-                <CardStat icon="eye" count={article.views} label="views" />
-                <CardStat icon="heartOutline" count={article.likes ?? 0} label="likes" />
-                <CardStat icon="comment" count={article.commentCount ?? 0} label="comments" />
-              </>
-            )}
-          </span>
-        </span>
-      </Link>
-    </li>
+    <MediaCard
+      href={`/wiki/${article.slug}`}
+      layout={layout}
+      size={size}
+      ratio={ratio}
+      eager={eager}
+      accent="cyan"
+      image={coverUrl(article.cover, layout === 'row' ? 176 : 400)}
+      badge={article.publishedAt ? undefined : <StatusChip publishedAt={null} />}
+      eyebrow={topic ? WIKI_TOPICS[topic].label : undefined}
+      title={article.title}
+      meta={<ArticleMeta article={article} />}
+      className="h-full"
+    >
+      {article.summary || null}
+    </MediaCard>
   )
 }
 

@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ArticleSummary } from '@utils/types'
-import { ArticleRow } from './article'
+import { ArticleCard } from './article'
 
 vi.mock('next/image', () => ({ default: () => null }))
 // The real one needs next-intl's provider.
@@ -20,9 +20,9 @@ const article: ArticleSummary = {
   updatedAt: '2026-09-12T18:04:11.201Z',
 }
 
-describe('ArticleRow', () => {
+describe('ArticleCard', () => {
   it('hides the counts when the API sent none', () => {
-    render(<ArticleRow article={article} />)
+    render(<ArticleCard article={article} />)
 
     expect(screen.queryByText('views')).toBeNull()
   })
@@ -30,7 +30,7 @@ describe('ArticleRow', () => {
   afterEach(cleanup)
 
   it('names a listed article\'s topic and counts its views, likes and comments', () => {
-    render(<ArticleRow article={{ ...article, slug: 'ygo-omega-faq', views: 1, likes: 2, commentCount: 3 }} />)
+    render(<ArticleCard article={{ ...article, slug: 'ygo-omega-faq', views: 1, likes: 2, commentCount: 3 }} />)
 
     expect(screen.getByText('Support')).toBeTruthy()
     expect(screen.getByText('1').textContent).toBe('1views')
@@ -39,7 +39,7 @@ describe('ArticleRow', () => {
   })
 
   it('shows a draft as one', () => {
-    render(<ArticleRow article={{ ...article, publishedAt: null }} />)
+    render(<ArticleCard article={{ ...article, publishedAt: null }} />)
 
     expect(screen.getByText('Draft')).toBeTruthy()
   })

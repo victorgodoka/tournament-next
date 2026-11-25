@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { WIKI_CHIP, WIKI_CHIP_ON, WIKI_SCROLL_ROW, WikiHead } from '@omega/wiki'
-import { ARTICLE_LIST, ArticleRow } from '@omega/wiki/article'
+import { ARTICLE_LIST, ArticleCard } from '@omega/wiki/article'
 import { buttonClasses } from '@ui/button'
 import { Icon } from '@ui/icon'
 import { listArticles, type ArticleQuery } from '@utils/articles'
@@ -127,9 +127,11 @@ export const ArticleList = ({ first, query, empty, num, heading, total, topics, 
                   const ad = adAfter(i, articles.length)
                   return (
                     <Fragment key={article.id}>
-                      <ArticleRow article={article} />
+                      <li>
+                        <ArticleCard article={article} eager={i < 2} />
+                      </li>
                       {ad ? (
-                        <li className="bg-space-000">
+                        <li>
                           <AdBanner id={`ad-list-${ad}`} placement="content" className="py-2" />
                         </li>
                       ) : null}

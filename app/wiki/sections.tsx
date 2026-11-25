@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { AdBanner } from '@omega/ads/ad-banner'
 import { NonVipOnly } from '@omega/ads/non-vip-only'
-import { WIKI_CARD, WIKI_CHIP, WIKI_TILE, WikiHead } from '@omega/wiki'
-import { Byline, COMPACT, TopicIcon } from '@omega/wiki/article'
+import { WIKI_CARD, WikiHead } from '@omega/wiki'
+import { MediaCard } from '@omega-hub/ds'
+import { ArticleMeta, COMPACT, coverUrl, TopicIcon } from '@omega/wiki/article'
 import { LocalDay } from '@omega/wiki/local-day'
 import { buttonClasses } from '@ui/button'
 import { Icon } from '@ui/icon'
@@ -162,43 +163,38 @@ export const TopicsSection = ({ articles }: { articles: ArticleSummary[] }) => (
 const ladderGames = (summary: string) => summary.match(/([\d,]+) YGO Omega ladder (?:games|matches)/)?.[1]?.replaceAll(',', ' ')
 
 const LADDER = {
-  tcg: { label: 'TCG ladder', edge: '[--edge:var(--color-ladder-tcg)]', text: 'text-ladder-tcg' },
-  genesys: { label: 'Genesys ladder', edge: '[--edge:var(--color-ladder-genesys)]', text: 'text-ladder-genesys' },
+  tcg: { label: 'TCG ladder', color: 'var(--color-ladder-tcg)', text: 'text-ladder-tcg' },
+  genesys: { label: 'Genesys ladder', color: 'var(--color-ladder-genesys)', text: 'text-ladder-genesys' },
 }
-
-/** `.cut` draws its edge as a plate under the fill, so the fill has to be the card's own color, never transparent. */
-const LadderChip = ({ ladder, children, className }: { ladder: keyof typeof LADDER; children: React.ReactNode; className?: string }) => (
-  <span className={twMerge(WIKI_CHIP, 'min-h-8 cursor-[inherit] px-3 text-ink hover:text-[inherit] hover:[--fill:var(--chip-ground)] [--fill:var(--chip-ground)]', LADDER[ladder].edge, className)}>
-    {children}
-  </span>
-)
 
 const LadderTile = ({ article, ladder }: { article: ArticleSummary; ladder: keyof typeof LADDER }) => {
   const games = ladderGames(article.summary)
   return (
-    <Link
+    <MediaCard
       href={`/wiki/${article.slug}`}
-      className={twMerge(WIKI_TILE, 'flex flex-1 flex-col gap-2.5 p-4 text-ink-dim [--chip-ground:var(--color-surface-100)] hover:text-ink-dim hover:[--chip-ground:var(--color-surface-200)] sm:gap-3 sm:p-6')}
-    >
-      <LadderChip ladder={ladder} className={twMerge('self-start max-sm:hidden', 'min-h-7 px-2.5', LADDER[ladder].text)}>
-        {LADDER[ladder].label}
-      </LadderChip>
-      <span className={twMerge('signal-strong sm:hidden', LADDER[ladder].text)}>{LADDER[ladder].label}</span>
-      <h3 className="text-lg/[1.1] text-ink display-3 sm:text-[22px]">{article.title}</h3>
-      {/* The list is replaced in place every week, so its last edit is its issue date. */}
-      <span className="text-ink-muted signal-sm">
-        Last updated <LocalDay iso={article.updatedAt} />
-      </span>
-      <div className="flex items-end justify-between gap-3">
-        {games ? (
-          <div className="flex flex-col gap-1">
-            <span className="text-[32px] text-ink stat-lg sm:text-[40px]">{games}</span>
+      size="sm"
+      ratio="cinema"
+      image={coverUrl(article.cover, 400)}
+      accent={LADDER[ladder].color}
+      className="h-full"
+      eyebrow={<span className={LADDER[ladder].text}>{LADDER[ladder].label}</span>}
+      title={article.title}
+      meta={
+        // The list is replaced in place every week, so its last edit is its issue date.
+        <>
+          Last updated <LocalDay iso={article.updatedAt} />
+          {article.views === undefined ? null : <> · {COMPACT.format(article.views)} views</>}
+        </>
+      }
+      footer={
+        games ? (
+          <>
+            <span className="stat text-ink">{games}</span>
             <span className="text-ink-muted signal-sm">Ladder games</span>
-          </div>
-        ) : null}
-        {article.views === undefined ? null : <span className="text-ink-muted signal-sm max-sm:hidden">{COMPACT.format(article.views)} views</span>}
-      </div>
-    </Link>
+          </>
+        ) : undefined
+      }
+    />
   )
 }
 
@@ -225,36 +221,24 @@ export const MetaSection = ({ articles }: { articles: ArticleSummary[] }) => {
         Meta this week
       </WikiHead>
       <div className="flex flex-wrap gap-3 sm:gap-6">
-        <Link
+        <MediaCard
           href={`/wiki/${report.slug}`}
-          className={twMerge(
-            WIKI_TILE,
-            'flex min-w-0 flex-[2_1_520px] flex-col justify-between gap-3.5 px-5 py-5.5 text-ink-dim [--chip-ground:var(--color-steel)] [--cut:var(--cut-lg)] [--fill:var(--color-steel)] hover:text-ink-dim hover:[--chip-ground:var(--color-steel-lift)] hover:[--fill:var(--color-steel-lift)] sm:min-h-80 sm:gap-8 sm:p-8',
-          )}
+          size="lg"
+          layout="row"
+          ratio="cinema"
+          eager
+          image={coverUrl(report.cover, 800)}
+          accent="cyan"
+          className="min-w-0 flex-[2_1_520px]"
+          eyebrow={<>Meta report · {day}</>}
+          title={report.title}
+          tags={['TCG', 'Genesys']}
+          meta={<ArticleMeta article={report} />}
         >
-          <div className="flex flex-col gap-3.5">
-            <span className="text-ink-dim signal">Meta report · {day}</span>
-            <h3 className="max-w-160 text-[32px] leading-[1.05] text-ink display-3 sm:text-5xl/none">{report.title}</h3>
-            <p className="line-clamp-3 max-w-140 text-[15px]/6 sm:text-lg/7">{report.summary}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <LadderChip ladder="tcg" className="max-sm:min-h-7 max-sm:px-2.5">
-              TCG
-            </LadderChip>
-            <LadderChip ladder="genesys" className="max-sm:min-h-7 max-sm:px-2.5">
-              Genesys
-            </LadderChip>
-            <span className="ml-auto inline-flex items-center gap-2 text-[13px] max-sm:hidden">
-              <Byline user={report.author} size={24} />
-              {report.views === undefined ? null : <>· {COMPACT.format(report.views)} views</>}
-            </span>
-            <span className="text-cyan signal-strong max-sm:ml-auto">
-              Read<span className="max-sm:hidden"> the report</span> →
-            </span>
-          </div>
-        </Link>
+          {report.summary || null}
+        </MediaCard>
         {tcg || genesys ? (
-          <div className="grid min-w-0 flex-[1_1_340px] grid-cols-2 gap-3 sm:flex sm:flex-col sm:gap-6">
+          <div className="grid min-w-0 flex-[1_1_340px] gap-3 min-[480px]:grid-cols-2 sm:flex sm:flex-col sm:gap-6">
             {tcg ? <LadderTile article={tcg} ladder="tcg" /> : null}
             {genesys ? <LadderTile article={genesys} ladder="genesys" /> : null}
           </div>

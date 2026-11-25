@@ -1,16 +1,23 @@
-import Image from 'next/image'
+import { MediaCard } from '@omega-hub/ds'
 import type { WikiArticlePreview } from '@utils/wiki-article-preview'
-import { NEW_TAB, WIKI_TILE } from './wiki'
+import { coverUrl } from './article'
 
+/** An `[article=slug]` card inside a post: opens the other article in a new tab. */
 export const ArticlePreview = ({ slug, article }: { slug: string; article?: WikiArticlePreview | null }) => (
-  <a href={`/wiki/${article?.slug ?? slug}`} {...NEW_TAB} className={`${WIKI_TILE} clear-both my-5 flex items-center gap-4 p-3 text-ink hover:text-ink sm:gap-5 sm:p-4`}>
-    {article?.cover ? <span className="relative aspect-[4/3] w-24 shrink-0 overflow-hidden bg-surface-200 sm:w-36">
-      <Image src={article.cover.src} alt={article.cover.alt || article.title} fill sizes="144px" className="object-cover" />
-    </span> : null}
-    <span className="flex min-w-0 flex-1 flex-col gap-2">
-      <span className="text-cyan signal-sm">Wiki article ↗</span>
-      <span className="text-xl/[1.1] display-3 sm:text-2xl">{article?.title ?? slug}</span>
-      {article?.summary ? <span className="line-clamp-3 text-ink-dim body-sm">{article.summary}</span> : !article ? <span className="text-ink-muted body-sm">Preview unavailable</span> : null}
-    </span>
-  </a>
+  <MediaCard
+    href={`/wiki/${article?.slug ?? slug}`}
+    target="_blank"
+    layout="row"
+    size="sm"
+    ratio="4 / 3"
+    accent="cyan"
+    image={coverUrl(article?.cover, 176)}
+    imageAlt={article?.cover?.alt || ''}
+    className="clear-both my-5"
+    eyebrow={<span className="text-cyan">Wiki article ↗</span>}
+    title={article?.title ?? slug}
+    titleAs="span"
+  >
+    {article?.summary ? article.summary : !article ? <span className="text-ink-muted">Preview unavailable</span> : null}
+  </MediaCard>
 )
