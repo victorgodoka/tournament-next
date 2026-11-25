@@ -421,7 +421,7 @@ type Privacy = ProfilePrivacy
 
 const eloShown = (hideElo: Privacy['hideElo'], ladder: 'tcg' | 'genesys') => hideElo !== 'both' && hideElo !== ladder
 
-/** The two "Show … Elo" switches written back to the one `hideElo` value. */
+/** The two "Show … Rating" switches written back to the one `hideElo` value. */
 const hideEloOf = (tcg: boolean, genesys: boolean): Privacy['hideElo'] => (tcg && genesys ? 'none' : tcg ? 'genesys' : genesys ? 'tcg' : 'both')
 
 const RankedSection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPrivacy: (patch: Partial<Privacy>) => void; vip: boolean }) => {
@@ -431,16 +431,16 @@ const RankedSection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPriv
     <Section id="ranked" num="06" label="Ranked">
       <VipLock vip={vip}>
         <Group>
-          <Setting title="Show TCG Elo" hint="Hides Elo, tier and rank for the TCG ladder. Your record stays visible.">
-            <Toggle checked={tcg} onChange={(on) => setPrivacy({ hideElo: hideEloOf(on, genesys) })} label="Show TCG Elo" />
+          <Setting title="Show TCG Rating" hint="Hides Rating, tier and rank for the TCG ladder. Your record stays visible.">
+            <Toggle checked={tcg} onChange={(on) => setPrivacy({ hideElo: hideEloOf(on, genesys) })} label="Show TCG Rating" />
           </Setting>
-          <Setting title="Show Genesys Elo" hint="Same for the Genesys ladder.">
-            <Toggle checked={genesys} onChange={(on) => setPrivacy({ hideElo: hideEloOf(tcg, on) })} label="Show Genesys Elo" />
+          <Setting title="Show Genesys Rating" hint="Same for the Genesys ladder.">
+            <Toggle checked={genesys} onChange={(on) => setPrivacy({ hideElo: hideEloOf(tcg, on) })} label="Show Genesys Rating" />
           </Setting>
           <Setting title="Show past seasons" hint="Final rank, tier and record of every closed season.">
             <Toggle checked={privacy.showPastSeasons} onChange={(on) => setPrivacy({ showPastSeasons: on })} label="Show past seasons" />
           </Setting>
-          <Setting title="Show charts" hint="Elo over the season, the daily Elo change and your deck charts.">
+          <Setting title="Show charts" hint="Rating over the season, the daily Rating change and your deck charts.">
             <Toggle checked={!privacy.hideCharts} onChange={(on) => setPrivacy({ hideCharts: !on })} label="Show charts" />
           </Setting>
         </Group>

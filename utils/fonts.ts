@@ -34,7 +34,7 @@ export const michroma = Michroma({
   display: "swap",
 });
 
-/** Figures: Elo, ranks, scores, counts. The design system's display face. */
+/** Figures: Rating, ranks, scores, counts. The design system's display face. */
 export const oxanium = Oxanium({
   subsets: ["latin"],
   weight: "700",

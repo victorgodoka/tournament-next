@@ -8,7 +8,7 @@ import type { Tally3, TimelineRow } from '@utils/statistics'
 
 export type LadderStanding = { elo: number; tier: Tier; rank: number | null; eloHistory?: EloPoint[] }
 
-/** Rating, tier, rank and the daily Elo points of the pick: a season's own, or the live ladder (open season's points). */
+/** Rating, tier, rank and the daily Rating points of the pick: a season's own, or the live ladder (open season's points). */
 export const standingOf = (profile: Extract<Profile, { isPrivate: false }>, pick: { season?: string; ladder: RankedLadderId }): LadderStanding | null => {
   const ladder = profile.ladders.find((l) => l.format === (pick.ladder === 'genesys' ? 'Genesys' : 'TCG'))
   if (!ladder?.played) return null
@@ -96,7 +96,7 @@ export const streaks = (rows: TimelineRow[]) => {
   return { current: head ? { result: head, count: current } : null, bestWins: best }
 }
 
-/** Elo change over the period from the open season's daily points; `null` without two points in it. */
+/** Rating change over the period from the open season's daily points; `null` without two points in it. */
 export const eloChange = (history: EloPoint[] | undefined, current: number | null, days: Period, now: number) => {
   if (!history?.length || current === null) return null
   const from = days === null ? history : history.filter((p) => Date.parse(`${p.day}T00:00:00Z`) >= now - days * DAY_MS)

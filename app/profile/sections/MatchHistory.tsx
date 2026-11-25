@@ -166,7 +166,7 @@ const eventText = (event: TimelineEvent, first: string): { icon: 'trophy' | 'sta
       return {
         icon: 'trophy',
         title: event.direction === 'up' ? `Promoted to ${event.to}` : `Dropped to ${event.to}`,
-        sub: `${EVENT_LADDER[event.ladder]} ladder · ${event.from} → ${event.to} · ${formatNumber(event.elo)} Elo`,
+        sub: `${EVENT_LADDER[event.ladder]} ladder · ${event.from} → ${event.to} · Rating ${formatNumber(event.elo)}`,
         highlight: event.direction === 'up',
       }
     case 'tournament': {
@@ -239,7 +239,7 @@ const DayHead = ({ day, matches, deltas }: { day: string; matches: Match[]; delt
         {summary ? <span className={twMerge(CAPTION, 'max-md:hidden')}>{summary}</span> : null}
         <span aria-hidden className="h-px grow bg-line" />
         {deltas.map((d) => (
-          <span key={d.ladder} className="flex items-baseline gap-1.5" title={`${d.ladder}: ${formatNumber(d.elo)} Elo at the end of the day`}>
+          <span key={d.ladder} className="flex items-baseline gap-1.5" title={`${d.ladder}: Rating ${formatNumber(d.elo)} at the end of the day`}>
             {deltas.length > 1 ? <span className={CAPTION}>{d.ladder === 'Genesys' ? 'GEN' : 'TCG'}</span> : null}
             <span className={twMerge('font-display text-lg leading-none tabular-nums max-md:text-base', d.delta > 0 ? 'text-win' : d.delta < 0 ? 'text-loss' : 'text-draw')}>
               {d.delta > 0 ? '+' : d.delta < 0 ? '−' : '±'}{formatNumber(Math.abs(d.delta))}

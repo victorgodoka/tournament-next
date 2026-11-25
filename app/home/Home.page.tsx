@@ -169,7 +169,7 @@ const TOURNAMENT_STEPS: { icon: IconName; anim: "jump" | "spin" | "bob" | "wobbl
 
 const Tournaments = () => (
   <section id="tournaments" className="ol-sec">
-    <RailHead num="02" label="Automatic tournaments" stamp="Free entry · Elo counted" />
+    <RailHead num="02" label="Automatic tournaments" stamp="Free entry · Rating counted" />
     <div className="ol-body flex flex-wrap items-start gap-x-12 gap-y-8">
       <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-4">
         <div className="flex flex-wrap gap-2">
