@@ -19,7 +19,7 @@ const legacy = base as unknown as AuthUser
 
 describe('adsMode', () => {
   it.each([
-    [undefined, '/decks', 'none'], [vip, '/decks', 'none'], [legacy, '/decks', 'none'], [vip, '/', 'none'], [anon, '/', 'all'], [free, '/', 'all'],
+    [undefined, '/decks', 'none'], [vip, '/decks', 'none'], [legacy, '/decks', 'none'], [vip, '/', 'none'], [anon, '/', 'none'], [free, '/', 'none'],
     [anon, '/decks', 'all'], [free, '/wiki/some-article', 'all'], [anon, '/wiki/newbie-guide', 'all'], [anon, '/simulator/c/abc', 'all'],
     [anon, '/simulator', 'none'], [anon, '/simulator/c/abc/render', 'none'], [anon, '/admin', 'none'], [anon, '/admin/', 'none'], [anon, '/admin/tournaments', 'none'],
     [anon, '/login', 'none'], [free, '/messenger', 'none'], [free, '/profile/edit', 'none'],
@@ -54,7 +54,7 @@ describe('adsLayout', () => {
   // While /auth/me is in flight the page holds the boxes a signed-out reader would get: no shift for
   // anyone but a VIP, whose boxes collapse once auth answers.
   it.each([
-    [undefined, '/decks', 'all'], [undefined, '/', 'all'], [undefined, '/deck-builder', 'rail'], [undefined, '/admin', 'none'],
+    [undefined, '/decks', 'all'], [undefined, '/', 'none'], [undefined, '/deck-builder', 'rail'], [undefined, '/admin', 'none'],
     [vip, '/decks', 'none'], [free, '/decks', 'all'], [anon, '/calculator', 'rail'],
   ] as const)('%o on %s holds %s', (user, pathname, mode) => {
     expect(adsLayout(user, pathname)).toBe(mode)
