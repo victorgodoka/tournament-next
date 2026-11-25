@@ -19,7 +19,6 @@ import { CardArt } from "@omega/card-art";
 import { LocalDay } from "@omega/wiki/local-day";
 import { Footer } from "@ui/footer";
 import { Header } from "@ui/header";
-import { NonVipOnly } from "@omega/ads/non-vip-only";
 import { CARD_ART_URL, DOWNLOAD_BUILDS, DOWNLOAD_URL, HOME_META_DECKS, HOME_NAVBAR_ITEMS, RELEASES_URL } from "@utils/const";
 import { getLatestArticles } from "@utils/articles";
 import { getTopDecks } from "@utils/statistics";
@@ -624,9 +623,8 @@ const HomePage = () => {
           <Suspense>
             <LiveMeta ranked={ranked} />
           </Suspense>
-          <NonVipOnly>
-            <Vip />
-          </NonVipOnly>
+          {/* Part of the landing, not an ad: shown to VIPs too. */}
+          <Vip />
           <Rulings />
           <Formats />
           <Tools />
