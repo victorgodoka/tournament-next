@@ -1,309 +1,48 @@
 @import 'tailwindcss';
+/* Tokens, base, type scale, chamfer and the component classes come from the Omega Hub design system. */
+@import '@omega-hub/ds/theme.css';
 
 /*
- * Omega Hub design system. Values mirror project/tokens.json of the design-system artifact
- * (https://claude.ai/artifact/XSCde4E1pccXFvjSFbMddA). The Omega client's lobby, rebuilt: deep-space
- * ground, cyan brand, steel-navy featured surface, chamfered corners, hairline grids, one hard offset.
+ * Only what the site needs beyond the library lives here.
  *
  * Cascade, lowest to highest
- *   @theme               tokens that generate utilities (bg-space-000, text-ink, shadow-offset-azure…)
  *   @theme inline        font stacks, resolved against next/font variables at the point of use
- *   :root                tokens read through var() only (chamfer cuts, strokes, z-index, opacity)
- *   @layer base          element defaults
- *   @layer components    the type scale, chamfer shapes and image treatments
- *   @layer utilities     Tailwind; always refines a component class on the same element
- *   unlayered            reduced-motion overrides, which must beat everything
- *
- * Spacing: Tailwind's 4px step already is the DS scale (space-4 = p-4 = 16px), so it stays default.
+ *   :root                site-only tokens read through var()
+ *   @layer base          laptop page width, scrollbars
+ *   @layer components    site-only type steps and treatments (legacy names other pages still use)
+ *   unlayered            drawer scroll lock, reduced motion
  */
 
 @theme {
-  /* Off-system values fail to compile: no default palette, radii, blurred shadows or blur. */
-  --color-*: initial;
-  --radius-*: initial;
-  --shadow-*: initial;
-  --inset-shadow-*: initial;
-  --drop-shadow-*: initial;
+  /* Off-system values fail to compile. The library already drops the default palette and radii. */
+  /* Tailwind's blurred shadows one by one: `--shadow-*: initial` would also drop the library's (shadow-lift…). */
+  --shadow-2xs: initial;
+  --shadow-xs: initial;
+  --shadow-sm: initial;
+  --shadow-md: initial;
+  --shadow-lg: initial;
+  --shadow-xl: initial;
+  --shadow-2xl: initial;
   --blur-*: initial;
-
-  /* Page layout: 1280px max, space-10 gutter (space-4 below 720px, see @layer base), space-12 between sections. */
-  --container-page: 1280px;
-  --spacing-gutter: 40px;
-  --spacing-section: 48px;
-
-  /* Ground and surfaces step up in lightness, not hue. 300 is hover, 400 pressed/active. */
-  --color-space-000: #080a14;
-  --color-surface-100: #0e1222;
-  --color-surface-200: #151a2e;
-  --color-surface-300: #1d2440;
-  --color-surface-400: #283152;
-  /* The client's steel-navy panel: one featured surface per page. ink and ink-dim only on it. */
-  --color-steel: #1e3f62;
-  /* Edge of a steel card, and a control's hover fill on one. */
-  --color-steel-edge: #3d6894;
-  --color-steel-lift: #28507a;
-
-  /* Hairlines. line decorative; line-mid card edges; line-strong control borders (3:1+). */
-  --color-line: #1f2744;
-  --color-line-mid: #33406a;
-  --color-line-strong: #8ea6c7;
-
-  /* ink-muted works from space-000 through surface-300 only. */
-  --color-ink: #eef1f8;
-  --color-ink-dim: #b3bdd2;
-  --color-ink-muted: #8e99b4;
-
-  /* Brand: primary fill, links, active tab bar, selection, focus. The mark's cyan, softened: #00fdff is too bright to fill a control or set text. */
-  --color-cyan: #45cfdc;
-  --color-cyan-on: #05121c;
-  --color-ground-cyan: #0b2c3a;
-  /* The mark's own cyan at full strength: its glow, the live dot, the Ready presence dot, the Omega tier gem. Never a fill or text. */
-  --color-cyan-glow: #00fdff;
-  /* The mark's body. azure is fill only (offset plate, avatar fallback); azure-lift for text. */
-  --color-azure: #4a6fd8;
-  --color-azure-lift: #7f9cf0;
-  /* Value and prestige: coins, prices, first place, RailHead numbers. */
-  --color-gold: #efd17e;
-  --color-gold-on: #1a1405;
-  /* Now: LIVE chips and destructive actions. crimson-lift as text. */
-  --color-crimson: #d61f38;
-  --color-crimson-lift: #ff4d5e;
-
-  /* Results, always with W / L / D or the word. loss is also error text. */
-  --color-win: #4fdc8c;
-  --color-loss: #ff8594;
-  --color-draw: #aab4c3;
-
-  /* Ranked ladders. Genesys is what the API's `ocg` columns hold. */
-  --color-ladder-tcg: #3fcf7a;
-  --color-ladder-genesys: #ea5fc0;
-
-  /* Messenger presence, as the API reports it. Away and busy also carry a shape, never the color alone. */
-  --color-presence-ready: #00fdff;
-  --color-presence-online: #7f9cf0;
-  --color-presence-away: #efd17e;
-  --color-presence-busy: #ff4d5e;
-  --color-presence-offline: #8e99b4;
-
-  /* Card-frame colors, for card types only. */
-  --color-type-normal: #b8a516;
-  --color-type-effect: #c6471f;
-  --color-type-ritual: #1176af;
-  --color-type-spell: #129348;
-  --color-type-trap: #c3218d;
-  --color-type-fusion: #5215a9;
-  --color-type-synchro: #d6d8d8;
-  --color-type-xyz: #1b1b22;
-  --color-type-link: #1729a7;
-
-  /* TierBadge gems and ranks. */
-  --color-tier-iron: #7d848f;
-  --color-tier-bronze: #c27a45;
-  --color-tier-silver: #c3cbd8;
-  --color-tier-gold: #efd17e;
-  --color-tier-platinum: #5fd4c4;
-  --color-tier-diamond: #5fa8ff;
-  --color-tier-master: #b889ff;
-  --color-tier-omega: #00fdff;
-
-  /* Chart series, fixed order, never text. */
-  --color-series-1: #00a6b5;
-  --color-series-2: #e14660;
-  --color-series-3: #337bd0;
-  --color-series-4: #c0851f;
-  --color-series-5: #8169dd;
-  --color-series-6: #36a558;
-  --color-chart-grid: #1f2744;
-
-  --color-scrim: rgba(4, 5, 12, 0.72);
-  /* Lighter scrim for the nav drawer, which also blurs the page behind it. */
-  --color-scrim-soft: rgba(4, 5, 12, 0.55);
-
-  /* Washes over space-000. Always pair with a matching border or label. */
-  --color-ground-subtle: rgba(238, 241, 248, 0.03);
-  --color-ground-soft: rgba(238, 241, 248, 0.05);
-  --color-ground-gold: rgba(239, 209, 126, 0.08);
-  --color-ground-win: rgba(79, 220, 140, 0.08);
-  --color-ground-loss: rgba(255, 133, 148, 0.08);
-  --color-ground-draw: rgba(170, 180, 195, 0.08);
-  --color-veil-top: rgba(8, 10, 20, 0.3);
-  --color-veil-base: rgba(8, 10, 20, 0.88);
-
-  /* Third-party brand, only on the "Log in with Discord" control. */
-  --color-discord: #5865f2;
-  --color-discord-press: #4752c4;
-  --color-discord-on: #e0e3ff;
-
-  /* Square or chamfered everywhere. xs only for data ends; round only for presence and live dots. */
-  --radius-xs: 2px;
-  --radius-round: 9999px;
-
-  /* The one hard offset (primary button), floating layers, the live glow and focus. */
-  --shadow-offset-azure: 4px 4px 0 var(--color-azure);
-  --shadow-offset-azure-press: 2px 2px 0 var(--color-azure);
-  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow-live: 0 0 10px color-mix(in srgb, var(--color-cyan-glow) 60%, transparent);
-  --shadow-focus-ring: 0 0 0 2px var(--color-space-000), 0 0 0 4px var(--color-cyan);
-  /* Selection is a cyan edge: active tab / current nav link underline, selected row bar. */
-  --shadow-tab-active: inset 0 -2px 0 var(--color-cyan);
-  --shadow-tab-active-cyan: inset 0 -2px 0 var(--color-cyan);
-  --shadow-tab-active-positive: inset 0 -2px 0 var(--color-win);
-  --shadow-tab-active-negative: inset 0 -2px 0 var(--color-loss);
-  --shadow-current: var(--shadow-tab-active);
-  --shadow-selected: inset 2px 0 0 var(--color-cyan);
-
-  --animate-ticker: ticker 40s linear infinite;
-  --animate-blink: blink 1.4s ease-in-out infinite;
-  /* A refused action (a card already at its limit): one short side-to-side shake. */
-  --animate-shake: shake 200ms ease-in-out;
-  /* The nav drawer: slides in from the right over a fading scrim. */
-  --animate-drawer-in: drawer-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --animate-fade-in: fade-in 200ms ease-out;
-  /* Home value cards, one 6s loop: a strike drawn over a word, a sparkline drawn, a rating counting up. Rest = last frame. */
-  --animate-strike: strike 6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-  --animate-draw: draw 6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-  --animate-pop: pop 6s ease-out infinite;
-  --animate-count: count 6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-
-  @keyframes strike {
-    0%, 12% {
-      transform: scaleX(0);
-    }
-
-    32%, 88% {
-      opacity: 1;
-      transform: scaleX(1);
-    }
-
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes draw {
-    0% {
-      stroke-dashoffset: 1;
-    }
-
-    45%, 88% {
-      opacity: 1;
-      stroke-dashoffset: 0;
-    }
-
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes pop {
-    0%, 42% {
-      opacity: 0;
-      transform: scale(0);
-    }
-
-    52%, 88% {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes count {
-    0% {
-      --elo: 1500;
-    }
-
-    45%, 100% {
-      --elo: 1648;
-    }
-  }
-
-  @keyframes drawer-in {
-    from {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-  }
-
-  @keyframes ticker {
-    to {
-      transform: translateX(-50%);
-    }
-  }
-
-  @keyframes blink {
-    50% {
-      opacity: var(--opacity-blink-low);
-    }
-  }
-
-  @keyframes shake {
-    25% {
-      transform: translateX(-4px);
-    }
-
-    75% {
-      transform: translateX(4px);
-    }
-  }
+  --drop-shadow-*: initial;
+  --inset-shadow-*: initial;
 }
 
 /* next/font hashes family names, so every fallback goes through its variable too. */
 @theme inline {
-  --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  --font-display: var(--font-oxanium), "Chakra Petch", system-ui, sans-serif;
   --font-sans: var(--font-figtree), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, monospace;
   --font-brand: var(--font-michroma), "Eurostile Extended", sans-serif;
 }
 
-/* Tailwind has no theme namespace for these; use as z-(--z-sticky) and opacity-(--opacity-dim). */
 :root {
-  /* Chamfer cuts: controls cut top-left + bottom-right, cards and panels notch top-right. */
-  --cut-xs: 6px;
-  --cut-sm: 8px;
-  --cut-md: 12px;
-  --cut-lg: 16px;
-  --hairline: 1px;
-  --stroke: 2px;
-
-  --opacity-duotone-lead: 0.62;
-  --opacity-duotone: 0.5;
-  --opacity-duotone-plate: 0.42;
-  --opacity-dim: 0.35;
-  --opacity-blink-low: 0.35;
-
-  /* Fixed stacking order. Never invent a value between them. */
-  --z-dropdown: 20;
-  --z-sticky: 30;
-  --z-dock: 40;
   /* Above every page's sticky bar, or a tie hands the bar (later in the DOM) the header's dropdowns. */
   --z-header: var(--z-dock);
-  --z-dock-window: 41;
-  --z-scrim: 55;
-  --z-modal: 60;
-  --z-toast: 80;
   --z-overlay: var(--z-toast);
 }
 
 @layer base {
-  html {
-    color-scheme: dark;
-  }
-
-  @media (width < 720px) {
-    :root {
-      --spacing-gutter: 16px;
-    }
-  }
-
   /*
    * Laptops (1366, 1440, 1536): the page narrows so each Nitro rail, 160px wide and 10px off the
    * edge, clears the content. A percentage, so it leaves out the scrollbar: use it on page-wide
@@ -313,45 +52,6 @@
     :root {
       --container-page: calc(100% - 340px);
     }
-  }
-
-  /* Deep space with a faint cyan and azure haze at the top. */
-  body {
-    min-height: 100dvh;
-    background-color: var(--color-space-000);
-    background-image:
-      radial-gradient(ellipse 60% 45% at 50% -10%, color-mix(in srgb, var(--color-cyan) 8%, transparent), rgba(8, 10, 20, 0) 70%),
-      radial-gradient(ellipse 50% 40% at 100% 0%, rgba(74, 111, 216, 0.1), rgba(8, 10, 20, 0) 70%);
-    background-repeat: no-repeat;
-    color: var(--color-ink);
-    font: 400 15px/24px var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: var(--font-sans);
-    font-weight: 800;
-    text-wrap: balance;
-  }
-
-  p {
-    text-wrap: pretty;
-  }
-
-  a {
-    text-decoration: none;
-    color: var(--color-cyan);
-  }
-
-  /* An outline, so it never fights box-shadow utilities (offset plate, tab underlines, selected bars). */
-  :focus-visible {
-    outline: 2px solid var(--color-cyan);
-    outline-offset: 3px;
   }
 
   /*
@@ -390,101 +90,34 @@
   }
 }
 
-/* Named type styles sit below utilities, so text-*, leading-*, tracking-* on the same element win. */
+/* Legacy names still used across the site, mapped onto the library's steps. */
 @layer components {
-
-  /* ---- Display: Anton, one weight. Only a short hero line and figures (Elo, rank, score): never a sentence. ---- */
-  .display-hero,
-  .stat-lg,
-  .stat,
   .display-5,
   .dock-title {
     font-family: var(--font-display);
-    font-weight: 400;
-    text-transform: uppercase;
-  }
-
-  /* One per page, a handful of words. Callers may size it down, never past 96px. */
-  .display-hero {
-    font-size: 72px;
+    font-weight: 700;
     line-height: 1;
-    letter-spacing: 0.02em;
-    text-wrap: balance;
   }
 
-  .stat-lg {
-    font-size: 40px;
-    line-height: 1;
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Numbers in rows (Elo, rank, score); legacy display-5 sits on the same step. */
-  .stat,
   .display-5 {
     font-size: 24px;
-    line-height: 1;
-    letter-spacing: 0.02em;
-  }
-
-  .stat {
-    font-variant-numeric: tabular-nums;
   }
 
   /* The simulator's turn and phase callouts. */
   .dock-title {
     font-size: 20px;
-    line-height: 1;
     letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
-  /* ---- Titles: Figtree ExtraBold, sentence case. Hierarchy is size. ---- */
-  .title,
-  .display-1,
-  .display-2,
-  .display-3,
   .display-4,
   .display-6 {
     font-family: var(--font-sans);
     font-weight: 800;
-    text-wrap: balance;
-  }
-
-  /* A title at its own size: set text-[..px] beside it. */
-  .title {
-    line-height: 1.15;
-  }
-
-  /* Page title, profile name. */
-  .display-1 {
-    font-size: 32px;
-    line-height: 1.1;
-  }
-
-  /* Section heading. */
-  .display-2 {
-    font-size: 26px;
-    line-height: 1.15;
-  }
-
-  /* Card and panel titles; legacy display-4 and display-6 sit on the same step. */
-  .display-3,
-  .display-4,
-  .display-6 {
     font-size: 20px;
     line-height: 1.2;
+    text-wrap: balance;
   }
-
-  /* Button labels: Figtree at every size. */
-  .action-lg {
-    font-family: var(--font-sans);
-    font-size: 17px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: 0.01em;
-  }
-
-  .action-md,
 
   .action-xs {
     font-family: var(--font-sans);
@@ -494,50 +127,6 @@
     letter-spacing: 0.01em;
   }
 
-  /* ---- Brand: Michroma, only the "Omega Hub" wordmark in the nav. ---- */
-  .wordmark,
-  .brandmark {
-    font-family: var(--font-brand);
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  /* ---- Text: Figtree for sentences and names. ---- */
-  .lead {
-    font-family: var(--font-sans);
-    font-size: 18px;
-    font-weight: 400;
-    line-height: 28px;
-    text-wrap: pretty;
-  }
-
-  .body {
-    font-family: var(--font-sans);
-    font-size: 15px;
-    font-weight: 400;
-    line-height: 24px;
-    text-wrap: pretty;
-  }
-
-  .body-strong {
-    font-family: var(--font-sans);
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 24px;
-  }
-
-  .body-sm {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 20px;
-    text-wrap: pretty;
-  }
-
-  .caption,
   .micro {
     font-family: var(--font-sans);
     font-size: 12px;
@@ -545,129 +134,26 @@
     line-height: 16px;
   }
 
-  /* ---- Signal: Space Mono, uppercase, wide tracking. Never below 10px, never drop the tracking. ---- */
-  .signal,
   .signal-lg,
-  .signal-strong,
   .signal-nav,
-  .signal-tab,
-  .signal-chip,
-  .signal-sm {
+  .signal-tab {
     font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 
-  /* Labels, table headers, meta rows, eyebrows. */
-  .signal,
-  .signal-lg {
-    font-size: 11px;
-    font-weight: 400;
-    line-height: 14px;
-    letter-spacing: 0.14em;
-  }
-
-  /* Tabs, chips, nav, buttons in dense bars. */
-  .signal-strong,
   .signal-nav,
   .signal-tab {
-    font-size: 11px;
     font-weight: 700;
-    line-height: 14px;
-    letter-spacing: 0.14em;
-  }
-
-  .signal-chip {
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: 0.14em;
-  }
-
-  /* Provenance stamps, axis labels. */
-  .signal-sm {
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 12px;
-    letter-spacing: 0.16em;
-  }
-
-  .signal-count {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
   }
 
   /* Passcodes, deck codes, match IDs. */
-  .data,
   .mono-data {
     font-family: var(--font-mono);
     font-size: 13px;
-    font-weight: 400;
     line-height: 18px;
-  }
-
-  /* Helper text, counts and footnotes in mono, sentence case. */
-  .mono-note {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: 0.04em;
-  }
-
-  .mono-handle {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 1.2;
-  }
-
-  /*
-   * ---- The chamfer ----
-   * ::before is the edge plate, ::after the fill plate inset by --sw. The element itself is never
-   * clipped, so drop-shadows and outlines survive. Set --edge / --fill / --sw / --cut, not borders:
-   *   <button class="cut [--fill:var(--color-cyan)]">   controls: top-left + bottom-right
-   *   <section class="cut notch [--cut:var(--cut-lg)]">  cards and panels: top-right only
-   */
-  .cut {
-    --cut: var(--cut-sm);
-    --edge: var(--color-line-mid);
-    --fill: var(--color-surface-100);
-    --sw: var(--hairline);
-    position: relative;
-    isolation: isolate;
-  }
-
-  .cut::before,
-  .cut::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  .cut::before {
-    inset: 0;
-    background: var(--edge);
-    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
-  }
-
-  .cut::after {
-    --ic: calc(var(--cut) - var(--sw) * 0.414);
-    inset: var(--sw);
-    background: var(--fill);
-    clip-path: polygon(var(--ic) 0, 100% 0, 100% calc(100% - var(--ic)), calc(100% - var(--ic)) 100%, 0 100%, 0 var(--ic));
-  }
-
-  .notch::before {
-    clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
-  }
-
-  .notch::after {
-    clip-path: polygon(0 0, calc(100% - var(--ic)) 0, 100% var(--ic), 100% 100%, 0 100%);
   }
 
   /* Art band inside a notched card: follows the card's cut-md notch, 1px inside its edge. */
@@ -675,37 +161,12 @@
     clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
   }
 
-  /* Chat bubbles: theirs cut bottom-left, yours bottom-right. */
-  .bubble-cut {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-  }
-
-  .bubble-cut-mine {
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
-  }
-
-  /* Metallic rarity glyph. */
-  /* A rating printed from --elo, so animate-count can tick it. */
-  .elo-count {
-    counter-reset: elo var(--elo);
-  }
-
-  .elo-count::after {
-    content: counter(elo);
-  }
-
-  /* 24px dot field, only behind a hero or empty key art. */
-  .dots {
-    background-image: radial-gradient(rgba(142, 166, 199, 0.16) 1px, rgba(0, 0, 0, 0) 1.5px);
-    background-size: 24px 24px;
-  }
-
   /* The wiki index's ground: a cyan and an azure haze from the top corners. */
   .wiki-ground {
     background-color: var(--color-space-000);
     background-image:
-      radial-gradient(ellipse 60% 420px at 18% -120px, color-mix(in srgb, var(--color-cyan) 8%, transparent), rgba(8, 10, 20, 0) 70%),
-      radial-gradient(ellipse 55% 380px at 88% -100px, rgba(74, 111, 216, 0.12), rgba(8, 10, 20, 0) 70%);
+      radial-gradient(ellipse 60% 420px at 18% -120px, color-mix(in srgb, var(--color-cyan) 8%, transparent), transparent 70%),
+      radial-gradient(ellipse 55% 380px at 88% -100px, color-mix(in srgb, var(--color-azure) 12%, transparent), transparent 70%);
     background-repeat: no-repeat;
   }
 
@@ -758,7 +219,6 @@
   }
 
   @keyframes equalizer-pulse {
-
     0%,
     100% {
       transform: scaleY(0.38);
@@ -776,27 +236,6 @@
       transform: scaleY(0.84);
     }
   }
-
-  /* ---- duotone: grayscale the image, then blend an accent layer over it in color mode ------ */
-  .duotone {
-    filter: grayscale(1) contrast(1.18) brightness(.86);
-  }
-
-  .duotone-wash {
-    position: absolute;
-    inset: 0;
-    mix-blend-mode: color;
-    opacity: var(--opacity-duotone);
-    pointer-events: none;
-  }
-
-}
-
-/* Typed so animate-count interpolates it; without @property it jumps straight to the rest value. */
-@property --elo {
-  syntax: "<integer>";
-  inherits: false;
-  initial-value: 1648;
 }
 
 /* The page behind the open nav drawer, or the deck editor's open tray, doesn't scroll. */
@@ -805,24 +244,7 @@ html:has(#deck-tray[data-open]) {
   overflow: hidden;
 }
 
-/* Transitions run 120ms ease-out on transform, fill and color. */
-@media (prefers-reduced-motion: no-preference) {
-  .cut::after,
-  .cut::before {
-    transition: background-color 120ms ease-out;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-
-  .animate-ticker,
-  .animate-blink,
-  .animate-shake,
-  .animate-pulse,
-  .animate-strike,
-  .animate-draw,
-  .animate-pop,
-  .animate-count,
   .equalizer-bars__bar {
     animation: none;
   }

@@ -161,7 +161,7 @@ function Autocomplete<T>({ id, value, onChange, options, optionKey, renderOption
         className={INPUT}
       />
       {shown ? (
-        <ul id={`${id}-list`} role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto border border-line bg-surface-100 shadow-lg">
+        <ul id={`${id}-list`} role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto border border-line bg-surface-100 shadow-lift">
           {options.map((option, i) => (
             <li
               key={optionKey(option)}

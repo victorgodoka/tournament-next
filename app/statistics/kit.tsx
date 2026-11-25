@@ -246,7 +246,7 @@ export const DeckSearch = ({ id, value, onChange, options, placeholder, empty }:
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden fill="var(--color-ink-muted)" className="pointer-events-none absolute right-3.5"><path d="M7 9l5 6 5-6z" /></svg>
       </div>
       {open ? (
-        <ul id={list} role="listbox" aria-label={placeholder} className="absolute inset-x-0 top-full z-30 mt-1 max-h-[min(22rem,60vh)] overflow-y-auto border border-line-mid bg-surface-100 shadow-lg">
+        <ul id={list} role="listbox" aria-label={placeholder} className="absolute inset-x-0 top-full z-30 mt-1 max-h-[min(22rem,60vh)] overflow-y-auto border border-line-mid bg-surface-100 shadow-lift">
           {shown.length ? (
             shown.map((o, i) => (
               <li

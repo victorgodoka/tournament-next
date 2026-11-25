@@ -15,6 +15,7 @@ import { FONTS_VARIABLES } from '@utils/fonts'
 import './styles.css'
 import { AuthProvider } from '@contexts/auth/auth.context'
 import { MessengerDock, MessengerProvider } from '@omega/messenger'
+import { DsProvider } from '@omega/ds-provider'
 import { Ads } from '@omega/ads/ads'
 import { Tracking } from '@omega/tracking/tracking'
 import Script from 'next/script'
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#080a14',
+  themeColor: '#090b12',
 }
 
 export default async function RootLayout({
@@ -78,10 +79,13 @@ export default async function RootLayout({
         <ClientMessages>
           <AuthProvider hasSession={jar.has(SESSION_COOKIE)}>
             <MessengerProvider>
-              {children}
-              <MessengerDock />
-              <Ads />
-              <Tracking />
+              {/* Everything under it, the dock included, so the library's links route through Next. */}
+              <DsProvider>
+                {children}
+                <MessengerDock />
+                <Ads />
+                <Tracking />
+              </DsProvider>
             </MessengerProvider>
           </AuthProvider>
         </ClientMessages>

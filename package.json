@@ -11,6 +11,7 @@
     "tierlist": "WIKI_IMAGE_BASE=http://localhost:5173 npx tsx --tsconfig tsconfig.json scripts/wiki-tier-list.ts"
   },
   "dependencies": {
+    "@omega-hub/ds": "0.2.0",
     "highlight.js": "^11.12.0",
     "lowlight": "^3.3.0",
     "next": "16.4.6",

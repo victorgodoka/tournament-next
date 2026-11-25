@@ -1,10 +1,13 @@
-import { Anton, Figtree, Michroma, Space_Mono } from "next/font/google";
+import { Anton, Figtree, Michroma, Oxanium, Space_Mono } from "next/font/google";
 
+/** Only the top-cut share card still sets Anton. */
 export const anton = Anton({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-anton",
   display: "swap",
+  // One canvas card uses it: don't make every page preload it.
+  preload: false,
 });
 
 /** 400 prose, 500 captions, 700 body-strong and names, 800 titles. */
@@ -31,8 +34,16 @@ export const michroma = Michroma({
   display: "swap",
 });
 
+/** Figures: Elo, ranks, scores, counts. The design system's display face. */
+export const oxanium = Oxanium({
+  subsets: ["latin"],
+  weight: "700",
+  variable: "--font-oxanium",
+  display: "swap",
+});
+
 export const FONTS_VARIABLES = [
-  anton.variable,
+  oxanium.variable,
   figtree.variable,
   spaceMono.variable,
   michroma.variable,

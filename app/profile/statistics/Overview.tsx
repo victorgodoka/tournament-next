@@ -33,7 +33,7 @@ export const VerdictIcon = ({ slice }: { slice: PlayerSlice }) => {
       <ReadChip read={readOf(slice)} className="size-7 justify-center px-0 group-focus-visible:outline-2 group-focus-visible:outline-cyan max-[719px]:size-6 max-[719px]:px-0">
         <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="square"><path d={ARROW[v]} /></svg>
       </ReadChip>
-      <span role="tooltip" className="pointer-events-none absolute top-1/2 right-full z-10 mr-2 hidden w-60 -translate-y-1/2 border border-line-mid bg-surface-300 px-3 py-2 text-left text-xs leading-4 text-ink-dim shadow-lg group-hover:block group-focus-visible:block">
+      <span role="tooltip" className="pointer-events-none absolute top-1/2 right-full z-10 mr-2 hidden w-60 -translate-y-1/2 border border-line-mid bg-surface-300 px-3 py-2 text-left text-xs leading-4 text-ink-dim shadow-lift group-hover:block group-focus-visible:block">
         <strong className="block text-ink">{t(v)}</strong>
         {t(`${v}Hint`)}
       </span>
