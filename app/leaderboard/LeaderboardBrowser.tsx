@@ -64,6 +64,8 @@ type Row = {
   l: number
   d: number
   rate: string
+  /** Places moved since the day's first sync: positive = climbed, 0 = unchanged or unknown. */
+  change: number
   me: boolean
 }
 
@@ -82,6 +84,7 @@ const entryRow = (e: LeaderboardEntry, meId?: string): Row => ({
   l: e.loses,
   d: e.draws,
   rate: winRate(e.wins, e.loses, e.draws),
+  change: e.rankChange ?? 0,
   me: meId != null && e.id === meId,
 })
 const recordOf = (r: Row) => `${r.w}–${r.l}–${r.d}`
@@ -116,6 +119,20 @@ const Who = ({ r, size, className }: { r: Row; size: 'sm' | 'lg'; className: str
   </>
 )
 
+/** Green up / red down since the day's first sync; nothing when the place didn't move. */
+const RankMove = ({ change, className }: { change: number; className?: string }) => {
+  if (!change) return null
+  const up = change > 0
+  const n = Math.abs(change)
+  const label = `${up ? 'Up' : 'Down'} ${n} ${n === 1 ? 'place' : 'places'} today`
+  return (
+    <svg viewBox="0 0 10 8" role="img" aria-label={label} className={twMerge('size-2.5 shrink-0', up ? 'text-win' : 'rotate-180 text-loss', className)}>
+      <title>{label}</title>
+      <path d="M5 0l5 8H0z" fill="currentColor" />
+    </svg>
+  )
+}
+
 /* ---------- Leaderboard: rank 4 and below ---------- */
 const COLS = ['#', 'Duelist', 'Tier', 'Rating', 'W–L–D', 'Win rate']
 
@@ -135,8 +152,9 @@ const Leaderboard = ({ rows, loading, label }: { rows: Row[]; loading: boolean; 
     </div>
     {rows.map((r) => (
       <div key={r.id} className={twMerge('oh-lb-row', r.me && 'is-me')} role="row">
-        <span className={twMerge('oh-lb-rank', r.rank <= 3 && `p${r.rank}`)} role="cell">
+        <span className={twMerge('oh-lb-rank flex items-center justify-center gap-1', r.rank <= 3 && `p${r.rank}`)} role="cell">
           {r.rank}
+          <RankMove change={r.change} />
         </span>
         <span className="oh-lb-who" role="cell">
           <Who r={r} size="sm" className="oh-lb-name" />
@@ -178,8 +196,11 @@ const LeaderboardPodium = ({ rows, label }: { rows: Row[]; label: string }) =>
       {rows.map((r) => (
         <li key={r.id} className={twMerge('cut notch oh-podium-card', `p${r.rank}`, r.me && 'is-me')}>
           <div className="oh-podium-top">
-            <span className="oh-podium-rank" aria-label={PLACE[r.rank - 1] + ' place'}>
-              {r.rank}
+            <span className="flex items-end gap-1.5">
+              <span className="oh-podium-rank" aria-label={PLACE[r.rank - 1] + ' place'}>
+                {r.rank}
+              </span>
+              <RankMove change={r.change} className="size-3" />
             </span>
             <TierBadge tier={r.tier} />
           </div>

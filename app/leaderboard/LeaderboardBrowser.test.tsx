@@ -86,3 +86,14 @@ it('keeps the open season and the choice of each ladder without reading them aga
   expect(screen.getByText('Live one')).toBeTruthy()
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
+
+it('marks who climbed or dropped since the day started, and nothing for the rest', () => {
+  const moved = (rank: number, name: string, rankChange: number | null) => ({ ...entry(rank, name), rankChange, previousRank: rankChange === null ? null : rank + rankChange })
+  const page = { ...live('tcg', 'x'), entries: [moved(1, 'A', 2), moved(2, 'B', 0), moved(3, 'C', null), moved(4, 'D', -1), moved(5, 'E', 3)] }
+  render(<LeaderboardBrowser initial={{ tcg: page, genesys: live('genesys', 'Live two') }} past={{ tcg: [], genesys: [] }} />)
+
+  expect(screen.getByRole('img', { name: 'Up 2 places today' })).toBeTruthy()
+  expect(screen.getByRole('img', { name: 'Down 1 place today' })).toBeTruthy()
+  expect(screen.getByRole('img', { name: 'Up 3 places today' })).toBeTruthy()
+  expect(screen.getAllByRole('img', { name: /places? today/ })).toHaveLength(3)
+})

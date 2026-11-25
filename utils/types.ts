@@ -896,6 +896,10 @@ export type LeaderboardEntry = {
   wins: number
   loses: number
   draws: number
+  /** Live leaderboard only: rank at the day's first sync, `null` if not listed then. */
+  previousRank?: number | null
+  /** `previousRank - rank`: positive = climbed. `null` with `previousRank`. */
+  rankChange?: number | null
 }
 
 export type LeaderboardPage = {
