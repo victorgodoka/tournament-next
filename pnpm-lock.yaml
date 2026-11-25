@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@omega-hub/ds':
-        specifier: 0.2.0
-        version: 0.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.2)
+        specifier: 0.3.0
+        version: 0.3.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.2)
       highlight.js:
         specifier: ^11.12.0
         version: 11.12.0
@@ -691,8 +691,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@omega-hub/ds@0.2.0':
-    resolution: {integrity: sha512-8Xr5z9wd5TMvF7CgKh08iWQd3HNCYLBSe2D7gOYygLqNwSBJ8YhwQpinQ0rmBZiiElFgHK9EFFTF8Tg2OtSvNw==}
+  '@omega-hub/ds@0.3.0':
+    resolution: {integrity: sha512-cag9FRBbi5Cwokx8DlfQxc9QPHPWWhjwLKBewk1XZRM3CzH+FS+klgdFy4TIQZelC29uQeVtnyJik8eCOhCWZw==}
     engines: {node: '>=20'}
     peerDependencies:
       react: ^18.3.0 || ^19.0.0
@@ -3693,7 +3693,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@omega-hub/ds@0.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.2)':
+  '@omega-hub/ds@0.3.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.2)':
     dependencies:
       clsx: 2.1.1
       react: 19.2.4
