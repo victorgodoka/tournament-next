@@ -258,7 +258,7 @@
 
 /* next/font hashes family names, so every fallback goes through its variable too. */
 @theme inline {
-  --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;
+  --font-display: var(--font-figtree), system-ui, -apple-system, sans-serif;
   --font-sans: var(--font-figtree), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, monospace;
   --font-brand: var(--font-michroma), "Eurostile Extended", sans-serif;
@@ -393,33 +393,33 @@
 /* Named type styles sit below utilities, so text-*, leading-*, tracking-* on the same element win. */
 @layer components {
 
-  /* ---- Display: Anton, one weight. Only a short hero line and figures (Elo, rank, score): never a sentence. ---- */
+  /* ---- Display: Figtree ExtraBold, as written (Title Case in the copy, matching the forum). Short hero lines and figures (rating, rank, score). ---- */
   .display-hero,
   .stat-lg,
   .stat,
   .display-5,
   .dock-title {
     font-family: var(--font-display);
-    font-weight: 400;
-    text-transform: uppercase;
+    font-weight: 800;
+    text-transform: none;
   }
 
   /* One per page, a handful of words. Callers may size it down, never past 96px. */
   .display-hero {
-    font-size: 72px;
-    line-height: 1;
-    letter-spacing: 0.02em;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
   .stat-lg {
-    font-size: 40px;
+    font-size: 36px;
     line-height: 1;
-    letter-spacing: 0.02em;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Numbers in rows (Elo, rank, score); legacy display-5 sits on the same step. */
+  /* Numbers in rows (rating, rank, score); legacy display-5 sits on the same step. */
   .stat,
   .display-5 {
     font-size: 24px;

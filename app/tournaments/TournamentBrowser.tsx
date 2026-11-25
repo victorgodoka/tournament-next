@@ -100,7 +100,7 @@ const LiveBanner = ({ detail, now }: { detail: TournamentDetail; now: string }) 
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
-            <h2 className="text-ink display-hero text-[clamp(40px,6vw,64px)]">
+            <h2 className="text-ink display-hero text-[clamp(30px,4vw,48px)]">
               {current ? tl('round', { round: current.number, rounds: tournament.rounds }) : banlistLabel(tournament)}
             </h2>
             <p className="m-0 text-ink-dim body">

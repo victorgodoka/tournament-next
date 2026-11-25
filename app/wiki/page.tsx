@@ -234,7 +234,7 @@ const WikiPage = async ({ searchParams }: WikiRouteProps) => {
                 ) : null}
               </div>
 
-              <h1 className="text-5xl/none text-ink display-hero sm:text-[72px]">Omega Wiki</h1>
+              <h1 className="text-4xl/none text-ink display-hero sm:text-[56px]">Omega Wiki</h1>
               <p className="max-w-140 text-base/[26px] text-ink-dim sm:text-lg/7">
                 Formats, banlists, rulings and the client itself, explained by the people who script them.
               </p>

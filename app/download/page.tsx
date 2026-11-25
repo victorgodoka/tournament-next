@@ -36,7 +36,7 @@ const Hero = () => {
           <span aria-hidden className="size-2 bg-gold" />
           Duelists Unite
         </span>
-        <h1 className="text-[clamp(48px,8vw,96px)] text-ink display-hero">Download YGO Omega</h1>
+        <h1 className="text-[clamp(36px,5vw,60px)] text-ink display-hero">Download YGO Omega</h1>
         <p className="max-w-110 text-ink-dim lead">{t('lead')}</p>
         <Button href="https://github.com/duelists-unite" size="signal" className="self-start">
           {t('github')} <Icon name="arrow" />
