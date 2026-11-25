@@ -1,19 +1,21 @@
 # Wiki em blocos — contrato front ↔ back
 
-> **Para quem é:** quem vai adaptar o `omega-server-v3` (módulo `wiki`) para aceitar artigos em blocos.
-> **Fonte da verdade no front:** `utils/wiki-doc.ts` (tipos, limites, validação). Este documento descreve o mesmo contrato em prosa; se os dois divergirem, o código ganha e este arquivo está desatualizado.
+> **Para quem é:** quem mexe no editor e na página de artigo do front.
+> **Contrato com o back:** [`WIKI_API.md`](../../omega-server-v3/docs/front/WIKI_API.md) no `omega-server-v3` (§5 documento, §5.6 SEO, §6 Markdown). O servidor já aceita blocos, SEO, FAQ, hub e relacionados. Este arquivo explica como o front usa esse contrato e guarda o raciocínio por trás dele.
+> **Fonte da verdade no front:** `utils/wiki-doc.ts` (tipos, limites, validação). Se este documento divergir do código, o código ganha. Os blocos `statistics-deck` e `article-preview` estão em [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md).
 
 ---
 
 ## 0. Resumo em 30 segundos
 
-- Um artigo deixa de ser um Markdown só e passa a ser um **documento JSON** (`WikiDoc`): título, resumo, tags, capa, infobox, uma **lista ordenada de blocos** e uma **biblioteca de imagens**.
+- Um artigo deixa de ser um Markdown só e passa a ser um **documento JSON** (`WikiDoc`): título, resumo, tags, capa, infobox, uma **lista ordenada de blocos**, uma **biblioteca de imagens** e, opcionalmente, SEO, hub e artigos relacionados.
 - O editor (`/wiki/new`) monta esse JSON com drag & drop. O front **manda o JSON inteiro**; o back **valida, guarda e devolve o mesmo JSON**.
 - A página pública renderiza **só** a partir do JSON. Mesmo JSON ⇒ mesma página, pixel a pixel. Não existe estado de layout fora dele.
 - O Markdown não sumiu: ele vive **dentro** dos blocos `text` e `callout`, com as mesmas regras de hoje (sem HTML cru, links só `http(s)` ou caminho interno).
 - Artigos antigos (só `body`) continuam funcionando: `doc: null` ⇒ o front usa o renderer de Markdown de sempre. O `/edit` deles tem um botão que converte para blocos no navegador (§10.1).
-- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `statistics-deck`, `article-preview`, `callout`, `quote`, `code`, `video`, `faq`. Os dois novos blocos e o atalho `[article=slug]` estão em [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md).
+- Blocos: `text`, `heading`, `figure`, `gallery`, `cards`, `statistics-deck`, `article-preview`, `callout`, `quote`, `code`, `video`, `faq`. `statistics-deck`, `article-preview` e o atalho `[article=slug]` estão em [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md).
 - O rascunho automático fica no navegador e não exige nada do back (§10.2).
+- Dados que o doc não carrega: tópico do índice (`utils/wiki-topics.ts`), curtidas, visualizações e comentários (`/wiki/{slug}/social`, `components/omega/wiki/comments.tsx`).
 
 ---
 
@@ -117,13 +119,17 @@ type WikiDoc = {
   summary: string                   // 0–300, texto puro
   cover?: { asset: string }         // id na biblioteca
   infobox?: {
-    asset?: string                  // id na biblioteca
+    asset?: string                  // id na biblioteca; exclusivo com statisticsDeck
+    statisticsDeck?: WikiStatisticsDeck   // ver WIKI_EDITOR_BLOCKS.md
     caption?: string                // ≤ 300
     facts: { label: string; value: string }[]   // 0–16, ambos não vazios, ≤ 300 cada
   }
   tags: string[]                    // 0–8, cada uma /^[a-z0-9]+(-[a-z0-9]+)*$/, ≤ 24
   blocks: WikiBlock[]               // 1–200, ordem = ordem na página
   assets: Record<string, WikiAsset> // 0–100, chave === asset.id
+  seo?: WikiSeo                     // §3.2
+  hub?: string                      // slug do artigo-hub: breadcrumb e lista do hub
+  related?: string[]                // 0–6 slugs, sem repetição: "Read next"
 }
 ```
 
@@ -149,13 +155,34 @@ type WikiAsset = {
 
 | Padrão | Uso |
 |---|---|
-| `/qualquer/caminho` (começa com uma `/`, não `//`) | arquivos em `public/` do front |
-| `https://ygopro.online/assets/card-arts/{passcode}.jpg` | arte de carta |
+| `/caminho/arquivo.{png,jpg,jpeg,webp,avif,gif}` (começa com uma `/`, não `//`, sem `?` nem `#`) | arquivos em `public/` do front. Uma rota do site não é arquivo: o otimizador de imagem a executaria para cada leitor (a infográfica leva ~33 s em produção) |
+| `https://ygopro.online/assets/card-arts/…` | arte de carta |
 | `{S3_PUBLIC_URL}/wiki_assets/{id}` | uploads da wiki (§4). O servidor exige **a própria** base (`S3_PUBLIC_URL`, no front `NEXT_PUBLIC_UPLOADS_URL`) e a pasta `wiki_assets/` |
 
 `width`/`height` existem para a página reservar o espaço certo antes da imagem chegar (zero layout shift). Para uploads, o servidor preenche com o que leu do próprio arquivo; para arte de carta é `624×624`; para caminhos locais o editor mede no navegador.
 
 Ids que o editor gera: `card-{passcode}` para artes, `img-{8 hex}` para caminhos locais. Uploads recebem o id que o servidor devolver.
+
+`credit` tem três sugestões prontas (`WIKI_CREDITS`): Duelists Unite, a linha do mangá e a da série. Qualquer outro crédito se digita.
+
+### 3.2 `seo`, `hub` e `related`
+
+Todas as chaves de `seo` são opcionais e `""` conta como ausente. O servidor monta o `<head>` publicado a partir delas (`WIKI_API.md` §5.6); o front só edita e confere.
+
+| Campo | Regra |
+|---|---|
+| `seo.title` | ≤ 70, texto puro. Sem ele vale `doc.title` |
+| `seo.description` | ≤ 160, texto puro. Sem ela vale `doc.summary` |
+| `seo.keyword` | ≤ 60. Palavra-chave de foco: o doc guarda, o `<head>` não a publica, mas o doc é público |
+| `seo.keywords` | ≤ 5, cada uma 1–60, sem repetição (maiúsculas não contam) |
+| `seo.image` | id na biblioteca, no mínimo 1200×630. Sem ele vale a capa, depois a imagem do infobox |
+| `seo.noindex` | rascunho já sai `noindex`, com ou sem a marca |
+| `seo.canonical` | `/caminho` ou `https://…`, ≤ 500, sem espaços |
+| `seo.schema` | `Article` (padrão), `HowTo`, `DefinedTerm` ou `CollectionPage` |
+| `hub` | slug do hub, ≤ 80 |
+| `related` | até 6 slugs |
+
+O servidor confere que `hub` e `related` apontam para artigos que existem. A aba SEO do editor (`SeoTab.tsx`, `SeoRail.tsx`, regras em `utils/wiki-seo.ts`) mostra a prévia da busca e uma lista de checagens (`fix`, `warn`, `pass`). A caixa de publicação (`PublishDialog.tsx`) separa o que o servidor recusa (`validateDoc` e o endereço, que desligam o botão) do que só prejudica o ranking. Essas checagens orientam quem edita; só `validateDoc` bloqueia um salvamento.
 
 ---
 
@@ -249,6 +276,8 @@ O front roda `validateDoc` antes de salvar, mas isso é só para mensagens legí
 | `assets` | 0–100; chave === `asset.id` |
 | textos curtos (`caption`, `title` de callout, `text`/`cite` de quote, `label`/`value` de fact, `credit`) | ≤ 300, sem HTML |
 | Markdown (`md` de text/callout) | 1–20 000, **mesmas regras do `validateBody` atual**: sem HTML cru e todo link passa em `safeLink` |
+| resposta de FAQ (`items[].md`) | 1–5 000, mesmas regras de Markdown |
+| `seo`, `hub`, `related` | §3.2 |
 
 ### 5.3 Referências
 
@@ -263,13 +292,16 @@ O front roda `validateDoc` antes de salvar, mas isso é só para mensagens legí
 |---|---|---|
 | `text` | `md` | Markdown, §5.2 |
 | `heading` | `level: 2 \| 3`, `text`, `anchor` | `text` 1–300; `anchor` único |
-| `figure` | `asset`, `align: 'left' \| 'right' \| 'center' \| 'wide'`, `caption?` | `asset` existe |
+| `figure` | `asset`, `align: 'left' \| 'right' \| 'center' \| 'wide'`, `caption?`, `mobileAsset?`, `share?` | `asset` e `mobileAsset` existem na biblioteca. `mobileAsset` substitui `asset` abaixo de 640px. `share: true` põe botões de compartilhar sobre a imagem, apontando para esta figura |
 | `gallery` | `layout: 'grid' \| 'masonry' \| 'strip'`, `assets: string[]`, `caption?` | 2–24 ids, todos existem; ordem = ordem de exibição |
-| `cards` | `cards: { id, name, note? }[]`, `caption?` | 1–12 cartas; `name` 1–300 |
+| `cards` | `cards: { id, name, note? }[]`, `perRow?`, `align?: 'left' \| 'center' \| 'right'`, `caption?` | 1–12 cartas; `name` 1–300; `perRow` 2–6 a partir de 640px (ausente = 4; celular mostra 2); `align` posiciona a última linha incompleta (ausente = `left`) |
+| `statistics-deck` | `deck: { key, name, ladder, faces }`, `caption?` | ver [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md) |
+| `article-preview` | `slug` | ver [WIKI_EDITOR_BLOCKS.md](./WIKI_EDITOR_BLOCKS.md) |
 | `callout` | `tone: 'gold' \| 'cyan' \| 'negative'`, `title?`, `md` | Markdown, §5.2 |
 | `quote` | `text`, `cite?` | `text` 1–300 |
 | `code` | `lang: 'bash' \| 'powershell' \| 'cmd' \| 'json' \| 'lua' \| 'sql' \| 'text'`, `code`, `caption?` | `code` 1–20 000, texto literal: `<` e crases são permitidos, nada ali é Markdown nem HTML |
-| `video` | `videoId`, `title`, `start?`, `caption?` | `videoId` `^[A-Za-z0-9_-]{11}$` (só YouTube); `title` 1–300 (é o nome acessível do player); `start` inteiro ≥ 0, em segundos |
+| `video` | `videoId`, `title`, `start?`, `caption?`, `uploadDate?` | `videoId` `^[A-Za-z0-9_-]{11}$` (só YouTube); `title` 1–300 (é o nome acessível do player); `start` inteiro ≥ 0, em segundos; `uploadDate` `YYYY-MM-DD`, dia real entre 2005-04-23 e hoje (UTC, um dia de folga). Sem ela o servidor não gera o resultado rico de vídeo |
+| `faq` | `items: { q, md }[]` | 1–20 itens; `q` texto puro 1–300; `md` Markdown 1–5 000. O servidor junta todos os blocos FAQ do artigo num único `FAQPage` |
 
 **Sobre o `video`:** o doc guarda só o **id**, nunca a URL. O editor aceita qualquer link (`watch?v=`, `youtu.be/`, `shorts/`, `embed/`, com `t=1m30s` ou `start=90`) e extrai id e início com `parseYouTube`. A página mostra a miniatura (`i.ytimg.com/vi/{id}/hqdefault.jpg`) e só cria o iframe `youtube-nocookie.com/embed/{id}` quando o leitor aperta play. Até esse clique, nada de script, cookie ou player do YouTube carrega. Se um dia houver CSP, ela precisa liberar `frame-src https://www.youtube-nocookie.com` e `img-src https://i.ytimg.com`.
 
@@ -284,11 +316,12 @@ Exemplo de cada um:
   { "id": "b5", "type": "cards", "cards": [{ "id": 26077387, "name": "Sky Striker Ace - Raye", "note": "Main Deck" }] },
   { "id": "b6", "type": "callout", "tone": "gold", "title": "Rule to remember", "md": "Links sit in the **Extra** Monster Zone." },
   { "id": "b7", "type": "quote", "text": "You play the card your opponent just did.", "cite": "Omega community" },
-  { "id": "b8", "type": "video", "videoId": "fzwWvs-6FEs", "title": "Sky Striker Deck Profile", "start": 90, "caption": "Deck profile" }
+  { "id": "b8", "type": "video", "videoId": "fzwWvs-6FEs", "title": "Sky Striker Deck Profile", "start": 90, "caption": "Deck profile", "uploadDate": "2024-05-01" },
+  { "id": "b9", "type": "faq", "items": [{ "q": "How many Engage?", "md": "Three, **always**." }] }
 ]
 ```
 
-`scripts/check-wiki-doc.ts` tem as asserções que o validador do back deve reproduzir (âncora repetida, imagem inexistente, host estranho, alt vazio e vídeo sem id/título recusados; conversão de Markdown gera um doc válido).
+`utils/wiki-doc.test.ts` testa a allowlist de `src` (`isAllowedSrc`) e `renderDocHtml`. **Nenhum teste cobre `validateDoc` nem `docFromMarkdown`** (âncora repetida, imagem inexistente, alt vazio, vídeo sem id ou título e a conversão de Markdown). O script `scripts/check-wiki-doc.ts`, que fazia essas asserções, foi removido. `scripts/wiki-tier-list.ts` chama `validateDoc` e recusa gravar um doc inválido, mas isso não substitui testes.
 
 ### 5.5 O que **não** é validado
 
@@ -390,19 +423,11 @@ Isso protege contra aba fechada, crash e sessão expirada, mas não sincroniza e
 
 ---
 
-## 11. Checklist do backend
+## 11. Estado do back
 
-- [ ] `wiki.validation.ts`: `validateDoc(value)` estrito (§5), reutilizando `validateBody`/`safeLink` para cada Markdown.
-- [ ] `POST /wiki`: aceitar `{ doc, slug?, published? }`; derivar `title`/`body` (§6); `400` se vier `doc` + `body`.
-- [ ] `PATCH /wiki/{slug}`: aceitar `doc`; substituir inteiro; `400` para `title`/`body` em artigo com `doc`.
-- [ ] `GET /wiki/{slug}` e revisões: incluir `doc`.
-- [ ] Restore: restaurar `doc` junto.
-- [ ] Migração SQL (§7).
-- [ ] `POST /wiki/assets/sign` e `POST /wiki/assets` (§4), reaproveitando `storage.ts` com pasta `wiki_assets/`.
-- [ ] Bloco `video` no validador (§5.4): id de 11 caracteres, `title` obrigatório, `start` inteiro ≥ 0.
-- [ ] Testes: os casos recusados de `scripts/check-wiki-doc.ts` dão `400`.
-- [ ] (Opcional) Backfill ou restore convertendo Markdown com as regras de §10.1.
-- [ ] Atualizar `docs/front/WIKI_API.md` (§4.2, §4.6, §4.7 e seção nova de assets).
+O `omega-server-v3` já implementa tudo o que este contrato pede: `validateDoc` estrito (`wiki.doc.ts`), `doc` em criação, edição, leitura e revisões, restauração exata, a migração SQL, o fluxo de upload em duas chamadas, o bloco `video`, o bloco `faq`, `seo`, `hub` e `related`, mais curtidas, visualizações e comentários. A lista de endpoints, os códigos de erro e as sequências de chamada ficam em `omega-server-v3/docs/front/WIKI_API.md`. Mantenha um bloco novo ali primeiro: o servidor recusa `type` desconhecido.
+
+Falta o backfill opcional que converte artigos legados com as regras de §10.1. Hoje a conversão só acontece quando alguém aperta **Convert to blocks**.
 
 ---
 
@@ -410,18 +435,28 @@ Isso protege contra aba fechada, crash e sessão expirada, mas não sincroniza e
 
 | Arquivo | Papel |
 |---|---|
-| `utils/wiki-doc.ts` | Tipos, `DOC_LIMITS`, `BLOCK_CATALOG`, `validateDoc`, `renderDocHtml`, `imageSource`, allowlist, `parseYouTube`, `docFromMarkdown` |
-| `utils/articles.ts` | `createArticle`/`updateArticle` (aceitam doc), `uploadWikiAsset` (fluxo §4) |
+| `utils/wiki-doc.ts` | Tipos, `DOC_LIMITS`, `BLOCK_CATALOG`, `emptyBlock`, `validateDoc`, `renderDocHtml`, allowlist de `src` (`isAllowedSrc`), `parseYouTube`, `docFromMarkdown`, `shareCrop` |
+| `utils/wiki-seo.ts` | Checagens de SEO (`seoChecks`, `seoScore`), título e descrição como a busca os mostra |
+| `utils/wiki-topics.ts` | Os quatro tópicos do índice e a regra que classifica cada artigo |
+| `utils/wiki-statistics-deck.ts`, `utils/wiki-article-preview.ts` | Dados dos blocos `statistics-deck` e `article-preview` |
+| `utils/articles.ts` | `createArticle`/`updateArticle` (aceitam doc), `uploadWikiAsset` (fluxo §4), editores, curtidas e comentários |
 | `utils/types.ts` | `Article.doc`, `DocArticleDraft`, `DocArticlePatch` |
 | `components/omega/wiki/article-view.tsx` | A página inteira a partir de um doc (capa, blocos, infobox, sumário) |
 | `components/omega/wiki/blocks.tsx` | Um `case` por tipo de bloco |
 | `components/omega/wiki/lightbox.tsx` | Galeria + visualizador (`<dialog>` nativo) |
 | `components/omega/wiki/video.tsx` | YouTube que só carrega no play |
-| `app/wiki/editor/DocEditor.tsx` | Editor: paleta, drag & drop, página, preview, JSON, rascunho local, salvar |
+| `components/omega/wiki/code-block.tsx` | Bloco de código com cores por linguagem |
+| `components/omega/wiki/statistics-deck.tsx`, `article-preview.tsx` | Renderização dos dois blocos de WIKI_EDITOR_BLOCKS.md |
+| `components/omega/wiki/comments.tsx`, `share-buttons.tsx` | Comentários e botões de compartilhar |
+| `app/wiki/page.tsx`, `app/wiki/ad-breaks.ts` | Índice com filtro por tópico; `adAfter` põe um banner a cada 12 linhas, nunca depois da última |
+| `app/wiki/editor/DocEditor.tsx` | Editor: abas Outline e Add block, drag & drop, página, preview, JSON, rascunho local, salvar |
+| `app/wiki/editor/SeoTab.tsx`, `SeoRail.tsx`, `PublishDialog.tsx` | Aba SEO, prévia da busca e confirmação de publicação |
+| `app/wiki/editor/HistoryRail.tsx` | Revisões e restauração dentro do editor |
 | `app/wiki/editor/LegacyEditor.tsx` | Formulário Markdown antigo + botão "Convert to blocks" |
-| `app/wiki/editor/fields.tsx` | Campos de cada bloco |
+| `app/wiki/editor/fields.tsx` | Campos de cada bloco e `blockSummary` |
 | `app/wiki/editor/AssetLibrary.tsx` | Biblioteca: upload, arte por passcode, caminho local, alt, crédito, ponto focal |
-| `scripts/check-wiki-doc.ts` | Auto-checagem do contrato (`npx tsx --tsconfig tsconfig.json scripts/check-wiki-doc.ts`) |
+| `app/wiki/panel/` | Painel de editores (promover e rebaixar) |
+| `scripts/wiki-tier-list.ts` | Gera as páginas semanais em `docs/wiki-pages/` (`pnpm tierlist`) |
 
 ### Adicionar um bloco novo (receita)
 

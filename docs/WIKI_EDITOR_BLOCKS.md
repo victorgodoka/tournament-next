@@ -78,6 +78,21 @@ costs no API read on most views and an unpublished article drops out within that
 the editor always reads fresh. Cover URLs must match
 the wiki's image sources. Metadata fetching does not recursively visit article links.
 
+## Markdown in text, callouts, FAQ answers and legacy bodies
+
+One pipeline (`renderArticle` in `utils/remark.ts`) renders all four: CommonMark with GitHub extras
+(tables, task lists, footnotes), a single newline as a line break, and `rehype-sanitize` on the output.
+The server rejects raw HTML and any link that is not `http(s)`, an internal path or `#anchor`
+(`WIKI_API.md` §6). Three extensions sit on top:
+
+| Syntax | Result |
+|---|---|
+| `[card:26077387]` | The card's name as a link to `/wiki/card/26077387`, with its frame glyph. One lookup per page covers every tag, link and Cards block. |
+| `[article=article-slug]` | An Article Preview card, in plain paragraph text only (see above). |
+| `[text]{#4fdc8c}` | Coloured text. Bold or a link may sit inside the brackets. An unmatched one stays as typed. |
+
+The text toolbar in the editor inserts the first two; the help line under the field lists all three.
+
 ## Contract and release order
 
 Both types extend the v1 document contract. Existing v1 documents remain valid. The
