@@ -26,7 +26,7 @@ const DAY_MONTH: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
 const openOf = (ladder: Ladder) => (ladder.played ? ladder.seasons.find((s) => s.open) : undefined)
 
 const eloStat = (ladder: Ladder): Stat => {
-  const label = `${ladder.format} Glicko-2`
+  const label = `${ladder.format} rating`
   if (!ladder.played) return { label, value: '—', hint: 'Not played yet' }
   if (ladder.eloHidden || ladder.elo == null) return { label, value: '—', hint: 'Hidden' }
   const rank = openOf(ladder)?.rank
@@ -210,7 +210,7 @@ const ProfileBody = ({ profile, asVisitor }: { profile: Profile; asVisitor: bool
       {header}
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
-          <Rail num={ranked} label="Ranked ladders" stamp="Glicko-2 live · rank from last sync" />
+          <Rail num={ranked} label="Ranked ladders" stamp="Rating live · rank from last sync" />
           <VipLadders ladders={profile.ladders} currentSeasons={profile.currentSeasons} first={first} charts={view.charts} />
           <Rail num={duels} label="Duel history" stamp="Ranked only" className="mt-4" />
           {history}

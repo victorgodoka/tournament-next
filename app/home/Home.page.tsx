@@ -135,7 +135,7 @@ const Hero = ({ ranked }: { ranked: Ranked }) => (
       <div className="flex flex-wrap items-end justify-between gap-x-16 gap-y-10">
         <div className="flex max-w-155 flex-[1_1_380px] flex-col gap-7">
           <p className={twMerge(BAND_LEAD, "max-w-[56ch]")}>
-            Official TCG and OCG rulings, every card unlocked, Glicko-2 ranking, and Swiss tournaments. No install beyond the launcher. Free.
+            Official TCG and OCG rulings, every card unlocked, ranked ladders, and Swiss tournaments. No install beyond the launcher. Free.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <Download size="lg" />
@@ -200,7 +200,7 @@ const ValueCards = () => (
     <li className={twMerge(VALUE_CARD, "hover:[--edge:var(--color-cyan)]")}>
       <CardGlow tone="bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-cyan)_18%,transparent)_0%,rgba(0,0,0,0)_65%)]" />
       <div className="relative flex items-end justify-between gap-6">
-        <p className="font-display text-[clamp(44px,5.6vw,72px)] leading-[0.9] text-cyan">Glicko-2</p>
+        <p className="font-display text-[clamp(44px,5.6vw,72px)] leading-[0.9] text-cyan">Ranked</p>
         <span aria-hidden className="flex flex-col items-end gap-1.5">
           <span className="text-ink-muted signal-sm">Rating</span>
           <span className="elo-count animate-count font-mono text-[clamp(28px,3vw,40px)] leading-none font-bold text-ink" />
@@ -287,7 +287,7 @@ const Tournaments = () => (
               <Icon name="calendar" />
               See the calendar
             </Button>
-            <span className={NOTE}>Free entry. Counts toward Glicko-2.</span>
+            <span className={NOTE}>Free entry. Counts toward your rating.</span>
           </div>
         </div>
       </div>
@@ -486,7 +486,7 @@ const Modes = () => (
     <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
       <h2 className={twMerge(BAND_TITLE, "max-w-[14ch] flex-[1_1_560px]")}>Automatic and manual, in the same client</h2>
       <p className={twMerge(BAND_LEAD, "max-w-[44ch] flex-[1_1_320px]")}>
-        Nobody has to pick a platform. Practice a physical tournament by hand on Monday, climb the Glicko-2 ladder on the engine on Tuesday, keep one install.
+        Nobody has to pick a platform. Practice a physical tournament by hand on Monday, climb the ranked ladder on the engine on Tuesday, keep one install.
       </p>
     </div>
     <div className="flex flex-wrap gap-px border border-line-strong bg-line-strong">

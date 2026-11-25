@@ -3,14 +3,14 @@ import { SITE_URL } from '@utils/config'
 /** https://llmstxt.org: what the site is and where its pages are, for language models. Static at build. */
 const LLMS = `# YGO Omega
 
-> Free Yu-Gi-Oh! simulator by Duelists Unite: every card unlocked, Bo3 ranked with Glicko-2, automatic Swiss tournaments, and TCG, OCG, GOAT and Edison formats. Runs on Windows, macOS, Linux, Android and iOS.
+> Free Yu-Gi-Oh! simulator by Duelists Unite: every card unlocked, Bo3 ranked ladders, automatic Swiss tournaments, and TCG, OCG, GOAT and Edison formats. Runs on Windows, macOS, Linux, Android and iOS.
 
 ## Pages
 
 - [Download](${SITE_URL}/download): the free launcher
 - [Tournaments](${SITE_URL}/tournaments): automatic Swiss tournaments, open and finished
 - [Calendar](${SITE_URL}/calendar): upcoming tournaments
-- [Leaderboard](${SITE_URL}/leaderboard): Glicko-2 ranking
+- [Leaderboard](${SITE_URL}/leaderboard): ranked ladders
 - [Deck Builder](${SITE_URL}/deck-builder): build and check decks against the TCG, OCG and Genesys lists
 - [Banlist](${SITE_URL}/banlist): the current TCG Forbidden & Limited list and what changed on it
 - [Banlist timeline](${SITE_URL}/banlist-timeline): every Forbidden & Limited list and each card's history

@@ -175,7 +175,7 @@ The identity header and `relation` are always sent, so a private page can still 
 | `matches` | Match[] | Newest first, up to `limit`, inside this viewer's history window (§6). Only the ladder in `ladder`, when given. **Absent** when a VIP hides the history from this viewer (`view.matches: false`). §4.3. |
 | `nextCursor` | string \| null | Pass to `/matches` to load older duels. `null` = no more (including "the window ends here"). Absent together with `matches`. |
 | `events` | TimelineEvent[] | Events in the time span of this page of duels, newest first. **Present only when `view.events` is `true`** (VIP profile with the history visible). §4.12. |
-| `eloDays` | EloDay[] | Glicko-2 rating change per day and ladder in the time span of this page. Present only when `view.events` and `view.charts` are `true`. §4.12. |
+| `eloDays` | EloDay[] | Rating change per day and ladder in the time span of this page. Present only when `view.events` and `view.charts` are `true`. §4.12. |
 
 **Present only when the viewer is the owner:**
 
@@ -480,7 +480,7 @@ rating is reset together with the rollover. Nothing in the response tells the
 client a rollover happened — don't cache a ladder card across a long-lived
 session.
 
-| Tier | Glicko-2 rating |
+| Tier | Rating |
 |---|---|
 | `Iron` | below 50 (including negatives) |
 | `Bronze` | 50 – 199 |
@@ -533,7 +533,7 @@ MatchSide:
 | `deckHidden` | `true` | `self` only. The VIP hides their decks from this viewer: `deck` is `null` and `cards` is `[]`. Show a "hidden deck" placeholder. |
 | `cosmetics` | object | That duelist's equipped `avatar` items (frame), slot → item. `{}` when nothing is equipped. Present on both sides, in the profile's `matches` and in `/matches`. |
 
-Per-duel Glicko-2 rating change isn't available.
+Per-duel rating change isn't available.
 
 ### 4.4 CardArt
 
@@ -785,7 +785,7 @@ server applies them; `view` (§4.10) reports the result.
 
 | | Non-VIP | VIP — visitors | VIP — the owner |
 |---|---|---|---|
-| Ladder data (TCG, Genesys) and tournaments | Always shown | The Glicko-2 rating can be hidden per ladder; past seasons can be hidden | Everything |
+| Ladder data (TCG, Genesys) and tournaments | Always shown | The rating can be hidden per ladder; past seasons can be hidden | Everything |
 | Match history | Always shown | Can be hidden | Everything |
 | History window | Last **14 days**, fixed | 7 / 14 / 28 days or the whole season | No limit |
 | 24 h delay | No | Optional | No |

@@ -92,7 +92,7 @@ const VipLadder = ({ ladder, first, charts, main }: LadderProps) => {
       <span className={twMerge('font-display leading-[0.9] text-ink tabular-nums', main ? 'text-[72px] max-md:text-[56px]' : 'text-[56px] max-md:text-[44px]')}>{formatNumber(season.elo)}</span>
       <div className="flex flex-col gap-2 pb-1">
         {season.tier ? <TierBadge tier={season.tier} size={main ? 'lg' : 'md'} /> : null}
-        {main ? <span className={CAPTION}>{season.open ? 'Glicko-2 · live' : 'Final Glicko-2'}</span> : null}
+        {main ? <span className={CAPTION}>{season.open ? 'Rating · live' : 'Final rating'}</span> : null}
       </div>
     </div>
   ) : null
@@ -124,10 +124,10 @@ const VipLadder = ({ ladder, first, charts, main }: LadderProps) => {
 
       {chart ? (
         <LineChart
-          title="Glicko-2 this season"
+          title="Rating this season"
           subtitle={`Daily sync · ${season.label}, day ${history.at(-1)?.seasonDay ?? 1}`}
           labels={points.map((p) => p.label)}
-          series={[{ name: `${ladder.format} Glicko-2`, data: points.map((p) => p.elo), color: ACCENT[ladder.format].line }]}
+          series={[{ name: `${ladder.format} rating`, data: points.map((p) => p.elo), color: ACCENT[ladder.format].line }]}
           format={formatNumber}
           height={main ? 200 : 140}
           area={main}
@@ -173,7 +173,7 @@ const PastSeasons = ({ ladders }: { ladders: Played[] }) => {
       <div className="flex flex-col gap-px border border-line bg-line">
         <div className={twMerge(GRID, 'bg-surface-200 max-md:hidden')}>
           <span className={CAPTION}>Ladder</span><span className={CAPTION}>Season</span><span className={CAPTION}>Rank</span>
-          <span className={CAPTION}>Tier</span><span className={twMerge(CAPTION, 'text-right')}>Glicko-2</span><span className={twMerge(CAPTION, 'text-right')}>Record</span>
+          <span className={CAPTION}>Tier</span><span className={twMerge(CAPTION, 'text-right')}>Rating</span><span className={twMerge(CAPTION, 'text-right')}>Record</span>
         </div>
         {rows.map(({ ladder, season }) => (
           <div key={season.code} className="bg-surface-100">

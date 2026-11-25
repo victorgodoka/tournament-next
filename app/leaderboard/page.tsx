@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
   title: 'Leaderboard',
   path: '/leaderboard',
   description:
-    'The TCG and Genesys ranked ladders of YGO Omega: Glicko-2 rating, tier, season record and win rate for every duelist.',
+    'The TCG and Genesys ranked ladders of YGO Omega: rating, tier, season record and win rate for every duelist.',
 })
 
 /** The page still renders with the API down; a `null` `syncedAt` tells the board the read failed. */
@@ -38,7 +38,7 @@ const LeaderboardPageRoute = async () => {
           <PageHeader
             eyebrow="Ranked"
             title="Leaderboard"
-            lead="The top duelists of each ranked ladder, by Glicko-2 rating. TCG and Genesys rank separately, each from its own number one."
+            lead="The top duelists of each ranked ladder, by rating. TCG and Genesys rank separately, each from its own number one."
           />
           <AdBanner id="ad-top" placement="content" />
           <LeaderboardBrowser initial={{ tcg, genesys }} past={{ tcg: pastTcg, genesys: pastGenesys }} />

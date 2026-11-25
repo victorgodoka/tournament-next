@@ -431,7 +431,7 @@ const RankedSection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPriv
     <Section id="ranked" num="06" label="Ranked">
       <VipLock vip={vip}>
         <Group>
-          <Setting title="Show TCG rating" hint="Hides the Glicko-2 rating, tier and rank for the TCG ladder. Your record stays visible.">
+          <Setting title="Show TCG rating" hint="Hides the rating, tier and rank for the TCG ladder. Your record stays visible.">
             <Toggle checked={tcg} onChange={(on) => setPrivacy({ hideElo: hideEloOf(on, genesys) })} label="Show TCG rating" />
           </Setting>
           <Setting title="Show Genesys rating" hint="Same for the Genesys ladder.">
@@ -440,7 +440,7 @@ const RankedSection = ({ privacy, setPrivacy, vip }: { privacy: Privacy; setPriv
           <Setting title="Show past seasons" hint="Final rank, tier and record of every closed season.">
             <Toggle checked={privacy.showPastSeasons} onChange={(on) => setPrivacy({ showPastSeasons: on })} label="Show past seasons" />
           </Setting>
-          <Setting title="Show charts" hint="Glicko-2 rating over the season, the daily rating change and your deck charts.">
+          <Setting title="Show charts" hint="Rating over the season, the daily rating change and your deck charts.">
             <Toggle checked={!privacy.hideCharts} onChange={(on) => setPrivacy({ hideCharts: !on })} label="Show charts" />
           </Setting>
         </Group>
