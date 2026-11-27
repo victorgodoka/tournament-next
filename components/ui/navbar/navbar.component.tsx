@@ -22,7 +22,7 @@ interface NavbarProps {
   cta?: React.ReactNode
 }
 
-/** The landing's extra link fits a signed-in bar under 1360px only with tighter cells. */
+/** A signed-in bar (and the landing's extra link) fits under 1360px only with tighter cells. */
 const DENSE_NAV = 'max-[1359px]:gap-0 max-[1359px]:[&>a]:px-2 max-[1359px]:[&>div>button]:px-2'
 
 /** `▾`, rotated when its menu is open. */
@@ -36,6 +36,19 @@ const isCurrent = (pathname: string, to: string) => pathname === to || (to !== '
 /** Whether any link under this entry is the page we are on, so a collapsed menu still lights up. */
 const isActive = (pathname: string, { to, children }: NavbarItem) =>
   to ? isCurrent(pathname, to) : !!children?.some((child) => isCurrent(pathname, child.to))
+
+/**
+ * Off-site links (the Duelists Unite tools) open in a new tab and carry an arrow saying so.
+ * `noopener` without `noreferrer`: Duelists Unite's analytics should see the visit came from here.
+ */
+const isExternal = (to: string) => /^https?:\/\//.test(to)
+const NEW_TAB = { target: '_blank', rel: 'noopener' } as const
+const ExternalMark = () => (
+  <>
+    <Icon name="external" size={14} className="shrink-0 text-ink-muted" />
+    <span className="sr-only">(opens in a new tab)</span>
+  </>
+)
 
 const Brand = () => (
   <Link href="/" aria-label="Omega Hub" className="flex shrink-0 items-center gap-2.5 text-ink wordmark text-[14px]">
@@ -84,7 +97,19 @@ const NavbarCell = ({ entry, pathname }: { entry: NavbarItem; pathname: string }
 
       {isOpen ? (
         <div role="menu" className={twMerge(PANEL, "left-0")}>
-          {entry.children?.map((child) => (
+          {entry.children?.map((child) => isExternal(child.to) ? (
+            <a
+              key={child.to}
+              href={child.to}
+              {...NEW_TAB}
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className={twMerge(PANEL_ITEM, "flex items-center justify-between gap-3")}
+            >
+              {child.item}
+              <ExternalMark />
+            </a>
+          ) : (
             <Link key={child.to} href={child.to} role="menuitem" onClick={() => setIsOpen(false)} className={PANEL_ITEM}>
               {child.item}
             </Link>
@@ -105,7 +130,12 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
   const pathname = usePathname()
   const close = () => drawer.current?.close()
 
-  const drawerLink = (key: string, to: string, label: string, current: boolean) => (
+  const drawerLink = (key: string, to: string, label: string, current: boolean) => isExternal(to) ? (
+    <a key={key} href={to} {...NEW_TAB} onClick={close} className={MOBILE_ITEM}>
+      {label}
+      <ExternalMark />
+    </a>
+  ) : (
     <Link
       key={key}
       href={to}
@@ -122,7 +152,7 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
     <>
       <Brand />
 
-      <nav aria-label="Main" className={twMerge("hidden items-stretch gap-1 xl:flex", items.length > NAVBAR_ITEMS.length && DENSE_NAV)}>
+      <nav aria-label="Main" className={twMerge("hidden items-stretch gap-1 xl:flex", DENSE_NAV)}>
         {items.map((entry) => (
           <NavbarCell key={entry.item} entry={entry} pathname={pathname} />
         ))}
@@ -160,16 +190,19 @@ export const Navbar = ({ items = NAVBAR_ITEMS, end, keep, drawerExtra, cta }: Na
         </div>
 
         <nav aria-label="Main" className="flex flex-col px-5 py-2">
-          {items.map((entry) =>
-            entry.to ? (
-              drawerLink(entry.item, entry.to, entry.item, isActive(pathname, entry))
-            ) : (
+          {items.map((entry) => {
+            if (entry.to) return drawerLink(entry.item, entry.to, entry.item, isActive(pathname, entry))
+            // Longest match only, so /simulator/combos doesn't also light up /simulator.
+            const current = entry.children
+              ?.filter((child) => isCurrent(pathname, child.to))
+              .reduce<string | undefined>((best, child) => (child.to.length > (best?.length ?? 0) ? child.to : best), undefined)
+            return (
               <div key={entry.item}>
                 <p className="pt-4 pb-2 text-ink-muted signal-sm">{entry.item}</p>
-                {entry.children?.map((child) => drawerLink(child.to, child.to, child.item, isCurrent(pathname, child.to)))}
+                {entry.children?.map((child) => drawerLink(child.to, child.to, child.item, child.to === current))}
               </div>
-            ),
-          )}
+            )
+          })}
         </nav>
 
         {drawerExtra ? <div className="flex flex-col gap-4 p-5">{drawerExtra}</div> : null}

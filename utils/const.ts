@@ -7,40 +7,45 @@ export type NavbarItem = {
   children?: { item: string; to: string }[]
 }
 
+// Ordered by GA4 traffic (Sep–Nov 2026). The logo is the home link; Duelists Unite's calculator replaces /calculator for now.
 const BASE_NAVBAR_ITEMS: NavbarItem[] = [
-  { item: "Home", to: "/" },
+  { item: "Leaderboard", to: "/leaderboard" },
   {
     item: "Compete",
     children: [
       { item: "Tournaments", to: "/tournaments" },
       { item: "Calendar", to: "/calendar" },
-      { item: "Leaderboard", to: "/leaderboard" },
+      { item: "Banlist timeline", to: "/banlist-timeline" },
+      { item: "Banlist", to: "/banlist" },
     ],
   },
   {
     item: "Decks",
     children: [
-      { item: "Deck Builder", to: "/deck-builder" },
       { item: "Public decks", to: "/decks" },
-      { item: "Combo Calculator", to: "/calculator" },
+      { item: "Deck Builder", to: "/deck-builder" },
       { item: "Combo Simulator", to: "/simulator" },
       { item: "Published combos", to: "/simulator/combos" },
     ],
   },
-  {
-    item: "Format",
-    children: [
-      { item: "Banlist", to: "/banlist" },
-      { item: "Banlist timeline", to: "/banlist-timeline" },
-    ],
-  },
   { item: "Statistics", to: "/statistics" },
   { item: "Wiki", to: "/wiki" },
+  {
+    item: "Tools",
+    children: [
+      { item: "Web Simulator", to: "https://duelistsunite.org/simulator/" },
+      { item: "Combo Calculator", to: "https://duelistsunite.org/combo/" },
+      { item: "Banlist Creator", to: "https://duelistsunite.org/banlist-creator/" },
+      { item: "Card Maker", to: "https://duelistsunite.org/card-creator/" },
+      { item: "Pack Opener", to: "https://duelistsunite.org/pack-opener/" },
+      { item: "Forum", to: "https://forum.duelistsunite.org/" },
+    ],
+  },
 ]
 
 export const HOME_NAVBAR_ITEMS: NavbarItem[] = [
   {
-    item: "About Omega", children: [
+    item: "About", children: [
       { item: "Our Simulator", to: '#top' },
       { item: "Why Omega?", to: '#why' },
       { item: "Our Tournaments", to: '#tournaments' },
@@ -89,7 +94,7 @@ export const FOOTER_GROUPS = [
     { item: "Home", to: "/" },
     { item: "Download", to: "/download" },
     { item: "Deck Builder", to: "/deck-builder" },
-    { item: "Combo Calculator", to: "/calculator" },
+    { item: "Combo Calculator", to: "https://duelistsunite.org/combo/" },
     { item: "Combo Simulator", to: "/simulator" },
   ] },
   { title: "Compete", links: [
